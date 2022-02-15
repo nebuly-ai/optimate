@@ -116,4 +116,7 @@ class TensorflowApacheTVMInferenceLearner(
 
 TVM_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[ApacheTVMInferenceLearner]
-] = {DeepLearningFramework.PYTORCH: PytorchApacheTVMInferenceLearner}
+] = {
+    DeepLearningFramework.PYTORCH: PytorchApacheTVMInferenceLearner,
+    DeepLearningFramework.TENSORFLOW: TensorflowApacheTVMInferenceLearner,
+}

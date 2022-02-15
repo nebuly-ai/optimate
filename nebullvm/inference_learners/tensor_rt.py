@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Union, Dict, Type
 
+import tensorflow as tf
 import torch
 
 from nebullvm.config import NVIDIA_FILENAMES
@@ -12,11 +13,13 @@ from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
+    TensorflowBaseInferenceLearner,
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
 
 if torch.cuda.is_available():
     import tensorrt as trt
+    import polygraphy
 
 
 @dataclass
@@ -150,6 +153,42 @@ class PytorchNvidiaInferenceLearner(
         return output_tensor.cpu()
 
 
+class TensorflowNvidiaInferenceLearner(
+    NvidiaInferenceLearner, TensorflowBaseInferenceLearner
+):
+    def _synchronize_stream(self):
+        self.cuda_stream.synchronize()
+
+    @staticmethod
+    def _get_default_cuda_stream() -> Any:
+        return polygraphy.Stream()
+
+    @property
+    def stream_ptr(self):
+        return self.cuda_stream.ptr
+
+    def predict(self, input_tensor: tf.Tensor) -> tf.Tensor:
+        output_size = (
+            self.network_parameters.batch_size,
+            *self.network_parameters.output_size,
+        )
+        input_array = input_tensor.numpy()
+        cuda_input_array = polygraphy.DeviceArray.copy_from(
+            input_array, stream=self.cuda_stream
+        )
+        cuda_output_array = polygraphy.DeviceArray(shape=output_size)
+        input_ptr = cuda_input_array.ptr
+        output_ptr = cuda_output_array.ptr
+        self._predict_tensor(input_ptr, output_ptr)
+        output_array = cuda_output_array.numpy()
+        cuda_input_array.free()
+        cuda_output_array.free()
+        return output_array
+
+
 NVIDIA_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[NvidiaInferenceLearner]
-] = {DeepLearningFramework.PYTORCH: PytorchNvidiaInferenceLearner}
+] = {
+    DeepLearningFramework.PYTORCH: PytorchNvidiaInferenceLearner,
+    DeepLearningFramework.TENSORFLOW: TensorflowNvidiaInferenceLearner,
+}

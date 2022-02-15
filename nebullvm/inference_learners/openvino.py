@@ -133,4 +133,7 @@ class TensorflowOpenVinoInferenceLearner(
 
 OPENVINO_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[OpenVinoInferenceLearner]
-] = {DeepLearningFramework.PYTORCH: PytorchOpenVinoInferenceLearner}
+] = {
+    DeepLearningFramework.PYTORCH: PytorchOpenVinoInferenceLearner,
+    DeepLearningFramework.TENSORFLOW: TensorflowOpenVinoInferenceLearner,
+}
