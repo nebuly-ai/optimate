@@ -12,8 +12,7 @@ def convert_torch_to_onnx(
 ):
     """Function importing a custom model in pytorch and converting it in ONNX
 
-    Parameters
-    ----------
+    Args:
         torch_model (Module): Pytorch model.
         input_size (Tuple[int]): Size of the input tensor.
             Should contain the batchsize as well.

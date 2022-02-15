@@ -12,6 +12,13 @@ def convert_tf_to_onnx(
     input_size: Tuple[int, ...],
     output_file_path: Union[str, Path],
 ):
+    """Convert TF models into ONNX.
+
+    Args:
+        model (tf.Module): TF model.
+        input_size (tuple): Size of the model's input tensors.
+        output_file_path (Path): Path where storing the output file.
+    """
     with TemporaryDirectory() as temp_dir:
         tf.saved_model.save(model, export_dir=temp_dir)
         onnx_cmd = (
@@ -27,6 +34,13 @@ def convert_keras_to_onnx(
     input_size: Tuple[int, ...],
     output_file_path: Union[str, Path],
 ):
+    """Convert keras models into ONNX.
+
+    Args:
+        model (tf.Module): keras model.
+        input_size (tuple): Size of the model's input tensors.
+        output_file_path (Path): Path where storing the output file.
+    """
     spec = (tf.TensorSpec(input_size, tf.float32, name="input"),)
     tf2onnx.convert.from_keras(
         model, input_signature=spec, opset=11, output_path=output_file_path

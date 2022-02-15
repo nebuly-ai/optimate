@@ -14,28 +14,82 @@ from nebullvm.config import LEARNER_METADATA_FILENAME
 
 @dataclass
 class BaseInferenceLearner(ABC):
+    """Base class for Inference Learners."""
+
     network_parameters: ModelParams
 
     def predict_from_file(self, input_file: str, output_file: str):
+        """Get a model prediction from file.
+
+        The input file is read, processed and a prediction is run on top of it.
+        The prediction is then returned into another file (in the same
+        directory of the input file itself).
+
+        Args:
+            input_file (str): Path to the input file.
+            output_file (str): Path to the file storing the prediction.
+        """
         inputs = self._read_file(input_file)
         pred = self.predict(**inputs)
         self._save_file(pred, output_file)
 
-    def predict_from_tensor(self, listified_tensor: List):
+    def predict_from_listified_tensor(self, listified_tensor: List):
+        """Predict from listified tensor.
+
+        Method useful to be used in services receiving the input tensor
+        from an HTTP call.
+
+        Args:
+            listified_tensor (List): List-like version of the input tensor.
+
+        Returns:
+            List: List-like prediction.
+        """
         inputs = self.list2tensor(listified_tensor)
         pred = self.predict(**inputs)
         return self.tensor2list(pred)
 
     def list2tensor(self, listified_tensor: List) -> Dict:
+        """Convert list to tensor.
+
+        Args:
+            listified_tensor (List): Listified version of the input tensor.
+
+        Returns:
+            Dict: Dictionary containing as key and values the inputs of the
+                predict method.
+        """
         raise NotImplementedError()
 
     def tensor2list(self, tensor: Any) -> List:
+        """Convert tensor to list.
+
+        Args:
+            tensor (any): Input tensor.
+
+        Returns:
+            List: Listified version of the tensor.
+        """
         raise NotImplementedError()
 
     def _read_file(self, input_file: str) -> Dict:
+        """Read tensor from file.
+        Args:
+            input_file (str): Path to the file containing the input tensor.
+
+        Returns:
+            Dict: Dictionary containing as key and values the inputs of the
+                predict method.
+        """
         raise NotImplementedError()
 
     def _save_file(self, prediction: Any, output_file: str):
+        """Save prediction in the appropriate format.
+
+        Args:
+            prediction (any): The predicted tensor.
+            output_file (str): Path to the file where storing the prediction.
+        """
         raise NotImplementedError
 
     def predict(self, *args, **kwargs) -> Any:
@@ -43,16 +97,30 @@ class BaseInferenceLearner(ABC):
         raise NotImplementedError()
 
     def forward(self, *args, **kwargs):
+        """Alternative method to the predict one."""
         return self.predict(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
 
     def save(self, path: Union[str, Path], **kwargs):
+        """Save the model.
+
+        Args:
+            path (Path): Path to the directory where saving the model.
+        """
         raise NotImplementedError()
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
+        """Load the model.
+
+        Args:
+            path (Path): Path to the directory where the model is stored.
+
+        Returns:
+            BaseInferenceLearner: Loaded model.
+        """
         raise NotImplementedError()
 
     @abstractmethod
@@ -74,6 +142,20 @@ class BaseInferenceLearner(ABC):
 
 
 class LearnerMetadata:
+    """Class for storing all the metadata about a model.
+
+    The stored information can be used for loading the appropriate model.
+
+    Attributes:
+        class_name (str): Name of the model class. For instance, for the model
+            object `CustomModel()`, the class name is 'CustomModel'.
+        module_name (str): Path to the python module where the model class
+            is defined.
+        network_parameters (Dict): Dictionaty containing the network
+            parameters, i.e. batch_size, input_size and output_size.
+        kwargs: External attributes that will be stored in the Metadata file.
+    """
+
     NAME: str = LEARNER_METADATA_FILENAME
     class_name: str
     module_name: str
@@ -104,6 +186,17 @@ class LearnerMetadata:
 
     @classmethod
     def from_model(cls, model: BaseInferenceLearner, **kwargs):
+        """Create the metadata from the Inference Learner.
+
+        Args:
+            model (BaseInferenceLearner): Model from which extract the
+                metadata.
+            kwargs: External attributes that will be stored in the Metadata
+                file.
+
+        Returns:
+            LearnerMetadata: Metadata associated with the model.
+        """
         return cls(
             class_name=model.__class__.__name__,
             module_name=model.__module__,
@@ -113,6 +206,16 @@ class LearnerMetadata:
 
     @classmethod
     def from_dict(cls, dictionary: Dict):
+        """Create the metadata file from a dictionary.
+
+        This method is the reverse one of `to_dict`.
+
+        Args:
+            dictionary (Dict): Dictionary containing the metadata.
+
+        Returns:
+            LearnerMetadata: Metadata associated with the model.
+        """
         if any(
             key not in dictionary
             for key in ("class_name", "module_name", "network_parameters")
@@ -124,6 +227,11 @@ class LearnerMetadata:
         return cls(**dictionary)
 
     def to_dict(self) -> Dict:
+        """Method for converting the LearnerMetadata in a python dictionary.
+
+        Returns:
+            Dict: Dictionary containing the metadata.
+        """
         return {
             key: value
             for key, value in self.__dict__.items()
@@ -132,12 +240,25 @@ class LearnerMetadata:
 
     @classmethod
     def read(cls, path: Union[Path, str]):
+        """Read the metadata file and store it into a LearnerMetadata object.
+
+        Args:
+            path (Path): Path to the directory containing the metadata file.
+
+        Returns:
+            LearnerMetadata: Metadata associated with the model.
+        """
         path = Path(path)
         with open(path / cls.NAME, "r") as fin:
             metadata_dict = json.load(fin)
         return cls(**metadata_dict)
 
     def save(self, path: Union[Path, str]):
+        """Save the metadata of the model in a file.
+
+        Args:
+            path (Path): Path to the directory where saving the model metadata.
+        """
         path = Path(path)
         metadata_dict = self.to_dict()
         with open(path / self.NAME, "w") as fout:
@@ -146,6 +267,20 @@ class LearnerMetadata:
     def load_model(
         self, path: Union[Path, str], **kwargs
     ) -> BaseInferenceLearner:
+        """Method for loading the InferenceLearner from its metadata.
+
+        The ModelMetadata file contains all the information necessary for
+        loading the Learner, as it contains both the module where the model
+        is defined and the class name of the model object. This method calls
+        the appropriate class method of the Model object, thus the actual
+        model loading is delegate to its methods.
+
+        Args:
+            path (Path): Path to the directory containing the files where
+                the model optimization is saved.
+            kwargs: Dictionary containing the arguments for the model's load
+                function.
+        """
         exec(f"from {self.module_name} import {self.class_name}")
         model = eval(self.class_name).load(path=path, **kwargs)
         return model
@@ -161,9 +296,26 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         return ".pt"
 
     def list2tensor(self, listified_tensor: List) -> Dict:
+        """Convert list to tensor.
+
+        Args:
+            listified_tensor (List): Listified version of the input tensor.
+
+        Returns:
+            Dict: Dictionary containing as key and values the inputs of the
+                predict method.
+        """
         return {"input_tensor": torch.tensor(listified_tensor)}
 
     def tensor2list(self, tensor: torch.Tensor) -> List:
+        """Convert tensor to list.
+
+        Args:
+            tensor (any): Input tensor.
+
+        Returns:
+            List: Listified version of the tensor.
+        """
         return tensor.cpu().detach().numpy().tolist()
 
     def _read_file(self, input_file: Union[str, Path]) -> Dict:
@@ -194,9 +346,26 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
         return ".npy"
 
     def list2tensor(self, listified_tensor: List) -> Dict:
+        """Convert list to tensor.
+
+        Args:
+            listified_tensor (List): Listified version of the input tensor.
+
+        Returns:
+            Dict: Dictionary containing as key and values the inputs of the
+                predict method.
+        """
         return {"input_tensor": tf.convert_to_tensor(listified_tensor)}
 
     def tensor2list(self, tensor: tf.Tensor) -> List:
+        """Convert tensor to list.
+
+        Args:
+            tensor (any): Input tensor.
+
+        Returns:
+            List: Listified version of the tensor.
+        """
         return tensor.numpy().tolist()
 
     def _read_file(self, input_file: Union[str, Path]) -> Dict:
