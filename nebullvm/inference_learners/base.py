@@ -334,7 +334,7 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         torch.save(prediction, output_file)
 
     def get_inputs_example(self):
-        return (
+        return tuple(
             torch.randn((self.network_parameters.batch_size, *input_size))
             for input_size in self.network_parameters.input_sizes
         )
@@ -380,7 +380,7 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
         prediction.numpy().save(output_file)
 
     def get_inputs_example(self):
-        return (
+        return tuple(
             tf.random_normal_initializer()(
                 shape=(self.network_parameters.batch_size, *input_size)
             )

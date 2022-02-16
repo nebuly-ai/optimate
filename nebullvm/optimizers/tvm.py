@@ -16,7 +16,7 @@ from nebullvm.optimizers.base import BaseOptimizer
 try:
     import tvm
     from tvm import IRModule
-    from tvm.nd import NDArray
+    from tvm.runtime.ndarray import NDArray
     from tvm.autotvm.tuner import XGBTuner
     from tvm import autotvm
     import tvm.relay as relay
@@ -37,18 +37,18 @@ class ApacheTVMOptimizer(BaseOptimizer):
         model_params: ModelParams,
     ) -> ApacheTVMInferenceLearner:
         target = self._get_target()
-        mod, params = self._build_tvm_model()
+        mod, params = self._build_tvm_model(onnx_model, model_params)
         tuning_records = self._tune_tvm_model(target, mod, params)
         with autotvm.apply_history_best(tuning_records):
             with tvm.transform.PassContext(opt_level=3, config={}):
                 lib = relay.build(mod, target=target, params=params)
-        model = TVM_INFERENCE_LEARNERS[
-            self.model.parent_library
-        ].from_runtime_module(
-            network_parameters=self.model.parameters,
+        model = TVM_INFERENCE_LEARNERS[output_library].from_runtime_module(
+            network_parameters=model_params,
             lib=lib,
             target_device=target,
-            input_name="input",
+            input_names=[
+                f"input_{i}" for i in range(len(model_params.input_sizes))
+            ],
         )
         return model
 

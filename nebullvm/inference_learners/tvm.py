@@ -36,8 +36,8 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
     target: str
 
     def _predict_array(
-        self, input_arrays: Generator[np.ndarray]
-    ) -> Generator[np.ndarray]:
+        self, input_arrays: Generator[np.ndarray, None, None]
+    ) -> Generator[np.ndarray, None, None]:
         for name, array in zip(self.input_names, input_arrays):
             self.graph_executor_module.set_input(name, array)
         self.graph_executor_module.run()

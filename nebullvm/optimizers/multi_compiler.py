@@ -70,7 +70,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         optimized_models = Parallel(n_jobs=self.n_jobs)(
             delayed(optimization_func)(compiler) for compiler in self.compilers
         )
-        optimized_models.sort(key=lambda x: x[1], ascending=True)
+        optimized_models.sort(key=lambda x: x[1], reverse=False)
         return optimized_models[0][0]
 
     def optimize_on_custom_metric(
@@ -95,5 +95,5 @@ class MultiCompilerOptimizer(BaseOptimizer):
         )
         if return_all:
             return optimized_models
-        optimized_models.sort(key=lambda x: x[1], ascending=True)
+        optimized_models.sort(key=lambda x: x[1], reverse=False)
         return optimized_models[0][0]

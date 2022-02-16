@@ -95,7 +95,9 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     def _predict_tensors(
-        self, input_ptrs: Generator[Any], output_ptrs: Generator[Any]
+        self,
+        input_ptrs: Generator[Any, None, None],
+        output_ptrs: Generator[Any, None, None],
     ):
         context = self.engine.create_execution_context()
         buffers = [None] * (len(self.input_names) + len(self.output_names))
