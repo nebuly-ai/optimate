@@ -57,10 +57,11 @@ class ApacheTVMOptimizer(BaseOptimizer):
         onnx_model_path: str, model_params: ModelParams
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {
-            "input": (
+            f"input_{i}": (
                 model_params.batch_size,
-                *model_params.input_size,
+                *input_size,
             )
+            for i, input_size in enumerate(model_params.input_sizes)
         }
         onnx_model = onnx.load(onnx_model_path)
         mod, params = relay.frontend.from_onnx(onnx_model, shape_dict)

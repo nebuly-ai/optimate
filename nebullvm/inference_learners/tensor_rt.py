@@ -3,7 +3,7 @@ import warnings
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Union, Dict, Type
+from typing import Any, Union, Dict, Type, List, Tuple, Generator
 
 import tensorflow as tf
 import torch
@@ -25,14 +25,14 @@ if torch.cuda.is_available():
 @dataclass
 class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
     engine: Any
-    input_name: str
-    output_name: str
+    input_names: List[str]
+    output_names: List[str]
     cuda_stream: Any = None
     nvidia_logger: Any = None
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         metadata = {
-            key: self.__dict__[key] for key in ("input_name", "output_name")
+            key: self.__dict__[key] for key in ("input_names", "output_names")
         }
         metadata.update(kwargs)
         return LearnerMetadata.from_model(self, **metadata)
@@ -68,8 +68,8 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         cls,
         network_parameters: ModelParams,
         engine_path: Union[str, Path],
-        input_name: str,
-        output_name: str,
+        input_names: List[str],
+        output_names: List[str],
         nvidia_logger: Any = None,
         cuda_stream: Any = None,
         **kwargs,
@@ -88,19 +88,27 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         return cls(
             network_parameters=network_parameters,
             engine=engine,
-            input_name=input_name,
-            output_name=output_name,
+            input_names=input_names,
+            output_names=output_names,
             nvidia_logger=nvidia_logger,
             cuda_stream=cuda_stream,
         )
 
-    def _predict_tensor(self, input_ptr: Any, output_ptr: Any):
+    def _predict_tensors(
+        self, input_ptrs: Generator[Any], output_ptrs: Generator[Any]
+    ):
         context = self.engine.create_execution_context()
-        input_idx = self.engine[self.input_name]
-        output_idx = self.engine[self.output_name]
-        buffers = [None] * 2  # Assuming 1 input and 1 output
-        buffers[input_idx] = input_ptr
-        buffers[output_idx] = output_ptr
+        buffers = [None] * (len(self.input_names) + len(self.output_names))
+        input_idxs = (
+            self.engine[input_name] for input_name in self.input_names
+        )
+        output_idxs = (
+            self.engine[output_name] for output_name in self.output_names
+        )
+        for input_idx, input_ptr in zip(input_idxs, input_ptrs):
+            buffers[input_idx] = input_ptr
+        for output_idx, output_ptr in zip(output_idxs, output_ptrs):
+            buffers[output_idx] = output_ptr
         context.execute_async_v2(buffers, self.stream_ptr)
         self._synchronize_stream()
 
@@ -140,17 +148,23 @@ class PytorchNvidiaInferenceLearner(
     def stream_ptr(self):
         return self.cuda_stream.cuda_stream
 
-    def predict(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        input_tensor = input_tensor.cuda()
-        output_size = (
-            self.network_parameters.batch_size,
-            *self.network_parameters.output_size,
+    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+        input_tensors = [input_tensor.cuda() for input_tensor in input_tensors]
+        output_tensors = [
+            torch.Tensor(
+                self.network_parameters.batch_size,
+                *output_size,
+            ).cuda()
+            for output_size in self.network_parameters.output_sizes
+        ]
+        input_ptrs = (
+            input_tensor.data_ptr() for input_tensor in input_tensors
         )
-        output_tensor = torch.Tensor(*output_size).cuda()
-        input_ptr = input_tensor.data_ptr()
-        output_ptr = output_tensor.data_ptr()
-        self._predict_tensor(input_ptr, output_ptr)
-        return output_tensor.cpu()
+        output_ptrs = (
+            output_tensor.data_ptr() for output_tensor in output_tensors
+        )
+        self._predict_tensors(input_ptrs, output_ptrs)
+        return tuple(output_tensor.cpu() for output_tensor in output_tensors)
 
 
 class TensorflowNvidiaInferenceLearner(
@@ -167,23 +181,34 @@ class TensorflowNvidiaInferenceLearner(
     def stream_ptr(self):
         return self.cuda_stream.ptr
 
-    def predict(self, input_tensor: tf.Tensor) -> tf.Tensor:
-        output_size = (
-            self.network_parameters.batch_size,
-            *self.network_parameters.output_size,
+    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+        cuda_input_arrays = [
+            polygraphy.DeviceArray.copy_from(
+                input_tensor.numpy(), stream=self.cuda_stream
+            )
+            for input_tensor in input_tensors
+        ]
+        cuda_output_arrays = [
+            polygraphy.DeviceArray(
+                shape=(self.network_parameters.batch_size, *output_size)
+            )
+            for output_size in self.network_parameters.output_sizes
+        ]
+        input_ptrs = (cuda_array.ptr for cuda_array in cuda_input_arrays)
+        output_ptrs = (cuda_array.ptr for cuda_array in cuda_output_arrays)
+        self._predict_tensors(input_ptrs, output_ptrs)
+        for cuda_input_array in cuda_input_arrays:
+            cuda_input_array.free()
+        return tuple(
+            self._convert_to_array_and_free_memory(array)
+            for array in cuda_output_arrays
         )
-        input_array = input_tensor.numpy()
-        cuda_input_array = polygraphy.DeviceArray.copy_from(
-            input_array, stream=self.cuda_stream
-        )
-        cuda_output_array = polygraphy.DeviceArray(shape=output_size)
-        input_ptr = cuda_input_array.ptr
-        output_ptr = cuda_output_array.ptr
-        self._predict_tensor(input_ptr, output_ptr)
-        output_array = cuda_output_array.numpy()
-        cuda_input_array.free()
-        cuda_output_array.free()
-        return output_array
+
+    @staticmethod
+    def _convert_to_array_and_free_memory(cuda_array) -> tf.Tensor:
+        array = cuda_array.numpy()
+        cuda_array.free()
+        return array
 
 
 NVIDIA_INFERENCE_LEARNERS: Dict[

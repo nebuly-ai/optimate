@@ -2,7 +2,7 @@ import warnings
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union, Type, Dict, Any
+from typing import Union, Type, Dict, Any, List, Generator, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -31,26 +31,37 @@ except ImportError:
 @dataclass
 class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
     graph_executor_module: GraphModule
-    input_name: str
+    input_names: List[str]
     lib: Module
     target: str
 
-    def _predict_array(self, input_array: np.ndarray):
-        self.graph_executor_module.set_input(self.input_name, input_array)
+    def _predict_array(
+        self, input_arrays: Generator[np.ndarray]
+    ) -> Generator[np.ndarray]:
+        for name, array in zip(self.input_names, input_arrays):
+            self.graph_executor_module.set_input(name, array)
         self.graph_executor_module.run()
-        output_shape = (
-            self.network_parameters.batch_size,
-            *self.network_parameters.output_size,
+
+        tvm_outputs = (
+            self.graph_executor_module.get_output(
+                i,
+                tvm.nd.empty(
+                    (
+                        self.network_parameters.batch_size,
+                        *output_size,
+                    )
+                ),
+            ).numpy()
+            for i, output_size in enumerate(
+                self.network_parameters.output_sizes
+            )
         )
-        tvm_output = self.graph_executor_module.get_output(
-            0, tvm.nd.empty(output_shape)
-        ).numpy()
-        return tvm_output
+        return tvm_outputs
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path)
         metadata = LearnerMetadata.from_model(
-            self, input_name=self.input_name, target=self.target, **kwargs
+            self, input_names=self.input_names, target=self.target, **kwargs
         )
         metadata.save(path)
         self.lib.export_library(path / TVM_FILENAMES["engine"])
@@ -62,12 +73,12 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         network_parameters = ModelParams(**metadata["network_parameters"])
         lib = tvm.runtime.load_module(path / TVM_FILENAMES["engine"])
         target_device = metadata["target"]
-        input_name = metadata["input_name"]
+        input_names = metadata["input_names"]
         return cls.from_runtime_module(
             network_parameters=network_parameters,
             lib=lib,
             target_device=target_device,
-            input_name=input_name,
+            input_names=input_names,
         )
 
     @classmethod
@@ -76,14 +87,14 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         network_parameters: ModelParams,
         lib: Module,
         target_device: str,
-        input_name: str,
+        input_names: List[str],
     ):
         dev = tvm.device(str(target_device), 0)
         graph_executor_module = GraphModule(lib["default"](dev))
         return cls(
             network_parameters=network_parameters,
             graph_executor_module=graph_executor_module,
-            input_name=input_name,
+            input_names=input_names,
             lib=lib,
             target=target_device,
         )
@@ -92,11 +103,17 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
 class PytorchApacheTVMInferenceLearner(
     ApacheTVMInferenceLearner, PytorchBaseInferenceLearner
 ):
-    def predict(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        device = self._convert_device(input_tensor.get_device())
-        input_array = input_tensor.cpu().detach().numpy()
-        output_array = self._predict_array(input_array)
-        return torch.from_numpy(output_array).to(device)
+    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+        device = self._convert_device(input_tensors[0].get_device())
+        input_arrays = (
+            input_tensor.cpu().detach().numpy()
+            for input_tensor in input_tensors
+        )
+        output_arrays = self._predict_array(input_arrays)
+        return tuple(
+            torch.from_numpy(output_array).to(device)
+            for output_array in output_arrays
+        )
 
     @staticmethod
     def _convert_device(device: Any):
@@ -108,10 +125,13 @@ class PytorchApacheTVMInferenceLearner(
 class TensorflowApacheTVMInferenceLearner(
     ApacheTVMInferenceLearner, TensorflowBaseInferenceLearner
 ):
-    def predict(self, input_tensor: tf.Tensor):
-        input_array = input_tensor.numpy()
-        output_array = self._predict_array(input_array)
-        return tf.convert_to_tensor(output_array)
+    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+        input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
+        output_arrays = self._predict_array(input_arrays)
+        return tuple(
+            tf.convert_to_tensor(output_array)
+            for output_array in output_arrays
+        )
 
 
 TVM_INFERENCE_LEARNERS: Dict[

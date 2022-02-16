@@ -47,6 +47,6 @@ def compute_optimized_running_time(
     latencies = []
     for _ in range(steps):
         starting_time = time.time()
-        _ = optimized_model.predict(**model_inputs)
+        _ = optimized_model.predict(*model_inputs)
         latencies.append(time.time() - starting_time)
     return sum(latencies) / steps

@@ -64,7 +64,11 @@ class TensorRTOptimizer(BaseOptimizer):
         model = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             network_parameters=model_params,
             engine_path=engine_path,
-            input_name="input",
-            output_name="output",
+            input_names=[
+                f"input_{i}" for i in range(len(model_params.input_sizes))
+            ],
+            output_names=[
+                f"output_{i}" for i in range(len(model_params.output_sizes))
+            ],
         )
         return model

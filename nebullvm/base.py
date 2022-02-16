@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple
+from typing import Tuple, List
 
 
 @dataclass
 class ModelParams:
     batch_size: int
-    input_size: Tuple[int, ...]
-    output_size: Tuple[int, ...]
+    input_sizes: List[Tuple[int, ...]]
+    output_sizes: List[Tuple[int, ...]]
 
     def dict(self):
         return {

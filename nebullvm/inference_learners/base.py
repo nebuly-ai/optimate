@@ -18,7 +18,9 @@ class BaseInferenceLearner(ABC):
 
     network_parameters: ModelParams
 
-    def predict_from_file(self, input_file: str, output_file: str):
+    def predict_from_files(
+        self, input_files: List[str], output_files: List[str]
+    ):
         """Get a model prediction from file.
 
         The input file is read, processed and a prediction is run on top of it.
@@ -26,38 +28,44 @@ class BaseInferenceLearner(ABC):
         directory of the input file itself).
 
         Args:
-            input_file (str): Path to the input file.
-            output_file (str): Path to the file storing the prediction.
+            input_files (List[str]): List of paths to the input file.
+            output_files (List[str]): List of paths to the file storing
+                the prediction.
         """
-        inputs = self._read_file(input_file)
-        pred = self.predict(**inputs)
-        self._save_file(pred, output_file)
+        inputs = (self._read_file(input_file) for input_file in input_files)
+        preds = self.predict(*inputs)
+        for pred, output_file in zip(preds, output_files):
+            self._save_file(pred, output_file)
 
-    def predict_from_listified_tensor(self, listified_tensor: List):
+    def predict_from_listified_tensors(self, *listified_tensors: List):
         """Predict from listified tensor.
 
         Method useful to be used in services receiving the input tensor
         from an HTTP call.
 
         Args:
-            listified_tensor (List): List-like version of the input tensor.
+            listified_tensors (List): List of list-like version of the
+                input tensors. Note that each element of the external list is
+                a listified input tensor.
 
         Returns:
-            List: List-like prediction.
+            List: List of list-like predictions.
         """
-        inputs = self.list2tensor(listified_tensor)
-        pred = self.predict(**inputs)
-        return self.tensor2list(pred)
+        inputs = (
+            self.list2tensor(listified_tensor)
+            for listified_tensor in listified_tensors
+        )
+        preds = self.predict(*inputs)
+        return [self.tensor2list(pred) for pred in preds]
 
-    def list2tensor(self, listified_tensor: List) -> Dict:
+    def list2tensor(self, listified_tensor: List) -> Any:
         """Convert list to tensor.
 
         Args:
             listified_tensor (List): Listified version of the input tensor.
 
         Returns:
-            Dict: Dictionary containing as key and values the inputs of the
-                predict method.
+            Any: Tensor for the prediction.
         """
         raise NotImplementedError()
 
@@ -72,14 +80,13 @@ class BaseInferenceLearner(ABC):
         """
         raise NotImplementedError()
 
-    def _read_file(self, input_file: str) -> Dict:
+    def _read_file(self, input_file: str) -> Any:
         """Read tensor from file.
         Args:
             input_file (str): Path to the file containing the input tensor.
 
         Returns:
-            Dict: Dictionary containing as key and values the inputs of the
-                predict method.
+            Any: Tensor read from the file.
         """
         raise NotImplementedError()
 
@@ -125,8 +132,8 @@ class BaseInferenceLearner(ABC):
 
     @abstractmethod
     def get_inputs_example(self):
-        """The function returns a dictionary containing an example of the
-        input for the optimized model predict method.
+        """The function returns an example of the input for the optimized
+        model predict method.
         """
         raise NotImplementedError()
 
@@ -295,17 +302,16 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
     def output_format(self):
         return ".pt"
 
-    def list2tensor(self, listified_tensor: List) -> Dict:
+    def list2tensor(self, listified_tensor: List) -> torch.Tensor:
         """Convert list to tensor.
 
         Args:
             listified_tensor (List): Listified version of the input tensor.
 
         Returns:
-            Dict: Dictionary containing as key and values the inputs of the
-                predict method.
+            torch.Tensor: Tensor for the prediction.
         """
-        return {"input_tensor": torch.tensor(listified_tensor)}
+        return torch.tensor(listified_tensor)
 
     def tensor2list(self, tensor: torch.Tensor) -> List:
         """Convert tensor to list.
@@ -318,9 +324,9 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         """
         return tensor.cpu().detach().numpy().tolist()
 
-    def _read_file(self, input_file: Union[str, Path]) -> Dict:
+    def _read_file(self, input_file: Union[str, Path]) -> torch.Tensor:
         input_tensor = torch.load(input_file)
-        return {"input_tensor": input_tensor}
+        return input_tensor
 
     def _save_file(
         self, prediction: torch.Tensor, output_file: Union[str, Path]
@@ -328,12 +334,10 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         torch.save(prediction, output_file)
 
     def get_inputs_example(self):
-        input_size = (
-            self.network_parameters.batch_size,
-            *self.network_parameters.input_size,
+        return (
+            torch.randn((self.network_parameters.batch_size, *input_size))
+            for input_size in self.network_parameters.input_sizes
         )
-        input_tensor = torch.randn(input_size)
-        return {"input_tensor": input_tensor}
 
 
 class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
@@ -345,41 +349,40 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
     def output_format(self):
         return ".npy"
 
-    def list2tensor(self, listified_tensor: List) -> Dict:
+    def list2tensor(self, listified_tensor: List) -> tf.Tensor:
         """Convert list to tensor.
 
         Args:
             listified_tensor (List): Listified version of the input tensor.
 
         Returns:
-            Dict: Dictionary containing as key and values the inputs of the
-                predict method.
+            tf.Tensor: Tensor ready to be used for prediction.
         """
-        return {"input_tensor": tf.convert_to_tensor(listified_tensor)}
+        return tf.convert_to_tensor(listified_tensor)
 
     def tensor2list(self, tensor: tf.Tensor) -> List:
         """Convert tensor to list.
 
         Args:
-            tensor (any): Input tensor.
+            tensor (tf.Tensor): Input tensor.
 
         Returns:
             List: Listified version of the tensor.
         """
         return tensor.numpy().tolist()
 
-    def _read_file(self, input_file: Union[str, Path]) -> Dict:
+    def _read_file(self, input_file: Union[str, Path]) -> tf.Tensor:
         numpy_array = np.load(input_file)
         input_tensor = tf.convert_to_tensor(numpy_array)
-        return {"input_tensor": input_tensor}
+        return input_tensor
 
     def _save_file(self, prediction: tf.Tensor, output_file: Union[str, Path]):
         prediction.numpy().save(output_file)
 
     def get_inputs_example(self):
-        input_size = (
-            self.network_parameters.batch_size,
-            *self.network_parameters.input_size,
+        return (
+            tf.random_normal_initializer()(
+                shape=(self.network_parameters.batch_size, *input_size)
+            )
+            for input_size in self.network_parameters.input_sizes
         )
-        input_tensor = tf.random_normal_initializer()(shape=input_size)
-        return {"input_tensor": input_tensor}
