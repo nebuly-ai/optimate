@@ -5,7 +5,7 @@ import torch
 from torch.nn import Module
 
 
-def _get_outputs_sizes(
+def get_outputs_sizes_torch(
     torch_model: Module, input_tensors: List[torch.Tensor]
 ) -> List[Tuple[int, ...]]:
     if torch.cuda.is_available():
@@ -14,8 +14,8 @@ def _get_outputs_sizes(
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
         if isinstance(outputs, torch.Tensor):
-            return [outputs.size()]
-        return [x.size() for x in outputs]
+            return [tuple(outputs.size())]
+        return [tuple(x.size()) for x in outputs]
 
 
 def convert_torch_to_onnx(
@@ -36,7 +36,7 @@ def convert_torch_to_onnx(
         torch.randn(*input_size, requires_grad=True)
         for input_size in input_sizes
     ]
-    output_sizes = _get_outputs_sizes(torch_model, input_tensors)
+    output_sizes = get_outputs_sizes_torch(torch_model, input_tensors)
     if torch.cuda.is_available():  # move back tensors to cpu for conversion
         input_tensors = [x.cpu() for x in input_tensors]
         torch_model.cpu()

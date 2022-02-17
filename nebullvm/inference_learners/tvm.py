@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.config import TVM_FILENAMES
+from nebullvm.config import TVM_FILENAMES, NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -17,15 +17,29 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
 
-
 try:
     import tvm
     from tvm.contrib.graph_executor import GraphModule
     from tvm.runtime import Module
 except ImportError:
-    warnings.warn("Not found any valid tvm installation")
-    Module = object
-    GraphModule = object
+    if not NO_COMPILER_INSTALLATION:
+        warnings.warn(
+            "Not found any valid tvm installation. "
+            "Trying to install it from source."
+        )
+        from nebullvm.installers.installers import install_tvm
+
+        install_tvm()
+        import tvm
+        from tvm.contrib.graph_executor import GraphModule
+        from tvm.runtime import Module
+    else:
+        warnings.warn(
+            "Not found any valid tvm installation. "
+            "TVM will not be available in the following steps."
+        )
+        Module = object
+        GraphModule = object
 
 
 @dataclass

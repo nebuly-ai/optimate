@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
-from nebullvm.config import NVIDIA_FILENAMES
+from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.tensor_rt import (
     NVIDIA_INFERENCE_LEARNERS,
     NvidiaInferenceLearner,
@@ -11,7 +11,24 @@ from nebullvm.inference_learners.tensor_rt import (
 from nebullvm.optimizers.base import BaseOptimizer
 
 if torch.cuda.is_available():
-    import tensorrt as trt
+    try:
+        import tensorrt as trt
+    except ImportError:
+        from nebullvm.installers.installers import install_tensor_rt
+        import warnings
+
+        if not NO_COMPILER_INSTALLATION:
+            warnings.warn(
+                "No TensorRT valid installation has been found. "
+                "Trying to install it from source."
+            )
+            install_tensor_rt()
+            import tensorrt as trt
+        else:
+            warnings.warn(
+                "No TensorRT valid installation has been found. "
+                "It won't be possible to use it in the following."
+            )
 
 
 class TensorRTOptimizer(BaseOptimizer):
@@ -59,8 +76,6 @@ class TensorRTOptimizer(BaseOptimizer):
             )
         engine_path = Path(onnx_model).parent / NVIDIA_FILENAMES["engine"]
         self._build_and_save_the_engine(engine_path, onnx_model)
-        # TODO: generalize the input/output names and allow multiple
-        #  inputs / outputs.
         model = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             network_parameters=model_params,
             engine_path=engine_path,

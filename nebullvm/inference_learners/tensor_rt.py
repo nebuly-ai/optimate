@@ -8,7 +8,7 @@ from typing import Any, Union, Dict, Type, List, Tuple, Generator
 import tensorflow as tf
 import torch
 
-from nebullvm.config import NVIDIA_FILENAMES
+from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -18,8 +18,25 @@ from nebullvm.inference_learners.base import (
 from nebullvm.base import ModelParams, DeepLearningFramework
 
 if torch.cuda.is_available():
-    import tensorrt as trt
-    import polygraphy
+    try:
+        import tensorrt as trt
+        import polygraphy
+    except ImportError:
+        if not NO_COMPILER_INSTALLATION:
+            from nebullvm.installers.installers import install_tensor_rt
+
+            warnings.warn(
+                "No TensorRT valid installation has been found. "
+                "Trying to install it from source."
+            )
+            install_tensor_rt()
+            import tensorrt as trt
+            import polygraphy
+        else:
+            warnings.warn(
+                "No TensorRT valid installation has been found. "
+                "It won't be possible to use it in the following steps."
+            )
 
 
 @dataclass

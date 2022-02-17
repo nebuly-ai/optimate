@@ -6,7 +6,11 @@ import onnx
 import torch.cuda
 
 from nebullvm.base import ModelParams, DeepLearningFramework
-from nebullvm.config import AUTO_TVM_TUNING_OPTION, AUTO_TVM_PARAMS
+from nebullvm.config import (
+    AUTO_TVM_TUNING_OPTION,
+    AUTO_TVM_PARAMS,
+    NO_COMPILER_INSTALLATION,
+)
 from nebullvm.inference_learners.tvm import (
     TVM_INFERENCE_LEARNERS,
     ApacheTVMInferenceLearner,
@@ -23,10 +27,25 @@ try:
 except ImportError:
     import warnings
 
-    warnings.warn("Not found any valid tvm installation")
-    # TVM objects needed for avoiding errors
-    IRModule = object
-    NDArray = object
+    if not NO_COMPILER_INSTALLATION:
+        warnings.warn(
+            "Not found any valid tvm installation. "
+            "Trying to install it from source."
+        )
+        from nebullvm.installers.installers import install_tvm
+
+        install_tvm()
+        import tvm
+        from tvm import IRModule
+        from tvm.runtime.ndarray import NDArray
+        from tvm.autotvm.tuner import XGBTuner
+        from tvm import autotvm
+        import tvm.relay as relay
+    else:
+        warnings.warn("Not found any valid tvm installation")
+        # TVM objects needed for avoiding errors
+        IRModule = object
+        NDArray = object
 
 
 class ApacheTVMOptimizer(BaseOptimizer):

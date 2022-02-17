@@ -7,6 +7,15 @@ import tensorflow as tf
 import tf2onnx.convert
 
 
+def get_outputs_sizes_tf(
+    tf_model: Union[tf.Module, tf.keras.Model], input_tensors: List[tf.Tensor]
+) -> List[Tuple[int, ...]]:
+    outputs = tf_model(*input_tensors)
+    if isinstance(outputs, tf.Tensor):
+        return [tuple(outputs.size())]
+    return [tuple(x.size()) for x in outputs]
+
+
 def convert_tf_to_onnx(
     model: tf.Module,
     input_sizes: List[Tuple[int, ...]],

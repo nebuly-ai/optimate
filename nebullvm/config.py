@@ -1,4 +1,7 @@
+import os
+
 LEARNER_METADATA_FILENAME = "metadata.json"
+NO_COMPILER_INSTALLATION = int(os.getenv("NO_COMPILER_INSTALLATION", "0")) > 0
 
 AUTO_TVM_TUNING_OPTION = {
     "tuner": "xgb",

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Dict, Union, Type
 
+import cpuinfo
 import numpy as np
 import tensorflow as tf
 import torch
@@ -21,10 +22,20 @@ from nebullvm.base import ModelParams, DeepLearningFramework
 try:
     from openvino.inference_engine import IECore
 except ImportError:
-    warnings.warn(
-        "No Openvino library detected. "
-        "The Openvino Inference learner should not be used."
-    )
+    if "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
+        warnings.warn(
+            "No valid OpenVino installation has been found. "
+            "Trying to re-install it from source."
+        )
+        from nebullvm.installers.installers import install_openvino
+
+        install_openvino(with_optimization=True)
+        from openvino.inference_engine import IECore
+    else:
+        warnings.warn(
+            "No Openvino library detected. "
+            "The Openvino Inference learner should not be used."
+        )
 
 
 class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
