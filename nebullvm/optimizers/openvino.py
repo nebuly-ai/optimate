@@ -10,12 +10,27 @@ from nebullvm.optimizers.base import BaseOptimizer
 
 
 class OpenVinoOptimizer(BaseOptimizer):
+    """Class for compiling the AI models on Intel CPUs using OpenVino."""
+
     def optimize(
         self,
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
     ) -> OpenVinoInferenceLearner:
+        """Optimize the onnx model with OpenVino.
+
+        Args:
+            onnx_model (str): Path to the saved onnx model.
+            output_library (str): DL Framework the optimized model will be
+                compatible with.
+            model_params (ModelParams): Model parameters.
+
+        Returns:
+            OpenVinoInferenceLearner: Model optimized with OpenVino. The model
+                will have an interface in the DL library specified in
+                `output_library`.
+        """
         process = subprocess.Popen(
             [
                 "mo",

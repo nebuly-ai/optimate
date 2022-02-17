@@ -49,12 +49,27 @@ except ImportError:
 
 
 class ApacheTVMOptimizer(BaseOptimizer):
+    """Class for compiling the AI models on Nvidia GPUs using TensorRT."""
+
     def optimize(
         self,
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
     ) -> ApacheTVMInferenceLearner:
+        """Optimize the input model with Apache TVM.
+
+        Args:
+            onnx_model (str): Path to the saved onnx model.
+            output_library (str): DL Framework the optimized model will be
+                compatible with.
+            model_params (ModelParams): Model parameters.
+
+        Returns:
+            ApacheTVMInferenceLearner: Model optimized with TVM. The model
+                will have an interface in the DL library specified in
+                `output_library`.
+        """
         target = self._get_target()
         mod, params = self._build_tvm_model(onnx_model, model_params)
         tuning_records = self._tune_tvm_model(target, mod, params)

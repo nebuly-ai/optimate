@@ -44,6 +44,23 @@ except ImportError:
 
 @dataclass
 class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
+    """Model optimized using ApacheTVM.
+
+    The class cannot be directly instantiated, but implements all the core
+    methods needed for using ApacheTVM at inference time.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        graph_executor_module (GraphModule): The graph executor. This is the
+            central component in the ApacheTVM optimized model execution.
+        input_names (List[str]): Names associated to the model input tensors.
+        lib (Module): Component needed for loading the ApacheTVM optimized
+            model.
+        target (str): Target device. It can be wither `llvm` for targeting CPUs
+            or "cuda" for targeting GPUs.
+    """
+
     graph_executor_module: GraphModule
     input_names: List[str]
     lib: Module
@@ -73,6 +90,14 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         return tvm_outputs
 
     def save(self, path: Union[str, Path], **kwargs):
+        """Save the model.
+
+        Args:
+            path (Path or str): Path to the directory where the model will
+                be stored.
+            kwargs (Dict): Dictionary of key-value pairs that will be saved in
+                the model metadata file.
+        """
         path = Path(path)
         metadata = LearnerMetadata.from_model(
             self, input_names=self.input_names, target=self.target, **kwargs
@@ -82,6 +107,17 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
+        """Load the model.
+
+        Args:
+            path (Path or str): Path to the directory where the model is
+                stored.
+            kwargs (Dict): Dictionary of additional arguments for the
+                `from_runtime_module` class method.
+
+        Returns:
+            ApacheTVMInferenceLearner: The optimized model.
+        """
         path = Path(path)
         metadata = LearnerMetadata.read(path).to_dict()
         network_parameters = ModelParams(**metadata["network_parameters"])
@@ -103,6 +139,18 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         target_device: str,
         input_names: List[str],
     ):
+        """Build the model from the runtime module (lib).
+
+        Args:
+            network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+            lib (Module): Component needed for loading the ApacheTVM optimized
+                model.
+            target_device (str): The target device. Either `llvm` (CPU)
+                or `cuda`.
+            input_names (List[str]): Names associated to the model input
+                tensors.
+        """
         dev = tvm.device(str(target_device), 0)
         graph_executor_module = GraphModule(lib["default"](dev))
         return cls(
@@ -117,7 +165,42 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
 class PytorchApacheTVMInferenceLearner(
     ApacheTVMInferenceLearner, PytorchBaseInferenceLearner
 ):
+    """Model optimized using ApacheTVM with a Pytorch interface.
+
+    This class can be used exactly in the same way as a pytorch Module object.
+    At prediction time it takes as input pytorch tensors given as positional
+    arguments.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        graph_executor_module (GraphModule): The graph executor. This is the
+            central component in the ApacheTVM optimized model execution.
+        input_names (List[str]): Names associated to the model input tensors.
+        lib (Module): Component needed for loading the ApacheTVM optimized
+            model.
+        target (str): Target device. It can be wither `llvm` for targeting CPUs
+            or "cuda" for targeting GPUs.
+    """
+
     def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[Tensor]): Input tensors belonging to the same
+                batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[Tensor]: Output tensors. Note that the output tensors does
+                not correspond to the prediction on the input tensors with a
+                1 to 1 mapping. In fact the output tensors are produced as the
+                multiple-output of the model given a (multi-) tensor input.
+        """
         device = self._convert_device(input_tensors[0].get_device())
         input_arrays = (
             input_tensor.cpu().detach().numpy()
@@ -139,7 +222,43 @@ class PytorchApacheTVMInferenceLearner(
 class TensorflowApacheTVMInferenceLearner(
     ApacheTVMInferenceLearner, TensorflowBaseInferenceLearner
 ):
+    """Model optimized using ApacheTVM with a tensorflow interface.
+
+    This class can be used exactly in the same way as a tf.Module or
+    keras.Model object.
+    At prediction time it takes as input tensorflow tensors given as positional
+    arguments.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        graph_executor_module (GraphModule): The graph executor. This is the
+            central component in the ApacheTVM optimized model execution.
+        input_names (List[str]): Names associated to the model input tensors.
+        lib (Module): Component needed for loading the ApacheTVM optimized
+            model.
+        target (str): Target device. It can be wither `llvm` for targeting CPUs
+            or "cuda" for targeting GPUs.
+    """
+
     def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[Tensor]): Input tensors belonging to the same
+                batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[Tensor]: Output tensors. Note that the output tensors does
+                not correspond to the prediction on the input tensors with a
+                1 to 1 mapping. In fact the output tensors are produced as the
+                multiple-output of the model given a (multi-) tensor input.
+        """
         input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
         output_arrays = self._predict_array(input_arrays)
         return tuple(

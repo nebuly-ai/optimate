@@ -57,6 +57,11 @@ def install_openvino(with_optimization: bool = True):
     """Helper function for installing the OpenVino compiler.
 
     This function just works on intel machines.
+
+    Args:
+        with_optimization (bool): Flag for installing the full openvino engine
+            or limiting the installation to the tools need for inference
+            models.
     """
     processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
     if "intel" not in processor:

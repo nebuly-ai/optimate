@@ -6,6 +6,8 @@ from nebullvm.inference_learners.base import BaseInferenceLearner
 
 
 class BaseOptimizer(ABC):
+    """Base class for Optimizers"""
+
     def __init__(self, logger: Logger = None):
         self.logger = logger
 

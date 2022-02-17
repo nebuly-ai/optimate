@@ -18,5 +18,5 @@ def test_tensor_rt(output_library: DeepLearningFramework):
     model = optimizer.optimize(model_path, output_library, model_params)
     assert isinstance(model, NVIDIA_INFERENCE_LEARNERS[output_library])
 
-    res = model.predict(**model.get_inputs_example())
+    res = model.predict(*model.get_inputs_example())
     assert res is not None

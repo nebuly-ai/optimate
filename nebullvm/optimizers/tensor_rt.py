@@ -32,6 +32,8 @@ if torch.cuda.is_available():
 
 
 class TensorRTOptimizer(BaseOptimizer):
+    """Class for compiling the AI models on Nvidia GPUs using TensorRT."""
+
     def _build_and_save_the_engine(
         self, engine_path: str, onnx_model_path: str
     ):
@@ -69,6 +71,19 @@ class TensorRTOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
     ) -> NvidiaInferenceLearner:
+        """Optimize the input model with TensorRT.
+
+        Args:
+            onnx_model (str): Path to the saved onnx model.
+            output_library (str): DL Framework the optimized model will be
+                compatible with.
+            model_params (ModelParams): Model parameters.
+
+        Returns:
+            TensorRTInferenceLearner: Model optimized with TensorRT. The model
+                will have an interface in the DL library specified in
+                `output_library`.
+        """
         if not torch.cuda.is_available():
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "

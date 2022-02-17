@@ -41,6 +41,22 @@ if torch.cuda.is_available():
 
 @dataclass
 class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
+    """Model optimized using TensorRT.
+
+    The class cannot be directly instantiated, but implements all the core
+    methods needed for using TensorRT at inference time.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        engine (any): The tensorRT engine.
+        input_names (List[str]): Names associated to the model input tensors.
+        output_names (List[str]): Names associated to the model output tensors.
+        cuda_stream (any, optional): Stream used for communication with Nvidia
+            GPUs.
+        nvidia_logger (any, optional): Logger used by the Nvidia service
+    """
+
     engine: Any
     input_names: List[str]
     output_names: List[str]
@@ -91,6 +107,24 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         cuda_stream: Any = None,
         **kwargs,
     ):
+        """Build the model from the serialised engine.
+
+        Args:
+            network_parameters (ModelParams): Model parameters.
+            engine_path (str or Path): Path to the serialised engine. The
+                serialised engine is the serialised version of the engine
+                used for accelerating the inference.
+            input_names (List[str]): Names associated to the model input
+                tensors.
+            output_names (List[str]): Names associated to the model output
+                tensors.
+            cuda_stream (any, optional): Stream used for communication with
+                Nvidia GPUs.
+            nvidia_logger (any, optional): Logger used by the Nvidia service
+
+        Returns:
+            NvidiaInferenceLearner: The optimized model.
+        """
         if kwargs:
             warnings.warn(
                 f"Debug: Got extra keywords in "
@@ -132,6 +166,14 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         self._synchronize_stream()
 
     def save(self, path: Union[str, Path], **kwargs):
+        """Save the model.
+
+        Args:
+            path (Path or str): Path to the directory where the model will
+                be stored.
+            kwargs (Dict): Dictionary of key-value pairs that will be saved in
+                the model metadata file.
+        """
         path = Path(path)
         serialized_engine = self.engine.serialize()
         with open(path / NVIDIA_FILENAMES["engine"], "wb") as fout:
@@ -142,6 +184,17 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
+        """Load the model.
+
+        Args:
+            path (Path or str): Path to the directory where the model is
+                stored.
+            kwargs (Dict): Dictionary of additional arguments for the
+                `from_engine_path` class method.
+
+        Returns:
+            NvidiaInferenceLearner: The optimized model.
+        """
         with open(path / NVIDIA_FILENAMES["metadata"], "r") as fin:
             metadata = json.load(fin)
         metadata.update(kwargs)
@@ -156,6 +209,23 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
 class PytorchNvidiaInferenceLearner(
     NvidiaInferenceLearner, PytorchBaseInferenceLearner
 ):
+    """Model optimized using TensorRT with a Pytorch interface.
+
+    This class can be used exactly in the same way as a pytorch Module object.
+    At prediction time it takes as input pytorch tensors given as positional
+    arguments.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        engine (any): The tensorRT engine.
+        input_names (List[str]): Names associated to the model input tensors.
+        output_names (List[str]): Names associated to the model output tensors.
+        cuda_stream (any, optional): Stream used for communication with Nvidia
+            GPUs.
+        nvidia_logger (any, optional): Logger used by the Nvidia service.
+    """
+
     def _synchronize_stream(self):
         self.cuda_stream.synchronize()
 
@@ -168,6 +238,23 @@ class PytorchNvidiaInferenceLearner(
         return self.cuda_stream.cuda_stream
 
     def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[Tensor]): Input tensors belonging to the same
+                batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[Tensor]: Output tensors. Note that the output tensors does
+                not correspond to the prediction on the input tensors with a
+                1 to 1 mapping. In fact the output tensors are produced as the
+                multiple-output of the model given a (multi-) tensor input.
+        """
         input_tensors = [input_tensor.cuda() for input_tensor in input_tensors]
         output_tensors = [
             torch.Tensor(
@@ -189,6 +276,24 @@ class PytorchNvidiaInferenceLearner(
 class TensorflowNvidiaInferenceLearner(
     NvidiaInferenceLearner, TensorflowBaseInferenceLearner
 ):
+    """Model optimized using TensorRT with a tensorflow interface.
+
+    This class can be used exactly in the same way as a tf.Module or
+    keras.Model object.
+    At prediction time it takes as input tensorflow tensors given as positional
+    arguments.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        engine (any): The tensorRT engine.
+        input_names (List[str]): Names associated to the model input tensors.
+        output_names (List[str]): Names associated to the model output tensors.
+        cuda_stream (any, optional): Stream used for communication with Nvidia
+            GPUs.
+        nvidia_logger (any, optional): Logger used by the Nvidia service.
+    """
+
     def _synchronize_stream(self):
         self.cuda_stream.synchronize()
 
@@ -201,6 +306,23 @@ class TensorflowNvidiaInferenceLearner(
         return self.cuda_stream.ptr
 
     def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[Tensor]): Input tensors belonging to the same
+                batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[Tensor]: Output tensors. Note that the output tensors does
+                not correspond to the prediction on the input tensors with a
+                1 to 1 mapping. In fact the output tensors are produced as the
+                multiple-output of the model given a (multi-) tensor input.
+        """
         cuda_input_arrays = [
             polygraphy.DeviceArray.copy_from(
                 input_tensor.numpy(), stream=self.cuda_stream
