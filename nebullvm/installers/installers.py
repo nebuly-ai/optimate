@@ -34,7 +34,9 @@ def install_tvm(working_dir: str = None):
         )
     }
     subprocess.run(
-        ["bash", installation_file], cwd=working_dir or "~/", env=env_dict
+        ["bash", installation_file],
+        cwd=working_dir or Path.home(),
+        env=env_dict,
     )
 
 
