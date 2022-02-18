@@ -49,7 +49,7 @@ def install_tensor_rt():
             "No available cuda driver has been found."
         )
     path = Path(__file__).parent
-    installation_file = str(path / "install_tvm.sh")
+    installation_file = str(path / "install_tensor_rt.sh")
     subprocess.run(["bash", installation_file])
 
 
@@ -70,5 +70,5 @@ def install_openvino(with_optimization: bool = True):
             f"You are trying to install it on {processor}"
         )
     openvino_version = "openvino-dev" if with_optimization else "openvino"
-    cmd = ["pip", "install", openvino_version]
+    cmd = ["pip3", "install", openvino_version]
     subprocess.run(cmd)

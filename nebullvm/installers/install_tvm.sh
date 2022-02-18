@@ -7,6 +7,9 @@ if [[ "$(shell echo $$OSTYPE)" == "darwin"* ]]
 then
   brew install gcc git cmake
   brew install llvm
+elif [[ "$(shell grep '^ID_LIKE' /etc/os-release)" == *"centos"* ]]
+then
+  yum update -y && yum install -y gcc libtinfo-dev zlib1g-dev build-essential cmake libedit-dev libxml2-dev
 else
   apt-get update && apt-get install -y gcc libtinfo-dev zlib1g-dev build-essential cmake libedit-dev libxml2-dev
 fi
