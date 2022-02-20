@@ -1,3 +1,4 @@
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Tuple
 
@@ -56,9 +57,11 @@ def optimize_torch_model(
     model_converter = ONNXConverter()
     model_optimizer = MultiCompilerOptimizer(n_jobs=-1)
     with TemporaryDirectory() as tmp_dir:
-        onnx_path = model_converter.convert(
-            model, model_params.input_sizes, tmp_dir
-        )
+        input_sizes = [
+            (model_params.batch_size, *input_size)
+            for input_size in model_params.input_sizes
+        ]
+        onnx_path = model_converter.convert(model, input_sizes, Path(tmp_dir))
         model_optimized = model_optimizer.optimize(
             str(onnx_path), dl_library, model_params
         )
