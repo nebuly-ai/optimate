@@ -24,6 +24,14 @@ def install_tvm(working_dir: str = None):
             cloned and installed.
     """
     path = Path(__file__).parent
+    # install pre-requisites
+    installation_file_prerequisites = str(
+        path / "install_tvm_prerequisites.sh"
+    )
+    subprocess.run(
+        ["bash", installation_file_prerequisites],
+        cwd=working_dir or Path.home(),
+    )
     installation_file = str(path / "install_tvm.sh")
     hardware_config = _get_cpu_arch()
     if torch.cuda.is_available():
