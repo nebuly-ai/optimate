@@ -1,3 +1,4 @@
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Tuple, Union
 
@@ -57,7 +58,7 @@ def optimize_tf_model(
     model_optimizer = MultiCompilerOptimizer(n_jobs=-1)
     with TemporaryDirectory() as tmp_dir:
         onnx_path = model_converter.convert(
-            model, model_params.input_sizes, tmp_dir
+            model, model_params.input_sizes, Path(tmp_dir)
         )
         model_optimized = model_optimizer.optimize(
             str(onnx_path), dl_library, model_params
