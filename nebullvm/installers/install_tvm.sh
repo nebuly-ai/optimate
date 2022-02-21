@@ -22,7 +22,7 @@ then
   brew install openblas gfortran
   pip install pybind11 cython pythran
   conda install -y scipy
-  pip install xgboost
+  pip install xgboost decorator
 else
   pip3 install decorator attrs tornado psutil xgboost cloudpickle
 fi

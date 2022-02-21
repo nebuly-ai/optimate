@@ -8,7 +8,11 @@ from nebullvm.inference_learners.tensor_rt import (
     NVIDIA_INFERENCE_LEARNERS,
     NvidiaInferenceLearner,
 )
-from nebullvm.optimizers.base import BaseOptimizer
+from nebullvm.optimizers.base import (
+    BaseOptimizer,
+    get_input_names,
+    get_output_names,
+)
 
 if torch.cuda.is_available():
     try:
@@ -94,11 +98,7 @@ class TensorRTOptimizer(BaseOptimizer):
         model = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             network_parameters=model_params,
             engine_path=engine_path,
-            input_names=[
-                f"input_{i}" for i in range(len(model_params.input_sizes))
-            ],
-            output_names=[
-                f"output_{i}" for i in range(len(model_params.output_sizes))
-            ],
+            input_names=get_input_names(onnx_model),
+            output_names=get_output_names(onnx_model),
         )
         return model

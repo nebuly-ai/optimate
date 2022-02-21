@@ -66,7 +66,6 @@ class ONNXConverter(BaseConverter):
         elif isinstance(model, tf.Module):
             convert_tf_to_onnx(
                 model=model,
-                input_sizes=input_sizes,
                 output_file_path=save_path / onnx_name,
             )
             return save_path / onnx_name

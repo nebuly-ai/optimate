@@ -15,7 +15,7 @@ from nebullvm.inference_learners.tvm import (
     TVM_INFERENCE_LEARNERS,
     ApacheTVMInferenceLearner,
 )
-from nebullvm.optimizers.base import BaseOptimizer
+from nebullvm.optimizers.base import BaseOptimizer, get_input_names
 
 try:
     import tvm
@@ -80,9 +80,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             network_parameters=model_params,
             lib=lib,
             target_device=target,
-            input_names=[
-                f"input_{i}" for i in range(len(model_params.input_sizes))
-            ],
+            input_names=get_input_names(onnx_model),
         )
         return model
 
@@ -91,11 +89,13 @@ class ApacheTVMOptimizer(BaseOptimizer):
         onnx_model_path: str, model_params: ModelParams
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {
-            f"input_{i}": (
+            input_key: (
                 model_params.batch_size,
                 *input_size,
             )
-            for i, input_size in enumerate(model_params.input_sizes)
+            for input_key, input_size in zip(
+                get_input_names(onnx_model_path), model_params.input_sizes
+            )
         }
         onnx_model = onnx.load(onnx_model_path)
         mod, params = relay.frontend.from_onnx(onnx_model, shape_dict)

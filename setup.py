@@ -1,3 +1,4 @@
+from pathlib import Path
 from setuptools import setup, find_packages
 
 REQUIREMENTS = [
@@ -5,14 +6,17 @@ REQUIREMENTS = [
     "joblib>=1.1.0",
     "onnx>=1.10.0",
     "py-cpuinfo>=8.0.0",
-    "tensorflow~=2.7.0",
-    "tf2onnx~=1.8.4",
+    "tensorflow>=2.7.0",
+    "tf2onnx>=1.8.4",
     "torch>=1.10.0",
 ]
 
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     name="nebullvm",
-    version="0.1.0",
+    version="0.1.1",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     package_data={
@@ -21,4 +25,6 @@ setup(
         # And include any file needed for config
         "nebullvm": ["*config.cmake"],
     },
+    long_description=long_description,
+    long_description_content_type="text/markdown",
 )
