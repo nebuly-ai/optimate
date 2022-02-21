@@ -1,7 +1,7 @@
 # Nebullvm
 
 This repository contains the opensource `nebullvm` package, an opensource project
-aiming to reunite all the opensource AI compiler under the same easy to use interface.
+aiming to reunite all the opensource AI compiler under the same easy-to-use interface.
 
 ## Installation
 There are two ways of installing `nebullvm`. Using PyPy or from the source code.
