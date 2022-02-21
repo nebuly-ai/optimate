@@ -3,6 +3,9 @@
 
 # Nebullvm
 
+> _**All-in-one library that allows you to test multiple DL compilers in one line of code and speed up the inference of your DL models by 5-20 times.**_
+
+
 This repository contains the opensource `nebullvm` package, an opensource project
 aiming to reunite all the opensource AI compilers under the same easy-to-use interface.
 
@@ -12,7 +15,7 @@ You will love this library if:<br />
 🥇 you enjoy simplifying complex problems: in fact with one line of code you can know which DL compiler is best suited for your application;\
 💙 you are passionate about AI performance optimization.
 
-We designed something that is super easy to use: you just need to select the model and you will automatically get back the optimized version of the model on the hardware where you performed the optimization.
+We designed something that is super easy to use: you just need to input your DL model and you will automatically get back an optimized version of the model for the hardware where you performed the optimization.
 
 _To the best of the authors' knowledge, there are no open source libraries yet to combine the various DL compilers on the market to figure out which one is best suited for the user's model. We believe that this library can make a strong contribution to making it increasingly easy for AI developers to make their models more efficient without spending an inordinate amount of time on it._
 
@@ -29,42 +32,38 @@ _To the best of the authors' knowledge, there are no open source libraries yet t
 - MLIR (Coming soon 🚀)
 
 ## Installation
-There are two ways of installing `nebullvm`. Using PyPy or from the source code.
-For using the stable version we suggest installing the library with `pip`, for 
-getting the newest features install the library from the source code.
+There are two ways to install `nebullvm`: 
+1. Using PyPy. We suggest installing the library with `pip` to get the stable version of `nebullvm`
+2. From source code to get the latest features
+
 
 ### Source code installation
-For installing the source code you must clone the directory on your local machine
-using `git`
+To install the source code you have to clone the directory on your local machine
+using `git`.
 ```
 git clone https://github.com/nebuly-ai/nebullvm.git
 ```
-Then, enter into the repo and install with `pip`
+Then, enter the repo and install `nebullvm` with `pip`.
 ```
 cd nebullvm
 pip install .
 ```
 ### Installation with PyPy
-The easiest way for installing `nebullvm` is using `pip`, running
+The easiest way to install `nebullvm` is by using `pip`, running
 ```
 pip install nebullvm
 ```
 ### Possible issues
 **MacOS**: the installation may fail on MacOS for MacBooks with the Apple Silicon chip,
-due to compilation errors of scipy. The easy fix is to install scipy with another
-package manager as conda (the Apple Silicon distribution of Mini-conda) and then install
-`nebullvm`.
-For any additional problem do not hesitate to open an issue or to contact directly
-`info@nebuly.ai` by email.
+due to scipy compilation errors. The easy fix is to install scipy with another package manager such as conda (the Apple Silicon distribution of Mini-conda) and then install `nebullvm`.
+For any additional issues do not hesitate to open an issue or contact directly `info@nebuly.ai` by email.
 
 ## Get Started
-The `nebullvm` aims at reducing by at least 5x computation time due to 
-deep learning models inference, using the right compiler on specific machines.
-At the current state `nebullvm` supports model optimization from the `torch` 
-and `tensorflow` frameworks, but others will be added soon. 
-Models can easily be imported from one of the supported framework 
-using the apposite function.
-Here, we present an example for optimizing a pytorch model:
+`Nebullvm` aims to reduce the computation time of deep learning model inference by at least 5 times by selecting and using the right DL compiler for your specific model and machine.
+Currently `nebullvm` supports models in the `torch` and `tensorflow` frameworks, but other compilers will be included soon. 
+Templates can be easily imported from one of the supported frameworks using the appropriate function.
+
+Here we present an example of optimizing a pytorch model with `nebullvm`:
 ```
 >>> import torch
 >>> import torchvision.models as models
@@ -78,12 +77,10 @@ Here, we present an example for optimizing a pytorch model:
 >>> x = torch.randn((bs, *input_sizes[0]))
 >>> res = optimized_model(x)
 ```
-A similar example can be done with `tensorflow` using the function 
+The same optimization can be achieved with a `tensorflow` model using the function 
 `nebullvm.optimize_tf_model`.
 
-The library automatically installs the compilers available for a particular 
-hardware. However, if you prefer avoiding this behaviour, you can simply 
-export the environmental variable `NO_COMPILER_INSTALLATION=1`, running
+The library automatically installs the available DL compilers. However, if you prefer to avoid automatic installation, you can simply export the environment variable `NO_COMPILER_INSTALLATION=1` by running
 ```
 export NO_COMPILER_INSTALLATION=1
 ```
@@ -94,23 +91,16 @@ os.environ["NO_COMPILER_INSTALLATION"] = "1"
 ```
 in your python code before importing `nebullvm` for the first time.
 
-Note that auto-installation of the opensource compilers is done outside nebullvm's wheel. 
-The ApacheTVM and Openvino installations have been tested on MacOS, Debian-like and CentOS-like
-linux distributions. 
+Note that auto-installation of opensource compilers is done outside the nebullvm wheel. Installations of ApacheTVM and Openvino have been tested on macOS, linux distributions similar to Debian and CentOS. 
 
-The feature is still in an alpha version, so we expect it may fail under
-non-tested circumstances. We are doing our best for supporting the largest number of
-hardware configuration, operating systems and development frameworks, thus warmly invite you to
-open a new github-issue any time you encounter a bug or a failure of the library.
+The feature is still in an alpha version, so we expect that it may fail under untested circumstances. We are doing our best to support as many hardware configurations, operating systems, and development frameworks as possible, so we strongly encourage you to open a new github-issue whenever you encounter a bug or failure of the library.
 
 
 ## Acknowledgments
 
-This library is based on the amazing job made by the opensource community and the
-main hardware providers on building AI compilers. The aim of `nebullvm` is to group
-the amazing job done so far in a common interface in order to squeeze out the 
-performance from developers hardware. At the current state `nebullvm`supports
-as AI compilers:
-* OpenVino (on Intel Machines)
-* Tensor RT (on Nvidia GPUs)
+This library is based on the amazing work done on AI compilers by the opensource community and major hardware suppliers. The purpose of `nebullvm` is to combine the incredible work made so far into a common, easy-to-use interface for ML developers.
+
+Currently `nebullvm` supports as AI compilers:
+* OpenVINO (on Intel Machines)
+* TensorRT (on Nvidia GPUs)
 * Apache TVM
