@@ -68,3 +68,24 @@ import os
 os.environ["NO_COMPILER_INSTALLATION"] = "1"
 ```
 in your python code before importing `nebullvm` for the first time.
+
+Note that auto-installation of the opensource compilers is done outside nebullvm's wheel. 
+The ApacheTVM and Openvino installations have been tested on MacOS, Debian-like and CentOS-like
+linux distributions. 
+
+The feature is still in an alpha version, so we expect it may fail under
+non-tested circumstances. We are doing our best for supporting the largest number of
+hardware configuration, operating systems and development frameworks, thus warmly invite you to
+open a new github-issue any time you encounter a bug or a failure of the library.
+
+
+## Acknowledgments
+
+This library is based on the amazing job made by the opensource community and the
+main hardware providers on building AI compilers. The aim of `nebullvm` is to group
+the amazing job done so far in a common interface in order to squeeze out the 
+performance from developers hardware. At the current state `nebullvm`supports
+as AI compilers:
+* OpenVino (on Intel Machines)
+* Tensor RT (on Nvidia GPUs)
+* Apache TVM

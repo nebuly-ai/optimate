@@ -1,5 +1,6 @@
-import subprocess
+import os
 from pathlib import Path
+import subprocess
 
 import cpuinfo
 import torch
@@ -39,7 +40,8 @@ def install_tvm(working_dir: str = None):
     env_dict = {
         "CONFIG_PATH": str(
             path / f"tvm_installers/{hardware_config}/config.cmake"
-        )
+        ),
+        **dict(os.environ.copy()),
     }
     subprocess.run(
         ["bash", installation_file],
