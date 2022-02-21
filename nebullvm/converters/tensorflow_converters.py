@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 from typing import Union, Tuple, List
 
 import tensorflow as tf
-import tf2onnx.convert
+import tf2onnx
 
 
 def get_outputs_sizes_tf(
@@ -12,13 +12,12 @@ def get_outputs_sizes_tf(
 ) -> List[Tuple[int, ...]]:
     outputs = tf_model(*input_tensors)
     if isinstance(outputs, tf.Tensor):
-        return [tuple(outputs.size())]
+        return [tuple(tf.shape(outputs))]
     return [tuple(x.size()) for x in outputs]
 
 
 def convert_tf_to_onnx(
     model: tf.Module,
-    input_sizes: List[Tuple[int, ...]],
     output_file_path: Union[str, Path],
 ):
     """Convert TF models into ONNX.
@@ -30,17 +29,17 @@ def convert_tf_to_onnx(
     """
     with TemporaryDirectory() as temp_dir:
         tf.saved_model.save(model, export_dir=temp_dir)
-        inputs_str = " ".join(
-            [
-                f"input_{i}:0{list(input_size)}"
-                for i, input_size in enumerate(input_sizes)
-            ]
-        )
-        onnx_cmd = (
-            f"python -m tf2onnx.convert --saved-model {temp_dir/'model.tf'} "
-            f"--inputs {inputs_str} "
-            f"--output {output_file_path} --opset 11"
-        )
+        onnx_cmd = [
+            "python3",
+            "-m",
+            "tf2onnx.convert",
+            "--saved-model",
+            f"{temp_dir}",
+            "--output",
+            f"{output_file_path}",
+            "--opset",
+            "11",
+        ]
         subprocess.run(onnx_cmd)
 
 

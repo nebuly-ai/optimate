@@ -49,10 +49,14 @@ def _optimize_with_compiler(
         model_optimized = optimizer.optimize(**kwargs)
         latency = metric_func(model_optimized)
     except Exception as ex:
-        warnings.warn(
+        warning_msg = (
             f"Compilation failed with {compiler.value}. Got error {ex}."
             f"The compiler will be skipped."
         )
+        if logger is None:
+            warnings.warn(warning_msg)
+        else:
+            logger.warning(warning_msg)
         latency = np.inf
         model_optimized = None
     return model_optimized, latency
