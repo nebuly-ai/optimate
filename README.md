@@ -8,11 +8,11 @@ aiming to reunite all the opensource AI compilers under the same easy-to-use int
 
 You will love this library if:<br />
 🚀 you want to speed up the response time of your AI models;\
-👟 you don't want to test all DL compilers on the market, but you just want to know the best one for your specific application\
+👟 you don't want to test all DL compilers on the market, but you just want to know the best one for your specific application;\
 🥇 you enjoy simplifying complex problems: in fact with one line of code you can know which DL compiler is best suited for your application;\
 💙 you are passionate about AI performance optimization.
 
-We designed something that is super easy to use: you just need to select the model and you will automatically get back the optimized version of the model on the machine where you performed the optimization.
+We designed something that is super easy to use: you just need to select the model and you will automatically get back the optimized version of the model on the hardware where you performed the optimization.
 
 _To the best of the authors' knowledge, there are no open source libraries yet to combine the various DL compilers on the market to figure out which one is best suited for the user's model. We believe that this library can make a strong contribution to making it increasingly easy for AI developers to make their models more efficient without spending an inordinate amount of time on it._
 
