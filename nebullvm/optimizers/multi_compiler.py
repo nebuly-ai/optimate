@@ -1,8 +1,10 @@
+import warnings
 from functools import partial
 from logging import Logger
 from typing import Dict, Type, Tuple, Callable
 
 import cpuinfo
+import numpy as np
 from joblib import Parallel, delayed
 import torch
 
@@ -38,13 +40,21 @@ def _optimize_with_compiler(
     compiler: ModelCompiler,
     logger: Logger,
     metric_func: Callable = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[BaseInferenceLearner, float]:
     if metric_func is None:
         metric_func = compute_optimized_running_time
     optimizer = COMPILER_TO_OPTIMIZER_MAP[compiler](logger)
-    model_optimized = optimizer.optimize(**kwargs)
-    latency = metric_func(model_optimized)
+    try:
+        model_optimized = optimizer.optimize(**kwargs)
+        latency = metric_func(model_optimized)
+    except Exception as ex:
+        warnings.warn(
+            f"Compilation failed with {compiler.value}. Got error {ex}."
+            f"The compiler will be skipped."
+        )
+        latency = np.inf
+        model_optimized = None
     return model_optimized, latency
 
 
