@@ -44,7 +44,7 @@ without spending an inordinate amount of time on it._
 
 ## Installation
 There are two ways to install `nebullvm`: 
-1. Using PyPy. We suggest installing the library with `pip` to get the 
+1. Using PyPi. We suggest installing the library with `pip` to get the 
 stable version of `nebullvm`
 2. From source code to get the latest features
 
@@ -60,7 +60,7 @@ Then, enter the repo and install `nebullvm` with `pip`.
 cd nebullvm
 pip install .
 ```
-### Installation with PyPy
+### Installation with PyPi
 The easiest way to install `nebullvm` is by using `pip`, running
 ```
 pip install nebullvm
