@@ -114,7 +114,7 @@ For any additional issues do not hesitate to open an issue or contact directly
 inference by at least 5 times by selecting and using the right DL compiler 
 for your specific model and machine.
 Currently `nebullvm` supports models in the `torch` and `tensorflow` frameworks, 
-but other compilers will be included soon. 
+but others will be included soon. 
 Templates can be easily imported from one of the supported frameworks using the 
 appropriate function.
 
