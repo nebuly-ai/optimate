@@ -39,7 +39,6 @@ without spending an inordinate amount of time on it._
 - OpenVINO
 - TensorRT
 - TVM
-- Rammer (Coming soon 📨)
 - MLIR (Coming soon 🚀)
 
 ## Installation
