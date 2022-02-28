@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 
 REQUIREMENTS = [
     "numpy>=1.19.0",
+    "joblib>=1.1.0",
     "onnx>=1.10.0",
     "py-cpuinfo>=8.0.0",
     "tensorflow>=2.7.0",
