@@ -26,5 +26,6 @@ then
     sudo ln -s /usr/bin/cmake3 /usr/bin/cmake
   fi
 else
-  apt-get update && apt-get install -y gcc libtinfo-dev zlib1g-dev build-essential cmake libedit-dev libxml2-dev
+  sudo apt-get update && sudo apt-get install -y gcc libtinfo-dev zlib1g-dev \
+    build-essential cmake libedit-dev libxml2-dev llvm-12
 fi
