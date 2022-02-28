@@ -1,11 +1,9 @@
 import warnings
-from functools import partial
 from logging import Logger
-from typing import Dict, Type, Tuple, Callable
+from typing import Dict, Type, Tuple, Callable, List
 
 import cpuinfo
 import numpy as np
-from joblib import Parallel, delayed
 import torch
 
 
@@ -63,10 +61,17 @@ def _optimize_with_compiler(
 
 
 class MultiCompilerOptimizer(BaseOptimizer):
-    def __init__(self, logger: Logger = None, n_jobs: int = 1):
+    def __init__(
+        self,
+        logger: Logger = None,
+        ignore_compilers: List = None,
+    ):
         super().__init__(logger)
-        self.compilers = select_compilers_from_hardware()
-        self.n_jobs = n_jobs
+        self.compilers = [
+            compiler
+            for compiler in select_compilers_from_hardware()
+            if compiler not in (ignore_compilers or [])
+        ]
 
     def optimize(
         self,
@@ -74,16 +79,16 @@ class MultiCompilerOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
     ) -> BaseInferenceLearner:
-        optimization_func = partial(
-            _optimize_with_compiler,
-            logger=self.logger,
-            onnx_model=onnx_model,
-            output_library=output_library,
-            model_params=model_params,
-        )
-        optimized_models = Parallel(n_jobs=self.n_jobs)(
-            delayed(optimization_func)(compiler) for compiler in self.compilers
-        )
+        optimized_models = [
+            _optimize_with_compiler(
+                compiler,
+                logger=self.logger,
+                onnx_model=onnx_model,
+                output_library=output_library,
+                model_params=model_params,
+            )
+            for compiler in self.compilers
+        ]
         optimized_models.sort(key=lambda x: x[1], reverse=False)
         return optimized_models[0][0]
 
@@ -94,20 +99,23 @@ class MultiCompilerOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         return_all: bool = False,
-        n_jobs: int = None,
     ):
-        optimization_func = partial(
-            _optimize_with_compiler,
-            metric_func=metric_func,
-            logger=self.logger,
-            onnx_model=onnx_model,
-            output_library=output_library,
-            model_params=model_params,
-        )
-        optimized_models = Parallel(n_jobs=n_jobs or self.n_jobs)(
-            delayed(optimization_func)(compiler) for compiler in self.compilers
-        )
+        optimized_models = [
+            _optimize_with_compiler(
+                compiler,
+                metric_func=metric_func,
+                logger=self.logger,
+                onnx_model=onnx_model,
+                output_library=output_library,
+                model_params=model_params,
+            )
+            for compiler in self.compilers
+        ]
         if return_all:
             return optimized_models
         optimized_models.sort(key=lambda x: x[1], reverse=False)
         return optimized_models[0][0]
+
+    @property
+    def usable(self) -> bool:
+        return len(self.compilers) > 0
