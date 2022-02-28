@@ -3,7 +3,7 @@ import warnings
 from abc import ABC
 import json
 from pathlib import Path
-from typing import Dict, Union, Type
+from typing import Dict, Union, Type, Generator, Tuple, List
 
 import cpuinfo
 import numpy as np
@@ -59,8 +59,8 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
     def __init__(
         self,
         exec_network,
-        input_keys,
-        output_keys,
+        input_keys: List,
+        output_keys: List,
         description_file: str,
         weights_file: str,
         **kwargs,
@@ -163,11 +163,18 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         )
         shutil.copy(self.weights_file, path / OPENVINO_FILENAMES["weights"])
 
-    def _predict_array(self, input_array: np.ndarray) -> np.ndarray:
-        result = self.exec_network.infer(inputs={self.input_key: input_array})[
-            self.output_key
-        ]
-        return result
+    def _predict_array(
+        self, input_arrays: Generator[np.ndarray, None, None]
+    ) -> Generator[np.ndarray, None, None]:
+        results = self.exec_network.infer(
+            inputs={
+                input_key: input_array
+                for input_key, input_array in zip(
+                    self.input_keys, input_arrays
+                )
+            }
+        )
+        return (results[output_key] for output_key in self.output_keys)
 
 
 class PytorchOpenVinoInferenceLearner(
@@ -191,7 +198,7 @@ class PytorchOpenVinoInferenceLearner(
         weights_file (str): File containing the model weights.
     """
 
-    def predict(self, input_tensor: torch.Tensor) -> torch.Tensor:
+    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -209,9 +216,14 @@ class PytorchOpenVinoInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        input_array = input_tensor.cpu().detach().numpy()
-        output_array = self._predict_array(input_array)
-        return torch.from_numpy(output_array)
+        input_arrays = (
+            input_tensor.cpu().detach().numpy()
+            for input_tensor in input_tensors
+        )
+        output_arrays = self._predict_array(input_arrays)
+        return tuple(
+            torch.from_numpy(output_array) for output_array in output_arrays
+        )
 
 
 class TensorflowOpenVinoInferenceLearner(
@@ -236,7 +248,7 @@ class TensorflowOpenVinoInferenceLearner(
         weights_file (str): File containing the model weights.
     """
 
-    def predict(self, input_tensor: tf.Tensor) -> tf.Tensor:
+    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -254,9 +266,12 @@ class TensorflowOpenVinoInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        input_array = input_tensor.numpy()
-        output_array = self._predict_array(input_array)
-        return tf.convert_to_tensor(output_array)
+        input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
+        output_arrays = self._predict_array(input_arrays)
+        return tuple(
+            tf.convert_to_tensor(output_array)
+            for output_array in output_arrays
+        )
 
 
 OPENVINO_INFERENCE_LEARNERS: Dict[
