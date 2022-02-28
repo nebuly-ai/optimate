@@ -137,9 +137,10 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
-        metadata = {
-            key: self.__dict__[key] for key in ("input_key", "output_key")
-        }
+        # metadata = {
+        #     key: self.__dict__[key] for key in ("input_keys", "output_keys")
+        # }
+        metadata = {}
         metadata.update(kwargs)
         return LearnerMetadata.from_model(self, **metadata)
 
