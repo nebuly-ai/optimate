@@ -6,7 +6,8 @@ export DEBIAN_FRONTEND=noninteractive
 if [[ $OSTYPE == "darwin"* ]]
 then
   brew install gcc git cmake
-  brew install llvm
+  #brew install llvm
+  conda install -y -c conda-forge clangdev
 elif [[ "$(grep '^ID_LIKE' /etc/os-release)" == *"centos"* ]]
 then
   sudo yum update -y && sudo yum install -y gcc gcc-c++ llvm-devel cmake3 git

@@ -14,15 +14,17 @@ cp $CONFIG_PATH build/
 cd build
 cmake ..
 make -j8
-cd ../python
-python3 setup.py install --user
-cd ../..
 if [[ $OSTYPE == "darwin"* ]]
 then
+  pip install tornado
   brew install openblas gfortran
   pip install pybind11 cython pythran
   conda install -y scipy
   pip install xgboost decorator
+  export MACOSX_DEPLOYMENT_TARGET=10.9
 else
   pip3 install decorator attrs tornado psutil xgboost cloudpickle
 fi
+cd ../python
+python3 setup.py install --user
+cd ../..
