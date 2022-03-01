@@ -1,3 +1,4 @@
+import shutil
 import warnings
 from abc import ABC
 from dataclasses import dataclass
@@ -59,12 +60,15 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             model.
         target (str): Target device. It can be wither `llvm` for targeting CPUs
             or "cuda" for targeting GPUs.
+        engine_path (Path, optional): Path to the serialized engine. To be used
+            after loading the model (avoiding double engine serialization).
     """
 
     graph_executor_module: GraphModule
     input_names: List[str]
     lib: Module
     target: str
+    engine_path: Path = None
 
     def _predict_array(
         self, input_arrays: Generator[np.ndarray, None, None]
@@ -103,7 +107,10 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             self, input_names=self.input_names, target=self.target, **kwargs
         )
         metadata.save(path)
-        self.lib.export_library(path / TVM_FILENAMES["engine"])
+        if self.engine_path is None:
+            self.lib.export_library(path / TVM_FILENAMES["engine"])
+        else:
+            shutil.copy(self.engine_path, path)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -124,12 +131,14 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         lib = tvm.runtime.load_module(path / TVM_FILENAMES["engine"])
         target_device = metadata["target"]
         input_names = metadata["input_names"]
-        return cls.from_runtime_module(
+        self = cls.from_runtime_module(
             network_parameters=network_parameters,
             lib=lib,
             target_device=target_device,
             input_names=input_names,
         )
+        self.engine_path = path / TVM_FILENAMES["engine"]
+        return self
 
     @classmethod
     def from_runtime_module(

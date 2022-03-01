@@ -3,10 +3,9 @@ from setuptools import setup, find_packages
 
 REQUIREMENTS = [
     "numpy>=1.19.0",
-    "joblib>=1.1.0",
     "onnx>=1.10.0",
     "py-cpuinfo>=8.0.0",
-    "tensorflow>=2.7.0",
+    "tensorflow>=2.7.0, <2.8.0",
     "tf2onnx>=1.8.4",
     "torch>=1.10.0",
 ]
@@ -16,7 +15,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="nebullvm",
-    version="0.1.1",
+    version="0.1.2",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     package_data={

@@ -51,6 +51,31 @@ except ImportError:
 class ApacheTVMOptimizer(BaseOptimizer):
     """Class for compiling the AI models on Nvidia GPUs using TensorRT."""
 
+    def optimize_from_torch(
+        self,
+        torch_model: torch.nn.Module,
+        model_params: ModelParams,
+    ):
+        target = self._get_target()
+        mod, params = self._build_tvm_model_from_torch(
+            torch_model, model_params
+        )
+        tuning_records = self._tune_tvm_model(target, mod, params)
+        with autotvm.apply_history_best(tuning_records):
+            with tvm.transform.PassContext(opt_level=3, config={}):
+                lib = relay.build(mod, target=target, params=params)
+        model = TVM_INFERENCE_LEARNERS[
+            DeepLearningFramework.PYTORCH
+        ].from_runtime_module(
+            network_parameters=model_params,
+            lib=lib,
+            target_device=target,
+            input_names=[
+                f"input_{i}" for i in range(len(model_params.input_sizes))
+            ],
+        )
+        return model
+
     def optimize(
         self,
         onnx_model: str,
@@ -71,7 +96,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 `output_library`.
         """
         target = self._get_target()
-        mod, params = self._build_tvm_model(onnx_model, model_params)
+        mod, params = self._build_tvm_model_from_onnx(onnx_model, model_params)
         tuning_records = self._tune_tvm_model(target, mod, params)
         with autotvm.apply_history_best(tuning_records):
             with tvm.transform.PassContext(opt_level=3, config={}):
@@ -85,7 +110,30 @@ class ApacheTVMOptimizer(BaseOptimizer):
         return model
 
     @staticmethod
-    def _build_tvm_model(
+    def _build_tvm_model_from_torch(
+        torch_model: torch.nn.Module, model_params: ModelParams
+    ) -> Tuple[IRModule, Dict[str, NDArray]]:
+        shape_dict = {
+            f"input_{i}": (
+                model_params.batch_size,
+                *input_size,
+            )
+            for i, input_size in enumerate(model_params.input_sizes)
+        }
+        inputs = tuple(
+            torch.randn(input_shape) for input_shape in shape_dict.values()
+        )
+        with torch.no_grad():
+            _ = torch_model(*inputs)
+            model_trace = torch.jit.trace(torch_model, inputs)
+            model_trace.eval()
+        mod, params = relay.frontend.from_pytorch(
+            model_trace, list(shape_dict.items())
+        )
+        return mod, params
+
+    @staticmethod
+    def _build_tvm_model_from_onnx(
         onnx_model_path: str, model_params: ModelParams
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {

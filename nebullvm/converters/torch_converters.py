@@ -14,8 +14,9 @@ def get_outputs_sizes_torch(
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
         if isinstance(outputs, torch.Tensor):
-            return [tuple(outputs.size())]
-        return [tuple(x.size()) for x in outputs]
+            return [tuple(outputs.size())[1:]]
+        else:
+            return [tuple(output.size())[1:] for output in outputs]
 
 
 def convert_torch_to_onnx(

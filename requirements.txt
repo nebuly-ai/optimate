@@ -1,7 +1,6 @@
 numpy>=1.19.0
-joblib==1.1.0
 onnx>=1.10.0
 py-cpuinfo==8.0.0
-tensorflow>=2.7.0
+tensorflow>=2.7.0, <2.8.0
 tf2onnx>=1.8.4
 torch>=1.10.0
