@@ -1,10 +1,10 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 
 import tensorflow as tf
 
-from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.base import DeepLearningFramework, ModelParams, InputInfo
 from nebullvm.converters import ONNXConverter
 from nebullvm.converters.tensorflow_converters import get_outputs_sizes_tf
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
@@ -15,6 +15,9 @@ def optimize_tf_model(
     batch_size: int,
     input_sizes: List[Tuple[int, ...]],
     save_dir: str,
+    input_types: List[str] = None,
+    extra_input_info: List[Dict] = None,
+    dynamic_axis: Dict = None,
 ):
     """Basic function for optimizing a tensorflow model.
 
@@ -36,16 +39,45 @@ def optimize_tf_model(
             `(batch_size, *input_tensor_size)`, where `input_tensor_size` is
             one list element of `input_sizes`.
         save_dir (str): Path to the directory where saving the final model.
+        input_types (List[str], optional): List of input types. If no value is
+            given all the inputs will be considered as float type. The
+            supported string values are "int" and "float".
+        extra_input_info (List[Dict], optional): List of extra information
+            needed for defining the input tensors, e.g. max_value and min_value
+            the tensors can get.
+        dynamic_axis (Dict, optional): Dictionary containing info about the
+            dynamic axis. It should contain as keys both "inputs" and "outputs"
+            and as values two lists of dictionaries where each dictionary
+            represents the dynamic axis information for an input/output tensor.
+            The inner dictionary should have as key an integer, i.e. the
+            dynamic axis (considering also the batch size) and as value a
+            string giving a "tag" to it, e.g. "batch_size".
 
     Returns:
         BaseInferenceLearner: Optimized model usable with the classical
             tensorflow interface. Note that as a torch model it takes as input
             and it gives as output `tf.Tensor`s.
     """
+    if input_types is None:
+        input_types = ["float"] * len(input_sizes)
+    if extra_input_info is None:
+        extra_input_info = [{}] * len(input_sizes)
+    if not len(input_sizes) == len(input_types) == len(extra_input_info):
+        raise ValueError(
+            f"Mismatch in the input list lengths. Given {len(input_sizes)} "
+            f"sizes, {len(input_types)} input types and "
+            f"{len(extra_input_info)} extra input infos."
+        )
+    input_infos = [
+        InputInfo(size=input_size, dtype=input_type, **extra_info)
+        for input_size, input_type, extra_info in zip(
+            input_sizes, input_types, extra_input_info
+        )
+    ]
     dl_library = DeepLearningFramework.TENSORFLOW
     model_params = ModelParams(
         batch_size=batch_size,
-        input_sizes=input_sizes,
+        input_infos=input_infos,
         output_sizes=get_outputs_sizes_tf(
             model,
             input_tensors=[
@@ -53,9 +85,10 @@ def optimize_tf_model(
                 for input_size in input_sizes
             ],
         ),
+        dynamic_info=dynamic_axis,
     )
     model_converter = ONNXConverter()
-    model_optimizer = MultiCompilerOptimizer(n_jobs=-1)
+    model_optimizer = MultiCompilerOptimizer()
     with TemporaryDirectory() as tmp_dir:
         onnx_path = model_converter.convert(
             model, model_params.input_sizes, Path(tmp_dir)

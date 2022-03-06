@@ -1,18 +1,72 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Union
+
+
+class DataType(str, Enum):
+    FLOAT = "float"
+    INT = "int"
 
 
 @dataclass
-class ModelParams:
-    batch_size: int
-    input_sizes: List[Tuple[int, ...]]
-    output_sizes: List[Tuple[int, ...]]
+class DynamicAxisInfo:
+    inputs: List[Dict[int, str]]
+    outputs: List[Dict[int, str]]
 
     def dict(self):
         return {
             k: v for k, v in self.__dict__.items() if not k.startswith("_")
         }
+
+
+class InputInfo:
+    """Class for storing all the information needed for creating an input
+    tensor for AI models.
+
+    Attributes:
+        size (tuple): Tuple with the input size (batch size excluded)
+        dtype (str): Data type of the tensor.
+        min_value (int or float, optional): Min value the tensor elements can
+            have.
+        max_value (int or float, optional): Max value the tensor elements can
+            have.
+    """
+
+    def __init__(self, size: Tuple[int, ...], dtype: str, **extra_info):
+        self.dtype = DataType(dtype)
+        self.size = size
+        self.__dict__.update(extra_info)
+
+    def __getattr__(self, item):
+        return self.__dict__.get(item)
+
+
+@dataclass
+class ModelParams:
+    batch_size: int
+    input_infos: List[InputInfo]
+    output_sizes: List[Tuple[int, ...]]
+    dynamic_info: Union[DynamicAxisInfo, Dict] = None
+
+    def __post_init__(self):
+        if isinstance(self.dynamic_info, dict):
+            self.dynamic_info = DynamicAxisInfo(**self.dynamic_info)
+        self.input_infos = [
+            InputInfo(**x) if isinstance(x, dict) else x
+            for x in self.input_infos
+        ]
+
+    def dict(self):
+        return {
+            k: v.dict() if hasattr(v, "dict") else v
+            for k, v in self.__dict__.items()
+            if not k.startswith("_")
+        }
+
+    @property
+    def input_sizes(self):
+        for input_info in self.input_infos:
+            yield input_info.size
 
 
 class DeepLearningFramework(Enum):

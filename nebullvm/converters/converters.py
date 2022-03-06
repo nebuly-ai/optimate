@@ -1,10 +1,11 @@
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import Any, Tuple, List
+from typing import Any
 
 import tensorflow as tf
 from torch.nn import Module
 
+from nebullvm.base import ModelParams
 from nebullvm.converters.tensorflow_converters import (
     convert_tf_to_onnx,
     convert_keras_to_onnx,
@@ -24,9 +25,7 @@ class BaseConverter(ABC):
         self.model_name = model_name or "temp"
 
     @abstractmethod
-    def convert(
-        self, model: Any, input_size: Tuple[int, ...], save_path: Path
-    ):
+    def convert(self, model: Any, model_params: ModelParams, save_path: Path):
         raise NotImplementedError
 
 
@@ -40,15 +39,14 @@ class ONNXConverter(BaseConverter):
 
     ONNX_MODEL_EXTENSION = ".onnx"
 
-    def convert(
-        self, model: Any, input_sizes: List[Tuple[int, ...]], save_path: Path
-    ):
+    def convert(self, model: Any, model_params: ModelParams, save_path: Path):
         """Convert the input model in ONNX.
 
         Args:
             model (any, optional): Model to be converted. The model can be in
                 either the tensorflow or pytorch framework.
-            input_sizes (List[Tuple[int, ...]]): Size of the input data.
+            model_params (ModelParams): Model Parameters as input sizes and
+                dynamic axis information.
             save_path (Path): Path to the directory where saving the onnx
                 model.
 
@@ -59,7 +57,7 @@ class ONNXConverter(BaseConverter):
         if isinstance(model, Module):
             convert_torch_to_onnx(
                 torch_model=model,
-                input_sizes=input_sizes,
+                model_params=model_params,
                 output_file_path=save_path / onnx_name,
             )
             return save_path / onnx_name
@@ -72,7 +70,7 @@ class ONNXConverter(BaseConverter):
         elif isinstance(model, tf.keras.Model):
             convert_keras_to_onnx(
                 model=model,
-                input_sizes=input_sizes,
+                model_params=model_params,
                 output_file_path=save_path / onnx_name,
             )
             return save_path / onnx_name
