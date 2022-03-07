@@ -18,6 +18,20 @@ class DynamicAxisInfo:
             k: v for k, v in self.__dict__.items() if not k.startswith("_")
         }
 
+    def retrieve_output_dim(
+        self,
+        input_shapes: List[Tuple[int, ...]],
+        output_idx: int,
+        dimension_idx: int,
+        default_output_value: int,
+    ) -> int:
+        output_tag = self.outputs[output_idx][dimension_idx]
+        for input_dict, input_shape in zip(self.inputs, input_shapes):
+            for key, value in input_dict.items():
+                if value == output_tag:
+                    return input_shape[key]
+        return default_output_value
+
 
 class InputInfo:
     """Class for storing all the information needed for creating an input

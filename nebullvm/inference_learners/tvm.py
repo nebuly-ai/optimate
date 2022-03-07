@@ -215,7 +215,52 @@ class PytorchApacheTVMInferenceLearner(
             input_tensor.cpu().detach().numpy()
             for input_tensor in input_tensors
         )
+        if self.network_parameters.dynamic_info is not None:
+            input_arrays = (
+                np.pad(
+                    array=input_array,
+                    pad_with=[
+                        (0, abs(x - y))
+                        for x, y in zip(
+                            input_array.shape,
+                            (self.network_parameters.batch_size, *input_size),
+                        )
+                    ],
+                    mode="constant",
+                    constant_values=0,
+                )
+                for input_array, input_size in zip(
+                    input_arrays, self.network_parameters.input_sizes
+                )
+            )
         output_arrays = self._predict_array(input_arrays)
+        if self.network_parameters.dynamic_info is not None:
+            dynamic_info = self.network_parameters.dynamic_info
+            input_shapes = [
+                tuple(input_tensor.size()) for input_tensor in input_tensors
+            ]
+            # noinspection PyTypeChecker
+            return tuple(
+                torch.from_numpy(
+                    output_array[
+                        tuple(
+                            slice(
+                                0,
+                                None
+                                if x not in out_dynamic_dict.keys()
+                                else dynamic_info.retrieve_output_dim(
+                                    input_shapes, j, i, x
+                                ),
+                            )
+                            for i, x in enumerate(output_array.shape)
+                        )
+                    ]
+                ).to(device)
+                for j, (output_array, out_dynamic_dict) in enumerate(
+                    zip(output_arrays, dynamic_info.outputs)
+                )
+            )
+        # noinspection PyTypeChecker
         return tuple(
             torch.from_numpy(output_array).to(device)
             for output_array in output_arrays
@@ -269,7 +314,53 @@ class TensorflowApacheTVMInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
+        if self.network_parameters.dynamic_info is not None:
+            input_arrays = (
+                np.pad(
+                    array=input_array,
+                    pad_with=[
+                        (0, abs(x - y))
+                        for x, y in zip(
+                            input_array.shape,
+                            (self.network_parameters.batch_size, *input_size),
+                        )
+                    ],
+                    mode="constant",
+                    constant_values=0,
+                )
+                for input_array, input_size in zip(
+                    input_arrays, self.network_parameters.input_sizes
+                )
+            )
+
         output_arrays = self._predict_array(input_arrays)
+        if self.network_parameters.dynamic_info is not None:
+            dynamic_info = self.network_parameters.dynamic_info
+            input_shapes = [
+                input_tensor.shape for input_tensor in input_tensors
+            ]
+            # noinspection PyTypeChecker
+            return tuple(
+                tf.convert_to_tensor(
+                    output_array[
+                        tuple(
+                            slice(
+                                0,
+                                None
+                                if x not in out_dynamic_dict.keys()
+                                else dynamic_info.retrieve_output_dim(
+                                    input_shapes, j, i, x
+                                ),
+                            )
+                            for i, x in enumerate(output_array.shape)
+                        )
+                    ]
+                )
+                for j, (output_array, out_dynamic_dict) in enumerate(
+                    zip(output_arrays, dynamic_info.outputs)
+                )
+            )
+        # noinspection PyTypeChecker
         return tuple(
             tf.convert_to_tensor(output_array)
             for output_array in output_arrays

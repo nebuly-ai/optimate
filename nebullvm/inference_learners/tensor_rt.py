@@ -256,13 +256,39 @@ class PytorchNvidiaInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         input_tensors = [input_tensor.cuda() for input_tensor in input_tensors]
-        output_tensors = [
-            torch.Tensor(
-                self.network_parameters.batch_size,
-                *output_size,
-            ).cuda()
-            for output_size in self.network_parameters.output_sizes
-        ]
+        if self.network_parameters.dynamic_info is None:
+            output_tensors = [
+                torch.Tensor(
+                    self.network_parameters.batch_size,
+                    *output_size,
+                ).cuda()
+                for output_size in self.network_parameters.output_sizes
+            ]
+        else:
+            dynamic_info = self.network_parameters.dynamic_info
+            input_sizes = [
+                input_tensor.size() for input_tensor in input_tensors
+            ]
+            output_tensors = [
+                torch.Tensor(
+                    *(
+                        x
+                        if i not in dynamic_axis.keys()
+                        else dynamic_info.retrieve_output_dim(
+                            input_sizes, j, i, x
+                        )
+                        for i, x in enumerate(
+                            (self.network_parameters.batch_size,) + output_size
+                        )
+                    ),
+                ).cuda()
+                for j, (output_size, dynamic_axis) in enumerate(
+                    zip(
+                        self.network_parameters.output_sizes,
+                        dynamic_info.outputs,
+                    )
+                )
+            ]
         input_ptrs = (
             input_tensor.data_ptr() for input_tensor in input_tensors
         )
@@ -329,12 +355,37 @@ class TensorflowNvidiaInferenceLearner(
             )
             for input_tensor in input_tensors
         ]
-        cuda_output_arrays = [
-            polygraphy.DeviceArray(
-                shape=(self.network_parameters.batch_size, *output_size)
+        if self.network_parameters.dynamic_info is None:
+            cuda_output_arrays = [
+                polygraphy.DeviceArray(
+                    shape=(self.network_parameters.batch_size, *output_size)
+                )
+                for output_size in self.network_parameters.output_sizes
+            ]
+        else:
+            dynamic_info = self.network_parameters.dynamic_info
+            output_sizes = (
+                (self.network_parameters.batch_size, *output_size)
+                for output_size in self.network_parameters.output_sizes
             )
-            for output_size in self.network_parameters.output_sizes
-        ]
+            input_shapes = [
+                input_tensor.shape for input_tensor in input_tensors
+            ]
+            cuda_output_arrays = [
+                polygraphy.DeviceArray(
+                    shape=tuple(
+                        x
+                        if i in dyn_out_axis.keys()
+                        else dynamic_info.retrieve_output_dim(
+                            input_shapes, j, i, x
+                        )
+                        for i, x in enumerate(output_size)
+                    )
+                )
+                for j, (output_size, dyn_out_axis) in enumerate(
+                    zip(output_sizes, dynamic_info.outputs)
+                )
+            ]
         input_ptrs = (cuda_array.ptr for cuda_array in cuda_input_arrays)
         output_ptrs = (cuda_array.ptr for cuda_array in cuda_output_arrays)
         self._predict_tensors(input_ptrs, output_ptrs)
