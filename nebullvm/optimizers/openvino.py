@@ -6,7 +6,7 @@ from nebullvm.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
     OpenVinoInferenceLearner,
 )
-from nebullvm.optimizers.base import BaseOptimizer
+from nebullvm.optimizers.base import BaseOptimizer, get_input_names
 
 
 class OpenVinoOptimizer(BaseOptimizer):
@@ -38,6 +38,8 @@ class OpenVinoOptimizer(BaseOptimizer):
                 onnx_model,
                 "--output_dir",
                 str(Path(onnx_model).parent),
+                "--input",
+                ",".join(get_input_names(onnx_model)),
                 "--input_shape",
                 ",".join(
                     [
