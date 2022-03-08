@@ -218,8 +218,8 @@ class PytorchApacheTVMInferenceLearner(
         if self.network_parameters.dynamic_info is not None:
             input_arrays = (
                 np.pad(
-                    array=input_array,
-                    pad_with=[
+                    input_array,
+                    [
                         (0, abs(x - y))
                         for x, y in zip(
                             input_array.shape,
@@ -317,8 +317,8 @@ class TensorflowApacheTVMInferenceLearner(
         if self.network_parameters.dynamic_info is not None:
             input_arrays = (
                 np.pad(
-                    array=input_array,
-                    pad_with=[
+                    input_array,
+                    [
                         (0, abs(x - y))
                         for x, y in zip(
                             input_array.shape,

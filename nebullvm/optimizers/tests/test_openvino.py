@@ -1,5 +1,6 @@
 from tempfile import TemporaryDirectory
 
+import cpuinfo
 import pytest
 
 from nebullvm.base import DeepLearningFramework
@@ -18,6 +19,9 @@ from nebullvm.optimizers.tests.utils import get_onnx_model
     ],
 )
 def test_openvino(output_library: DeepLearningFramework, dynamic: bool):
+    if "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower():
+        # No intel cpu detected
+        return
     with TemporaryDirectory() as tmp_dir:
         model_path, model_params = get_onnx_model(tmp_dir, dynamic)
         optimizer = OpenVinoOptimizer()
