@@ -38,6 +38,13 @@ class OpenVinoOptimizer(BaseOptimizer):
                 onnx_model,
                 "--output_dir",
                 str(Path(onnx_model).parent),
+                "--input_shape",
+                ",".join(
+                    [
+                        f"{(model_params.batch_size,)+shape}"
+                        for shape in model_params.input_sizes
+                    ]
+                ),
             ],
         )
         process.wait()
