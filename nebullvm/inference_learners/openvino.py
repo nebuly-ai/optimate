@@ -138,10 +138,10 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
     def _rebuild_network(self, input_shapes: Dict):
         inference_engine = IECore()
-        # network = inference_engine.read_network(
-        #     model=self.description_file, weights=self.weights_file
-        # )
-        network = self.exec_network.get_exec_graph_info()
+        network = inference_engine.read_network(
+            model=self.description_file, weights=self.weights_file
+        )
+        # network = self.exec_network.get_exec_graph_info()
         if all(
             input_shape == tuple(network.inputs[input_name].shape)
             for input_name, input_shape in input_shapes.items()
