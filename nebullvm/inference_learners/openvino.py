@@ -143,7 +143,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         # )
         network = self.exec_network.get_exec_graph_info()
         if all(
-            input_shape == network.inputs[input_name]
+            input_shape == tuple(network.inputs[input_name].shape)
             for input_name, input_shape in input_shapes.items()
         ):
             # If the new input shapes is equal to the previous one do nothing.
