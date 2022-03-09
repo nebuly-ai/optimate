@@ -1,6 +1,7 @@
 import os
-from pathlib import Path
+import platform
 import subprocess
+from pathlib import Path
 
 import cpuinfo
 import torch
@@ -12,6 +13,10 @@ def _get_cpu_arch():
         return "x86"
     else:
         return "arm"
+
+
+def _get_os():
+    return platform.system()
 
 
 def install_tvm(working_dir: str = None):
@@ -83,4 +88,16 @@ def install_openvino(with_optimization: bool = True):
         )
     openvino_version = "openvino-dev" if with_optimization else "openvino"
     cmd = ["pip3", "install", openvino_version]
+    subprocess.run(cmd)
+
+
+def install_onnxruntime():
+    """Helper function for installing the right version of onnxruntime."""
+    distribution_name = "onnxruntime"
+    if torch.cuda.is_available():
+        distribution_name = f"{distribution_name}-gpu"
+    if _get_os() == "Darwin" and _get_cpu_arch() == "arm":
+        cmd = ["conda", "install", "-y", distribution_name]
+    else:
+        cmd = ["pip3", "install", distribution_name]
     subprocess.run(cmd)
