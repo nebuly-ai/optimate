@@ -54,6 +54,11 @@ class InputInfo:
     def __getattr__(self, item):
         return self.__dict__.get(item)
 
+    def dict(self):
+        return {
+            k: v for k, v in self.__dict__.items() if not k.startswith("_")
+        }
+
 
 @dataclass
 class ModelParams:
@@ -71,8 +76,15 @@ class ModelParams:
         ]
 
     def dict(self):
+        def recursively_dictionarize(element):
+            if isinstance(element, list):
+                element = [recursively_dictionarize(el) for el in element]
+            elif hasattr(element, "dict"):
+                element = element.dict()
+            return element
+
         return {
-            k: v.dict() if hasattr(v, "dict") else v
+            k: recursively_dictionarize(v)
             for k, v in self.__dict__.items()
             if not k.startswith("_")
         }
@@ -92,3 +104,4 @@ class ModelCompiler(Enum):
     TENSOR_RT = "tensor RT"
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
+    ONNX_RUNTIME = "onnxruntime"

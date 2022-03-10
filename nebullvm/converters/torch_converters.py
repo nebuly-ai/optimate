@@ -1,24 +1,14 @@
 from pathlib import Path
-from typing import Tuple, Union, List
+from typing import Union
 
 import torch
 from torch.nn import Module
 
-from nebullvm.base import ModelParams, DataType
-
-
-def get_outputs_sizes_torch(
-    torch_model: Module, input_tensors: List[torch.Tensor]
-) -> List[Tuple[int, ...]]:
-    if torch.cuda.is_available():
-        input_tensors = [x.cuda() for x in input_tensors]
-        torch_model.cuda()
-    with torch.no_grad():
-        outputs = torch_model(*input_tensors)
-        if isinstance(outputs, torch.Tensor):
-            return [tuple(outputs.size())[1:]]
-        else:
-            return [tuple(output.size())[1:] for output in outputs]
+from nebullvm.base import ModelParams
+from nebullvm.utils.torch import (
+    get_outputs_sizes_torch,
+    create_model_inputs_torch,
+)
 
 
 def convert_torch_to_onnx(
@@ -35,18 +25,9 @@ def convert_torch_to_onnx(
         output_file_path (str or Path): Path where storing the output
             ONNX file.
     """
-    input_tensors = [
-        torch.randn(
-            *(model_params.batch_size, *input_info.size), requires_grad=True
-        )
-        if input_info.dtype is DataType.FLOAT
-        else torch.randint(
-            low=input_info.min_value or 0,
-            high=input_info.max_value or 100,
-            size=(model_params.batch_size, *input_info.size),
-        )
-        for input_info in model_params.input_infos
-    ]
+    input_tensors = create_model_inputs_torch(
+        model_params.batch_size, model_params.input_infos
+    )
     output_sizes = get_outputs_sizes_torch(torch_model, input_tensors)
     if torch.cuda.is_available():  # move back tensors to cpu for conversion
         input_tensors = [x.cpu() for x in input_tensors]

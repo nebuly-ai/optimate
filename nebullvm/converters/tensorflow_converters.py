@@ -1,21 +1,12 @@
 from pathlib import Path
 import subprocess
 from tempfile import TemporaryDirectory
-from typing import Union, Tuple, List
+from typing import Union
 
 import tensorflow as tf
 import tf2onnx
 
 from nebullvm.base import ModelParams, DataType
-
-
-def get_outputs_sizes_tf(
-    tf_model: Union[tf.Module, tf.keras.Model], input_tensors: List[tf.Tensor]
-) -> List[Tuple[int, ...]]:
-    outputs = tf_model(*input_tensors)
-    if isinstance(outputs, tf.Tensor):
-        return [tuple(tf.shape(outputs))]
-    return [tuple(x.size()) for x in outputs]
 
 
 def convert_tf_to_onnx(

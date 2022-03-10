@@ -10,6 +10,8 @@ import torch
 
 from nebullvm.base import ModelParams
 from nebullvm.config import LEARNER_METADATA_FILENAME
+from nebullvm.utils.tf import create_model_inputs_tf
+from nebullvm.utils.torch import create_model_inputs_torch
 
 
 @dataclass
@@ -190,6 +192,7 @@ class LearnerMetadata:
             )
         elif item.startswith("_"):
             raise ValueError("Trying to access a private attribute.")
+        return self.__dict__[item]
 
     @classmethod
     def from_model(cls, model: BaseInferenceLearner, **kwargs):
@@ -335,8 +338,10 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
 
     def get_inputs_example(self):
         return tuple(
-            torch.randn((self.network_parameters.batch_size, *input_size))
-            for input_size in self.network_parameters.input_sizes
+            create_model_inputs_torch(
+                batch_size=self.network_parameters.batch_size,
+                input_infos=self.network_parameters.input_infos,
+            )
         )
 
 
@@ -381,8 +386,8 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
 
     def get_inputs_example(self):
         return tuple(
-            tf.random_normal_initializer()(
-                shape=(self.network_parameters.batch_size, *input_size)
+            create_model_inputs_tf(
+                batch_size=self.network_parameters.batch_size,
+                input_infos=self.network_parameters.input_infos,
             )
-            for input_size in self.network_parameters.input_sizes
         )

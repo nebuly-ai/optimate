@@ -13,7 +13,10 @@ from nebullvm.base import (
     InputInfo,
 )
 from nebullvm.converters import ONNXConverter
-from nebullvm.converters.torch_converters import get_outputs_sizes_torch
+from nebullvm.utils.torch import (
+    get_outputs_sizes_torch,
+    create_model_inputs_torch,
+)
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import ApacheTVMOptimizer
@@ -97,10 +100,7 @@ def optimize_torch_model(
         input_infos=input_infos,
         output_sizes=get_outputs_sizes_torch(
             model,
-            input_tensors=[
-                torch.randn((batch_size, *input_size))
-                for input_size in input_sizes
-            ],
+            input_tensors=create_model_inputs_torch(batch_size, input_infos),
         ),
         dynamic_info=dynamic_axis,
     )

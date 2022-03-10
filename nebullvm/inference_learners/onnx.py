@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.base import DeepLearningFramework
+from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.config import ONNX_FILENAMES
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -100,6 +100,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         metadata = LearnerMetadata.read(path)
 
         return cls(
+            network_parameters=ModelParams(**metadata.network_parameters),
             onnx_path=onnx_path,
             input_names=metadata["input_names"],
             output_names=metadata["output_names"],

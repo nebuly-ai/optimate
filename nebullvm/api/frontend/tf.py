@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from nebullvm.base import DeepLearningFramework, ModelParams, InputInfo
 from nebullvm.converters import ONNXConverter
-from nebullvm.converters.tensorflow_converters import get_outputs_sizes_tf
+from nebullvm.utils.tf import get_outputs_sizes_tf, create_model_inputs_tf
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
 
@@ -80,10 +80,7 @@ def optimize_tf_model(
         input_infos=input_infos,
         output_sizes=get_outputs_sizes_tf(
             model,
-            input_tensors=[
-                tf.random_normal_initializer()(shape=(batch_size, *input_size))
-                for input_size in input_sizes
-            ],
+            input_tensors=create_model_inputs_tf(batch_size, input_infos),
         ),
         dynamic_info=dynamic_axis,
     )

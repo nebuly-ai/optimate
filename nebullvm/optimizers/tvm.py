@@ -16,6 +16,7 @@ from nebullvm.inference_learners.tvm import (
     ApacheTVMInferenceLearner,
 )
 from nebullvm.optimizers.base import BaseOptimizer, get_input_names
+from nebullvm.utils.torch import create_model_inputs_torch
 
 try:
     import tvm
@@ -121,7 +122,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
             for i, input_size in enumerate(model_params.input_sizes)
         }
         inputs = tuple(
-            torch.randn(input_shape) for input_shape in shape_dict.values()
+            create_model_inputs_torch(
+                model_params.batch_size, model_params.input_infos
+            )
         )
         with torch.no_grad():
             _ = torch_model(*inputs)
