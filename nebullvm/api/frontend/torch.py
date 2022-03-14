@@ -17,7 +17,7 @@ from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
 )
-from nebullvm.inference_learners.base import BaseInferenceLearner
+from nebullvm.inference_learners.base import PytorchBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import ApacheTVMOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
@@ -32,7 +32,7 @@ def optimize_torch_model(
     extra_input_info: List[Dict] = None,
     use_torch_api: bool = False,
     dynamic_axis: Dict = None,
-) -> BaseInferenceLearner:
+) -> PytorchBaseInferenceLearner:
     """Basic function for optimizing a torch model.
 
     This function saves the output model as well in a nebuly-readable format
@@ -74,9 +74,9 @@ def optimize_torch_model(
             string giving a "tag" to it, e.g. "batch_size".
 
     Returns:
-        BaseInferenceLearner: Optimized model usable with the classical Pytorch
-            interface. Note that as a torch model it takes as input and it
-            gives as output `torch.Tensor`s.
+        PytorchBaseInferenceLearner: Optimized model usable with the classical
+            Pytorch interface. Note that as a torch model it takes as input
+            and it gives as output `torch.Tensor`s.
     """
     if input_types is None:
         input_types = ["float"] * len(input_sizes)
@@ -143,7 +143,7 @@ def optimize_torch_model(
 
 def _torch_api_optimization(
     model: torch.nn.Module, model_params: ModelParams
-) -> Tuple[BaseInferenceLearner, float, List]:
+) -> Tuple[PytorchBaseInferenceLearner, float, List]:
     try:
         best_torch_opt_model = ApacheTVMOptimizer().optimize_from_torch(
             torch_model=model, model_params=model_params
@@ -163,10 +163,10 @@ def _torch_api_optimization(
 
 
 def _compare_optimized_models(
-    new_model: BaseInferenceLearner,
-    previous_best_model: BaseInferenceLearner,
+    new_model: PytorchBaseInferenceLearner,
+    previous_best_model: PytorchBaseInferenceLearner,
     previous_latency: float,
-) -> BaseInferenceLearner:
+) -> PytorchBaseInferenceLearner:
     if new_model is not None:
         new_latency = compute_optimized_running_time(new_model)
         if new_latency < previous_latency:
