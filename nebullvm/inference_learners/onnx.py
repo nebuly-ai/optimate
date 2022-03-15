@@ -64,6 +64,9 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         self.onnx_path = onnx_path
         if _is_intel_cpu():
             ort_session_options = ort.SessionOptions()
+            ort_session_options.graph_optimization_level = (
+                ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+            )
             ort_session_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
