@@ -5,6 +5,7 @@ from abc import ABC
 from pathlib import Path
 from typing import Union, List, Generator, Tuple, Dict, Type
 
+import cpuinfo
 import numpy as np
 import tensorflow as tf
 import torch
@@ -30,6 +31,15 @@ except ImportError:
     import onnxruntime as ort
 
 
+def _is_intel_cpu():
+    if torch.cuda.is_available():
+        return False  # running on GPU
+    cpu_info = cpuinfo.get_cpu_info()["brand_raw"].lower()
+    if "intel" in cpu_info:
+        return True
+    return False
+
+
 class ONNXInferenceLearner(BaseInferenceLearner, ABC):
     """Model converted to ONNX and run with Microsoft's onnxruntime.
 
@@ -52,7 +62,15 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
     ):
         super().__init__(**kwargs)
         self.onnx_path = onnx_path
-        self._session = ort.InferenceSession(onnx_path)
+        if _is_intel_cpu():
+            ort_session_options = ort.SessionOptions()
+            ort_session_options.add_session_config_entry(
+                "session.set_denormal_as_zero", "1"
+            )
+            ort_session = ort.InferenceSession(onnx_path, ort_session_options)
+        else:
+            ort_session = ort.InferenceSession(onnx_path)
+        self._session = ort_session
         self.input_names = input_names
         self.output_names = output_names
 
