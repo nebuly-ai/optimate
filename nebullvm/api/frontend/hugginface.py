@@ -107,9 +107,14 @@ def _restructure_output(
             output_dict[key] = output[idx]
             idx += 1
         else:
-            output_dict[key] = np.reshape(
-                output[idx : int(np.prod(value)) + idx], value  # noqa E203
-            ).tolist()
+            output_dict[key] = (
+                np.array(
+                    output[idx : int(np.prod(value)) + idx],  # noqa E203
+                    dtype=object,
+                )
+                .reshape(value)
+                .tolist()
+            )
             idx += np.prod(value)
     if output_type is not None:
         return output_type(**output_dict)
