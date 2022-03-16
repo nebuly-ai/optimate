@@ -121,11 +121,11 @@ def _restructure_output(
     return output_dict
 
 
-class HugginFaceInferenceLearner(InferenceLearnerWrapper):
+class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
     """Class wrapping an InferenceLearner model and giving to it the
-    hugginface interface.
+    huggingface interface.
 
-    The class fuse both the InterfaceLearner and Hugginface interfaces, giving
+    The class fuse both the InterfaceLearner and HuggingFace interfaces, giving
     to the final user a model which can be used whit the prefered API without
     the need of adapting the previous code.
 
@@ -133,11 +133,11 @@ class HugginFaceInferenceLearner(InferenceLearnerWrapper):
         network_parameters (ModelParams): Model parameters of the model.
         core_inference_learner (PytorchBaseInferenceLearner): Inference learner
             built using the Pytorch interface.
-        output_structure (Dict): Original output structure of the Hugginface
+        output_structure (Dict): Original output structure of the HuggingFace
             model.
         input_names (List[str]): List of all the input keys used for the
-            original Hugginface model.
-        output_type (Any, optional): Original output type of the Hugginface
+            original HuggingFace model.
+        output_type (Any, optional): Original output type of the HuggingFace
             model.
     """
 
@@ -167,8 +167,8 @@ class HugginFaceInferenceLearner(InferenceLearnerWrapper):
         positional or keyword arguments. If only positional arguments are given
         the method expects the inputs to be in the canonical
         nebullvm interface. If only keyword arguments are given the method
-        expects them to be in the Hugginface interface. Mixed representation is
-        not allowed and will result in an error.
+        expects them to be in the HuggingFace interface. Mixed representation
+        is not allowed and will result in an error.
         """
         if len(args) > 0 and len(kwargs) > 0:
             raise RuntimeError(
@@ -256,11 +256,11 @@ def _extract_input_type(input_value: torch.Tensor):
         return DataType.INT
     else:
         raise NotImplementedError(
-            f"Insupported data format {input_value.dtype}."
+            f"Unsupported data format {input_value.dtype}."
         )
 
 
-def optimize_hugginface_model(
+def optimize_huggingface_model(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     target_text: str,
@@ -271,14 +271,14 @@ def optimize_hugginface_model(
     use_torch_api: bool = False,
     tokenizer_args: Dict = None,
 ):
-    """Optimize the Hugginface model.
+    """Optimize the HuggingFace model.
 
     This function saves the output model as well in a nebuly-readable format
     in order to avoid temporary-files corruptions which would prevent the model
     saving later in the process.
 
     Args:
-        model (PreTrainedModel): Hugginface transformers model.
+        model (PreTrainedModel): HuggingFace transformers model.
         tokenizer (PreTrainedTokenizer): Tokenizer used for building model's
             inputs.
         target_text (str): Example of test to be given as model input.
@@ -337,7 +337,7 @@ def optimize_hugginface_model(
                 tokenizer_args=tokenizer_args,
             ),
         )
-        final_model = HugginFaceInferenceLearner(
+        final_model = HuggingFaceInferenceLearner(
             core_inference_learner=optimized_model,
             output_structure=output_structure,
             input_names=list(wrapper_model.inputs_types.keys()),
