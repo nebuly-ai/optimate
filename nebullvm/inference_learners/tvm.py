@@ -31,9 +31,13 @@ except ImportError:
         from nebullvm.installers.installers import install_tvm
 
         install_tvm()
-        import tvm
-        from tvm.contrib.graph_executor import GraphModule
-        from tvm.runtime import Module
+        GraphModule = None
+        Module = None
+        warnings.warn(
+            "TVM has been successfully installed, but it won't be available "
+            "until the reset of the python kernel. Please reboot the python "
+            "environment for using TVM optimization."
+        )
     else:
         warnings.warn(
             "Not found any valid tvm installation. "
