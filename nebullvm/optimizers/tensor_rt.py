@@ -82,11 +82,11 @@ class TensorRTOptimizer(BaseOptimizer):
                             shape
                             if i + 1 not in input_dynamic_info
                             else (input_info.min_sizes or {}).get(i + 1, 1)
-                            for i, shape in enumerate(input_info.shape)
+                            for i, shape in enumerate(input_info.size)
                         ),
                     ),
-                    (model_params.batch_size, *input_info.shape),
-                    (model_params.batch_size, *input_info.shape),
+                    (model_params.batch_size, *input_info.size),
+                    (model_params.batch_size, *input_info.size),
                 )
             config.add_optimization_profile(profile)
         serialized_engine = builder.build_serialized_network(network, config)
