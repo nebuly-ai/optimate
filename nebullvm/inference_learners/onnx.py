@@ -11,7 +11,7 @@ import tensorflow as tf
 import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
-from nebullvm.config import ONNX_FILENAMES
+from nebullvm.config import ONNX_FILENAMES, CUDA_PROVIDERS
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -69,7 +69,12 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             )
             ort_session = ort.InferenceSession(onnx_path, ort_session_options)
         else:
-            ort_session = ort.InferenceSession(onnx_path)
+            ort_session = ort.InferenceSession(
+                onnx_path,
+                providers=CUDA_PROVIDERS
+                if torch.cuda.is_available()
+                else None,
+            )
         self._session = ort_session
         self.input_names = input_names
         self.output_names = output_names
