@@ -39,7 +39,7 @@ class TensorRTOptimizer(BaseOptimizer):
     """Class for compiling the AI models on Nvidia GPUs using TensorRT."""
 
     def _build_and_save_the_engine(
-        self, engine_path: str, onnx_model_path: str
+        self, engine_path: str, onnx_model_path: str, model_params: ModelParams
     ):
         # -- Build phase --
         nvidia_logger = trt.Logger(trt.Logger.WARNING)
@@ -65,6 +65,30 @@ class TensorRTOptimizer(BaseOptimizer):
         # TODO: setup config value for the class in a config file
         config = builder.create_builder_config()
         config.max_workspace_size = 1 << 20  # 1 MiB (put 30 for 1GB)
+        if model_params.dynamic_info is not None:
+            profile = builder.create_optimization_profile()
+            for input_name, input_dynamic_info, input_info in zip(
+                get_input_names(onnx_model_path),
+                model_params.dynamic_info.inputs,
+                model_params.input_infos,
+            ):
+                profile.set_shape(
+                    input_name,
+                    (
+                        min(model_params.batch_size, 1)
+                        if 0 in input_dynamic_info
+                        else model_params.batch_size,
+                        *(
+                            shape
+                            if i + 1 not in input_dynamic_info
+                            else (input_info.min_sizes or {}).get(i + 1, 1)
+                            for i, shape in enumerate(input_info.shape)
+                        ),
+                    ),
+                    (model_params.batch_size, *input_info.shape),
+                    (model_params.batch_size, *input_info.shape),
+                )
+            config.add_optimization_profile(profile)
         serialized_engine = builder.build_serialized_network(network, config)
         with open(engine_path, "wb") as f:
             f.write(serialized_engine)
@@ -94,7 +118,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 "on a machine not connected to any GPU supporting CUDA."
             )
         engine_path = Path(onnx_model).parent / NVIDIA_FILENAMES["engine"]
-        self._build_and_save_the_engine(engine_path, onnx_model)
+        self._build_and_save_the_engine(engine_path, onnx_model, model_params)
         model = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             network_parameters=model_params,
             engine_path=engine_path,
