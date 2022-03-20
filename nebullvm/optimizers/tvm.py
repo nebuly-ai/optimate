@@ -108,6 +108,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 model_params.batch_size, model_params.input_infos
             )
         )
+        if torch.cuda.is_available():
+            inputs = tuple(input_.cpu() for input_ in inputs)
+            torch_model.cpu()
         with torch.no_grad():
             _ = torch_model(*inputs)
             model_trace = torch.jit.trace(torch_model, inputs)
