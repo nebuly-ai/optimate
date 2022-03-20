@@ -201,6 +201,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         Returns:
             NvidiaInferenceLearner: The optimized model.
         """
+        path = Path(path)
         with open(path / NVIDIA_FILENAMES["metadata"], "r") as fin:
             metadata = json.load(fin)
         metadata.update(kwargs)
