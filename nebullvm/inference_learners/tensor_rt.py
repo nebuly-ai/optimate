@@ -149,6 +149,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         self,
         input_ptrs: Generator[Any, None, None],
         output_ptrs: Generator[Any, None, None],
+        input_shapes: Generator[Any, None, None] = None,
     ):
         context = self.engine.create_execution_context()
         buffers = [None] * (len(self.input_names) + len(self.output_names))
@@ -158,8 +159,13 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         output_idxs = (
             self.engine[output_name] for output_name in self.output_names
         )
-        for input_idx, input_ptr in zip(input_idxs, input_ptrs):
+        input_shapes = input_shapes or (yield None)
+        for input_idx, input_ptr, input_shape in zip(
+            input_idxs, input_ptrs, input_shapes
+        ):
             buffers[input_idx] = input_ptr
+            if input_shape is not None:
+                context.set_binding_shape(input_idx, input_shape)
         for output_idx, output_ptr in zip(output_idxs, output_ptrs):
             buffers[output_idx] = output_ptr
         context.execute_async_v2(buffers, self.stream_ptr)
@@ -264,6 +270,7 @@ class PytorchNvidiaInferenceLearner(
                 ).cuda()
                 for output_size in self.network_parameters.output_sizes
             ]
+            input_sizes = None
         else:
             dynamic_info = self.network_parameters.dynamic_info
             input_sizes = [
@@ -295,7 +302,7 @@ class PytorchNvidiaInferenceLearner(
         output_ptrs = (
             output_tensor.data_ptr() for output_tensor in output_tensors
         )
-        self._predict_tensors(input_ptrs, output_ptrs)
+        self._predict_tensors(input_ptrs, output_ptrs, input_sizes)
         return tuple(output_tensor.cpu() for output_tensor in output_tensors)
 
 
@@ -362,6 +369,7 @@ class TensorflowNvidiaInferenceLearner(
                 )
                 for output_size in self.network_parameters.output_sizes
             ]
+            input_shapes = None
         else:
             dynamic_info = self.network_parameters.dynamic_info
             output_sizes = (
@@ -388,7 +396,7 @@ class TensorflowNvidiaInferenceLearner(
             ]
         input_ptrs = (cuda_array.ptr for cuda_array in cuda_input_arrays)
         output_ptrs = (cuda_array.ptr for cuda_array in cuda_output_arrays)
-        self._predict_tensors(input_ptrs, output_ptrs)
+        self._predict_tensors(input_ptrs, output_ptrs, input_shapes)
         for cuda_input_array in cuda_input_arrays:
             cuda_input_array.free()
         return tuple(
