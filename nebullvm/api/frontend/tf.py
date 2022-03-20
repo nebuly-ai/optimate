@@ -4,7 +4,12 @@ from typing import List, Tuple, Union, Dict
 
 import tensorflow as tf
 
-from nebullvm.base import DeepLearningFramework, ModelParams, InputInfo
+from nebullvm.base import (
+    DeepLearningFramework,
+    ModelParams,
+    InputInfo,
+    ModelCompiler,
+)
 from nebullvm.converters import ONNXConverter
 from nebullvm.utils.tf import get_outputs_sizes_tf, create_model_inputs_tf
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
@@ -18,6 +23,7 @@ def optimize_tf_model(
     input_types: List[str] = None,
     extra_input_info: List[Dict] = None,
     dynamic_axis: Dict = None,
+    ignore_compilers: List[str] = None,
 ):
     """Basic function for optimizing a tensorflow model.
 
@@ -52,6 +58,9 @@ def optimize_tf_model(
             The inner dictionary should have as key an integer, i.e. the
             dynamic axis (considering also the batch size) and as value a
             string giving a "tag" to it, e.g. "batch_size".
+        ignore_compilers (List[str]): List of DL compilers we want to ignore
+            while running the optimization. Compiler name should be one
+            between "tvm", "tensor RT", "openvino" and "onnxruntime".
 
     Returns:
         BaseInferenceLearner: Optimized model usable with the classical
@@ -84,8 +93,15 @@ def optimize_tf_model(
         ),
         dynamic_info=dynamic_axis,
     )
+    ignore_compilers = (
+        []
+        if ignore_compilers is None
+        else [ModelCompiler(compiler) for compiler in ignore_compilers]
+    )
     model_converter = ONNXConverter()
-    model_optimizer = MultiCompilerOptimizer()
+    model_optimizer = MultiCompilerOptimizer(
+        ignore_compilers=ignore_compilers,
+    )
     with TemporaryDirectory() as tmp_dir:
         onnx_path = model_converter.convert(
             model, model_params.input_sizes, Path(tmp_dir)

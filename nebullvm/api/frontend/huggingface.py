@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from nebullvm import optimize_torch_model
-from nebullvm.base import DataType
+from nebullvm.base import DataType, ModelCompiler
 from nebullvm.inference_learners.base import (
     PytorchBaseInferenceLearner,
     InferenceLearnerWrapper,
@@ -276,6 +276,9 @@ def optimize_huggingface_model(
     This function saves the output model as well in a nebuly-readable format
     in order to avoid temporary-files corruptions which would prevent the model
     saving later in the process.
+    Note that TensorRT compiler is currently disabled for Hugginface models
+    since in some cases it can cause an untreatable error in the C++ code
+    causing the interruption of the optimization.
 
     Args:
         model (PreTrainedModel): HuggingFace transformers model.
@@ -336,6 +339,7 @@ def optimize_huggingface_model(
                 model=model,
                 tokenizer_args=tokenizer_args,
             ),
+            ignore_compilers=[ModelCompiler.TENSOR_RT.value],
         )
         final_model = HuggingFaceInferenceLearner(
             core_inference_learner=optimized_model,

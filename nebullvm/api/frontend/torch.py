@@ -32,6 +32,7 @@ def optimize_torch_model(
     extra_input_info: List[Dict] = None,
     use_torch_api: bool = False,
     dynamic_axis: Dict = None,
+    ignore_compilers: List[str] = None,
 ) -> PytorchBaseInferenceLearner:
     """Basic function for optimizing a torch model.
 
@@ -72,6 +73,9 @@ def optimize_torch_model(
             The inner dictionary should have as key an integer, i.e. the
             dynamic axis (considering also the batch size) and as value a
             string giving a "tag" to it, e.g. "batch_size".
+        ignore_compilers (List[str]): List of DL compilers we want to ignore
+            while running the optimization. Compiler name should be one
+            between "tvm", "tensor RT", "openvino" and "onnxruntime".
 
     Returns:
         PytorchBaseInferenceLearner: Optimized model usable with the classical
@@ -104,7 +108,11 @@ def optimize_torch_model(
         ),
         dynamic_info=dynamic_axis,
     )
-    ignore_compilers = []
+    ignore_compilers = (
+        []
+        if ignore_compilers is None
+        else [ModelCompiler(compiler) for compiler in ignore_compilers]
+    )
     with TemporaryDirectory() as tmp_dir:
         if use_torch_api:
             (
