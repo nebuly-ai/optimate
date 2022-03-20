@@ -209,7 +209,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             **metadata["network_parameters"]
         )
         return cls.from_engine_path(
-            path / NVIDIA_FILENAMES["engine"], **metadata
+            engine_path=path / NVIDIA_FILENAMES["engine"], **metadata
         )
 
 
