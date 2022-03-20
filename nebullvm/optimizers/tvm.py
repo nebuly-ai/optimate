@@ -54,7 +54,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             lib=lib,
             target_device=target,
             input_names=[
-                f"input_{i}" for i in range(len(model_params.input_sizes))
+                f"input_{i}" for i in range(len(model_params.input_infos))
             ],
         )
         return model
