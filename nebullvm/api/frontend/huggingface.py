@@ -268,6 +268,7 @@ def optimize_huggingface_model(
     max_input_sizes: List[Tuple[int, ...]],
     save_dir: str,
     extra_input_info: List[Dict] = None,
+    use_static_shape: bool = False,
     use_torch_api: bool = False,
     tokenizer_args: Dict = None,
 ):
@@ -299,6 +300,7 @@ def optimize_huggingface_model(
         extra_input_info (List[Dict], optional): List of extra information
             needed for defining the input tensors, e.g. max_value and min_value
             the tensors can get.
+        use_static_shape (bool): Parameter for fixing the accepted input shape.
         use_torch_api (bool): Parameter for using the torch api of compilers
             when available. The actual implementation supports only the torch
             interface for TVM. Note that when running the torch interface
@@ -338,8 +340,12 @@ def optimize_huggingface_model(
                 tokenizer=tokenizer,
                 model=model,
                 tokenizer_args=tokenizer_args,
-            ),
-            ignore_compilers=[ModelCompiler.TENSOR_RT.value],
+            )
+            if not use_static_shape
+            else None,
+            ignore_compilers=[ModelCompiler.TENSOR_RT.value]
+            if not use_static_shape
+            else None,
         )
         final_model = HuggingFaceInferenceLearner(
             core_inference_learner=optimized_model,
