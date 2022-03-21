@@ -136,6 +136,25 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             weights_file=model_weights,
         )
 
+    def _rebuild_network(self, input_shapes: Dict):
+        network = self.exec_network.get_exec_graph_info()
+        if all(
+            input_shape == tuple(network.inputs[input_name].shape)
+            for input_name, input_shape in input_shapes.items()
+        ):
+            # If the new input shapes is equal to the previous one do nothing.
+            return
+
+        inference_engine = IECore()
+        network = inference_engine.read_network(
+            model=self.description_file, weights=self.weights_file
+        )
+        network.reshape(input_shapes)
+        exec_network = inference_engine.load_network(
+            network=network, device_name="CPU"
+        )
+        self.exec_network = exec_network
+
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         # metadata = {
         #     key: self.__dict__[key] for key in ("input_keys", "output_keys")
@@ -165,8 +184,15 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         shutil.copy(self.weights_file, path / OPENVINO_FILENAMES["weights"])
 
     def _predict_array(
-        self, input_arrays: Generator[np.ndarray, None, None]
+        self,
+        input_arrays: Generator[np.ndarray, None, None],
+        input_shapes: Generator[Tuple[int, ...], None, None] = None,
     ) -> Generator[np.ndarray, None, None]:
+        if input_shapes is not None:
+            input_shapes_dict = {
+                name: size for name, size in zip(self.input_keys, input_shapes)
+            }
+            self._rebuild_network(input_shapes_dict)
         results = self.exec_network.infer(
             inputs={
                 input_key: input_array
@@ -221,7 +247,12 @@ class PytorchOpenVinoInferenceLearner(
             input_tensor.cpu().detach().numpy()
             for input_tensor in input_tensors
         )
-        output_arrays = self._predict_array(input_arrays)
+        extra_kwargs = {}
+        if self.network_parameters.dynamic_info is not None:
+            extra_kwargs["input_shapes"] = (
+                tuple(input_tensor.size()) for input_tensor in input_tensors
+            )
+        output_arrays = self._predict_array(input_arrays, **extra_kwargs)
         return tuple(
             torch.from_numpy(output_array) for output_array in output_arrays
         )
@@ -268,7 +299,13 @@ class TensorflowOpenVinoInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
-        output_arrays = self._predict_array(input_arrays)
+        extra_kwargs = {}
+        if self.network_parameters.dynamic_info is not None:
+            extra_kwargs["input_shapes"] = (
+                tuple(input_tensor.shape) for input_tensor in input_tensors
+            )
+        output_arrays = self._predict_array(input_arrays, **extra_kwargs)
+        # noinspection PyTypeChecker
         return tuple(
             tf.convert_to_tensor(output_array)
             for output_array in output_arrays

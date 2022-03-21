@@ -9,13 +9,13 @@ from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import (
     AUTO_TVM_TUNING_OPTION,
     AUTO_TVM_PARAMS,
-    NO_COMPILER_INSTALLATION,
 )
 from nebullvm.inference_learners.tvm import (
     TVM_INFERENCE_LEARNERS,
     ApacheTVMInferenceLearner,
 )
 from nebullvm.optimizers.base import BaseOptimizer, get_input_names
+from nebullvm.utils.torch import create_model_inputs_torch
 
 try:
     import tvm
@@ -25,27 +25,10 @@ try:
     from tvm import autotvm
     import tvm.relay as relay
 except ImportError:
-    import warnings
-
-    if not NO_COMPILER_INSTALLATION:
-        warnings.warn(
-            "Not found any valid tvm installation. "
-            "Trying to install it from source."
-        )
-        from nebullvm.installers.installers import install_tvm
-
-        install_tvm()
-        import tvm
-        from tvm import IRModule
-        from tvm.runtime.ndarray import NDArray
-        from tvm.autotvm.tuner import XGBTuner
-        from tvm import autotvm
-        import tvm.relay as relay
-    else:
-        warnings.warn("Not found any valid tvm installation")
-        # TVM objects needed for avoiding errors
-        IRModule = object
-        NDArray = object
+    # TVM is installed in the inference_learner package.
+    # TVM objects needed for avoiding errors:
+    IRModule = object
+    NDArray = object
 
 
 class ApacheTVMOptimizer(BaseOptimizer):
@@ -71,7 +54,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             lib=lib,
             target_device=target,
             input_names=[
-                f"input_{i}" for i in range(len(model_params.input_sizes))
+                f"input_{i}" for i in range(len(model_params.input_infos))
             ],
         )
         return model
@@ -121,8 +104,13 @@ class ApacheTVMOptimizer(BaseOptimizer):
             for i, input_size in enumerate(model_params.input_sizes)
         }
         inputs = tuple(
-            torch.randn(input_shape) for input_shape in shape_dict.values()
+            create_model_inputs_torch(
+                model_params.batch_size, model_params.input_infos
+            )
         )
+        if torch.cuda.is_available():
+            inputs = tuple(input_.cpu() for input_ in inputs)
+            torch_model.cpu()
         with torch.no_grad():
             _ = torch_model(*inputs)
             model_trace = torch.jit.trace(torch_model, inputs)

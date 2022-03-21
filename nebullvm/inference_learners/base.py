@@ -10,6 +10,8 @@ import torch
 
 from nebullvm.base import ModelParams
 from nebullvm.config import LEARNER_METADATA_FILENAME
+from nebullvm.utils.tf import create_model_inputs_tf
+from nebullvm.utils.torch import create_model_inputs_torch
 
 
 @dataclass
@@ -190,6 +192,7 @@ class LearnerMetadata:
             )
         elif item.startswith("_"):
             raise ValueError("Trying to access a private attribute.")
+        return self.__dict__.get(item)
 
     @classmethod
     def from_model(cls, model: BaseInferenceLearner, **kwargs):
@@ -335,8 +338,10 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
 
     def get_inputs_example(self):
         return tuple(
-            torch.randn((self.network_parameters.batch_size, *input_size))
-            for input_size in self.network_parameters.input_sizes
+            create_model_inputs_torch(
+                batch_size=self.network_parameters.batch_size,
+                input_infos=self.network_parameters.input_infos,
+            )
         )
 
 
@@ -381,8 +386,89 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
 
     def get_inputs_example(self):
         return tuple(
-            tf.random_normal_initializer()(
-                shape=(self.network_parameters.batch_size, *input_size)
+            create_model_inputs_tf(
+                batch_size=self.network_parameters.batch_size,
+                input_infos=self.network_parameters.input_infos,
             )
-            for input_size in self.network_parameters.input_sizes
         )
+
+
+class InferenceLearnerWrapper(BaseInferenceLearner, ABC):
+    """Wrapper model around InferenceLearners. It's a base class: cannot be
+    instantiated.
+
+    For all the BaseInferenceLearner-related methods, the implementation of
+    the core model will be used. This class just re-implement the load and save
+    methods, allowing (and forcing) then the child class to re-implement the
+    `predict` method.
+
+    Attributes:
+        network_parameters (ModelParams): Model parameters.
+        core_inference_learner (BaseInferenceLearner): Inference Learner.
+    """
+
+    CORE_MODEL_SAVE_DIR = "core_model"
+
+    def __init__(self, core_inference_learner: BaseInferenceLearner):
+        super().__init__(
+            network_parameters=core_inference_learner.network_parameters
+        )
+        self.core_inference_learner = core_inference_learner
+
+    def list2tensor(self, listified_tensor: List) -> Any:
+        return self.core_inference_learner.list2tensor(listified_tensor)
+
+    def tensor2list(self, tensor: Any) -> List:
+        return self.core_inference_learner.tensor2list(tensor)
+
+    def _read_file(self, input_file: str) -> Any:
+        return self.core_inference_learner._read_file(input_file)
+
+    def _save_file(self, prediction: Any, output_file: str):
+        self.core_inference_learner._save_file(prediction, output_file)
+
+    def save(self, path: Union[str, Path], **kwargs):
+        core_model_path = Path(path) / self.CORE_MODEL_SAVE_DIR
+        core_model_path.mkdir(exist_ok=True)
+        self.core_inference_learner.save(core_model_path, **kwargs)
+        extra_metadata_kwargs = self._get_extra_metadata_kwargs()
+        metadata = LearnerMetadata.from_model(self, **extra_metadata_kwargs)
+        metadata.save(path)
+        self._save_wrapper_extra_info()
+
+    def _get_extra_metadata_kwargs(self) -> Dict:
+        raise NotImplementedError
+
+    def _save_wrapper_extra_info(self):
+        raise NotImplementedError
+
+    @staticmethod
+    def _convert_metadata_to_inputs(metadata: LearnerMetadata) -> Dict:
+        raise NotImplementedError
+
+    @staticmethod
+    def _load_wrapper_extra_info(builder_inputs: Dict) -> Dict:
+        raise NotImplementedError
+
+    @classmethod
+    def load(cls, path: Union[Path, str], **kwargs):
+        core_model_path = Path(path) / cls.CORE_MODEL_SAVE_DIR
+        core_learner = LearnerMetadata.read(core_model_path).load_model(
+            core_model_path, **kwargs
+        )
+        metadata = LearnerMetadata.read(path)
+        input_dict = cls._convert_metadata_to_inputs(metadata)
+        input_dict = cls._load_wrapper_extra_info(input_dict)
+        input_dict.update({"core_inference_learner": core_learner})
+        return cls(**input_dict)
+
+    def get_inputs_example(self):
+        return self.core_inference_learner.get_inputs_example()
+
+    @property
+    def output_format(self):
+        return self.core_inference_learner.output_format
+
+    @property
+    def input_format(self):
+        return self.core_inference_learner.input_format

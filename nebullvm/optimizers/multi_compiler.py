@@ -15,17 +15,19 @@ from nebullvm.optimizers import (
     TensorRTOptimizer,
     ApacheTVMOptimizer,
     OpenVinoOptimizer,
+    ONNXOptimizer,
 )
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.APACHE_TVM: ApacheTVMOptimizer,
     ModelCompiler.OPENVINO: OpenVinoOptimizer,
     ModelCompiler.TENSOR_RT: TensorRTOptimizer,
+    ModelCompiler.ONNX_RUNTIME: ONNXOptimizer,
 }
 
 
 def select_compilers_from_hardware():
-    compilers = [ModelCompiler.APACHE_TVM]
+    compilers = [ModelCompiler.APACHE_TVM, ModelCompiler.ONNX_RUNTIME]
     if torch.cuda.is_available():
         compilers.append(ModelCompiler.TENSOR_RT)
     cpu_raw_info = cpuinfo.get_cpu_info()["brand_raw"].lower()

@@ -149,6 +149,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         self,
         input_ptrs: Generator[Any, None, None],
         output_ptrs: Generator[Any, None, None],
+        input_shapes: Generator[Any, None, None] = None,
     ):
         context = self.engine.create_execution_context()
         buffers = [None] * (len(self.input_names) + len(self.output_names))
@@ -158,8 +159,13 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         output_idxs = (
             self.engine[output_name] for output_name in self.output_names
         )
-        for input_idx, input_ptr in zip(input_idxs, input_ptrs):
+        input_shapes = input_shapes or (yield None)
+        for input_idx, input_ptr, input_shape in zip(
+            input_idxs, input_ptrs, input_shapes
+        ):
             buffers[input_idx] = input_ptr
+            if input_shape is not None:
+                context.set_binding_shape(input_idx, input_shape)
         for output_idx, output_ptr in zip(output_idxs, output_ptrs):
             buffers[output_idx] = output_ptr
         context.execute_async_v2(buffers, self.stream_ptr)
@@ -195,6 +201,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         Returns:
             NvidiaInferenceLearner: The optimized model.
         """
+        path = Path(path)
         with open(path / NVIDIA_FILENAMES["metadata"], "r") as fin:
             metadata = json.load(fin)
         metadata.update(kwargs)
@@ -202,7 +209,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             **metadata["network_parameters"]
         )
         return cls.from_engine_path(
-            path / NVIDIA_FILENAMES["engine"], **metadata
+            engine_path=path / NVIDIA_FILENAMES["engine"], **metadata
         )
 
 
@@ -256,20 +263,47 @@ class PytorchNvidiaInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         input_tensors = [input_tensor.cuda() for input_tensor in input_tensors]
-        output_tensors = [
-            torch.Tensor(
-                self.network_parameters.batch_size,
-                *output_size,
-            ).cuda()
-            for output_size in self.network_parameters.output_sizes
-        ]
+        if self.network_parameters.dynamic_info is None:
+            output_tensors = [
+                torch.Tensor(
+                    self.network_parameters.batch_size,
+                    *output_size,
+                ).cuda()
+                for output_size in self.network_parameters.output_sizes
+            ]
+            input_sizes = None
+        else:
+            dynamic_info = self.network_parameters.dynamic_info
+            input_sizes = [
+                input_tensor.size() for input_tensor in input_tensors
+            ]
+            output_tensors = [
+                torch.Tensor(
+                    *(
+                        x
+                        if i not in dynamic_axis.keys()
+                        else dynamic_info.retrieve_output_dim(
+                            input_sizes, j, i, x
+                        )
+                        for i, x in enumerate(
+                            (self.network_parameters.batch_size,) + output_size
+                        )
+                    ),
+                ).cuda()
+                for j, (output_size, dynamic_axis) in enumerate(
+                    zip(
+                        self.network_parameters.output_sizes,
+                        dynamic_info.outputs,
+                    )
+                )
+            ]
         input_ptrs = (
             input_tensor.data_ptr() for input_tensor in input_tensors
         )
         output_ptrs = (
             output_tensor.data_ptr() for output_tensor in output_tensors
         )
-        self._predict_tensors(input_ptrs, output_ptrs)
+        self._predict_tensors(input_ptrs, output_ptrs, input_sizes)
         return tuple(output_tensor.cpu() for output_tensor in output_tensors)
 
 
@@ -329,15 +363,41 @@ class TensorflowNvidiaInferenceLearner(
             )
             for input_tensor in input_tensors
         ]
-        cuda_output_arrays = [
-            polygraphy.DeviceArray(
-                shape=(self.network_parameters.batch_size, *output_size)
+        if self.network_parameters.dynamic_info is None:
+            cuda_output_arrays = [
+                polygraphy.DeviceArray(
+                    shape=(self.network_parameters.batch_size, *output_size)
+                )
+                for output_size in self.network_parameters.output_sizes
+            ]
+            input_shapes = None
+        else:
+            dynamic_info = self.network_parameters.dynamic_info
+            output_sizes = (
+                (self.network_parameters.batch_size, *output_size)
+                for output_size in self.network_parameters.output_sizes
             )
-            for output_size in self.network_parameters.output_sizes
-        ]
+            input_shapes = [
+                input_tensor.shape for input_tensor in input_tensors
+            ]
+            cuda_output_arrays = [
+                polygraphy.DeviceArray(
+                    shape=tuple(
+                        x
+                        if i in dyn_out_axis.keys()
+                        else dynamic_info.retrieve_output_dim(
+                            input_shapes, j, i, x
+                        )
+                        for i, x in enumerate(output_size)
+                    )
+                )
+                for j, (output_size, dyn_out_axis) in enumerate(
+                    zip(output_sizes, dynamic_info.outputs)
+                )
+            ]
         input_ptrs = (cuda_array.ptr for cuda_array in cuda_input_arrays)
         output_ptrs = (cuda_array.ptr for cuda_array in cuda_output_arrays)
-        self._predict_tensors(input_ptrs, output_ptrs)
+        self._predict_tensors(input_ptrs, output_ptrs, input_shapes)
         for cuda_input_array in cuda_input_arrays:
             cuda_input_array.free()
         return tuple(

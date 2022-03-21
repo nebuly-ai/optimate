@@ -1,19 +1,12 @@
 from pathlib import Path
 import subprocess
 from tempfile import TemporaryDirectory
-from typing import Union, Tuple, List
+from typing import Union
 
 import tensorflow as tf
 import tf2onnx
 
-
-def get_outputs_sizes_tf(
-    tf_model: Union[tf.Module, tf.keras.Model], input_tensors: List[tf.Tensor]
-) -> List[Tuple[int, ...]]:
-    outputs = tf_model(*input_tensors)
-    if isinstance(outputs, tf.Tensor):
-        return [tuple(tf.shape(outputs))]
-    return [tuple(x.size()) for x in outputs]
+from nebullvm.base import ModelParams, DataType
 
 
 def convert_tf_to_onnx(
@@ -24,7 +17,6 @@ def convert_tf_to_onnx(
 
     Args:
         model (tf.Module): TF model.
-        input_sizes (List[tuple]): Sizes of the model's input tensors.
         output_file_path (Path): Path where storing the output file.
     """
     with TemporaryDirectory() as temp_dir:
@@ -45,19 +37,24 @@ def convert_tf_to_onnx(
 
 def convert_keras_to_onnx(
     model: tf.keras.Model,
-    input_sizes: List[Tuple[int, ...]],
+    model_params: ModelParams,
     output_file_path: Union[str, Path],
 ):
     """Convert keras models into ONNX.
 
     Args:
         model (tf.Module): keras model.
-        input_sizes (List[tuple]): Sizes of the model's input tensors.
+        model_params (ModelParams): Model Parameters as input sizes and
+            dynamic axis information.
         output_file_path (Path): Path where storing the output file.
     """
     spec = (
-        tf.TensorSpec(input_size, tf.float32, name=f"input_{i}")
-        for i, input_size in enumerate(input_sizes)
+        tf.TensorSpec(
+            (model_params.batch_size, *input_info.size),
+            tf.float32 if input_info.dtype is DataType.FLOAT else tf.int32,
+            name=f"input_{i}",
+        )
+        for i, input_info in enumerate(model_params.input_infos)
     )
     tf2onnx.convert.from_keras(
         model, input_signature=spec, opset=11, output_path=output_file_path

@@ -23,6 +23,13 @@ NVIDIA_FILENAMES = {
 
 TVM_FILENAMES = {"engine": "compiled_lib.so"}
 
+ONNX_FILENAMES = {"model_name": "model.onnx"}
+CUDA_PROVIDERS = [
+    "TensorrtExecutionProvider",
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider",
+]
+
 OPENVINO_FILENAMES = {
     "metadata": LEARNER_METADATA_FILENAME,
     "description_file": "description.xml",
