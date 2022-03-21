@@ -10,8 +10,8 @@ def get_outputs_sizes_tf(
 ) -> List[Tuple[int, ...]]:
     outputs = tf_model(*input_tensors)
     if isinstance(outputs, tf.Tensor):
-        return [tuple(tf.shape(outputs))]
-    return [tuple(x.size()) for x in outputs]
+        return [tuple(outputs.shape)]
+    return [tuple(x.shape) for x in outputs]
 
 
 def create_model_inputs_tf(
