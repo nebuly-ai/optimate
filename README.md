@@ -24,25 +24,38 @@
 
 ## How Nebullvm Works
 
-> This open-source library takes your AI model as input and outputs an optimized version that runs 5-20 times faster on your machine. Nebullvm tests multiple deep learning compilers to identify the best possible way to execute your model on your specific hardware, without impacting the accuracy of your model.
+> This open-source library takes your AI model as input and outputs an optimized 
+> version that runs 5-20 times faster on your machine. Nebullvm tests multiple 
+> deep learning compilers to identify the best possible way to execute your 
+> model on your specific hardware, without impacting the accuracy of your model.
 
-The goal of `nebullvm` is to let any developer benefit from deep learning (DL) compilers without having to spend tons of hours understanding, installing, testing and debugging this powerful technology.
+The goal of `nebullvm` is to let any developer benefit from deep learning (DL) 
+compilers without having to spend tons of hours understanding, installing, 
+testing and debugging this powerful technology.
 
 #### The library aims to be:
 
-💻  **Deep learning model agnostic.** `nebullvm` supports all the most popular architectures such as transformers, LSTMs, CNNs and FCNs.
+💻  **Deep learning model agnostic.** `nebullvm` supports all the most popular 
+architectures such as transformers, LSTMs, CNNs and FCNs.
 
-🤖  **Hardware agnostic**. The library now works on most CPUs and GPUs and will soon support TPUs and other deep learning-specific ASICs.
+🤖  **Hardware agnostic**. The library now works on most CPUs and GPUs and 
+will soon support TPUs and other deep learning-specific ASICs.
 
-🔥 **Framework agnostic**. `nebullvm` supports the most widely used frameworks (PyTorch, TensorFlow and Hugging Face) and will soon support many more.
+🔥 **Framework agnostic**. `nebullvm` supports the most widely used frameworks 
+(PyTorch, TensorFlow and Hugging Face) and will soon support many more.
 
 🔑 **Secure.** Everything runs locally on your machine.
 
-☘️ **Easy-to-use**. It takes a few lines of code to install the library and optimize your models.
+☘️ **Easy-to-use**. It takes a few lines of code to install the library and 
+optimize your models.
 
-✨ **Leveraging the best deep learning compilers**. There are tons of DL compilers that optimize the way your AI models run on your hardware. It would take tons of hours for a developer to install and test them at every model deployment. The library does it for you!
+✨ **Leveraging the best deep learning compilers**. There are tons of DL compilers 
+that optimize the way your AI models run on your hardware. It would take tons of 
+hours for a developer to install and test them at every model deployment. 
+The library does it for you!
 
-Do you like the concept? Leave a ⭐ if you enjoy the project. And happy acceleration 🚀🚀
+Do you like the concept? Leave a ⭐ if you enjoy the project. 
+And happy acceleration 🚀🚀
 
 <img  src="https://user-images.githubusercontent.com/83510798/159326080-05e5b0f2-5197-4e0d-8b2a-1185ffeca95e.png">
 
@@ -50,13 +63,19 @@ Do you like the concept? Leave a ⭐ if you enjoy the project. And happy acceler
 
 ### Technology demonstration
 
-We suggest testing the library on your AI models right away by following the [installation instructions](#installation-and-get-started) below. If instead you want to get a first feel for the library's capabilities, we have built 3 notebooks where the library can be tested on the most popular AI frameworks Tensorflow, PyTorch and Hugging Face.
+We suggest testing the library on your AI models right away by following the 
+[installation instructions](#installation-and-get-started) below. 
+If you want to get a first feel for the library's capabilities, 
+we have built 3 notebooks where the library can be tested on the most popular 
+AI frameworks Tensorflow, PyTorch and Hugging Face.
 
 -  [Resnet34 with FastAI](https://nebullvm-notebooks.s3.amazonaws.com/Accelerate-FastAI-inference.ipynb)
 -  [YOLO with PyTorch](https://nebullvm-notebooks.s3.amazonaws.com/YOLO-Darknet+Optimization.ipynb)
 -  [GPT2 and BERT with Hugging Face](https://nebullvm-notebooks.s3.amazonaws.com/Huggingface-Transformers.ipynb)
 
-The notebooks will run locally on your hardware so you can get an idea of the performance you would achieve with `nebullvm` on your AI models. Note that it will take several minutes to install the library the first time.
+The notebooks will run locally on your hardware, so you can get an idea of the 
+performance you would achieve with `nebullvm` on your AI models. 
+Note that it will take several minutes to install the library the first time.
 
 ### Benchmarks
 
@@ -65,7 +84,11 @@ We have tested `nebullvm` on popular AI models and hardware from leading vendors
 -   Hardware: M1 Pro, NVIDIA T4, Intel Xeon, AMD EPYC
 -   AI Models: EfficientNet, Resnet, SqueezeNet, BERT, GPT2
 
-The table below shows the response time in milliseconds (ms) of the non-optimized model and the optimized model for the various model-hardware couplings as an average value over 100 experiments. It also displays the **speedup** provided by `nebullvm`, where speedup is defined as the response time of the optimized model over the response time of the non-optimized model.
+The table below shows the response time in milliseconds (ms) of the non-optimized 
+model and the optimized model for the various model-hardware couplings as an 
+average value over 100 experiments. It also displays the **speedup** provided 
+by `nebullvm`, where speedup is defined as the response time of the optimized 
+model over the response time of the non-optimized model.
 
 |           |M1 Pro|M1 Pro optimized|M1 pro speedup|Intel Xeon|Intel Xeon optimized|Intel Xeon speedup|AMD EPYC |AMD EPYC optimized|AMD EPYC speedup|Nvidia T4|Nvidia T4 optimized|Nvidia T4 speedup|
 |---------------------------------|--------------------------------|--------------------------------|--------------|----------|--------------------|------------------|---------|------------------|----------------|---------|-------------------|-----------------|
@@ -82,17 +105,25 @@ The table below shows the response time in milliseconds (ms) of the non-optimize
 |Bert - 512 tokens|489.5 ms|276.4 ms        |1.8x          |801.7 ms  |782.8 ms            |1.0x              |5416.7 ms|2710.7 ms         |2.0x            |31.3 ms  |27.4 ms            |1.1x             |
 |_________________|_____________|_____________|_____________|_____________|_____________|_____________|_____________|_____________|_____________|_____________|_____________|_____________|
  
-At first glance, we can observe that speedup varies greatly across hardware-model couplings. Overall, the library provides great positive results, most ranging from 2 to 30+ times speedup.
+At first glance, we can observe that speedup varies greatly across hardware-model 
+couplings. Overall, the library provides great positive results, most 
+ranging from 2 to 30+ times speedup.
 
 To summarize, the results are:
 
--   `nebullvm` provides positive acceleration to non-optimized AI models
--   These early results show poorer (yet positive) performance on Hugging Face models. Support for Hugging Face has just been released and improvements will be included in future versions
--   The library provides a ~2-3x boost on Intel hardware. These results are most likely related to an already highly optimized implementation of PyTorch for Intel devices
--   Nebullvm delivers extremely good performance on NVIDIA machines
--   The library provides great performances also on Apple M1 chips
+- `nebullvm` provides positive acceleration to non-optimized AI models
+- These early results show poorer (yet positive) performance on Hugging Face 
+models. Support for Hugging Face has just been released and improvements will be 
+included in future versions
+- The library provides a ~2-3x boost on Intel and AMD hardware. These results are 
+most likely related to an already highly optimized implementation of PyTorch for 
+x86 devices
+- Nebullvm delivers extremely good performance on NVIDIA machines
+- The library provides great performances also on Apple M1 chips
 
-And across all scenarios, `nebullvm` is very useful for its ease of use, allowing you to take advantage of deep learning compilers without having to spend hours studying, testing and debugging this technology.
+And across all scenarios, `nebullvm` is very useful for its ease of use, 
+allowing you to take advantage of deep learning compilers without having 
+to spend hours studying, testing and debugging this technology.
 
 
 ## Installation and Get Started
@@ -101,7 +132,8 @@ And across all scenarios, `nebullvm` is very useful for its ease of use, allowin
 
 There are two ways to install `nebullvm`:
 
-1. Using PyPI. We suggest installing the library with `pip` to get the stable version of `nebullvm`
+1. Using PyPI. We suggest installing the library with `pip` to get the stable 
+version of `nebullvm`
 2. From source code to get the latest features
 
 #### Option A: Installation with PyPI (recommended)
@@ -114,7 +146,8 @@ pip install nebullvm
 
 #### Option B: Source code installation
 
-To install the source code you have to clone the directory on your local machine using `git`.
+To install the source code you have to clone the directory on your local machine 
+using `git`.
 
 ```
 git clone https://github.com/nebuly-ai/nebullvm.git
@@ -128,26 +161,38 @@ pip install .
 
 ### Step 2: Installation of deep learning compilers
 
-Now you need to install the compilers that the library leverages to create the optimized version of your models. We have built an auto-installer to install them automatically.
-Note that it will take several minutes to install all compilers and we recommend following the second option below to avoid any installation issues.
+Now you need to install the compilers that the library leverages to create the 
+optimized version of your models. We have built an auto-installer to install them 
+automatically.
+Note that it will take several minutes to install all compilers and we recommend 
+following the second option below to avoid any installation issues.
 
 #### Option A: Installation at the first optimization run
 
-The auto-installer is activated after you import `nebullvm` and perform your first optimization. You may run into import errors related to the deep learning compiler installation but you can ignore these errors/warnings. It is also recommended to restart the python kernel between the auto-installation and the first optimization, otherwise not all compilers will be activated.
+The auto-installer is activated after you import `nebullvm` and perform your 
+first optimization. You may run into import errors related to the deep learning 
+compiler installation, but you can ignore these errors/warnings. 
+It is also recommended restarting the python kernel between the auto-installation 
+and the first optimization, otherwise not all compilers will be activated.
 
 #### Option B: Installation before the first optimization run (recommended)
 
-To avoid any problems, we strongly recommend to run the auto-installation before performing the first optimization by running
+To avoid any problems, we strongly recommend running the auto-installation 
+before performing the first optimization by running
 
 ```
 python -c "import nebullvm"
 ```
 
-You should ignore at this stage any import warning resulting from the previous command.
+You should ignore at this stage any import warning resulting from the previous 
+command.
 
 #### Option C: Selective installation of DL compilers
 
-The library automatically installs all DL compilers it supports. However, for some reason you may be interested in bypassing the automatic installation. If this is the case, you can simply export the environment variable `NO_COMPILER_INSTALLATION=1` by running
+The library automatically installs all DL compilers it supports. However, for 
+some reason you may be interested in bypassing the automatic installation. 
+If this is the case, you can simply export the environment variable 
+`NO_COMPILER_INSTALLATION=1` by running
 
 ```
 export NO_COMPILER_INSTALLATION=1
@@ -162,23 +207,37 @@ os.environ["NO_COMPILER_INSTALLATION"] = "1"
 
 in your python code before importing `nebullvm` for the first time.
 
-Note that auto-installation of open-source compilers is done outside the `nebullvm` wheel. Installations of ApacheTVM and Openvino have been tested on macOS, linux distributions similar to Debian and CentOS.
+Note that auto-installation of open-source compilers is done outside the 
+`nebullvm` wheel. Installations of ApacheTVM and Openvino have been tested 
+on macOS, linux distributions similar to Debian and CentOS.
 
-The feature is still in an alpha version, so we expect that it may fail under untested circumstances.
+The feature is still in an alpha version, so we expect that it may fail under 
+untested circumstances.
 
 ### Possible installation issues
 
-**MacOS**: the installation may fail on MacOS for MacBooks with the Apple Silicon chip, due to scipy compilation errors. The easy fix is to install `scipy` with another package manager such as conda (the Apple Silicon distribution of Mini-conda) and then install `nebullvm`. For any additional issues do not hesitate to open an issue or contact directly `info@nebuly.ai` by email.
+**MacOS**: the installation may fail on MacOS for MacBooks with the Apple Silicon 
+chip, due to scipy compilation errors. The easy fix is to install `scipy` with 
+another package manager such as conda (the Apple Silicon distribution of 
+Mini-conda) and then install `nebullvm`. For any additional issues do not 
+hesitate to open an issue or contact directly `info@nebuly.ai` by email.
 
   
 
 ## Get Started
 
-`Nebullvm` reduces the computation time of deep learning model inference by 5-20 times by testing multiple deep learning compilers and identifying the best possible way to execute your model on your specific hardware, without impacting the accuracy of your model.
+`Nebullvm` reduces the computation time of deep learning model inference by 
+5-20 times by testing multiple deep learning compilers and identifying the 
+best possible way to execute your model on your specific hardware, without 
+impacting the accuracy of your model.
 
-Currently `nebullvm` supports models in the `pytorch`, `tensorflow` and `huggingface` frameworks, and many others will be included soon. Models can be easily imported from one of the supported frameworks using the appropriate feature as explained below.
+Currently `nebullvm` supports models in the `pytorch`, `tensorflow` and 
+`huggingface` frameworks, and many others will be included soon. Models can be 
+easily imported from one of the supported frameworks using the appropriate 
+feature as explained below.
 
-And please leave a ⭐. If many will like the library, we will keep building new and cool features. We have a long list of them!
+And please leave a ⭐. If many will like the library, we will keep building new 
+and cool features. We have a long list of them!
 
 ### Optimization with PyTorch
 
@@ -200,49 +259,58 @@ Here we present an example of optimizing a `pytorch` model with `nebullvm`:
 
 ### Optimization with TensorFlow
 
-The same optimization can be achieved with a `tensorflow` model using the function `nebullvm.optimize_tf_model`.
+The same optimization can be achieved with a `tensorflow` model using the 
+function `nebullvm.optimize_tf_model`.
 
 ```
-from nebullvm import optimize_tf_model
-from tensorflow.keras.applications.resnet50 import ResNet50
-model = ResNet50()
-bs, input_sizes = 1, [(224, 224, 3)]
-save_dir = "."
-optimized_model = optimize_tf_model(
-model, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
-)
-res = optimized_model(*optimized_model.get_inputs_example())
+>>> from nebullvm import optimize_tf_model
+>>> from tensorflow.keras.applications.resnet50 import ResNet50
+>>> model = ResNet50()
+>>> bs, input_sizes = 1, [(224, 224, 3)]
+>>> save_dir = "."
+>>> optimized_model = optimize_tf_model(
+...    model, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
+... )
+>>> res = optimized_model(*optimized_model.get_inputs_example())
 ```
 
 
 ### Optimization with Hugging Face
+To make `nebullvm` work with `huggingface` we changed the API slightly so that 
+you can use the `optimize_huggingface_model` function to optimize your model.
+
+Note that the current version of `nebullvm` only supports Hugging Face models 
+built on top of `pytorch`. Support for TensorFlow will be included in future 
+releases.
 
 ```
-from transformers import GPT2Tokenizer, GPT2Model
-from nebullvm.api.frontend.huggingface import optimize_huggingface_model
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-model = GPT2Model.from_pretrained('gpt2')
-text = "Replace me by any text you'd like."
-encoded_input = tokenizer(text, return_tensors='pt')
-optimized_model = optimize_huggingface_model(
-    model=model,
-    tokenizer=tokenizer,
-    target_text=text,
-    batch_size=1,
-    max_input_sizes=[
-      tuple(value.size()[1:]) 
-      for value in encoded_input.values()
-    ],
-    save_dir=".",
-    extra_input_info=[{}, {"max_value": 1, "min_value": 0}],
-    use_torch_api=False
-)
-res = optimized_model(**encoded_input)
+>>> from transformers import GPT2Tokenizer, GPT2Model
+>>> from nebullvm.api.frontend.huggingface import optimize_huggingface_model
+>>> tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+>>> model = GPT2Model.from_pretrained('gpt2')
+>>> text = "Replace me by any text you'd like."
+>>> encoded_input = tokenizer(text, return_tensors='pt')
+>>> optimized_model = optimize_huggingface_model(
+...     model=model,
+...     tokenizer=tokenizer,
+...     target_text=text,
+...     batch_size=1,
+...     max_input_sizes=[
+...       tuple(value.size()[1:]) 
+...       for value in encoded_input.values()
+...     ],
+...     save_dir=".",
+...     extra_input_info=[{}, {"max_value": 1, "min_value": 0}],
+...     use_torch_api=False
+... )
+>>> res = optimized_model(**encoded_input)
 ```
 
 ## Testing the library on your models
 
-If you want to compare the performance of a model optimized by `nebullvm` with its non-optimized version, you can find guidelines in the notebooks presented in the section <a href="#technology-demonstration">Technology demonstration</a>.
+If you want to compare the performance of a model optimized by `nebullvm` with 
+its non-optimized version, you can find guidelines in the notebooks presented 
+in the section <a href="#technology-demonstration">Technology demonstration</a>.
 
 ## Supported frameworks
 
@@ -259,7 +327,9 @@ If you want to compare the performance of a model optimized by `nebullvm` with i
 
 ## Acknowledgments
 
-`Nebullvm` builds on the outstanding work being accomplished by the open-source community and major hardware vendors on deep learning compilers. Currently `nebullvm` supports as AI compilers:
+`Nebullvm` builds on the outstanding work being accomplished by the open-source 
+community and major hardware vendors on deep learning compilers. 
+Currently `nebullvm` supports as AI compilers:
 
 - [OpenVINO](https://docs.openvino.ai/latest/index.html) (on [Intel](https://www.intel.com/) Machines)
 - [TensorRT](https://developer.nvidia.com/tensorrt) (on [NVIDIA](https://www.nvidia.com/) GPUs)
