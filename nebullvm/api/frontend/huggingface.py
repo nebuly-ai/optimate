@@ -343,7 +343,12 @@ def optimize_huggingface_model(
             )
             if not use_static_shape
             else None,
-            ignore_compilers=[ModelCompiler.TENSOR_RT.value],
+            ignore_compilers=[ModelCompiler.TENSOR_RT.value]
+            if use_static_shape
+            else [
+                ModelCompiler.TENSOR_RT.value,
+                ModelCompiler.APACHE_TVM.value,
+            ],
         )
         final_model = HuggingFaceInferenceLearner(
             core_inference_learner=optimized_model,
