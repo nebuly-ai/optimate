@@ -271,6 +271,7 @@ def optimize_huggingface_model(
     use_static_shape: bool = False,
     use_torch_api: bool = False,
     tokenizer_args: Dict = None,
+    quantization_ths: float = None,
 ):
     """Optimize the HuggingFace model.
 
@@ -308,6 +309,9 @@ def optimize_huggingface_model(
             succeeds. Clearly, in case of failure of the torch API, a second
             tentative will be done with the ONNX interface.
         tokenizer_args (Dict, optional): Extra args needed for the tokenizer.
+        quantization_ths (float, optional): Tolerated relative error for
+            performing quantization before compiling the model. If no value
+            is given, no quantization will be performed.
     """
     tokenizer_args = tokenizer_args or {}
     tokenizer_args.update({"return_tensors": "pt"})
@@ -343,6 +347,7 @@ def optimize_huggingface_model(
             )
             if not use_static_shape
             else None,
+            quantization_ths=quantization_ths,
             ignore_compilers=[ModelCompiler.TENSOR_RT.value]
             if use_static_shape
             else [

@@ -10,9 +10,8 @@ from nebullvm.inference_learners.tensor_rt import (
 )
 from nebullvm.optimizers.base import (
     BaseOptimizer,
-    get_input_names,
-    get_output_names,
 )
+from nebullvm.utils.onnx import get_input_names, get_output_names
 
 if torch.cuda.is_available():
     try:

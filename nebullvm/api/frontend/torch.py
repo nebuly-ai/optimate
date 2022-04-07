@@ -11,8 +11,10 @@ from nebullvm.base import (
     ModelParams,
     ModelCompiler,
     InputInfo,
+    QuantizationType,
 )
 from nebullvm.converters import ONNXConverter
+from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
@@ -32,6 +34,7 @@ def optimize_torch_model(
     extra_input_info: List[Dict] = None,
     use_torch_api: bool = False,
     dynamic_axis: Dict = None,
+    quantization_ths: float = None,
     ignore_compilers: List[str] = None,
 ) -> PytorchBaseInferenceLearner:
     """Basic function for optimizing a torch model.
@@ -73,9 +76,16 @@ def optimize_torch_model(
             The inner dictionary should have as key an integer, i.e. the
             dynamic axis (considering also the batch size) and as value a
             string giving a "tag" to it, e.g. "batch_size".
-        ignore_compilers (List[str]): List of DL compilers we want to ignore
-            while running the optimization. Compiler name should be one
-            between "tvm", "tensor RT", "openvino" and "onnxruntime".
+        quantization_ths (float, optional): Tolerated relative error for
+            performing quantization before compiling the model. If no value
+            is given, no quantization will be performed. Note that it will not
+            be used for compilers using the torch API when `use_torch_api`
+            is `True`. Just dynamic quantization will be performed, since no
+            data is given as input. For using other types of quantization
+            please use `optimize_torch_model_from_data` instead.
+        ignore_compilers (List[str], optional): List of DL compilers we want
+            to ignore while running the optimization. Compiler name should be
+            one between "tvm", "tensor RT", "openvino" and "onnxruntime".
 
     Returns:
         PytorchBaseInferenceLearner: Optimized model usable with the classical
@@ -129,6 +139,15 @@ def optimize_torch_model(
             onnx_path = model_converter.convert(
                 model, model_params, Path(tmp_dir)
             )
+            if quantization_ths is not None:
+                quantization_manager = ONNXQuantizerManager(quantization_ths)
+                quantized_onnx_path = quantization_manager.run(
+                    str(onnx_path),
+                    model_params,
+                    quantization_type=QuantizationType.DYNAMIC,
+                )
+                if quantized_onnx_path is not None:
+                    onnx_path = Path(quantized_onnx_path)
             model_optimized = model_optimizer.optimize(
                 str(onnx_path), dl_library, model_params
             )

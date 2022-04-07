@@ -5,6 +5,7 @@ import torch
 from torch.nn import Module
 
 from nebullvm.base import ModelParams
+from nebullvm.config import ONNX_OPSET_VERSION
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
@@ -50,7 +51,7 @@ def convert_torch_to_onnx(
         # where to save the model (can be a file or file-like object)
         export_params=True,
         # store the trained parameter weights inside the model file
-        opset_version=11,
+        opset_version=ONNX_OPSET_VERSION,
         # the ONNX version to export the model to
         do_constant_folding=True,
         # whether to execute constant folding for optimization

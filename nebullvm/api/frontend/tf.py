@@ -9,8 +9,10 @@ from nebullvm.base import (
     ModelParams,
     InputInfo,
     ModelCompiler,
+    QuantizationType,
 )
 from nebullvm.converters import ONNXConverter
+from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
 from nebullvm.utils.tf import get_outputs_sizes_tf, create_model_inputs_tf
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
@@ -23,6 +25,7 @@ def optimize_tf_model(
     input_types: List[str] = None,
     extra_input_info: List[Dict] = None,
     dynamic_axis: Dict = None,
+    quantization_ths: float = None,
     ignore_compilers: List[str] = None,
 ):
     """Basic function for optimizing a tensorflow model.
@@ -58,6 +61,12 @@ def optimize_tf_model(
             The inner dictionary should have as key an integer, i.e. the
             dynamic axis (considering also the batch size) and as value a
             string giving a "tag" to it, e.g. "batch_size".
+        quantization_ths (float, optional): Tolerated relative error for
+            performing quantization before compiling the model. If no value
+            is given, no quantization will be performed. Note that
+            just dynamic quantization will be performed, since no
+            data is given as input. For using other types of quantization
+            please use `optimize_tf_model_from_data` instead.
         ignore_compilers (List[str]): List of DL compilers we want to ignore
             while running the optimization. Compiler name should be one
             between "tvm", "tensor RT", "openvino" and "onnxruntime".
@@ -106,6 +115,15 @@ def optimize_tf_model(
         onnx_path = model_converter.convert(
             model, model_params.input_sizes, Path(tmp_dir)
         )
+        if quantization_ths is not None:
+            quantization_manager = ONNXQuantizerManager(quantization_ths)
+            quantized_onnx_path = quantization_manager.run(
+                str(onnx_path),
+                model_params,
+                quantization_type=QuantizationType.DYNAMIC,
+            )
+            if quantized_onnx_path is not None:
+                onnx_path = Path(quantized_onnx_path)
         model_optimized = model_optimizer.optimize(
             str(onnx_path), dl_library, model_params
         )
