@@ -4,6 +4,7 @@ API Documentation
 .. toctree::
     
     api
-    inference_learners
     converters
+    inference_learners
+    installers
     optimizers

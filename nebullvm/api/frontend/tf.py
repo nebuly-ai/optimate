@@ -65,7 +65,7 @@ def optimize_tf_model(
     Returns:
         BaseInferenceLearner: Optimized model usable with the classical
             tensorflow interface. Note that as a torch model it takes as input
-            and it gives as output `tf.Tensor`s.
+            and it gives as output `tf.Tensor` s.
     """
     if input_types is None:
         input_types = ["float"] * len(input_sizes)

@@ -80,7 +80,7 @@ def optimize_torch_model(
     Returns:
         PytorchBaseInferenceLearner: Optimized model usable with the classical
             Pytorch interface. Note that as a torch model it takes as input
-            and it gives as output `torch.Tensor`s.
+            and it gives as output `torch.Tensor` s.
     """
     if input_types is None:
         input_types = ["float"] * len(input_sizes)
