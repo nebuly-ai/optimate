@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from tempfile import TemporaryDirectory
-from typing import Tuple, Union, List, Iterable, Dict, Any, Type
+from typing import Tuple, Union, List, Iterable, Dict, Any, Type, Optional
 
 import numpy as np
 import torch
@@ -12,9 +12,10 @@ from nebullvm.inference_learners.base import (
     InferenceLearnerWrapper,
     LearnerMetadata,
 )
+from nebullvm.optimizers.extra import HuggingFaceOptimizer
 
 try:
-    from transformers import PreTrainedModel
+    from transformers import PreTrainedModel, PretrainedConfig
     from transformers.tokenization_utils import PreTrainedTokenizer
 except ImportError:
     # add placeholders for function definition
@@ -260,6 +261,35 @@ def _extract_input_type(input_value: torch.Tensor):
         )
 
 
+def _try_extraction(model_config: PretrainedConfig, keys: List[str]):
+    for key in keys:
+        if hasattr(model_config, key):
+            return getattr(model_config, key)
+    return
+
+
+def _get_extra_optimizer(
+    model_config: PretrainedConfig,
+) -> Optional[List[HuggingFaceOptimizer]]:
+    config_name = model_config.__class__.__name__.lower()
+    for key in HuggingFaceOptimizer.get_accepted_types():
+        if key in config_name:
+            input_dict = {"model_type": key}
+            hidden_dim = _try_extraction(
+                model_config, ["n_embd", "d_model", "hidden_size"]
+            )
+            if hidden_dim is not None:
+                input_dict["hidden_size"] = hidden_dim
+            n_heads = _try_extraction(
+                model_config,
+                ["n_head", "num_attention_heads", "encoder_attention_heads"],
+            )
+            if n_heads is not None:
+                input_dict["num_heads"] = n_heads
+            return [HuggingFaceOptimizer(hugging_face_params=input_dict)]
+    return
+
+
 def optimize_huggingface_model(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
@@ -354,6 +384,9 @@ def optimize_huggingface_model(
                 ModelCompiler.TENSOR_RT.value,
                 ModelCompiler.APACHE_TVM.value,
             ],
+            custom_optimizers=_get_extra_optimizer(model.config)
+            if quantization_ths is None
+            else None,
         )
         final_model = HuggingFaceInferenceLearner(
             core_inference_learner=optimized_model,

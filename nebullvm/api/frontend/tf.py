@@ -12,6 +12,7 @@ from nebullvm.base import (
     QuantizationType,
 )
 from nebullvm.converters import ONNXConverter
+from nebullvm.optimizers import BaseOptimizer
 from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
 from nebullvm.utils.tf import get_outputs_sizes_tf, create_model_inputs_tf
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
@@ -27,6 +28,7 @@ def optimize_tf_model(
     dynamic_axis: Dict = None,
     quantization_ths: float = None,
     ignore_compilers: List[str] = None,
+    custom_optimizers: List[BaseOptimizer] = None,
 ):
     """Basic function for optimizing a tensorflow model.
 
@@ -70,6 +72,12 @@ def optimize_tf_model(
         ignore_compilers (List[str]): List of DL compilers we want to ignore
             while running the optimization. Compiler name should be one
             between "tvm", "tensor RT", "openvino" and "onnxruntime".
+        custom_optimizers (List[BaseOptimizer], optional): List of optimizers
+            which can be used for producing InferenceLearners, i.e. models
+            optimized for inference. This list is useful when some compilers,
+            not included in the base version of nebullvm or not used
+            by default, which are specific for a particular tasks, need
+            to be used.
 
     Returns:
         BaseInferenceLearner: Optimized model usable with the classical
@@ -110,6 +118,7 @@ def optimize_tf_model(
     model_converter = ONNXConverter()
     model_optimizer = MultiCompilerOptimizer(
         ignore_compilers=ignore_compilers,
+        extra_optimizers=custom_optimizers,
     )
     with TemporaryDirectory() as tmp_dir:
         onnx_path = model_converter.convert(

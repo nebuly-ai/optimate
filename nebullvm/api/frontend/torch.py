@@ -21,7 +21,7 @@ from nebullvm.utils.torch import (
 )
 from nebullvm.inference_learners.base import PytorchBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
-from nebullvm.optimizers import ApacheTVMOptimizer
+from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
 
@@ -36,6 +36,7 @@ def optimize_torch_model(
     dynamic_axis: Dict = None,
     quantization_ths: float = None,
     ignore_compilers: List[str] = None,
+    custom_optimizers: List[BaseOptimizer] = None,
 ) -> PytorchBaseInferenceLearner:
     """Basic function for optimizing a torch model.
 
@@ -86,6 +87,12 @@ def optimize_torch_model(
         ignore_compilers (List[str], optional): List of DL compilers we want
             to ignore while running the optimization. Compiler name should be
             one between "tvm", "tensor RT", "openvino" and "onnxruntime".
+        custom_optimizers (List[BaseOptimizer], optional): List of optimizers
+            which can be used for producing InferenceLearners, i.e. models
+            optimized for inference. This list is useful when some compilers,
+            not included in the base version of nebullvm or not used
+            by default, which are specific for a particular tasks, need
+            to be used.
 
     Returns:
         PytorchBaseInferenceLearner: Optimized model usable with the classical
@@ -134,6 +141,7 @@ def optimize_torch_model(
         model_converter = ONNXConverter()
         model_optimizer = MultiCompilerOptimizer(
             ignore_compilers=ignore_compilers,
+            extra_optimizers=custom_optimizers,
         )
         if model_optimizer.usable:
             onnx_path = model_converter.convert(
