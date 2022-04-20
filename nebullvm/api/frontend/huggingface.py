@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from tempfile import TemporaryDirectory
-from typing import Tuple, Union, List, Iterable, Dict, Any, Type, Optional
+from typing import Tuple, Union, List, Iterable, Dict, Any, Type
 
 import numpy as np
 import torch
@@ -270,11 +270,11 @@ def _try_extraction(model_config: PretrainedConfig, keys: List[str]):
 
 def _get_extra_optimizer(
     model_config: PretrainedConfig,
-) -> Optional[List[HuggingFaceOptimizer]]:
+) -> List[HuggingFaceOptimizer]:
     config_name = model_config.__class__.__name__.lower()
     for key in HuggingFaceOptimizer.get_accepted_types():
         if key in config_name:
-            input_dict = {"model_type": key}
+            input_dict = {"model_type": key, "opt_level": 2}
             hidden_dim = _try_extraction(
                 model_config, ["n_embd", "d_model", "hidden_size"]
             )
@@ -287,7 +287,7 @@ def _get_extra_optimizer(
             if n_heads is not None:
                 input_dict["num_heads"] = n_heads
             return [HuggingFaceOptimizer(hugging_face_params=input_dict)]
-    return
+    return [HuggingFaceOptimizer(hugging_face_params={})]
 
 
 def optimize_huggingface_model(

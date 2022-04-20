@@ -43,7 +43,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
         model_params: ModelParams,
     ) -> ONNXInferenceLearner:
         optimized_model = optimizer.optimize_model(
-            onnx_model, opt_level=2, **self.hf_params
+            onnx_model, **self.hf_params
         )
         optimized_model.convert_float_to_float16()
         new_onnx_model = onnx_model.replace(".onnx", "_fp16.onnx")
