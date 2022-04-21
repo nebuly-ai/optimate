@@ -98,6 +98,7 @@ class ModelParams:
 class DeepLearningFramework(Enum):
     PYTORCH = "torch"
     TENSORFLOW = "tensorflow"
+    NUMPY = "numpy"
 
 
 class ModelCompiler(Enum):

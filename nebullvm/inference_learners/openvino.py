@@ -16,6 +16,7 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
     TensorflowBaseInferenceLearner,
+    NumpyBaseInferenceLearner,
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
 
@@ -312,9 +313,61 @@ class TensorflowOpenVinoInferenceLearner(
         )
 
 
+class NumpyOpenVinoInferenceLearner(
+    OpenVinoInferenceLearner, NumpyBaseInferenceLearner
+):
+    """Model optimized using ApacheTVM with a numpy interface.
+
+    This class can be used exactly in the same way as a sklearn or
+    numpy-based model.
+    At prediction time it takes as input numpy arrays given as positional
+    arguments.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        exec_network (any): The graph executor. This is the
+            central component in the OpenVino optimized model execution.
+        input_keys (List): Keys associated to the inputs.
+        output_keys (List): Keys associated to the outputs.
+        description_file (str): File containing a description of the optimized
+            model.
+        weights_file (str): File containing the model weights.
+    """
+
+    def predict(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[np.ndarray]): Input tensors belonging to
+                the same batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[np.ndarray]: Output tensors. Note that the output tensors
+                does not correspond to the prediction on the input tensors
+                with a 1 to 1 mapping. In fact the output tensors are produced
+                as the multiple-output of the model given a (multi-) tensor
+                input.
+        """
+        input_arrays = (input_tensor for input_tensor in input_tensors)
+        extra_kwargs = {}
+        if self.network_parameters.dynamic_info is not None:
+            extra_kwargs["input_shapes"] = (
+                tuple(input_tensor.shape) for input_tensor in input_tensors
+            )
+        output_arrays = self._predict_array(input_arrays, **extra_kwargs)
+        return tuple(output_arrays)
+
+
 OPENVINO_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[OpenVinoInferenceLearner]
 ] = {
     DeepLearningFramework.PYTORCH: PytorchOpenVinoInferenceLearner,
     DeepLearningFramework.TENSORFLOW: TensorflowOpenVinoInferenceLearner,
+    DeepLearningFramework.NUMPY: NumpyOpenVinoInferenceLearner,
 }

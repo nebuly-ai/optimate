@@ -19,6 +19,21 @@ def get_output_names(onnx_model: str):
     return output_all
 
 
+def get_output_sizes_onnx(onnx_model: str, input_tensors: List[np.ndarray]):
+    import onnxruntime as ort
+
+    model = ort.InferenceSession(onnx_model)
+    inputs = {
+        name: array
+        for name, array in zip(get_input_names(onnx_model), input_tensors)
+    }
+    res = model.run(
+        output_names=get_output_names(onnx_model), input_feed=inputs
+    )
+    sizes = [tuple(output.shape[1:]) for output in res]
+    return sizes
+
+
 def create_model_inputs_onnx(
     batch_size: int, input_infos: List[InputInfo]
 ) -> List[np.ndarray]:

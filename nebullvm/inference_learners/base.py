@@ -10,6 +10,7 @@ import torch
 
 from nebullvm.base import ModelParams
 from nebullvm.config import LEARNER_METADATA_FILENAME
+from nebullvm.utils.onnx import create_model_inputs_onnx
 from nebullvm.utils.tf import create_model_inputs_tf
 from nebullvm.utils.torch import create_model_inputs_torch
 
@@ -387,6 +388,55 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
     def get_inputs_example(self):
         return tuple(
             create_model_inputs_tf(
+                batch_size=self.network_parameters.batch_size,
+                input_infos=self.network_parameters.input_infos,
+            )
+        )
+
+
+class NumpyBaseInferenceLearner(BaseInferenceLearner, ABC):
+    @property
+    def input_format(self):
+        return ".npy"
+
+    @property
+    def output_format(self):
+        return ".npy"
+
+    def list2tensor(self, listified_tensor: List) -> np.ndarray:
+        """Convert list to numpy arrays.
+
+        Args:
+            listified_tensor (List): Listified version of the input tensor.
+
+        Returns:
+            np.array: Tensor ready to be used for prediction.
+        """
+        return np.array(listified_tensor)
+
+    def tensor2list(self, tensor: np.ndarray) -> List:
+        """Convert tensor to list.
+
+        Args:
+            tensor (tf.Tensor): Input tensor.
+
+        Returns:
+            List: Listified version of the tensor.
+        """
+        return tensor.tolist()
+
+    def _read_file(self, input_file: Union[str, Path]) -> np.ndarray:
+        numpy_array = np.load(input_file)
+        return numpy_array
+
+    def _save_file(
+        self, prediction: np.ndarray, output_file: Union[str, Path]
+    ):
+        np.save(output_file, prediction)
+
+    def get_inputs_example(self):
+        return tuple(
+            create_model_inputs_onnx(
                 batch_size=self.network_parameters.batch_size,
                 input_infos=self.network_parameters.input_infos,
             )

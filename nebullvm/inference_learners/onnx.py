@@ -17,6 +17,7 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
     TensorflowBaseInferenceLearner,
+    NumpyBaseInferenceLearner,
 )
 
 try:
@@ -218,9 +219,48 @@ class TensorflowONNXInferenceLearner(
         return tuple(tf.convert_to_tensor(output) for output in outputs)
 
 
+class NumpyONNXInferenceLearner(
+    ONNXInferenceLearner, NumpyBaseInferenceLearner
+):
+    """Model run with Microsoft's onnxruntime using a numpy interface.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        onnx_path (str or Path): Path to the onnx model.
+        input_names (List[str]): Input names used when the onnx model
+            was produced.
+        output_names (List[str]): Output names used when the onnx model
+            was produced.
+    """
+
+    def predict(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[np.ndarray, ...]): Input tensors belonging to
+                the same batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[Tensor]: Output tensors. Note that the output tensors does
+                not correspond to the prediction on the input tensors with a
+                1 to 1 mapping. In fact the output tensors are produced as the
+                multiple-output of the model given a (multi-) tensor input.
+        """
+        input_arrays = (input_tensor for input_tensor in input_tensors)
+        outputs = self._predict_arrays(input_arrays)
+        return tuple(outputs)
+
+
 ONNX_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[ONNXInferenceLearner]
 ] = {
     DeepLearningFramework.PYTORCH: PytorchONNXInferenceLearner,
     DeepLearningFramework.TENSORFLOW: TensorflowONNXInferenceLearner,
+    DeepLearningFramework.NUMPY: NumpyONNXInferenceLearner,
 }
