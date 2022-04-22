@@ -22,7 +22,9 @@ def get_output_names(onnx_model: str):
 def get_output_sizes_onnx(onnx_model: str, input_tensors: List[np.ndarray]):
     import onnxruntime as ort
 
-    model = ort.InferenceSession(onnx_model)
+    model = ort.InferenceSession(
+        onnx_model, providers=["CPUExecutionProvider"]
+    )
     inputs = {
         name: array
         for name, array in zip(get_input_names(onnx_model), input_tensors)
