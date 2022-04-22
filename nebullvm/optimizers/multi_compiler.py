@@ -1,6 +1,9 @@
+import json
 import warnings
 from logging import Logger
+from pathlib import Path
 from typing import Dict, Type, Tuple, Callable, List
+import uuid
 
 import cpuinfo
 import numpy as np
@@ -8,6 +11,7 @@ import torch
 
 
 from nebullvm.base import ModelCompiler, DeepLearningFramework, ModelParams
+from nebullvm.config import NEBULLVM_DEBUG_FILE
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import (
@@ -57,10 +61,22 @@ def _optimize_with_compiler(
     return _optimize_with_optimizer(optimizer, logger, metric_func, **kwargs)
 
 
+def _save_info(optimizer: BaseOptimizer, score: float, debug_file: str):
+    if Path(debug_file).exists():
+        with open(debug_file, "r") as f:
+            old_dict = json.load(f)
+    else:
+        old_dict = {}
+    old_dict[optimizer.__class__.__name__] = f"{score}"
+    with open(debug_file, "w") as f:
+        json.dump(old_dict, f)
+
+
 def _optimize_with_optimizer(
     optimizer: BaseOptimizer,
     logger: Logger,
     metric_func: Callable = None,
+    debug_file: str = None,
     **kwargs,
 ) -> Tuple[BaseInferenceLearner, float]:
     if metric_func is None:
@@ -79,6 +95,8 @@ def _optimize_with_optimizer(
             logger.warning(warning_msg)
         latency = np.inf
         model_optimized = None
+    if debug_file:
+        _save_info(optimizer, latency, debug_file)
     return model_optimized, latency
 
 
@@ -97,6 +115,10 @@ class MultiCompilerOptimizer(BaseOptimizer):
             Note that, if given, the optimizers must be already initialized,
             i.e. they could have a different Logger than the one defined in
             `MultiCompilerOptimizer`.
+        debug_mode (bool, optional): Boolean flag for activating the debug
+            mode. When activated, all the performances of the the different
+            containers  will be stored in a json file saved in the working
+            directory. Default is False.
     """
 
     def __init__(
@@ -104,6 +126,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         logger: Logger = None,
         ignore_compilers: List = None,
         extra_optimizers: List[BaseOptimizer] = None,
+        debug_mode: bool = False,
     ):
         super().__init__(logger)
         self.compilers = [
@@ -112,6 +135,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
             if compiler not in (ignore_compilers or [])
         ]
         self.extra_optimizers = extra_optimizers
+        self.debug_file = (
+            f"{uuid.uuid4()}_{NEBULLVM_DEBUG_FILE}" if debug_mode else None
+        )
 
     def optimize(
         self,
@@ -137,6 +163,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 onnx_model=onnx_model,
                 output_library=output_library,
                 model_params=model_params,
+                debug_file=self.debug_file,
             )
             for compiler in self.compilers
         ]
@@ -148,6 +175,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     onnx_model=onnx_model,
                     output_library=output_library,
                     model_params=model_params,
+                    debug_file=self.debug_file,
                 )
                 for op in self.extra_optimizers
             ]
@@ -193,6 +221,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 onnx_model=onnx_model,
                 output_library=output_library,
                 model_params=model_params,
+                debug_mode=self.debug_mode,
             )
             for compiler in self.compilers
         ]
@@ -204,6 +233,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     onnx_model=onnx_model,
                     output_library=output_library,
                     model_params=model_params,
+                    debug_mode=self.debug_mode,
                 )
                 for op in self.extra_optimizers
             ]

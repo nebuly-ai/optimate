@@ -1,3 +1,4 @@
+import os
 import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -142,6 +143,7 @@ def optimize_torch_model(
         model_optimizer = MultiCompilerOptimizer(
             ignore_compilers=ignore_compilers,
             extra_optimizers=custom_optimizers,
+            debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
         )
         if model_optimizer.usable:
             onnx_path = model_converter.convert(
