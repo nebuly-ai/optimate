@@ -26,8 +26,19 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
 }
 
 
+def _tvm_is_available() -> bool:
+    try:
+        import tvm  # noqa F401
+
+        return True
+    except ImportError:
+        return False
+
+
 def select_compilers_from_hardware():
-    compilers = [ModelCompiler.APACHE_TVM, ModelCompiler.ONNX_RUNTIME]
+    compilers = [ModelCompiler.ONNX_RUNTIME]
+    if _tvm_is_available():
+        compilers.append(ModelCompiler.APACHE_TVM)
     if torch.cuda.is_available():
         compilers.append(ModelCompiler.TENSOR_RT)
     cpu_raw_info = cpuinfo.get_cpu_info()["brand_raw"].lower()

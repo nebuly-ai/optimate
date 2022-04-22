@@ -24,10 +24,12 @@ try:
     from tvm.contrib.graph_executor import GraphModule
     from tvm.runtime import Module
 except ImportError:
-    if not NO_COMPILER_INSTALLATION:
+    # TODO: Remove the False flag for allowing tvm to be installed by
+    #  the Auto-Installer.
+    if False and not NO_COMPILER_INSTALLATION:
         warnings.warn(
             "Not found any valid tvm installation. "
-            "Trying to install it from source."
+            "TVM will not be available in the following steps."
         )
         from nebullvm.installers.installers import install_tvm
 
