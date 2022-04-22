@@ -9,13 +9,6 @@ import cpuinfo
 import numpy as np
 import onnx
 import torch.cuda
-from onnxruntime import InferenceSession
-from onnxruntime.quantization import (
-    QuantType,
-    quantize_static,
-    quantize_dynamic,
-    CalibrationDataReader,
-)
 from torch.utils.data import DataLoader
 
 from nebullvm.base import QuantizationType, ModelParams
@@ -25,6 +18,26 @@ from nebullvm.utils.onnx import (
     get_output_names,
     create_model_inputs_onnx,
 )
+
+try:
+    from onnxruntime import InferenceSession
+    from onnxruntime.quantization import (
+        QuantType,
+        quantize_static,
+        quantize_dynamic,
+        CalibrationDataReader,
+    )
+except ImportError:
+    from nebullvm.installers.installers import install_onnxruntime
+
+    install_onnxruntime()
+    from onnxruntime import InferenceSession
+    from onnxruntime.quantization import (
+        QuantType,
+        quantize_static,
+        quantize_dynamic,
+        CalibrationDataReader,
+    )
 
 
 class _IterableCalibrationDataReader(CalibrationDataReader):
