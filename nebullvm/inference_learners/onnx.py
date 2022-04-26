@@ -41,6 +41,18 @@ def _is_intel_cpu():
     return False
 
 
+def _get_ort_session_options() -> ort.SessionOptions:
+    sess_options = ort.SessionOptions()
+    sess_options.graph_optimization_level = (
+        ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    )
+    if not torch.cuda.is_available():
+        sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
+        sess_options.inter_op_num_threads = 1
+        sess_options.intra_op_num_threads = max(torch.get_num_threads(), 1)
+    return sess_options
+
+
 class ONNXInferenceLearner(BaseInferenceLearner, ABC):
     """Model converted to ONNX and run with Microsoft's onnxruntime.
 
@@ -63,15 +75,17 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
     ):
         super().__init__(**kwargs)
         self.onnx_path = onnx_path
+        sess_options = _get_ort_session_options()
+
         if _is_intel_cpu():
-            ort_session_options = ort.SessionOptions()
-            ort_session_options.add_session_config_entry(
+            sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
-            ort_session = ort.InferenceSession(onnx_path, ort_session_options)
+            ort_session = ort.InferenceSession(onnx_path, sess_options)
         else:
             ort_session = ort.InferenceSession(
                 onnx_path,
+                sess_options=sess_options,
                 providers=CUDA_PROVIDERS
                 if torch.cuda.is_available()
                 else None,

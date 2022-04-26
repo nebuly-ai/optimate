@@ -10,6 +10,7 @@
   <a href="https://nebuly.ai/">Website</a> |
   <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
   <a href="https://twitter.com/nebuly_ai">Twitter</a>
+  <a href="https://discord.gg/jyjtZTPyHS">Discord</a>
 </p>
   
   
@@ -213,6 +214,21 @@ on macOS, linux distributions similar to Debian and CentOS.
 The feature is still in an alpha version, so we expect that it may fail under 
 untested circumstances.
 
+### Step 2-bis: Install TVM
+Since the TVM compiler needs to be installed from the source code, its installation
+can take several minutes (or even hours) for being performed. For this reason we
+decided to not include it in the default auto-installer. However, if you want to 
+squeeze out the maximum of the performance from your model on your machine, we 
+highly recommend installing TVM as well. With `nebullvm` it is super-easy! Just run
+```
+python -c "from nebullvm.installers.installers import install_tvm; install_tvm()"
+```
+and wait for the compiler to be installed! You can check that everything worked 
+running
+```
+python -c "from tvm.runtime import Module"
+```
+
 ### Possible installation issues
 
 **MacOS**: the installation may fail on MacOS for MacBooks with the Apple Silicon 
@@ -221,7 +237,6 @@ another package manager such as conda (the Apple Silicon distribution of
 Mini-conda) and then install `nebullvm`. For any additional issues do not 
 hesitate to open an issue or contact directly `info@nebuly.ai` by email.
 
-  
 
 ## Get Started
 
@@ -273,6 +288,21 @@ function `nebullvm.optimize_tf_model`.
 >>> res = optimized_model(*optimized_model.get_inputs_example())
 ```
 
+### Optimization with ONNX
+
+The similar optimization can be achieved with an `onnx` model using the 
+function `nebullvm.optimize_onnx_model`.
+
+```
+>>> from nebullvm import optimize_onnx_model
+>>> model_path = "path-to-onnx-model"
+>>> bs, input_sizes = 1, [(224, 224, 3)]
+>>> save_dir = "."
+>>> optimized_model = optimize_onnx_model(
+...    model_path, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
+... )
+>>> res = optimized_model(*optimized_model.get_inputs_example())
+```
 
 ### Optimization with Hugging Face
 To make `nebullvm` work with `huggingface` we changed the API slightly so that 
@@ -324,6 +354,12 @@ in the section <a href="#technology-demonstration">Technology demonstration</a>.
 - TVM
 - MLIR (Coming soon 🚀)
 
+## Community
+You are interested in making AI more efficient? You want to meet other people 
+sharing the vision of an efficient AI which is actually easy to use without 
+needing deep knowledge on the hardware side? Join us in the [Nebuly tribe](https://discord.gg/jyjtZTPyHS) on
+Discord!
+
 ## Acknowledgments
 
 `Nebullvm` builds on the outstanding work being accomplished by the open-source 
@@ -346,4 +382,5 @@ Currently `nebullvm` supports as AI compilers:
   <a href="https://nebuly.ai/">Website</a> |
   <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
   <a href="https://twitter.com/nebuly_ai">Twitter</a>
+  <a href="https://discord.gg/jyjtZTPyHS">Discord</a>
 </p>
