@@ -161,7 +161,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         output_idxs = (
             self.engine[output_name] for output_name in self.output_names
         )
-        input_shapes = input_shapes or (yield None)
+        input_shapes = input_shapes or [None] * len(self.input_names)
         for input_idx, input_ptr, input_shape in zip(
             input_idxs, input_ptrs, input_shapes
         ):
@@ -430,8 +430,6 @@ class TensorflowNvidiaInferenceLearner(
         return tuple(tf.convert_to_tensor(array) for array in out_arrays)
 
 
-# TODO: try to exploit the similarities between TF and Numpy models and not
-#  replicate twice the same calculations. Do then something similar for TVM
 class NumpyNvidiaInferenceLearner(
     BaseArrayNvidiaInferenceLearner, NumpyBaseInferenceLearner
 ):
