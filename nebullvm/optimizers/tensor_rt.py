@@ -63,7 +63,10 @@ class TensorRTOptimizer(BaseOptimizer):
         # build the engine
         # TODO: setup config value for the class in a config file
         config = builder.create_builder_config()
-        config.max_workspace_size = 1 << 20  # 1 MiB (put 30 for 1GB)
+        config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
+        # TODO: take into consideration different behaviour for tensorRT when
+        #  performing quantization or precision reduction
+        config.set_flag(trt.BuilderFlag.FP16)
         if model_params.dynamic_info is not None:
             profile = builder.create_optimization_profile()
             for input_name, input_dynamic_info, input_info in zip(
