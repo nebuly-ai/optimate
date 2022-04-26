@@ -10,9 +10,8 @@ from nebullvm.inference_learners.tensor_rt import (
 )
 from nebullvm.optimizers.base import (
     BaseOptimizer,
-    get_input_names,
-    get_output_names,
 )
+from nebullvm.utils.onnx import get_input_names, get_output_names
 
 if torch.cuda.is_available():
     try:
@@ -64,7 +63,7 @@ class TensorRTOptimizer(BaseOptimizer):
         # build the engine
         # TODO: setup config value for the class in a config file
         config = builder.create_builder_config()
-        config.max_workspace_size = 1 << 20  # 1 MiB (put 30 for 1GB)
+        config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
         if model_params.dynamic_info is not None:
             profile = builder.create_optimization_profile()
             for input_name, input_dynamic_info, input_info in zip(

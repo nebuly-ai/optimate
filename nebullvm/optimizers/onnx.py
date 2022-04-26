@@ -4,7 +4,7 @@ from nebullvm.inference_learners.onnx import (
     ONNX_INFERENCE_LEARNERS,
 )
 from nebullvm.optimizers import BaseOptimizer
-from nebullvm.optimizers.base import get_input_names, get_output_names
+from nebullvm.utils.onnx import get_input_names, get_output_names
 
 
 class ONNXOptimizer(BaseOptimizer):

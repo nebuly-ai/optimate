@@ -17,6 +17,7 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
     TensorflowBaseInferenceLearner,
+    NumpyBaseInferenceLearner,
 )
 
 try:
@@ -38,6 +39,18 @@ def _is_intel_cpu():
     if "intel" in cpu_info:
         return True
     return False
+
+
+def _get_ort_session_options() -> ort.SessionOptions:
+    sess_options = ort.SessionOptions()
+    sess_options.graph_optimization_level = (
+        ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    )
+    if not torch.cuda.is_available():
+        sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
+        sess_options.inter_op_num_threads = 1
+        sess_options.intra_op_num_threads = max(torch.get_num_threads(), 1)
+    return sess_options
 
 
 class ONNXInferenceLearner(BaseInferenceLearner, ABC):
@@ -62,15 +75,17 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
     ):
         super().__init__(**kwargs)
         self.onnx_path = onnx_path
+        sess_options = _get_ort_session_options()
+
         if _is_intel_cpu():
-            ort_session_options = ort.SessionOptions()
-            ort_session_options.add_session_config_entry(
+            sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
-            ort_session = ort.InferenceSession(onnx_path, ort_session_options)
+            ort_session = ort.InferenceSession(onnx_path, sess_options)
         else:
             ort_session = ort.InferenceSession(
                 onnx_path,
+                sess_options=sess_options,
                 providers=CUDA_PROVIDERS
                 if torch.cuda.is_available()
                 else None,
@@ -218,9 +233,48 @@ class TensorflowONNXInferenceLearner(
         return tuple(tf.convert_to_tensor(output) for output in outputs)
 
 
+class NumpyONNXInferenceLearner(
+    ONNXInferenceLearner, NumpyBaseInferenceLearner
+):
+    """Model run with Microsoft's onnxruntime using a numpy interface.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        onnx_path (str or Path): Path to the onnx model.
+        input_names (List[str]): Input names used when the onnx model
+            was produced.
+        output_names (List[str]): Output names used when the onnx model
+            was produced.
+    """
+
+    def predict(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[np.ndarray, ...]): Input tensors belonging to
+                the same batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[Tensor]: Output tensors. Note that the output tensors does
+                not correspond to the prediction on the input tensors with a
+                1 to 1 mapping. In fact the output tensors are produced as the
+                multiple-output of the model given a (multi-) tensor input.
+        """
+        input_arrays = (input_tensor for input_tensor in input_tensors)
+        outputs = self._predict_arrays(input_arrays)
+        return tuple(outputs)
+
+
 ONNX_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[ONNXInferenceLearner]
 ] = {
     DeepLearningFramework.PYTORCH: PytorchONNXInferenceLearner,
     DeepLearningFramework.TENSORFLOW: TensorflowONNXInferenceLearner,
+    DeepLearningFramework.NUMPY: NumpyONNXInferenceLearner,
 }

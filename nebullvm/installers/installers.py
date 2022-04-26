@@ -87,7 +87,7 @@ def install_openvino(with_optimization: bool = True):
             f"You are trying to install it on {processor}"
         )
     openvino_version = "openvino-dev" if with_optimization else "openvino"
-    cmd = ["pip3", "install", openvino_version]
+    cmd = ["pip3", "install", f"{openvino_version}[onnx]"]
     subprocess.run(cmd)
 
 
@@ -100,4 +100,7 @@ def install_onnxruntime():
         cmd = ["conda", "install", "-y", distribution_name]
     else:
         cmd = ["pip3", "install", distribution_name]
+    subprocess.run(cmd)
+    # install requirements for onnxruntime.transformers
+    cmd = ["pip3", "install", "coloredlogs", "sympy"]
     subprocess.run(cmd)

@@ -14,7 +14,8 @@ from nebullvm.inference_learners.tvm import (
     TVM_INFERENCE_LEARNERS,
     ApacheTVMInferenceLearner,
 )
-from nebullvm.optimizers.base import BaseOptimizer, get_input_names
+from nebullvm.optimizers.base import BaseOptimizer
+from nebullvm.utils.onnx import get_input_names
 from nebullvm.utils.torch import create_model_inputs_torch
 
 try:

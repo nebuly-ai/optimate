@@ -1,26 +1,25 @@
 import os
+import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Tuple, Union, Dict
-
-import tensorflow as tf
+from typing import List, Tuple, Dict
 
 from nebullvm.base import (
+    InputInfo,
     DeepLearningFramework,
     ModelParams,
-    InputInfo,
     ModelCompiler,
     QuantizationType,
 )
-from nebullvm.converters import ONNXConverter
+from nebullvm.inference_learners.base import NumpyBaseInferenceLearner
 from nebullvm.optimizers import BaseOptimizer
-from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
-from nebullvm.utils.tf import get_outputs_sizes_tf, create_model_inputs_tf
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
+from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
+from nebullvm.utils.onnx import create_model_inputs_onnx, get_output_sizes_onnx
 
 
-def optimize_tf_model(
-    model: Union[tf.Module, tf.keras.Model],
+def optimize_onnx_model(
+    model_path: str,
     batch_size: int,
     input_sizes: List[Tuple[int, ...]],
     save_dir: str,
@@ -30,15 +29,15 @@ def optimize_tf_model(
     quantization_ths: float = None,
     ignore_compilers: List[str] = None,
     custom_optimizers: List[BaseOptimizer] = None,
-):
-    """Basic function for optimizing a tensorflow model.
+) -> NumpyBaseInferenceLearner:
+    """Basic function for optimizing an onnx model.
 
     This function saves the output model as well in a nebuly-readable format
     in order to avoid temporary-files corruptions which would prevent the model
     saving later in the process.
 
     Args:
-        model (tf.Module or keras.Model): Model that needs optimization.
+        model_path (str): ONNX model that needs optimization.
         batch_size (int): The model batch size. Note that nebullvm does not
             support at the moment dynamic batch size, so a valid input should
             be given.
@@ -66,13 +65,11 @@ def optimize_tf_model(
             string giving a "tag" to it, e.g. "batch_size".
         quantization_ths (float, optional): Tolerated relative error for
             performing quantization before compiling the model. If no value
-            is given, no quantization will be performed. Note that
-            just dynamic quantization will be performed, since no
-            data is given as input. For using other types of quantization
-            please use `optimize_tf_model_from_data` instead.
-        ignore_compilers (List[str]): List of DL compilers we want to ignore
-            while running the optimization. Compiler name should be one
-            between "tvm", "tensor RT", "openvino" and "onnxruntime".
+            is given, no quantization will be performed. Just dynamic
+            quantization will be performed, since no data is given as input.
+        ignore_compilers (List[str], optional): List of DL compilers we want
+            to ignore while running the optimization. Compiler name should be
+            one between "tvm", "tensor RT", "openvino" and "onnxruntime".
         custom_optimizers (List[BaseOptimizer], optional): List of optimizers
             which can be used for producing InferenceLearners, i.e. models
             optimized for inference. This list is useful when some compilers,
@@ -81,9 +78,9 @@ def optimize_tf_model(
             to be used.
 
     Returns:
-        BaseInferenceLearner: Optimized model usable with the classical
-            tensorflow interface. Note that as a torch model it takes as input
-            and it gives as output `tf.Tensor`s.
+        PytorchBaseInferenceLearner: Optimized model usable with the classical
+            Pytorch interface. Note that as a torch model it takes as input
+            and it gives as output `torch.Tensor`s.
     """
     if input_types is None:
         input_types = ["float"] * len(input_sizes)
@@ -101,13 +98,13 @@ def optimize_tf_model(
             input_sizes, input_types, extra_input_info
         )
     ]
-    dl_library = DeepLearningFramework.TENSORFLOW
+    dl_library = DeepLearningFramework.NUMPY
     model_params = ModelParams(
         batch_size=batch_size,
         input_infos=input_infos,
-        output_sizes=get_outputs_sizes_tf(
-            model,
-            input_tensors=create_model_inputs_tf(batch_size, input_infos),
+        output_sizes=get_output_sizes_onnx(
+            model_path,
+            input_tensors=create_model_inputs_onnx(batch_size, input_infos),
         ),
         dynamic_info=dynamic_axis,
     )
@@ -116,27 +113,32 @@ def optimize_tf_model(
         if ignore_compilers is None
         else [ModelCompiler(compiler) for compiler in ignore_compilers]
     )
-    model_converter = ONNXConverter()
-    model_optimizer = MultiCompilerOptimizer(
-        ignore_compilers=ignore_compilers,
-        extra_optimizers=custom_optimizers,
-        debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
-    )
     with TemporaryDirectory() as tmp_dir:
-        onnx_path = model_converter.convert(
-            model, model_params.input_sizes, Path(tmp_dir)
+        onnx_path = shutil.copy(model_path, tmp_dir)
+        model_optimizer = MultiCompilerOptimizer(
+            ignore_compilers=ignore_compilers,
+            extra_optimizers=custom_optimizers,
+            debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
         )
-        if quantization_ths is not None:
-            quantization_manager = ONNXQuantizerManager(quantization_ths)
-            quantized_onnx_path = quantization_manager.run(
-                str(onnx_path),
-                model_params,
-                quantization_type=QuantizationType.DYNAMIC,
+        if model_optimizer.usable:
+            if quantization_ths is not None:
+                quantization_manager = ONNXQuantizerManager(quantization_ths)
+                quantized_onnx_path = quantization_manager.run(
+                    onnx_path,
+                    model_params,
+                    quantization_type=QuantizationType.DYNAMIC,
+                )
+                if quantized_onnx_path is not None:
+                    onnx_path = Path(quantized_onnx_path)
+            model_optimized = model_optimizer.optimize(
+                str(onnx_path), dl_library, model_params
             )
-            if quantized_onnx_path is not None:
-                onnx_path = Path(quantized_onnx_path)
-        model_optimized = model_optimizer.optimize(
-            str(onnx_path), dl_library, model_params
-        )
+        else:
+            model_optimized = None
+        if model_optimized is None:
+            raise RuntimeError(
+                "No valid compiled model has been produced. "
+                "Look at the logs for further information about the failure."
+            )
         model_optimized.save(save_dir)
     return model_optimized.load(save_dir)

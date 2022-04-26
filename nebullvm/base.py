@@ -98,6 +98,7 @@ class ModelParams:
 class DeepLearningFramework(Enum):
     PYTORCH = "torch"
     TENSORFLOW = "tensorflow"
+    NUMPY = "numpy"
 
 
 class ModelCompiler(Enum):
@@ -105,3 +106,9 @@ class ModelCompiler(Enum):
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
+
+
+class QuantizationType(Enum):
+    DYNAMIC = "DYNAMIC"
+    STATIC = "STATIC"
+    QAT = "QAT"

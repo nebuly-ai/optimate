@@ -3,7 +3,7 @@ import warnings
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union, Type, Dict, Any, List, Generator, Tuple
+from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -15,6 +15,7 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
     TensorflowBaseInferenceLearner,
+    NumpyBaseInferenceLearner,
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
 
@@ -23,10 +24,12 @@ try:
     from tvm.contrib.graph_executor import GraphModule
     from tvm.runtime import Module
 except ImportError:
-    if not NO_COMPILER_INSTALLATION:
+    # TODO: Remove the False flag for allowing tvm to be installed by
+    #  the Auto-Installer.
+    if False and not NO_COMPILER_INSTALLATION:
         warnings.warn(
             "Not found any valid tvm installation. "
-            "Trying to install it from source."
+            "TVM will not be available in the following steps."
         )
         from nebullvm.installers.installers import install_tvm
 
@@ -175,8 +178,63 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         )
 
 
+class BaseArrayApacheTVMInferenceLearner(ApacheTVMInferenceLearner, ABC):
+    """Base Model that can be used for all array-based
+    ApacheTVMInferenceLearners.
+    """
+
+    def _inner_predict(
+        self,
+        input_arrays: Generator[np.ndarray, None, None],
+        input_shapes: Optional[List[Tuple[int, ...]]],
+    ) -> Generator[np.ndarray, None, None]:
+        if self.network_parameters.dynamic_info is not None:
+            input_arrays = (
+                np.pad(
+                    input_array,
+                    [
+                        (0, abs(x - y))
+                        for x, y in zip(
+                            input_array.shape,
+                            (self.network_parameters.batch_size, *input_size),
+                        )
+                    ],
+                    mode="constant",
+                    constant_values=0,
+                )
+                for input_array, input_size in zip(
+                    input_arrays, self.network_parameters.input_sizes
+                )
+            )
+
+        output_arrays = self._predict_array(input_arrays)
+        if self.network_parameters.dynamic_info is not None:
+            assert input_shapes is not None
+            dynamic_info = self.network_parameters.dynamic_info
+            return (
+                output_array[
+                    tuple(
+                        slice(
+                            0,
+                            None
+                            if x not in out_dynamic_dict.keys()
+                            else dynamic_info.retrieve_output_dim(
+                                input_shapes, j, i, x
+                            ),
+                        )
+                        for i, x in enumerate(output_array.shape)
+                    )
+                ]
+                for j, (output_array, out_dynamic_dict) in enumerate(
+                    zip(output_arrays, dynamic_info.outputs)
+                )
+            )
+
+        return output_arrays
+
+
 class PytorchApacheTVMInferenceLearner(
-    ApacheTVMInferenceLearner, PytorchBaseInferenceLearner
+    BaseArrayApacheTVMInferenceLearner, PytorchBaseInferenceLearner
 ):
     """Model optimized using ApacheTVM with a Pytorch interface.
 
@@ -196,7 +254,9 @@ class PytorchApacheTVMInferenceLearner(
             or "cuda" for targeting GPUs.
     """
 
-    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+    def predict(
+        self, *input_tensors: torch.Tensor
+    ) -> Tuple[torch.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -219,55 +279,14 @@ class PytorchApacheTVMInferenceLearner(
             input_tensor.cpu().detach().numpy()
             for input_tensor in input_tensors
         )
-        if self.network_parameters.dynamic_info is not None:
-            input_arrays = (
-                np.pad(
-                    input_array,
-                    [
-                        (0, abs(x - y))
-                        for x, y in zip(
-                            input_array.shape,
-                            (self.network_parameters.batch_size, *input_size),
-                        )
-                    ],
-                    mode="constant",
-                    constant_values=0,
-                )
-                for input_array, input_size in zip(
-                    input_arrays, self.network_parameters.input_sizes
-                )
-            )
-        output_arrays = self._predict_array(input_arrays)
-        if self.network_parameters.dynamic_info is not None:
-            dynamic_info = self.network_parameters.dynamic_info
-            input_shapes = [
-                tuple(input_tensor.size()) for input_tensor in input_tensors
-            ]
-            # noinspection PyTypeChecker
-            return tuple(
-                torch.from_numpy(
-                    output_array[
-                        tuple(
-                            slice(
-                                0,
-                                None
-                                if x not in out_dynamic_dict.keys()
-                                else dynamic_info.retrieve_output_dim(
-                                    input_shapes, j, i, x
-                                ),
-                            )
-                            for i, x in enumerate(output_array.shape)
-                        )
-                    ]
-                ).to(device)
-                for j, (output_array, out_dynamic_dict) in enumerate(
-                    zip(output_arrays, dynamic_info.outputs)
-                )
-            )
-        # noinspection PyTypeChecker
+        input_shapes = (
+            [tuple(input_tensor.shape) for input_tensor in input_tensors]
+            if self.network_parameters.dynamic_info is not None
+            else None
+        )
+        output_arrays = self._inner_predict(input_arrays, input_shapes)
         return tuple(
-            torch.from_numpy(output_array).to(device)
-            for output_array in output_arrays
+            torch.from_numpy(array).to(device) for array in output_arrays
         )
 
     @staticmethod
@@ -278,7 +297,7 @@ class PytorchApacheTVMInferenceLearner(
 
 
 class TensorflowApacheTVMInferenceLearner(
-    ApacheTVMInferenceLearner, TensorflowBaseInferenceLearner
+    BaseArrayApacheTVMInferenceLearner, TensorflowBaseInferenceLearner
 ):
     """Model optimized using ApacheTVM with a tensorflow interface.
 
@@ -299,7 +318,7 @@ class TensorflowApacheTVMInferenceLearner(
             or "cuda" for targeting GPUs.
     """
 
-    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -318,57 +337,64 @@ class TensorflowApacheTVMInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
-        if self.network_parameters.dynamic_info is not None:
-            input_arrays = (
-                np.pad(
-                    input_array,
-                    [
-                        (0, abs(x - y))
-                        for x, y in zip(
-                            input_array.shape,
-                            (self.network_parameters.batch_size, *input_size),
-                        )
-                    ],
-                    mode="constant",
-                    constant_values=0,
-                )
-                for input_array, input_size in zip(
-                    input_arrays, self.network_parameters.input_sizes
-                )
-            )
-
-        output_arrays = self._predict_array(input_arrays)
-        if self.network_parameters.dynamic_info is not None:
-            dynamic_info = self.network_parameters.dynamic_info
-            input_shapes = [
-                input_tensor.shape for input_tensor in input_tensors
-            ]
-            # noinspection PyTypeChecker
-            return tuple(
-                tf.convert_to_tensor(
-                    output_array[
-                        tuple(
-                            slice(
-                                0,
-                                None
-                                if x not in out_dynamic_dict.keys()
-                                else dynamic_info.retrieve_output_dim(
-                                    input_shapes, j, i, x
-                                ),
-                            )
-                            for i, x in enumerate(output_array.shape)
-                        )
-                    ]
-                )
-                for j, (output_array, out_dynamic_dict) in enumerate(
-                    zip(output_arrays, dynamic_info.outputs)
-                )
-            )
-        # noinspection PyTypeChecker
-        return tuple(
-            tf.convert_to_tensor(output_array)
-            for output_array in output_arrays
+        input_shapes = (
+            [tuple(input_tensor.shape) for input_tensor in input_tensors]
+            if self.network_parameters.dynamic_info is not None
+            else None
         )
+        return tuple(
+            tf.convert_to_tensor(out)
+            for out in self._inner_predict(input_arrays, input_shapes)
+        )
+
+
+class NumpyApacheTVMInferenceLearner(
+    BaseArrayApacheTVMInferenceLearner, NumpyBaseInferenceLearner
+):
+    """Model optimized using ApacheTVM with a tensorflow interface.
+
+    This class can be used exactly in the same way as a tf.Module or
+    keras.Model object.
+    At prediction time it takes as input tensorflow tensors given as positional
+    arguments.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        graph_executor_module (GraphModule): The graph executor. This is the
+            central component in the ApacheTVM optimized model execution.
+        input_names (List[str]): Names associated to the model input tensors.
+        lib (Module): Component needed for loading the ApacheTVM optimized
+            model.
+        target (str): Target device. It can be wither `llvm` for targeting CPUs
+            or "cuda" for targeting GPUs.
+    """
+
+    def predict(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[ndarray]): Input tensors belonging to the
+                same batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[ndarray]: Output tensors. Note that the output tensors does
+                not correspond to the prediction on the input tensors with a
+                1 to 1 mapping. In fact the output tensors are produced as the
+                multiple-output of the model given a (multi-) tensor input.
+        """
+        input_arrays = (input_tensor for input_tensor in input_tensors)
+        input_shapes = (
+            [tuple(input_tensor.shape) for input_tensor in input_tensors]
+            if self.network_parameters.dynamic_info is not None
+            else None
+        )
+        return tuple(self._inner_predict(input_arrays, input_shapes))
 
 
 TVM_INFERENCE_LEARNERS: Dict[
@@ -376,4 +402,5 @@ TVM_INFERENCE_LEARNERS: Dict[
 ] = {
     DeepLearningFramework.PYTORCH: PytorchApacheTVMInferenceLearner,
     DeepLearningFramework.TENSORFLOW: TensorflowApacheTVMInferenceLearner,
+    DeepLearningFramework.NUMPY: NumpyApacheTVMInferenceLearner,
 }
