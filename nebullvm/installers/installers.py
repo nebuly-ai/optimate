@@ -104,3 +104,32 @@ def install_onnxruntime():
     # install requirements for onnxruntime.transformers
     cmd = ["pip3", "install", "coloredlogs", "sympy"]
     subprocess.run(cmd)
+
+
+def install_onnx_mlir(working_dir: str = None):
+    """Helper function for installing Onnx-MLIR.
+
+    This function build llvm-project from source that is a prerequisite for
+    ONNX-MLIR followed by the building of ONNX-MLIR dialect from source.
+
+    Args:
+        working_dir (str, optional): The directory where the llvm-project and onnx-mlir 
+            repo will be cloned and installed.
+    """
+    path = Path(__file__).parent
+
+    # install pre-requisites, exclusively depends on the llvm-project
+    installation_file_prerequisites = str(
+        path / "install_onnx_mlir_prerequisites.sh"
+    )
+    subprocess.run(
+        ["bash", installation_file_prerequisites],
+        cwd=working_dir or Path.home(),
+    )
+
+    # build and install onnx-mlir
+    installation_file = str(path / "install_onnx_mlir.sh")
+    subprocess.run(
+        ["bash", installation_file],
+        cwd=working_dir or Path.home(),
+    )

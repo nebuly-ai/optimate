@@ -3,3 +3,4 @@ from nebullvm.optimizers.onnx import ONNXOptimizer  # noqa F401
 from nebullvm.optimizers.openvino import OpenVinoOptimizer  # noqa F401
 from nebullvm.optimizers.tensor_rt import TensorRTOptimizer  # noqa F401
 from nebullvm.optimizers.tvm import ApacheTVMOptimizer  # noqa F401
+from nebullvm.optimizers.onnx_mlir import ONNXMlirOptimizer  # noqa F401
