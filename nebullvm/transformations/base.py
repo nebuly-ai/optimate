@@ -19,7 +19,7 @@ class BaseTransformation(ABC):
 
     @classmethod
     def from_dict(cls, tfm_dict: Dict):
-        return cls
+        return cls()
 
 
 class MultiStageTransformation(BaseTransformation):
