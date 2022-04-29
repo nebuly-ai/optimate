@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Any, Union, Tuple, Dict, List
 import warnings
 
+from nebullvm.transformations.base import MultiStageTransformation
+
 
 class BaseQuantizer(ABC):
     def __init__(self, tolerated_error: float = 1e-5, logger: Logger = None):
@@ -11,7 +13,13 @@ class BaseQuantizer(ABC):
         self.logger = logger
 
     @abstractmethod
-    def _quantize(self, model: Any, *args, **kwargs) -> Tuple[Any, Dict]:
+    def _quantize(
+        self,
+        model: Any,
+        input_data: List[Tuple],
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ) -> Tuple[Any, Dict, MultiStageTransformation]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -27,7 +35,12 @@ class BaseQuantizer(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def _run_model(self, model: Any, input_data: List[Tuple]) -> List[Tuple]:
+    def _run_model(
+        self,
+        model: Any,
+        input_data: List[Tuple],
+        input_tfms: MultiStageTransformation,
+    ) -> List[Tuple]:
         """Run the model and get predictions as tuple"""
         raise NotImplementedError()
 
@@ -41,9 +54,15 @@ class BaseQuantizer(ABC):
         quantized_model: Any,
         original_model: Any,
         input_data: List[Tuple],
+        input_tfms: MultiStageTransformation,
+        input_tfms_after_quant: MultiStageTransformation,
     ):
-        original_outputs = self._run_model(original_model, input_data)
-        quantized_outputs = self._run_model(quantized_model, input_data)
+        original_outputs = self._run_model(
+            original_model, input_data, input_tfms
+        )
+        quantized_outputs = self._run_model(
+            quantized_model, input_data, input_tfms_after_quant
+        )
         error = max(
             self._compare_outputs(out1, out2)
             for outputs_1, outputs_2 in zip(
@@ -67,17 +86,28 @@ class BaseQuantizer(ABC):
         return True
 
     def __call__(
-        self, model_path: Union[str, Path], input_data: List[Tuple], **kwargs
-    ) -> Union[str, Path]:
-        model, model_kwargs = self._read_and_check_model(
-            model_path, input_data=input_data, **kwargs
+        self,
+        model_path: Union[str, Path],
+        input_data: List[Tuple],
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ) -> Tuple[Union[str, Path], MultiStageTransformation]:
+        model, model_kwargs = self._read_and_check_model(model_path, **kwargs)
+        new_input_tfms = input_tfms.copy()
+        quantized_model, quantized_kwargs, new_input_tfms = self._quantize(
+            model,
+            input_data=input_data,
+            input_tfms=new_input_tfms,
+            **model_kwargs,
         )
-        quantized_model, quantized_kwargs = self._quantize(
-            model, **model_kwargs
-        )
-        if self._check_model_performance(quantized_model, model, input_data):
-            return self._check_and_save_model(
-                quantized_model, **quantized_kwargs
+        if self._check_model_performance(
+            quantized_model, model, input_data, input_tfms, new_input_tfms
+        ):
+            return (
+                self._check_and_save_model(
+                    quantized_model, **quantized_kwargs
+                ),
+                new_input_tfms,
             )
         else:
-            return ""
+            return "", input_tfms

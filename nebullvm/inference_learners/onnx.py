@@ -19,6 +19,7 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.transformations.base import MultiStageTransformation
 
 try:
     import onnxruntime as ort
@@ -136,8 +137,13 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             )
         onnx_path = os.path.join(str(path), ONNX_FILENAMES["model_name"])
         metadata = LearnerMetadata.read(path)
-
+        input_tfms = metadata.input_tfms
+        if input_tfms is not None:
+            input_tfms = MultiStageTransformation.from_dict(
+                metadata.input_tfms
+            )
         return cls(
+            input_tfms=input_tfms,
             network_parameters=ModelParams(**metadata.network_parameters),
             onnx_path=onnx_path,
             input_names=metadata["input_names"],
@@ -168,7 +174,7 @@ class PytorchONNXInferenceLearner(
             was produced.
     """
 
-    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+    def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -209,7 +215,7 @@ class TensorflowONNXInferenceLearner(
             was produced.
     """
 
-    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+    def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -248,7 +254,7 @@ class NumpyONNXInferenceLearner(
             was produced.
     """
 
-    def predict(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray]:
+    def run(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence

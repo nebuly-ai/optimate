@@ -11,6 +11,7 @@ from nebullvm.inference_learners.tensor_rt import (
 from nebullvm.optimizers.base import (
     BaseOptimizer,
 )
+from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import get_input_names, get_output_names
 
 if torch.cuda.is_available():
@@ -97,6 +98,7 @@ class TensorRTOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
     ) -> NvidiaInferenceLearner:
         """Optimize the input model with TensorRT.
 
@@ -105,6 +107,9 @@ class TensorRTOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
 
         Returns:
             TensorRTInferenceLearner: Model optimized with TensorRT. The model
@@ -119,6 +124,7 @@ class TensorRTOptimizer(BaseOptimizer):
         engine_path = Path(onnx_model).parent / NVIDIA_FILENAMES["engine"]
         self._build_and_save_the_engine(engine_path, onnx_model, model_params)
         model = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
+            input_tfms=input_tfms,
             network_parameters=model_params,
             engine_path=engine_path,
             input_names=get_input_names(onnx_model),

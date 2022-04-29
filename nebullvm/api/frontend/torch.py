@@ -16,6 +16,7 @@ from nebullvm.base import (
 )
 from nebullvm.converters import ONNXConverter
 from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
+from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
@@ -131,6 +132,7 @@ def optimize_torch_model(
         if ignore_compilers is None
         else [ModelCompiler(compiler) for compiler in ignore_compilers]
     )
+    input_tfms = MultiStageTransformation([])
     with TemporaryDirectory() as tmp_dir:
         if use_torch_api:
             (
@@ -151,15 +153,23 @@ def optimize_torch_model(
             )
             if quantization_ths is not None:
                 quantization_manager = ONNXQuantizerManager(quantization_ths)
-                quantized_onnx_path = quantization_manager.run(
+                quantized_onnx_path, new_tfms = quantization_manager.run(
                     str(onnx_path),
                     model_params,
-                    quantization_type=QuantizationType.DYNAMIC,
+                    quantization_types=[
+                        QuantizationType.DYNAMIC,
+                        QuantizationType.HALF,
+                    ],
+                    input_tfms=input_tfms,
                 )
                 if quantized_onnx_path is not None:
                     onnx_path = Path(quantized_onnx_path)
+                    input_tfms = new_tfms
             model_optimized = model_optimizer.optimize(
-                str(onnx_path), dl_library, model_params
+                onnx_model=str(onnx_path),
+                output_library=dl_library,
+                model_params=model_params,
+                input_tfms=input_tfms if len(input_tfms) > 0 else None,
             )
         else:
             model_optimized = None

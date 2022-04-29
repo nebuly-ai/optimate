@@ -4,6 +4,7 @@ from setuptools import setup, find_packages
 REQUIREMENTS = [
     "numpy>=1.19.0",
     "onnx>=1.10.0",
+    "onnxmltools>=1.11.0",
     "py-cpuinfo>=8.0.0",
     "tensorflow>=2.7.0, <2.8.0",
     "tf2onnx>=1.8.4",

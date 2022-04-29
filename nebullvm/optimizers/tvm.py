@@ -15,6 +15,7 @@ from nebullvm.inference_learners.tvm import (
     ApacheTVMInferenceLearner,
 )
 from nebullvm.optimizers.base import BaseOptimizer
+from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import get_input_names
 from nebullvm.utils.torch import create_model_inputs_torch
 
@@ -39,6 +40,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         self,
         torch_model: torch.nn.Module,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
     ):
         target = self._get_target()
         mod, params = self._build_tvm_model_from_torch(
@@ -51,6 +53,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         model = TVM_INFERENCE_LEARNERS[
             DeepLearningFramework.PYTORCH
         ].from_runtime_module(
+            input_tfms=input_tfms,
             network_parameters=model_params,
             lib=lib,
             target_device=target,
@@ -65,6 +68,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
     ) -> ApacheTVMInferenceLearner:
         """Optimize the input model with Apache TVM.
 
@@ -73,6 +77,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
 
         Returns:
             ApacheTVMInferenceLearner: Model optimized with TVM. The model
@@ -86,6 +93,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             with tvm.transform.PassContext(opt_level=3, config={}):
                 lib = relay.build(mod, target=target, params=params)
         model = TVM_INFERENCE_LEARNERS[output_library].from_runtime_module(
+            input_tfms=input_tfms,
             network_parameters=model_params,
             lib=lib,
             target_device=target,

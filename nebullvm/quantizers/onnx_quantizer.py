@@ -7,12 +7,17 @@ from typing import Union, Tuple, Dict, Iterable, List, Type, Optional
 
 import cpuinfo
 import numpy as np
-import onnx
 import torch.cuda
 from torch.utils.data import DataLoader
+import onnx
+from onnxmltools.utils.float16_converter import (
+    convert_float_to_float16_model_path,
+)
 
 from nebullvm.base import QuantizationType, ModelParams
 from nebullvm.quantizers.base import BaseQuantizer
+from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
@@ -85,7 +90,12 @@ class ONNXQuantizer(BaseQuantizer, ABC):
         assert Path(quantized_model).exists()
         return quantized_model
 
-    def _run_model(self, model: str, input_data: List[Tuple]) -> List[Tuple]:
+    def _run_model(
+        self,
+        model: str,
+        input_data: List[Tuple],
+        input_tfms: MultiStageTransformation,
+    ) -> List[Tuple]:
         onnx_model = InferenceSession(model)
         input_names = get_input_names(model)
         output_names = get_output_names(model)
@@ -93,7 +103,7 @@ class ONNXQuantizer(BaseQuantizer, ABC):
             onnx_model.run(
                 output_names,
                 {
-                    name: array
+                    name: input_tfms(array)
                     for name, array in zip(input_names, input_arrays)
                 },
             )
@@ -109,7 +119,13 @@ class ONNXQuantizer(BaseQuantizer, ABC):
 
 
 class ONNXDynamicQuantizer(ONNXQuantizer):
-    def _quantize(self, model: str, *args, **kwargs) -> Tuple[str, Dict]:
+    def _quantize(
+        self,
+        model: str,
+        input_data: List[Tuple],
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ) -> Tuple[str, Dict, MultiStageTransformation]:
         model_path = Path(model)
         model_quant = model_path.parent / (model_path.stem + ".quant.onnx")
         quantize_dynamic(
@@ -118,14 +134,20 @@ class ONNXDynamicQuantizer(ONNXQuantizer):
             weight_type=QuantType.QUInt8,
             optimize_model=False,
         )
-        return str(model_quant), kwargs
+        return str(model_quant), kwargs, input_tfms
 
 
 class ONNXStaticQuantizer(ONNXQuantizer):
-    def _quantize(self, model: str, *args, **kwargs) -> Tuple[str, Dict]:
+    def _quantize(
+        self,
+        model: str,
+        input_data: List[Tuple],
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ) -> Tuple[str, Dict, MultiStageTransformation]:
         model_path = Path(model)
         model_quant = model_path.parent / (model_path.stem + ".quant.onnx")
-        inputs = kwargs.pop("input_data")
+        inputs = input_data
         input_names = get_input_names(model)
         cdr = _IterableCalibrationDataReader(
             input_names=input_names, iterable_dataset=inputs
@@ -139,7 +161,7 @@ class ONNXStaticQuantizer(ONNXQuantizer):
             weight_type=weight_type,
             optimize_model=False,
         )
-        return str(model_quant), kwargs
+        return str(model_quant), kwargs, input_tfms
 
     @staticmethod
     def _get_quantization_type() -> Tuple[QuantType, QuantType]:
@@ -162,9 +184,26 @@ class ONNXStaticQuantizer(ONNXQuantizer):
         return activation_type, weight_type
 
 
+class ONNXHalfPrecisionQuantizer(ONNXQuantizer):
+    def _quantize(
+        self,
+        model: str,
+        input_data: List[Tuple],
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ) -> Tuple[str, Dict, MultiStageTransformation]:
+        model_path = Path(model)
+        model_quant = model_path.parent / (model_path.stem + "_fp16.onnx")
+        new_onnx_model = convert_float_to_float16_model_path(model_path)
+        input_tfms.append(HalfPrecisionTransformation)
+        onnx.save(new_onnx_model, str(model_quant))
+        return str(model_quant), kwargs, input_tfms
+
+
 ONNX_QUANTIZER_DICT: Dict[QuantizationType, Type[ONNXQuantizer]] = {
     QuantizationType.STATIC: ONNXStaticQuantizer,
     QuantizationType.DYNAMIC: ONNXDynamicQuantizer,
+    QuantizationType.HALF: ONNXHalfPrecisionQuantizer,
 }
 
 
@@ -184,8 +223,12 @@ class ONNXQuantizerManager:
 
     @staticmethod
     def run_performance(
-        onnx_path: str, input_data: List[Tuple[np.ndarray, ...]], steps=100
+        onnx_path: str,
+        input_data: List[Tuple[np.ndarray, ...]],
+        input_tfms: MultiStageTransformation,
+        steps=100,
     ):
+        # TODO: check performance on the target platform
         model = InferenceSession(onnx_path)
         input_names = get_input_names(onnx_path)
         output_names = get_output_names(onnx_path)
@@ -195,7 +238,10 @@ class ONNXQuantizerManager:
                 st = time.time()
                 _ = model.run(
                     output_names,
-                    {name: array for name, array in zip(input_names, data)},
+                    {
+                        name: input_tfms(array)
+                        for name, array in zip(input_names, data)
+                    },
                 )
                 times.append(time.time() - st)
         return sum(times) / len(times)
@@ -204,9 +250,10 @@ class ONNXQuantizerManager:
         self,
         onnx_path: str,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
         input_data: List[Tuple[np.ndarray, ...]] = None,
-        quantization_type: QuantizationType = None,
-    ) -> Optional[str]:
+        quantization_types: List[QuantizationType] = None,
+    ) -> Tuple[Optional[str], MultiStageTransformation]:
         if input_data is None:
             input_data = [
                 tuple(
@@ -217,20 +264,22 @@ class ONNXQuantizerManager:
             ]
         steps = max(round(100 / len(input_data)), 1)
         original_performance = self.run_performance(
-            onnx_path, input_data, steps
+            onnx_path, input_data, input_tfms, steps
         )
-        if quantization_type is not None:
-            q_types = [quantization_type]
+        if quantization_types is not None:
+            q_types = quantization_types
         else:
             q_types = list(self.quantizers.keys())
-        quantized_paths = (
-            self.quantizers[q_type](onnx_path, input_data)
+        quantized_results = (
+            self.quantizers[q_type](onnx_path, input_data, input_tfms)
             for q_type in q_types
         )
-        quantized_paths = [
-            q_path for q_path in quantized_paths if len(q_path) > 0
+        quantized_results = [
+            (q_path, tfms)
+            for q_path, tfms in quantized_results
+            if len(q_path) > 0
         ]
-        if len(quantized_paths) == 0:
+        if len(quantized_results) == 0:
             message = (
                 "No Quantization has given a model with the desired tolerated "
                 "error. The quantization step will be skipped"
@@ -239,10 +288,10 @@ class ONNXQuantizerManager:
                 self.logger.warning(message)
             else:
                 warnings.warn(message)
-            return
+            return None, input_tfms
         performances = [
-            self.run_performance(q_path, input_data, steps)
-            for q_path in quantized_paths
+            self.run_performance(q_path, input_data, tfms, steps)
+            for q_path, tfms in quantized_results
         ]
         best_performance = min(performances)
         if original_performance < best_performance:
@@ -256,5 +305,5 @@ class ONNXQuantizerManager:
                 self.logger.warning(message)
             else:
                 warnings.warn(message)
-            return
-        return quantized_paths[performances.index(best_performance)]
+            return None, input_tfms
+        return quantized_results[performances.index(best_performance)]

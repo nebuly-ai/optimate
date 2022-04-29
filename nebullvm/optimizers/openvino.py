@@ -7,6 +7,7 @@ from nebullvm.inference_learners.openvino import (
     OpenVinoInferenceLearner,
 )
 from nebullvm.optimizers.base import BaseOptimizer
+from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import get_input_names
 
 
@@ -18,6 +19,7 @@ class OpenVinoOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
     ) -> OpenVinoInferenceLearner:
         """Optimize the onnx model with OpenVino.
 
@@ -26,6 +28,9 @@ class OpenVinoOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
 
         Returns:
             OpenVinoInferenceLearner: Model optimized with OpenVino. The model
@@ -58,5 +63,6 @@ class OpenVinoOptimizer(BaseOptimizer):
             model_name=str(openvino_model_path),
             model_weights=str(openvino_model_weights),
             network_parameters=model_params,
+            input_tfms=input_tfms,
         )
         return model

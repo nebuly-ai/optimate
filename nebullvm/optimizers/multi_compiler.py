@@ -21,6 +21,7 @@ from nebullvm.optimizers import (
     OpenVinoOptimizer,
     ONNXOptimizer,
 )
+from nebullvm.transformations.base import MultiStageTransformation
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.APACHE_TVM: ApacheTVMOptimizer,
@@ -144,6 +145,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
     ) -> BaseInferenceLearner:
         """Optimize the ONNX model using the available compilers.
 
@@ -152,6 +154,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
 
         Returns:
             BaseInferenceLearner: Model optimized for inference.
@@ -163,6 +168,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 onnx_model=onnx_model,
                 output_library=output_library,
                 model_params=model_params,
+                input_tfms=input_tfms,
                 debug_file=self.debug_file,
             )
             for compiler in self.compilers
@@ -175,6 +181,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     onnx_model=onnx_model,
                     output_library=output_library,
                     model_params=model_params,
+                    input_tfms=input_tfms,
                     debug_file=self.debug_file,
                 )
                 for op in self.extra_optimizers
@@ -188,6 +195,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
         return_all: bool = False,
     ):
         """Optimize the ONNX model using the available compilers and give the
@@ -203,6 +211,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
             return_all (bool, optional): Boolean flag. If true the method
                 returns the tuple (compiled_model, score) for each available
                 compiler. Default `False`.
@@ -221,7 +232,8 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 onnx_model=onnx_model,
                 output_library=output_library,
                 model_params=model_params,
-                debug_mode=self.debug_mode,
+                input_tfms=input_tfms,
+                debug_file=self.debug_file,
             )
             for compiler in self.compilers
         ]
@@ -233,7 +245,8 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     onnx_model=onnx_model,
                     output_library=output_library,
                     model_params=model_params,
-                    debug_mode=self.debug_mode,
+                    input_tfms=input_tfms,
+                    debug_file=self.debug_file,
                 )
                 for op in self.extra_optimizers
             ]

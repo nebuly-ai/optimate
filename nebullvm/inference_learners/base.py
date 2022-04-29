@@ -10,6 +10,7 @@ import torch
 
 from nebullvm.base import ModelParams
 from nebullvm.config import LEARNER_METADATA_FILENAME
+from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import create_model_inputs_onnx
 from nebullvm.utils.tf import create_model_inputs_tf
 from nebullvm.utils.torch import create_model_inputs_torch
@@ -20,6 +21,7 @@ class BaseInferenceLearner(ABC):
     """Base class for Inference Learners."""
 
     network_parameters: ModelParams
+    input_tfms: MultiStageTransformation = None
 
     def predict_from_files(
         self, input_files: List[str], output_files: List[str]
@@ -36,7 +38,7 @@ class BaseInferenceLearner(ABC):
                 the prediction.
         """
         inputs = (self._read_file(input_file) for input_file in input_files)
-        preds = self.predict(*inputs)
+        preds = self(*inputs)
         for pred, output_file in zip(preds, output_files):
             self._save_file(pred, output_file)
 
@@ -58,6 +60,8 @@ class BaseInferenceLearner(ABC):
             self.list2tensor(listified_tensor)
             for listified_tensor in listified_tensors
         )
+        if self.input_tfms is not None:
+            inputs = (self.input_tfms(_input) for _input in inputs)
         preds = self.predict(*inputs)
         return [self.tensor2list(pred) for pred in preds]
 
@@ -104,13 +108,20 @@ class BaseInferenceLearner(ABC):
 
     def predict(self, *args, **kwargs) -> Any:
         """Take as input a tensor and returns a prediction"""
+        return self(*args, **kwargs)
+
+    @abstractmethod
+    def run(self, *args, **kwargs) -> Any:
+        """Abstract method implementing the prediction code."""
         raise NotImplementedError()
 
     def forward(self, *args, **kwargs):
         """Alternative method to the predict one."""
-        return self.predict(*args, **kwargs)
+        return self(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        if self.input_tfms is not None:
+            args = (self.input_tfms(_input) for _input in args)
         return self.predict(*args, **kwargs)
 
     def save(self, path: Union[str, Path], **kwargs):
@@ -175,6 +186,7 @@ class LearnerMetadata:
         class_name: str,
         module_name: str,
         network_parameters: Union[ModelParams, Dict],
+        input_tfms: Union[MultiStageTransformation, Dict] = None,
         **kwargs,
     ):
         self.class_name = class_name
@@ -183,6 +195,11 @@ class LearnerMetadata:
             network_parameters.dict()
             if isinstance(network_parameters, ModelParams)
             else network_parameters
+        )
+        self.input_tfms = (
+            input_tfms.to_dict()
+            if isinstance(input_tfms, MultiStageTransformation)
+            else input_tfms
         )
         self.__dict__.update(**kwargs)
 
@@ -212,6 +229,7 @@ class LearnerMetadata:
             class_name=model.__class__.__name__,
             module_name=model.__module__,
             network_parameters=model.network_parameters,
+            input_tfms=model.input_tfms,
             **kwargs,
         )
 
@@ -246,7 +264,12 @@ class LearnerMetadata:
         return {
             key: value
             for key, value in self.__dict__.items()
-            if len(key) > 0 and key[0].islower() and not key.startswith("_")
+            if (
+                len(key) > 0
+                and key[0].islower()
+                and not key.startswith("_")
+                and value is not None
+            )
         }
 
     @classmethod

@@ -19,6 +19,7 @@ from nebullvm.inference_learners.base import (
     NumpyBaseInferenceLearner,
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.transformations.base import MultiStageTransformation
 
 try:
     from openvino.inference_engine import IECore
@@ -93,6 +94,11 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         metadata["network_parameters"] = ModelParams(
             **metadata["network_parameters"]
         )
+        input_tfms = metadata.get("input_tfms")
+        if input_tfms is not None:
+            metadata["input_tfms"] = MultiStageTransformation.from_dict(
+                input_tfms
+            )
         model_name = str(path / OPENVINO_FILENAMES["description_file"])
         model_weights = str(path / OPENVINO_FILENAMES["weights"])
         return cls.from_model_name(
@@ -105,6 +111,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         network_parameters: ModelParams,
         model_name: str,
         model_weights: str,
+        input_tfms: MultiStageTransformation = None,
         **kwargs,
     ):
         """Build the optimized model from the network description and its
@@ -132,6 +139,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             exec_network,
             input_keys,
             output_keys,
+            input_tfms=input_tfms,
             network_parameters=network_parameters,
             description_file=model_name,
             weights_file=model_weights,
@@ -226,7 +234,7 @@ class PytorchOpenVinoInferenceLearner(
         weights_file (str): File containing the model weights.
     """
 
-    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+    def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -281,7 +289,7 @@ class TensorflowOpenVinoInferenceLearner(
         weights_file (str): File containing the model weights.
     """
 
-    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+    def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -335,7 +343,7 @@ class NumpyOpenVinoInferenceLearner(
         weights_file (str): File containing the model weights.
     """
 
-    def predict(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
+    def run(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence

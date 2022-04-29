@@ -15,6 +15,7 @@ from nebullvm.inference_learners.base import NumpyBaseInferenceLearner
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
+from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import create_model_inputs_onnx, get_output_sizes_onnx
 
 
@@ -113,6 +114,7 @@ def optimize_onnx_model(
         if ignore_compilers is None
         else [ModelCompiler(compiler) for compiler in ignore_compilers]
     )
+    input_tfms = MultiStageTransformation([])
     with TemporaryDirectory() as tmp_dir:
         onnx_path = shutil.copy(model_path, tmp_dir)
         model_optimizer = MultiCompilerOptimizer(
@@ -123,15 +125,23 @@ def optimize_onnx_model(
         if model_optimizer.usable:
             if quantization_ths is not None:
                 quantization_manager = ONNXQuantizerManager(quantization_ths)
-                quantized_onnx_path = quantization_manager.run(
+                quantized_onnx_path, new_tfms = quantization_manager.run(
                     onnx_path,
                     model_params,
-                    quantization_type=QuantizationType.DYNAMIC,
+                    input_tfms=input_tfms,
+                    quantization_types=[
+                        QuantizationType.DYNAMIC,
+                        QuantizationType.HALF,
+                    ],
                 )
                 if quantized_onnx_path is not None:
                     onnx_path = Path(quantized_onnx_path)
+                    input_tfms = new_tfms
             model_optimized = model_optimizer.optimize(
-                str(onnx_path), dl_library, model_params
+                onnx_model=str(onnx_path),
+                output_library=dl_library,
+                model_params=model_params,
+                input_tfms=input_tfms if len(input_tfms) > 0 else None,
             )
         else:
             model_optimized = None

@@ -1,7 +1,6 @@
 import json
 import warnings
 from abc import ABC
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
 
@@ -18,6 +17,7 @@ from nebullvm.inference_learners.base import (
     NumpyBaseInferenceLearner,
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.transformations.base import MultiStageTransformation
 
 if torch.cuda.is_available():
     try:
@@ -41,7 +41,6 @@ if torch.cuda.is_available():
             )
 
 
-@dataclass
 class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
     """Model optimized using TensorRT.
 
@@ -59,11 +58,22 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         nvidia_logger (any, optional): Logger used by the Nvidia service
     """
 
-    engine: Any
-    input_names: List[str]
-    output_names: List[str]
-    cuda_stream: Any = None
-    nvidia_logger: Any = None
+    def __init__(
+        self,
+        engine: Any,
+        input_names: List[str],
+        output_names: List[str],
+        cuda_stream: Any = None,
+        nvidia_logger: Any = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.engine = engine
+        self.input_names = input_names
+        self.output_names = output_names
+        self.cuda_stream = cuda_stream
+        self.nvidia_logger = nvidia_logger
+        self.__post_init__()
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         metadata = {
@@ -107,6 +117,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         output_names: List[str],
         nvidia_logger: Any = None,
         cuda_stream: Any = None,
+        input_tfms: MultiStageTransformation = None,
         **kwargs,
     ):
         """Build the model from the serialised engine.
@@ -123,6 +134,9 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             cuda_stream (any, optional): Stream used for communication with
                 Nvidia GPUs.
             nvidia_logger (any, optional): Logger used by the Nvidia service
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
 
         Returns:
             NvidiaInferenceLearner: The optimized model.
@@ -139,6 +153,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             serialized_engine = f.read()
         engine = runtime.deserialize_cuda_engine(serialized_engine)
         return cls(
+            input_tfms=input_tfms,
             network_parameters=network_parameters,
             engine=engine,
             input_names=input_names,
@@ -210,6 +225,11 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         metadata["network_parameters"] = ModelParams(
             **metadata["network_parameters"]
         )
+        input_tfms = metadata.get("input_tfms")
+        if input_tfms is not None:
+            metadata["input_tfms"] = MultiStageTransformation.from_dict(
+                input_tfms
+            )
         return cls.from_engine_path(
             engine_path=path / NVIDIA_FILENAMES["engine"], **metadata
         )
@@ -246,7 +266,7 @@ class PytorchNvidiaInferenceLearner(
     def stream_ptr(self):
         return self.cuda_stream.cuda_stream
 
-    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+    def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -397,7 +417,7 @@ class TensorflowNvidiaInferenceLearner(
         nvidia_logger (any, optional): Logger used by the Nvidia service.
     """
 
-    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
+    def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -451,7 +471,7 @@ class NumpyNvidiaInferenceLearner(
         nvidia_logger (any, optional): Logger used by the Nvidia service.
     """
 
-    def predict(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
+    def run(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence

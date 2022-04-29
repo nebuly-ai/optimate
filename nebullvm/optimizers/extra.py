@@ -9,6 +9,7 @@ from nebullvm.inference_learners.onnx import (
     ONNX_INFERENCE_LEARNERS,
 )
 from nebullvm.optimizers import BaseOptimizer
+from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import get_input_names, get_output_names
 
 try:
@@ -41,6 +42,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
     ) -> ONNXInferenceLearner:
         optimized_model = optimizer.optimize_model(
             onnx_model, **self.hf_params
@@ -49,6 +51,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
         new_onnx_model = onnx_model.replace(".onnx", "_fp16.onnx")
         optimized_model.save_model_to_file(new_onnx_model)
         learner = ONNX_INFERENCE_LEARNERS[output_library](
+            input_tfms=input_tfms,
             network_parameters=model_params,
             onnx_path=new_onnx_model,
             input_names=get_input_names(onnx_model),

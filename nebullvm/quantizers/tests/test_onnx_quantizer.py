@@ -37,6 +37,6 @@ def test_quantizer_manager(q_type: QuantizationType):
     with TemporaryDirectory() as tmp_dir:
         onnx_model, model_params = get_onnx_model(tmp_dir)
         quantized_model = quantizer_manager.run(
-            onnx_model, model_params, quantization_type=q_type
+            onnx_model, model_params, quantization_types=q_type
         )
         assert quantized_model is None or len(quantized_model) > 0
