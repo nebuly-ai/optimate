@@ -122,7 +122,7 @@ class BaseInferenceLearner(ABC):
     def __call__(self, *args, **kwargs):
         if self.input_tfms is not None:
             args = (self.input_tfms(_input) for _input in args)
-        return self.predict(*args, **kwargs)
+        return self.run(*args, **kwargs)
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
