@@ -45,7 +45,7 @@ class MultiStageTransformation(BaseTransformation):
         tfms = []
         for tfm_dict in tfms_dict["tfms"]:
             exec(f"from {tfm_dict['module']} import {tfm_dict['name']}")
-            tfm = exec(tfm_dict["name"]).from_dict(tfm_dict)
+            tfm = eval(tfm_dict["name"]).from_dict(tfm_dict)
             tfms.append(tfm)
         return cls(tfms)
 

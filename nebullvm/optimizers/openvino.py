@@ -37,24 +37,25 @@ class OpenVinoOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        process = subprocess.Popen(
-            [
-                "mo",
-                "--input_model",
-                onnx_model,
-                "--output_dir",
-                str(Path(onnx_model).parent),
-                "--input",
-                ",".join(get_input_names(onnx_model)),
-                "--input_shape",
-                ",".join(
-                    [
-                        f"{(model_params.batch_size,)+shape}"
-                        for shape in model_params.input_sizes
-                    ]
-                ),
-            ],
-        )
+        cmd = [
+            "mo",
+            "--input_model",
+            onnx_model,
+            "--output_dir",
+            str(Path(onnx_model).parent),
+            "--input",
+            ",".join(get_input_names(onnx_model)),
+            "--input_shape",
+            ",".join(
+                [
+                    f"{(model_params.batch_size,)+shape}"
+                    for shape in model_params.input_sizes
+                ]
+            ),
+        ]
+        if "_fp16" in onnx_model:
+            cmd = cmd + ["--data_type", "FP16"]
+        process = subprocess.Popen(cmd)
         process.wait()
         base_path = Path(onnx_model).parent
         openvino_model_path = base_path / f"{Path(onnx_model).stem}.xml"
