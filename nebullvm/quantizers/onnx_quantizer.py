@@ -228,8 +228,10 @@ class ONNXQuantizerManager:
         input_tfms: MultiStageTransformation,
         steps=100,
     ):
-        # TODO: check performance on the target platform
-        model = InferenceSession(onnx_path)
+        providers = ["CPUExecutionProvider"]
+        if torch.cuda.is_available():
+            providers.insert(0, "CUDAExecutionProvider")
+        model = InferenceSession(onnx_path, providers=providers)
         input_names = get_input_names(onnx_path)
         output_names = get_output_names(onnx_path)
         times = []
