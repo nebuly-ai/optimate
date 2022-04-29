@@ -96,7 +96,10 @@ class ONNXQuantizer(BaseQuantizer, ABC):
         input_data: List[Tuple],
         input_tfms: MultiStageTransformation,
     ) -> List[Tuple]:
-        onnx_model = InferenceSession(model)
+        providers = ["CPUExecutionProvider"]
+        if torch.cuda.is_available():
+            providers.insert(0, "CUDAExecutionProvider")
+        onnx_model = InferenceSession(model, providers=providers)
         input_names = get_input_names(model)
         output_names = get_output_names(model)
         return [
