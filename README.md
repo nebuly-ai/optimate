@@ -335,6 +335,17 @@ releases.
 >>> res = optimized_model(**encoded_input)
 ```
 
+### Set the number of threads per model
+When running multiple replicas of the model in parallel, it would be useful 
+for cpu-optimized algorithms to limit the number of threads to use for each model.
+In nebullvm, it is possible to set the maximum number of threads a single model 
+can use with the environment variable `NEBULLVM_THREADS_PER_MODEL`. 
+For instance, you can run
+```bash
+export NEBULLVM_THREADS_PER_MODEL = 2
+```
+for using just two CPU-threads per model at inference time and during optimization.
+
 ## Testing the library on your models
 
 If you want to compare the performance of a model optimized by `nebullvm` with 
