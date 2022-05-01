@@ -50,7 +50,13 @@ def _get_ort_session_options() -> ort.SessionOptions:
     if not torch.cuda.is_available():
         sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
         sess_options.inter_op_num_threads = 1
-        sess_options.intra_op_num_threads = max(torch.get_num_threads(), 1)
+        sess_options.intra_op_num_threads = max(
+            int(
+                os.environ.get("NEBULLVM_THREADS_PER_MODEL")
+                or torch.get_num_threads()
+            ),
+            1,
+        )
     return sess_options
 
 
