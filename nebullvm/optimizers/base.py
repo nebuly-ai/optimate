@@ -1,7 +1,8 @@
 from abc import abstractmethod, ABC
 from logging import Logger
+from typing import Optional
 
-from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.transformations.base import MultiStageTransformation
 
@@ -19,5 +20,7 @@ class BaseOptimizer(ABC):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-    ) -> BaseInferenceLearner:
+        quantization_ths: float = None,
+        quantization_type: QuantizationType = None,
+    ) -> Optional[BaseInferenceLearner]:
         raise NotImplementedError

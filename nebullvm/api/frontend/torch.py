@@ -2,7 +2,7 @@ import os
 import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 import numpy as np
 import torch
@@ -15,7 +15,6 @@ from nebullvm.base import (
     QuantizationType,
 )
 from nebullvm.converters import ONNXConverter
-from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
@@ -135,11 +134,19 @@ def optimize_torch_model(
     input_tfms = MultiStageTransformation([])
     with TemporaryDirectory() as tmp_dir:
         if use_torch_api:
-            (
-                torch_api_model,
-                torch_api_latency,
-                used_compilers,
-            ) = _torch_api_optimization(model, model_params)
+            if quantization_ths is not None:
+                q_types = [QuantizationType.DYNAMIC, QuantizationType.HALF]
+            else:
+                q_types = [None]
+            torch_res = [
+                _torch_api_optimization(
+                    model, model_params, quantization_ths, q_type
+                )
+                for q_type in q_types
+            ]
+            (torch_api_model, torch_api_latency, used_compilers,) = sorted(
+                torch_res, key=lambda x: x[1]
+            )[0]
             ignore_compilers.extend(used_compilers)
         model_converter = ONNXConverter()
         model_optimizer = MultiCompilerOptimizer(
@@ -151,25 +158,12 @@ def optimize_torch_model(
             onnx_path = model_converter.convert(
                 model, model_params, Path(tmp_dir)
             )
-            if quantization_ths is not None:
-                quantization_manager = ONNXQuantizerManager(quantization_ths)
-                quantized_onnx_path, new_tfms = quantization_manager.run(
-                    str(onnx_path),
-                    model_params,
-                    quantization_types=[
-                        QuantizationType.DYNAMIC,
-                        QuantizationType.HALF,
-                    ],
-                    input_tfms=input_tfms,
-                )
-                if quantized_onnx_path is not None:
-                    onnx_path = Path(quantized_onnx_path)
-                    input_tfms = new_tfms
             model_optimized = model_optimizer.optimize(
                 onnx_model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
                 input_tfms=input_tfms if len(input_tfms) > 0 else None,
+                quantization_ths=quantization_ths,
             )
         else:
             model_optimized = None
@@ -189,11 +183,17 @@ def optimize_torch_model(
 
 
 def _torch_api_optimization(
-    model: torch.nn.Module, model_params: ModelParams
-) -> Tuple[PytorchBaseInferenceLearner, float, List]:
+    model: torch.nn.Module,
+    model_params: ModelParams,
+    quantization_ths: float,
+    quantization_type: QuantizationType,
+) -> Tuple[Optional[PytorchBaseInferenceLearner], float, List]:
     try:
         best_torch_opt_model = ApacheTVMOptimizer().optimize_from_torch(
-            torch_model=model, model_params=model_params
+            torch_model=model,
+            model_params=model_params,
+            quantization_ths=quantization_ths,
+            quantization_type=quantization_type,
         )
         best_latency = compute_optimized_running_time(best_torch_opt_model)
         used_compilers = [ModelCompiler.APACHE_TVM]

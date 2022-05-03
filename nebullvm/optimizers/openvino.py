@@ -1,14 +1,22 @@
 from pathlib import Path
 import subprocess
+from typing import Optional
 
-from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
     OpenVinoInferenceLearner,
 )
 from nebullvm.optimizers.base import BaseOptimizer
+from nebullvm.optimizers.quantization.openvino import quantize_openvino
+from nebullvm.optimizers.quantization.utils import check_precision
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.onnx import get_input_names
+from nebullvm.utils.onnx import (
+    get_input_names,
+    create_model_inputs_onnx,
+    run_onnx_model,
+    convert_to_numpy,
+)
 
 
 class OpenVinoOptimizer(BaseOptimizer):
@@ -20,7 +28,9 @@ class OpenVinoOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-    ) -> OpenVinoInferenceLearner:
+        quantization_ths: float = None,
+        quantization_type: QuantizationType = None,
+    ) -> Optional[OpenVinoInferenceLearner]:
         """Optimize the onnx model with OpenVino.
 
         Args:
@@ -31,6 +41,11 @@ class OpenVinoOptimizer(BaseOptimizer):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
+            quantization_ths (float, optional): Threshold for the accepted drop
+                in terms of precision. Any optimized model with an higher drop
+                will be ignored.
+            quantization_type (QuantizationType, optional): The desired
+                quantization algorithm to be used.
 
         Returns:
             OpenVinoInferenceLearner: Model optimized with OpenVino. The model
@@ -53,17 +68,57 @@ class OpenVinoOptimizer(BaseOptimizer):
                 ]
             ),
         ]
-        if "_fp16" in onnx_model:
+        if (
+            quantization_ths is not None
+            and quantization_type is QuantizationType.HALF
+        ):
             cmd = cmd + ["--data_type", "FP16"]
+        elif (
+            quantization_ths is not None
+            and quantization_type is QuantizationType.DYNAMIC
+        ):
+            return None
         process = subprocess.Popen(cmd)
         process.wait()
         base_path = Path(onnx_model).parent
         openvino_model_path = base_path / f"{Path(onnx_model).stem}.xml"
         openvino_model_weights = base_path / f"{Path(onnx_model).stem}.bin"
+        if (
+            quantization_ths is not None
+            and quantization_type is not QuantizationType.HALF
+        ):
+            # Add post training optimization
+            openvino_model_path, openvino_model_weights = quantize_openvino(
+                model_topology=str(openvino_model_path),
+                model_weights=str(openvino_model_weights),
+                input_names=get_input_names(onnx_model),
+                input_data=[
+                    tuple(
+                        create_model_inputs_onnx(
+                            model_params.batch_size, model_params.input_infos
+                        )
+                    )
+                ],
+            )
         model = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
             model_name=str(openvino_model_path),
             model_weights=str(openvino_model_weights),
             network_parameters=model_params,
             input_tfms=input_tfms,
         )
+        if quantization_ths is not None:
+            input_data = [model.get_inputs_example()]
+            output_data_onnx = [
+                tuple(
+                    run_onnx_model(
+                        onnx_model,
+                        [convert_to_numpy(x) for x in input_data[0]],
+                    )
+                )
+            ]
+            is_valid = check_precision(
+                model, input_data, output_data_onnx, quantization_ths
+            )
+            if not is_valid:
+                return None
         return model

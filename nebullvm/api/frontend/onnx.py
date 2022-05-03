@@ -1,6 +1,5 @@
 import os
 import shutil
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Tuple, Dict
 
@@ -9,12 +8,10 @@ from nebullvm.base import (
     DeepLearningFramework,
     ModelParams,
     ModelCompiler,
-    QuantizationType,
 )
 from nebullvm.inference_learners.base import NumpyBaseInferenceLearner
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
-from nebullvm.quantizers.onnx_quantizer import ONNXQuantizerManager
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import create_model_inputs_onnx, get_output_sizes_onnx
 
@@ -123,25 +120,12 @@ def optimize_onnx_model(
             debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
         )
         if model_optimizer.usable:
-            if quantization_ths is not None:
-                quantization_manager = ONNXQuantizerManager(quantization_ths)
-                quantized_onnx_path, new_tfms = quantization_manager.run(
-                    onnx_path,
-                    model_params,
-                    input_tfms=input_tfms,
-                    quantization_types=[
-                        QuantizationType.DYNAMIC,
-                        QuantizationType.HALF,
-                    ],
-                )
-                if quantized_onnx_path is not None:
-                    onnx_path = Path(quantized_onnx_path)
-                    input_tfms = new_tfms
             model_optimized = model_optimizer.optimize(
                 onnx_model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
                 input_tfms=input_tfms if len(input_tfms) > 0 else None,
+                quantization_ths=quantization_ths,
             )
         else:
             model_optimized = None
