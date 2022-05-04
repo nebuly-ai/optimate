@@ -21,6 +21,7 @@
 -  [How Nebullvm Works](#how-nebullvm-works)
 -  [Technology Demonstration and Benchmarks](#technology-demonstration-and-benchmarks)
 -  [Installation and Get Started](#installation-and-get-started)
+-  [Community](#https://discord.gg/jyjtZTPyHS)
 
 ## How Nebullvm Works
 
