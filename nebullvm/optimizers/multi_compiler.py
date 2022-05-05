@@ -289,9 +289,12 @@ class MultiCompilerOptimizer(BaseOptimizer):
         """
         if quantization_ths is not None and quantization_type is None:
             quantization_types = [
+                None,
                 QuantizationType.DYNAMIC,
                 QuantizationType.HALF,
             ]
+            if input_data is not None:
+                quantization_types.append(QuantizationType.STATIC)
         else:
             quantization_types = [quantization_type]
         optimized_models = [
@@ -304,7 +307,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 model_params=model_params,
                 input_tfms=input_tfms,
                 debug_file=self.debug_file,
-                quantization_ths=quantization_ths,
+                quantization_ths=quantization_ths
+                if q_type is not None
+                else None,
                 quantization_type=q_type,
                 quantization_metric=quantization_metric,
                 input_data=input_data,

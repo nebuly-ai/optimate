@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union, Dict, Any, List
+from typing import Union, Dict, Any, List, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -21,7 +21,11 @@ class BaseInferenceLearner(ABC):
     """Base class for Inference Learners."""
 
     network_parameters: ModelParams
-    input_tfms: MultiStageTransformation = None
+    input_tfms: Optional[MultiStageTransformation] = None
+
+    def __post_init__(self):
+        if self.input_tfms is not None and len(self.input_tfms) < 0:
+            self.input_tfms = None
 
     def predict_from_files(
         self, input_files: List[str], output_files: List[str]

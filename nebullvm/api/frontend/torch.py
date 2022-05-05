@@ -267,7 +267,7 @@ def optimize_torch_model(
                 onnx_model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
-                input_tfms=input_tfms if len(input_tfms) > 0 else None,
+                input_tfms=input_tfms,
                 quantization_ths=quantization_ths,
                 quantization_metric=quantization_metric,
                 input_data=input_data,
