@@ -1,8 +1,15 @@
 import os
 import shutil
 from tempfile import TemporaryDirectory
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional, Callable, Union
 
+import numpy as np
+
+from nebullvm.api.frontend.utils import (
+    inspect_dynamic_size,
+    ifnone,
+    QUANTIZATION_METRIC_MAP,
+)
 from nebullvm.base import (
     InputInfo,
     DeepLearningFramework,
@@ -13,18 +20,75 @@ from nebullvm.inference_learners.base import NumpyBaseInferenceLearner
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.onnx import create_model_inputs_onnx, get_output_sizes_onnx
+from nebullvm.utils.data import DataManager
+from nebullvm.utils.onnx import (
+    create_model_inputs_onnx,
+    get_output_sizes_onnx,
+    run_onnx_model,
+)
+
+
+def _extract_dynamic_axis(
+    onnx_model: str,
+    data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
+    input_sizes: List[Tuple[int, ...]],
+    batch_size: int,
+    max_data: int = 100,
+) -> Optional[Dict]:
+    dynamic_axis = {"inputs": [{}] * len(input_sizes), "outputs": []}
+    output_sizes = []
+    for i, (input_tensors, y) in enumerate(data):
+        if i >= max_data:
+            break
+        inspect_dynamic_size(
+            input_tensors, input_sizes, batch_size, dynamic_axis["inputs"]
+        )
+        outputs = tuple(run_onnx_model(onnx_model, list(input_tensors)))
+        if i == 0:
+            dynamic_axis["outputs"] = [{}] * len(outputs)
+            output_sizes = [tuple(output.shape[1:]) for output in outputs]
+        inspect_dynamic_size(
+            outputs, output_sizes, batch_size, dynamic_axis["outputs"]
+        )
+    if any(
+        len(x) > 0 for x in (dynamic_axis["inputs"] + dynamic_axis["outputs"])
+    ):
+        return dynamic_axis
+    return None
+
+
+def _extract_info_from_data(
+    onnx_model: str,
+    data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
+    batch_size: int,
+    input_sizes: List[Tuple[int, ...]],
+    input_types: List[str],
+    dynamic_axis: Dict,
+):
+    input_row, _ = data[0]
+    batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
+    input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
+    input_types = ifnone(
+        input_types, ["int" if x.dtype == int else "float" for x in input_row]
+    )
+    dynamic_axis = ifnone(
+        dynamic_axis,
+        _extract_dynamic_axis(onnx_model, data, input_sizes, batch_size),
+    )
+    return batch_size, input_sizes, input_types, dynamic_axis
 
 
 def optimize_onnx_model(
     model_path: str,
-    batch_size: int,
-    input_sizes: List[Tuple[int, ...]],
     save_dir: str,
+    data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]] = None,
+    batch_size: int = None,
+    input_sizes: List[Tuple[int, ...]] = None,
     input_types: List[str] = None,
     extra_input_info: List[Dict] = None,
     dynamic_axis: Dict = None,
     quantization_ths: float = None,
+    quantization_metric: Union[str, Callable] = None,
     ignore_compilers: List[str] = None,
     custom_optimizers: List[BaseOptimizer] = None,
 ) -> NumpyBaseInferenceLearner:
@@ -36,18 +100,23 @@ def optimize_onnx_model(
 
     Args:
         model_path (str): ONNX model that needs optimization.
-        batch_size (int): The model batch size. Note that nebullvm does not
-            support at the moment dynamic batch size, so a valid input should
-            be given.
-        input_sizes (List[Tuple]]): List containing the size of all the input
-            tensors of the model. Note that even just a single tensor is needed
-            as model input, this field must be a list containing (in the
-            exposed case) a single element). The tuple must contain all the
-            input tensor dimensions excluding the batch size. This means that
-            the final input tensor size will be considered as
+        save_dir (str): Path to the directory where saving the final model.
+        data (List):  List of tuples in the form of (xs, y) where xs are
+            tuples of np.ndarray and ys can be whatever needed for computing
+            the selected metric at quantization time. The data will be used
+            for extracting all the data related information or completing
+            the missing information in the case of partially given ones. If no
+            data is given, both the `batch_size` and the `input_sizes` must be
+            passed by the user.
+        batch_size (int, optional): The model batch size.
+        input_sizes (List[Tuple]], optional): List containing the size of all
+            the input tensors of the model. Note that even just a single
+            tensor is needed as model input, this field must be a list
+            containing (in the exposed case) a single element). The tuple must
+            contain all the input tensor dimensions excluding the batch size.
+            This means that the final input tensor size will be considered as
             `(batch_size, *input_tensor_size)`, where `input_tensor_size` is
             one list element of `input_sizes`.
-        save_dir (str): Path to the directory where saving the final model.
         input_types (List[str], optional): List of input types. If no value is
             given all the inputs will be considered as float type. The
             supported string values are "int" and "float".
@@ -65,6 +134,19 @@ def optimize_onnx_model(
             performing quantization before compiling the model. If no value
             is given, no quantization will be performed. Just dynamic
             quantization will be performed, since no data is given as input.
+        quantization_metric (Union[Callable, str], optional): The metric to
+            be used for accepting or refusing a quantization proposal. If none
+            is given but a `quantization_ths` is received, the
+            `nebullvm.measure.compute_relative_difference` metric will
+            be used as default one. A user-defined metric can be passed as
+            function accepting as inputs two tuples of tensors (produced by the
+            baseline and the quantized model) and the related original labels.
+            For more information see
+            `nebullvm.measure.compute_relative_difference` and
+            `nebullvm.measure.compute_accuracy_drop`. `quantization_metric`
+            accepts as value also a string containing the metric name. At the
+            current stage the supported metrics are `"precision"` and
+            `"accuracy"`.
         ignore_compilers (List[str], optional): List of DL compilers we want
             to ignore while running the optimization. Compiler name should be
             one between "tvm", "tensor RT", "openvino" and "onnxruntime".
@@ -80,6 +162,25 @@ def optimize_onnx_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor`s.
     """
+    if data is not None:
+        (
+            batch_size,
+            input_sizes,
+            input_types,
+            dynamic_axis,
+        ) = _extract_info_from_data(
+            model_path,
+            data,
+            batch_size,
+            input_sizes,
+            input_types,
+            dynamic_axis,
+        )
+        input_data = DataManager(data)
+    else:
+        input_data = None
+    if isinstance(quantization_metric, str):
+        quantization_metric = QUANTIZATION_METRIC_MAP.get(quantization_metric)
     if input_types is None:
         input_types = ["float"] * len(input_sizes)
     if extra_input_info is None:
@@ -124,8 +225,10 @@ def optimize_onnx_model(
                 onnx_model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
-                input_tfms=input_tfms if len(input_tfms) > 0 else None,
+                input_tfms=input_tfms,
                 quantization_ths=quantization_ths,
+                quantization_metric=quantization_metric,
+                input_data=input_data,
             )
         else:
             model_optimized = None

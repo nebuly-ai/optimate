@@ -34,3 +34,15 @@ def create_model_inputs_torch(
         for input_info in input_infos
     )
     return list(input_tensors)
+
+
+def run_torch_model(
+    torch_model: torch.nn.Module, input_tensors: List[torch.Tensor]
+) -> List[torch.Tensor]:
+    with torch.no_grad():
+        pred = torch_model(*input_tensors)
+    if isinstance(pred, torch.Tensor):
+        pred = [(pred,)]
+    else:
+        pred = [pred]
+    return pred

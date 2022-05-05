@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.inference_learners.onnx import (
@@ -12,6 +12,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
 )
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
@@ -32,6 +33,8 @@ class ONNXOptimizer(BaseOptimizer):
         input_tfms: MultiStageTransformation = None,
         quantization_ths: float = None,
         quantization_type: QuantizationType = None,
+        quantization_metric: Callable = None,
+        input_data: DataManager = None,
     ) -> Optional[ONNXInferenceLearner]:
         """Build the ONNX runtime learner from the onnx model.
 
@@ -48,22 +51,31 @@ class ONNXOptimizer(BaseOptimizer):
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
+            quantization_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             ONNXInferenceLearner: Model running on onnxruntime. The model
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        input_data_onnx, output_data_onnx = [], []
+        input_data_onnx, output_data_onnx, ys = [], [], None
         check_quantization(quantization_type, quantization_ths)
         if quantization_ths is not None:
-            input_data_onnx = [
-                tuple(
-                    create_model_inputs_onnx(
-                        model_params.batch_size, model_params.input_infos
+            if input_data is None:
+                input_data_onnx = [
+                    tuple(
+                        create_model_inputs_onnx(
+                            model_params.batch_size, model_params.input_infos
+                        )
                     )
+                ]
+            else:
+                input_data_onnx, ys = input_data.get_numpy_list(
+                    300, with_ys=True
                 )
-            ]
             output_data_onnx = [
                 tuple(run_onnx_model(onnx_model, list(input_tensors)))
                 for input_tensors in input_data_onnx
@@ -79,7 +91,7 @@ class ONNXOptimizer(BaseOptimizer):
             output_names=get_output_names(onnx_model),
         )
         if quantization_ths is not None:
-            input_data = [
+            inputs = [
                 tuple(
                     convert_to_target_framework(t, output_library)
                     for t in data_tuple
@@ -87,7 +99,12 @@ class ONNXOptimizer(BaseOptimizer):
                 for data_tuple in input_data_onnx
             ]
             is_valid = check_precision(
-                learner, input_data, output_data_onnx, quantization_ths
+                learner,
+                inputs,
+                output_data_onnx,
+                quantization_ths,
+                metric_func=quantization_metric,
+                ys=ys,
             )
             if not is_valid:
                 return None

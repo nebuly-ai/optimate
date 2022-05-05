@@ -1,6 +1,17 @@
 from collections import OrderedDict
 from tempfile import TemporaryDirectory
-from typing import Tuple, Union, List, Iterable, Dict, Any, Type
+from typing import (
+    Tuple,
+    Union,
+    List,
+    Iterable,
+    Dict,
+    Any,
+    Type,
+    Callable,
+    Optional,
+    Sequence,
+)
 
 import numpy as np
 import torch
@@ -290,10 +301,43 @@ def _get_extra_optimizer(
     return [HuggingFaceOptimizer(hugging_face_params={})]
 
 
+class _HFDataset(Sequence):
+    def __init__(
+        self,
+        input_texts: List,
+        ys: Optional[List],
+        keywords: List[str],
+        batch_size: int,
+        tokenizer: PreTrainedTokenizer,
+        tokenizer_args: Dict,
+    ):
+        self._input_texts = input_texts
+        self._ys = ys
+        self._bs = batch_size
+        self._keys = keywords
+        self._tokenizer = tokenizer
+        self._tokenizer_args = tokenizer_args
+
+    def __getitem__(self, item: int):
+        pointer = self._bs * item
+        mini_batch = self._input_texts[
+            pointer : pointer + self._bs  # noqa E203
+        ]
+        if self._ys is not None:
+            mini_batch_y = self._ys[pointer : pointer + self._bs]  # noqa E203
+        else:
+            mini_batch_y = None
+        encoded_inputs = self._tokenizer(mini_batch, **self._tokenizer_args)
+        return tuple(encoded_inputs[key] for key in self._keys), mini_batch_y
+
+    def __len__(self):
+        return len(self._input_texts)
+
+
 def optimize_huggingface_model(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
-    target_text: str,
+    input_texts: List[str],
     batch_size: int,
     max_input_sizes: List[Tuple[int, ...]],
     save_dir: str,
@@ -302,6 +346,8 @@ def optimize_huggingface_model(
     use_torch_api: bool = False,
     tokenizer_args: Dict = None,
     quantization_ths: float = None,
+    quantization_metric: Union[str, Callable] = None,
+    ys: List = None,
 ):
     """Optimize the HuggingFace model.
 
@@ -316,7 +362,12 @@ def optimize_huggingface_model(
         model (PreTrainedModel): HuggingFace transformers model.
         tokenizer (PreTrainedTokenizer): Tokenizer used for building model's
             inputs.
-        target_text (str): Example of test to be given as model input.
+        input_texts (List[str]): Texts either from the training set or similar
+            to the ones contained in the text. If the quantization_ths is
+            passed the input_text will be used for computing the drop in
+            precision and for setting the quantization parameters. If you
+            selected a quantization metric needing the input labels you need to
+            provide them for each input in the `ys` argument.
         batch_size (int): Batch size needed for the model.
         max_input_sizes (List[Tuple[int]]): List containing the maximum size of
             all the input tensors of the model.
@@ -342,16 +393,42 @@ def optimize_huggingface_model(
         quantization_ths (float, optional): Tolerated relative error for
             performing quantization before compiling the model. If no value
             is given, no quantization will be performed.
+        quantization_metric (Union[Callable, str], optional): The metric to
+            be used for accepting or refusing a quantization proposal. If none
+            is given but a `quantization_ths` is received, the
+            `nebullvm.measure.compute_relative_difference` metric will
+            be used as default one. A user-defined metric can be passed as
+            function accepting as inputs two tuples of tensors (produced by the
+            baseline and the quantized model) and the related original labels.
+            For more information see
+            `nebullvm.measure.compute_relative_difference` and
+            `nebullvm.measure.compute_accuracy_drop`. `quantization_metric`
+            accepts as value also a string containing the metric name. At the
+            current stage the supported metrics are `"precision"` and
+            `"accuracy"`.
+        ys: List of target labels. For each input in `input_texts` there should
+            be the corresponding label. Note that this feature is just used for
+            estimating the accuracy drop while doing quantization. It will be
+            ignored if quantization is not activated.
     """
+    if (
+        quantization_ths is not None
+        and ys is None
+        and quantization_metric == "accuracy"
+    ):
+        raise ValueError(
+            "You cannot select the accuracy as quantization metric without "
+            "providing valid labels!"
+        )
     tokenizer_args = tokenizer_args or {}
     tokenizer_args.update({"return_tensors": "pt"})
     output_structure, output_type = _get_output_structure(
-        text=target_text,
+        text=input_texts[0],
         model=model,
         tokenizer=tokenizer,
         tokenizer_args=tokenizer_args,
     )
-    input_example = tokenizer(target_text, **tokenizer_args)
+    input_example = tokenizer(input_texts[0], **tokenizer_args)
     input_types = [_extract_input_type(v) for v in input_example.values()] or [
         "int"
     ] * len(input_example)
@@ -370,7 +447,7 @@ def optimize_huggingface_model(
             extra_input_info=extra_input_info,
             use_torch_api=use_torch_api,
             dynamic_axis=_get_dynamic_axis(
-                text=target_text,
+                text=input_texts[0],
                 tokenizer=tokenizer,
                 model=model,
                 tokenizer_args=tokenizer_args,
@@ -378,6 +455,15 @@ def optimize_huggingface_model(
             if not use_static_shape
             else None,
             quantization_ths=quantization_ths,
+            quantization_metric=quantization_metric,
+            dataloader=_HFDataset(
+                input_texts,
+                ys,
+                list(wrapper_model.inputs_types.keys()),
+                batch_size,
+                tokenizer,
+                tokenizer_args,
+            ),
             ignore_compilers=[ModelCompiler.TENSOR_RT.value]
             if use_static_shape
             else [

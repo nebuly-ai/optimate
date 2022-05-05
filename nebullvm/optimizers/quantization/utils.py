@@ -14,14 +14,17 @@ def check_precision(
     base_outputs_list: List[Tuple[Any, ...]],
     quantization_ths: float,
     metric_func: Callable = None,
+    ys: List = None,
     aggregation_func: Callable = np.mean,
 ) -> bool:
     metric_func = metric_func or compute_relative_difference
     relative_differences = []
-    for inputs, base_outputs in zip(input_data, base_outputs_list):
+    if ys is None:
+        ys = [None] * len(input_data)
+    for inputs, base_outputs, y in zip(input_data, base_outputs_list, ys):
         opt_outputs = optimized_learner(*inputs)
         relative_difference = max(
-            metric_func(base_output, opt_output)
+            metric_func(base_output, opt_output, y)
             for base_output, opt_output in zip(base_outputs, opt_outputs)
         )
         relative_differences.append(relative_difference)

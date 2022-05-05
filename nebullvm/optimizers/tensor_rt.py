@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable
 
 import numpy as np
 import torch
@@ -20,6 +20,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
 )
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
@@ -139,6 +140,8 @@ class TensorRTOptimizer(BaseOptimizer):
         input_tfms: MultiStageTransformation = None,
         quantization_ths: float = None,
         quantization_type: QuantizationType = None,
+        quantization_metric: Callable = None,
+        input_data: DataManager = None,
     ) -> Optional[NvidiaInferenceLearner]:
         """Optimize the input model with TensorRT.
 
@@ -155,6 +158,10 @@ class TensorRTOptimizer(BaseOptimizer):
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
+            quantization_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             TensorRTInferenceLearner: Model optimized with TensorRT. The model
@@ -168,22 +175,29 @@ class TensorRTOptimizer(BaseOptimizer):
             )
         check_quantization(quantization_type, quantization_ths)
         engine_path = Path(onnx_model).parent / NVIDIA_FILENAMES["engine"]
+        if (
+            quantization_ths is not None
+            and quantization_type is QuantizationType.STATIC
+        ):
+            if input_data is None:
+                input_data_onnx = [
+                    tuple(
+                        create_model_inputs_onnx(
+                            model_params.batch_size, model_params.input_infos
+                        )
+                    )
+                ]
+            else:
+                input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
+        else:
+            input_data_onnx = None
         self._build_and_save_the_engine(
             engine_path=engine_path,
             onnx_model_path=onnx_model,
             model_params=model_params,
             input_tfms=input_tfms,
             quantization_type=quantization_type,
-            input_data=[
-                tuple(
-                    create_model_inputs_onnx(
-                        model_params.batch_size, model_params.input_infos
-                    )
-                )
-            ]
-            if quantization_ths is not None
-            and quantization_type is QuantizationType.STATIC
-            else None,
+            input_data=input_data_onnx,
         )
         model = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             input_tfms=input_tfms,
@@ -193,17 +207,29 @@ class TensorRTOptimizer(BaseOptimizer):
             output_names=get_output_names(onnx_model),
         )
         if quantization_type is not None:
-            input_data = [model.get_inputs_example()]
+            if input_data is None:
+                inputs = [model.get_inputs_example()]
+                ys = None
+            else:
+                inputs, ys = input_data.get_numpy_list(
+                    100, shuffle=True, with_ys=True
+                )
             output_data = [
                 tuple(
                     run_onnx_model(
                         onnx_model,
-                        [convert_to_numpy(x) for x in input_data[0]],
+                        [convert_to_numpy(x) for x in tuple_],
                     )
                 )
+                for tuple_ in inputs
             ]
             is_valid = check_precision(
-                model, input_data, output_data, quantization_ths
+                model,
+                inputs,
+                output_data,
+                quantization_ths,
+                metric_func=quantization_metric,
+                ys=ys,
             )
             if not is_valid:
                 return None

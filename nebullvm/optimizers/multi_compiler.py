@@ -27,6 +27,7 @@ from nebullvm.optimizers import (
     ONNXOptimizer,
 )
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.APACHE_TVM: ApacheTVMOptimizer,
@@ -167,6 +168,8 @@ class MultiCompilerOptimizer(BaseOptimizer):
         input_tfms: MultiStageTransformation = None,
         quantization_ths: float = None,
         quantization_type: QuantizationType = None,
+        quantization_metric: Callable = None,
+        input_data: DataManager = None,
     ) -> BaseInferenceLearner:
         """Optimize the ONNX model using the available compilers.
 
@@ -183,6 +186,10 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
+            quantization_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             BaseInferenceLearner: Model optimized for inference.
@@ -205,6 +212,8 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 debug_file=self.debug_file,
                 quantization_ths=quantization_ths,
                 quantization_type=q_type,
+                quantization_metric=quantization_metric,
+                input_data=input_data,
             )
             for compiler in self.compilers
             for q_type in quantization_types
@@ -221,6 +230,8 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     debug_file=self.debug_file,
                     quantization_ths=quantization_ths,
                     quantization_type=q_type,
+                    quantization_metric=quantization_metric,
+                    input_data=input_data,
                 )
                 for op in self.extra_optimizers
                 for q_type in quantization_types
@@ -237,6 +248,8 @@ class MultiCompilerOptimizer(BaseOptimizer):
         input_tfms: MultiStageTransformation = None,
         quantization_ths: float = None,
         quantization_type: QuantizationType = None,
+        quantization_metric: Callable = None,
+        input_data: DataManager = None,
         return_all: bool = False,
     ):
         """Optimize the ONNX model using the available compilers and give the
@@ -263,6 +276,10 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
+            quantization_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             Union[BaseInferenceLearner, Tuple[BaseInferenceLearner, float]]:
@@ -289,6 +306,8 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 debug_file=self.debug_file,
                 quantization_ths=quantization_ths,
                 quantization_type=q_type,
+                quantization_metric=quantization_metric,
+                input_data=input_data,
             )
             for compiler in self.compilers
             for q_type in quantization_types
@@ -305,6 +324,8 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     debug_file=self.debug_file,
                     quantization_ths=quantization_ths,
                     quantization_type=q_type,
+                    quantization_metric=quantization_metric,
+                    input_data=input_data,
                 )
                 for op in self.extra_optimizers
                 for q_type in quantization_types

@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Tuple, Dict, List, Optional
+from typing import Tuple, Dict, List, Optional, Callable
 
 import numpy as np
 import onnx
@@ -21,13 +21,14 @@ from nebullvm.optimizers.quantization.utils import (
     check_precision,
 )
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     create_model_inputs_onnx,
     run_onnx_model,
     convert_to_numpy,
 )
-from nebullvm.utils.torch import create_model_inputs_torch
+from nebullvm.utils.torch import create_model_inputs_torch, run_torch_model
 
 try:
     import tvm
@@ -53,6 +54,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
         input_tfms: MultiStageTransformation = None,
         quantization_ths: float = None,
         quantization_type: QuantizationType = None,
+        quantization_metric: Callable = None,
+        input_data: DataManager = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         target = self._get_target()
         mod, params = self._build_tvm_model_from_torch(
@@ -65,19 +68,22 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 )(mod)
             else:
                 if quantization_type is QuantizationType.DYNAMIC:
-                    input_data = None
+                    inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    input_data = [
-                        tuple(
-                            create_model_inputs_onnx(
-                                model_params.batch_size,
-                                model_params.input_infos,
+                    if input_data is None:
+                        inputs = [
+                            tuple(
+                                create_model_inputs_onnx(
+                                    model_params.batch_size,
+                                    model_params.input_infos,
+                                )
                             )
-                        )
-                    ]
+                        ]
+                    else:
+                        inputs = input_data.get_numpy_list(300, with_ys=False)
                 else:
                     return
-                mod = self._quantize(mod, params, input_data=input_data)
+                mod = self._quantize(mod, params, input_data=inputs)
         tuning_records = self._tune_tvm_model(target, mod, params)
         with autotvm.apply_history_best(tuning_records):
             with tvm.transform.PassContext(opt_level=3, config={}):
@@ -94,15 +100,24 @@ class ApacheTVMOptimizer(BaseOptimizer):
             ],
         )
         if quantization_type is not None:
-            input_data = [model.get_inputs_example()]
-            with torch.no_grad():
-                pred = torch_model(*input_data[0])
-            if isinstance(pred, torch.Tensor):
-                output_data = [(pred,)]
+            if input_data is None:
+                inputs = [model.get_inputs_example()]
+                ys = None
             else:
-                output_data = [pred]
+                inputs, ys = input_data.get_list(
+                    100, shuffle=True, with_ys=True
+                )
+            output_data = [
+                tuple(run_torch_model(torch_model, list(tuple_)))
+                for tuple_ in inputs
+            ]
             is_valid = check_precision(
-                model, input_data, output_data, quantization_ths
+                model,
+                inputs,
+                output_data,
+                quantization_ths,
+                metric_func=quantization_metric,
+                ys=ys,
             )
             if not is_valid:
                 return None
@@ -116,6 +131,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
         input_tfms: MultiStageTransformation = None,
         quantization_ths: float = None,
         quantization_type: QuantizationType = None,
+        quantization_metric: Callable = None,
+        input_data: DataManager = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         """Optimize the input model with Apache TVM.
 
@@ -132,6 +149,10 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
+            quantization_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             ApacheTVMInferenceLearner: Model optimized with TVM. The model
@@ -148,19 +169,22 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 )(mod)
             else:
                 if quantization_type is QuantizationType.DYNAMIC:
-                    input_data = None
+                    inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    input_data = [
-                        tuple(
-                            create_model_inputs_onnx(
-                                model_params.batch_size,
-                                model_params.input_infos,
+                    if input_data is None:
+                        inputs = [
+                            tuple(
+                                create_model_inputs_onnx(
+                                    model_params.batch_size,
+                                    model_params.input_infos,
+                                )
                             )
-                        )
-                    ]
+                        ]
+                    else:
+                        inputs = input_data.get_numpy_list(300, with_ys=False)
                 else:
                     return
-                mod = self._quantize(mod, params, input_data=input_data)
+                mod = self._quantize(mod, params, input_data=inputs)
         tuning_records = self._tune_tvm_model(target, mod, params)
         with autotvm.apply_history_best(tuning_records):
             with tvm.transform.PassContext(opt_level=3, config={}):
@@ -173,17 +197,29 @@ class ApacheTVMOptimizer(BaseOptimizer):
             input_names=get_input_names(onnx_model),
         )
         if quantization_type is not None:
-            input_data = [model.get_inputs_example()]
+            if input_data is None:
+                inputs = [model.get_inputs_example()]
+                ys = None
+            else:
+                inputs, ys = input_data.get_list(
+                    100, shuffle=True, with_ys=True
+                )
             output_data = [
                 tuple(
                     run_onnx_model(
                         onnx_model,
-                        [convert_to_numpy(x) for x in input_data[0]],
+                        [convert_to_numpy(x) for x in tuple_],
                     )
                 )
+                for tuple_ in inputs
             ]
             is_valid = check_precision(
-                model, input_data, output_data, quantization_ths
+                model,
+                inputs,
+                output_data,
+                quantization_ths,
+                metric_func=quantization_metric,
+                ys=ys,
             )
             if not is_valid:
                 return None

@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Tuple, List, Union, Any
 
@@ -91,10 +92,25 @@ def compute_optimized_running_time(
 
 
 def compute_relative_difference(
-    tensor_1: Any, tensor_2: Any, eps: float = 1e-5
-):
+    tensor_1: Any,
+    tensor_2: Any,
+    y: Any = None,
+    eps: float = 1e-5,
+) -> float:
+    if y is not None:
+        logging.debug(
+            "Received a label for the precision computation. "
+            "It will be ignored."
+        )
     tensor_1, tensor_2 = map(convert_to_numpy, (tensor_1, tensor_2))
     diff = np.abs(tensor_1 - tensor_2) / (
         np.maximum(np.abs(tensor_1), np.abs(tensor_2)) + eps
     )
     return np.max(diff)
+
+
+def compute_accuracy_drop(tensor_1: Any, tensor_2: Any, y: Any) -> float:
+    tensor_1, tensor_2, y = map(convert_to_numpy, (tensor_1, tensor_2, y))
+    accuracy_1 = np.mean(tensor_1.argmax(dim=-1) == y)
+    accuracy_2 = np.mean(tensor_2.argmax(dim=-1) == y)
+    return accuracy_1 - accuracy_2

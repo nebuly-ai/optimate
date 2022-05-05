@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-from typing import Optional
+from typing import Optional, Callable
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.openvino import (
@@ -11,6 +11,7 @@ from nebullvm.optimizers.base import BaseOptimizer
 from nebullvm.optimizers.quantization.openvino import quantize_openvino
 from nebullvm.optimizers.quantization.utils import check_precision
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     create_model_inputs_onnx,
@@ -30,6 +31,8 @@ class OpenVinoOptimizer(BaseOptimizer):
         input_tfms: MultiStageTransformation = None,
         quantization_ths: float = None,
         quantization_type: QuantizationType = None,
+        quantization_metric: Callable = None,
+        input_data: DataManager = None,
     ) -> Optional[OpenVinoInferenceLearner]:
         """Optimize the onnx model with OpenVino.
 
@@ -46,6 +49,10 @@ class OpenVinoOptimizer(BaseOptimizer):
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
+            quantization_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             OpenVinoInferenceLearner: Model optimized with OpenVino. The model
@@ -87,18 +94,22 @@ class OpenVinoOptimizer(BaseOptimizer):
             quantization_ths is not None
             and quantization_type is not QuantizationType.HALF
         ):
-            # Add post training optimization
-            openvino_model_path, openvino_model_weights = quantize_openvino(
-                model_topology=str(openvino_model_path),
-                model_weights=str(openvino_model_weights),
-                input_names=get_input_names(onnx_model),
-                input_data=[
+            if input_data is not None:
+                input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
+            else:
+                input_data_onnx = [
                     tuple(
                         create_model_inputs_onnx(
                             model_params.batch_size, model_params.input_infos
                         )
                     )
-                ],
+                ]
+            # Add post training optimization
+            openvino_model_path, openvino_model_weights = quantize_openvino(
+                model_topology=str(openvino_model_path),
+                model_weights=str(openvino_model_weights),
+                input_names=get_input_names(onnx_model),
+                input_data=input_data_onnx,
             )
         model = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
             model_name=str(openvino_model_path),
@@ -107,17 +118,29 @@ class OpenVinoOptimizer(BaseOptimizer):
             input_tfms=input_tfms,
         )
         if quantization_ths is not None:
-            input_data = [model.get_inputs_example()]
+            if input_data is None:
+                inputs = [model.get_inputs_example()]
+                ys = None
+            else:
+                inputs, ys = input_data.get_list(
+                    100, with_ys=True, shuffle=True
+                )
             output_data_onnx = [
                 tuple(
                     run_onnx_model(
                         onnx_model,
-                        [convert_to_numpy(x) for x in input_data[0]],
+                        [convert_to_numpy(x) for x in tuple_],
                     )
                 )
+                for tuple_ in inputs
             ]
             is_valid = check_precision(
-                model, input_data, output_data_onnx, quantization_ths
+                model,
+                inputs,
+                output_data_onnx,
+                quantization_ths,
+                metric_func=quantization_metric,
+                ys=ys,
             )
             if not is_valid:
                 return None

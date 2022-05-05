@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 
 from onnxruntime.transformers.optimizer import MODEL_TYPES
 
@@ -11,6 +11,7 @@ from nebullvm.inference_learners.onnx import (
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.utils import check_precision
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
@@ -51,6 +52,8 @@ class HuggingFaceOptimizer(BaseOptimizer):
         input_tfms: MultiStageTransformation = None,
         quantization_ths: float = None,
         quantization_type: QuantizationType = None,
+        quantization_metric: Callable = None,
+        input_data: DataManager = None,
     ) -> Optional[ONNXInferenceLearner]:
         optimized_model = optimizer.optimize_model(
             onnx_model, **self.hf_params
@@ -72,11 +75,25 @@ class HuggingFaceOptimizer(BaseOptimizer):
         )
         if quantization_ths is not None:
             # TODO: Add dataset and metric from user
-            inputs = learner.get_inputs_example()
-            inputs_onnx = [convert_to_numpy(x) for x in inputs]
-            base_outputs = [tuple(run_onnx_model(onnx_model, inputs_onnx))]
+            if input_data is None:
+                inputs = [learner.get_inputs_example()]
+                ys = None
+            else:
+                inputs, ys = input_data.get_list(100, with_ys=True)
+            inputs_onnx = [
+                tuple(convert_to_numpy(x) for x in input_) for input_ in inputs
+            ]
+            base_outputs = [
+                tuple(run_onnx_model(onnx_model, list(input_onnx)))
+                for input_onnx in inputs_onnx
+            ]
             is_valid = check_precision(
-                learner, inputs, base_outputs, quantization_ths
+                learner,
+                inputs,
+                base_outputs,
+                quantization_ths,
+                metric_func=quantization_metric,
+                ys=ys,
             )
             if not is_valid:
                 return None
