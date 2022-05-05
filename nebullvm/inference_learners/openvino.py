@@ -140,7 +140,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
     def _rebuild_network(self, input_shapes: Dict):
         network = self.exec_network.get_exec_graph_info()
         if all(
-            input_shape == tuple(network.inputs[input_name].shape)
+            input_shape == tuple(network.input_info[input_name].input_data.shape)
             for input_name, input_shape in input_shapes.items()
         ):
             # If the new input shapes is equal to the previous one do nothing.
