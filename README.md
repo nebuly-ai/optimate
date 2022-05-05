@@ -393,6 +393,6 @@ Currently `nebullvm` supports as AI compilers:
 <p align="center">
   <a href="https://nebuly.ai/">Website</a> |
   <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
-  <a href="https://twitter.com/nebuly_ai">Twitter</a>
+  <a href="https://twitter.com/nebuly_ai">Twitter</a> |
   <a href="https://discord.gg/jyjtZTPyHS">Discord</a>
 </p>
