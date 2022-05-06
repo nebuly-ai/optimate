@@ -114,7 +114,6 @@ def _optimize_with_optimizer(
             warnings.warn(warning_msg)
         else:
             logger.warning(warning_msg)
-        raise ex
         latency = np.inf
         model_optimized = None
     if debug_file:
