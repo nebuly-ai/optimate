@@ -1,4 +1,4 @@
-from typing import Sequence, List, Tuple, Any, Union
+from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
 
@@ -29,7 +29,7 @@ class DataManager:
         return self
 
     def __next__(self):
-        if self._pointer <= len(self):
+        if self._pointer < len(self):
             data = self.data_reader[self._pointer]
             self._pointer += 1
             return data
@@ -76,3 +76,7 @@ class DataManager:
             xs.append(x)
             ys.append(y)
         return xs, ys
+
+    @classmethod
+    def from_iterable(cls, iterable: Iterable, max_length: int = 500):
+        return cls([x for i, x in enumerate(iterable) if i < max_length])

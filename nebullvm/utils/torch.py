@@ -42,7 +42,7 @@ def run_torch_model(
     with torch.no_grad():
         pred = torch_model(*input_tensors)
     if isinstance(pred, torch.Tensor):
-        pred = [(pred,)]
-    else:
         pred = [pred]
+    else:
+        pred = list(pred)
     return pred

@@ -66,13 +66,17 @@ def _extract_dynamic_axis(
 
 def _extract_info_from_data(
     model: torch.nn.Module,
-    dataloader: DataLoader,
+    dataloader: Union[DataLoader, Sequence],
     batch_size: int,
     input_sizes: List[Tuple[int, ...]],
     input_types: List[str],
     dynamic_axis: Dict,
 ):
-    input_row, _ = next(iter(dataloader))
+    input_row, _ = (
+        dataloader[0]
+        if isinstance(dataloader, Sequence)
+        else next(iter(dataloader))
+    )
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
     input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
     input_types = ifnone(
@@ -92,7 +96,7 @@ def _extract_info_from_data(
 def optimize_torch_model(
     model: torch.nn.Module,
     save_dir: str,
-    dataloader: Union[DataLoader, Sequence] = None,
+    dataloader: DataLoader = None,
     batch_size: int = None,
     input_sizes: List[Tuple[int, ...]] = None,
     input_types: List[str] = None,
@@ -202,7 +206,7 @@ def optimize_torch_model(
             input_types,
             dynamic_axis,
         )
-        input_data = DataManager(dataloader)
+        input_data = DataManager.from_iterable(dataloader)
     else:
         input_data = None
     if input_types is None:
@@ -274,16 +278,16 @@ def optimize_torch_model(
             )
         else:
             model_optimized = None
-        if model_optimized is None and not ignore_compilers:
-            raise RuntimeError(
-                "No valid compiled model has been produced. "
-                "Look at the logs for further information about the failure."
-            )
         if use_torch_api:
             model_optimized = _compare_optimized_models(
                 model_optimized,
                 torch_api_model,
                 torch_api_latency,
+            )
+        if model_optimized is None:
+            raise RuntimeError(
+                "No valid compiled model has been produced. "
+                "Look at the logs for further information about the failure."
             )
         model_optimized.save(save_dir)
     return model_optimized.load(save_dir)

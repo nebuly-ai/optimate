@@ -114,6 +114,7 @@ def _optimize_with_optimizer(
             warnings.warn(warning_msg)
         else:
             logger.warning(warning_msg)
+        raise ex
         latency = np.inf
         model_optimized = None
     if debug_file:
@@ -196,9 +197,12 @@ class MultiCompilerOptimizer(BaseOptimizer):
         """
         if quantization_ths is not None and quantization_type is None:
             quantization_types = [
+                None,
                 QuantizationType.DYNAMIC,
                 QuantizationType.HALF,
             ]
+            if input_data is not None:
+                quantization_types.append(QuantizationType.STATIC)
         else:
             quantization_types = [quantization_type]
         optimized_models = [
@@ -208,9 +212,13 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 onnx_model=onnx_model,
                 output_library=output_library,
                 model_params=model_params,
-                input_tfms=input_tfms,
+                input_tfms=input_tfms.copy()
+                if input_tfms is not None
+                else None,
                 debug_file=self.debug_file,
-                quantization_ths=quantization_ths,
+                quantization_ths=quantization_ths
+                if q_type is not None
+                else None,
                 quantization_type=q_type,
                 quantization_metric=quantization_metric,
                 input_data=input_data,
@@ -226,9 +234,13 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     onnx_model=onnx_model,
                     output_library=output_library,
                     model_params=model_params,
-                    input_tfms=input_tfms,
+                    input_tfms=input_tfms.copy()
+                    if input_tfms is not None
+                    else None,
                     debug_file=self.debug_file,
-                    quantization_ths=quantization_ths,
+                    quantization_ths=quantization_ths
+                    if q_type is not None
+                    else None,
                     quantization_type=q_type,
                     quantization_metric=quantization_metric,
                     input_data=input_data,
@@ -305,7 +317,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 onnx_model=onnx_model,
                 output_library=output_library,
                 model_params=model_params,
-                input_tfms=input_tfms,
+                input_tfms=input_tfms.copy()
+                if input_tfms is not None
+                else None,
                 debug_file=self.debug_file,
                 quantization_ths=quantization_ths
                 if q_type is not None
@@ -325,9 +339,13 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     onnx_model=onnx_model,
                     output_library=output_library,
                     model_params=model_params,
-                    input_tfms=input_tfms,
+                    input_tfms=input_tfms.copy()
+                    if input_tfms is not None
+                    else None,
                     debug_file=self.debug_file,
-                    quantization_ths=quantization_ths,
+                    quantization_ths=quantization_ths
+                    if q_type is not None
+                    else None,
                     quantization_type=q_type,
                     quantization_metric=quantization_metric,
                     input_data=input_data,
