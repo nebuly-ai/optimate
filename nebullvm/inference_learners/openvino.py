@@ -71,8 +71,8 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         self.exec_network = exec_network
         self.input_keys = input_keys
         self.output_keys = output_keys
-        self.description_file = description_file
-        self.weights_file = weights_file
+        self.description_file = self._store_file(description_file)
+        self.weights_file = self._store_file(weights_file)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):

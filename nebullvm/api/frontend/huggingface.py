@@ -17,6 +17,7 @@ import numpy as np
 import torch
 
 from nebullvm import optimize_torch_model
+from nebullvm.api.frontend.utils import ifnone
 from nebullvm.base import DataType, ModelCompiler
 from nebullvm.inference_learners.base import (
     PytorchBaseInferenceLearner,
@@ -172,7 +173,7 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
     def _load_wrapper_extra_info(builder_inputs: Dict) -> Dict:
         return builder_inputs
 
-    def predict(self, *args, **kwargs) -> Any:
+    def run(self, *args, **kwargs) -> Any:
         """Run the underlying optimized model for getting a prediction.
 
         The method has an hybrid interface. It accepts inputs either as
@@ -316,10 +317,16 @@ class _HFDataset(Sequence):
         self._bs = batch_size
         self._keys = keywords
         self._tokenizer = tokenizer
-        self._tokenizer_args = tokenizer_args
+        if self._tokenizer.pad_token is None:
+            self._tokenizer.pad_token = self._tokenizer.eos_token
+        _tokenizer_args = {"truncation": True, "padding": True}
+        _tokenizer_args.update(tokenizer_args)
+        self._tokenizer_args = _tokenizer_args
 
     def __getitem__(self, item: int):
         pointer = self._bs * item
+        if pointer >= len(self):
+            raise IndexError
         mini_batch = self._input_texts[
             pointer : pointer + self._bs  # noqa E203
         ]
@@ -345,6 +352,7 @@ def optimize_huggingface_model(
     use_static_shape: bool = False,
     use_torch_api: bool = False,
     tokenizer_args: Dict = None,
+    ignore_compilers: List[str] = None,
     quantization_ths: float = None,
     quantization_metric: Union[str, Callable] = None,
     ys: List = None,
@@ -390,6 +398,9 @@ def optimize_huggingface_model(
             succeeds. Clearly, in case of failure of the torch API, a second
             tentative will be done with the ONNX interface.
         tokenizer_args (Dict, optional): Extra args needed for the tokenizer.
+        ignore_compilers (List[str], optional): List of DL compilers we want
+            to ignore while running the optimization. Compiler name should be
+            one between "tvm", "tensor RT", "openvino" and "onnxruntime".
         quantization_ths (float, optional): Tolerated relative error for
             performing quantization before compiling the model. If no value
             is given, no quantization will be performed.
@@ -464,15 +475,20 @@ def optimize_huggingface_model(
                 tokenizer,
                 tokenizer_args,
             ),
-            ignore_compilers=[ModelCompiler.TENSOR_RT.value]
-            if use_static_shape
-            else [
-                ModelCompiler.TENSOR_RT.value,
-                ModelCompiler.APACHE_TVM.value,
-            ],
-            custom_optimizers=_get_extra_optimizer(model.config)
-            if quantization_ths is None
-            else None,
+            ignore_compilers=list(
+                set(
+                    (
+                        [ModelCompiler.TENSOR_RT.value]
+                        if use_static_shape
+                        else [
+                            ModelCompiler.TENSOR_RT.value,
+                            ModelCompiler.APACHE_TVM.value,
+                        ]
+                    )
+                    + ifnone(ignore_compilers, [])
+                )
+            ),
+            custom_optimizers=_get_extra_optimizer(model.config),
         )
         final_model = HuggingFaceInferenceLearner(
             core_inference_learner=optimized_model,

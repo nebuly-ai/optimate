@@ -96,7 +96,7 @@ def _extract_info_from_data(
 def optimize_torch_model(
     model: torch.nn.Module,
     save_dir: str,
-    dataloader: DataLoader = None,
+    dataloader: Union[DataLoader, Sequence] = None,
     batch_size: int = None,
     input_sizes: List[Tuple[int, ...]] = None,
     input_types: List[str] = None,
@@ -206,7 +206,11 @@ def optimize_torch_model(
             input_types,
             dynamic_axis,
         )
-        input_data = DataManager.from_iterable(dataloader)
+        input_data = (
+            DataManager.from_iterable(dataloader)
+            if isinstance(dataloader, DataLoader)
+            else DataManager(dataloader)
+        )
     else:
         input_data = None
     if input_types is None:

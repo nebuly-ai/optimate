@@ -81,7 +81,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.onnx_path = onnx_path
+        self.onnx_path = self._store_file(onnx_path)
         sess_options = _get_ort_session_options()
 
         if _is_intel_cpu():

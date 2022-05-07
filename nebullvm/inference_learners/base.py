@@ -1,7 +1,9 @@
+import shutil
 from abc import ABC, abstractmethod
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import mkdtemp
 from typing import Union, Dict, Any, List, Optional
 
 import numpy as np
@@ -26,6 +28,13 @@ class BaseInferenceLearner(ABC):
     def __post_init__(self):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
             self.input_tfms = None
+        self._tmp_folder = Path(mkdtemp())
+
+    def _store_file(self, file_path: Union[str, Path]):
+        return shutil.copy(str(file_path), str(self._tmp_folder))
+
+    def __del__(self):
+        shutil.rmtree(self._tmp_folder, ignore_errors=True)
 
     def predict_from_files(
         self, input_files: List[str], output_files: List[str]

@@ -82,7 +82,7 @@ def _save_info(
     optimization_string = optimizer.__class__.__name__
     quantization_string = "_".join(
         [
-            optimization_params.get(param) or ""
+            str(optimization_params.get(param)) or ""
             for param in ["quantization_ths", "quantization_type"]
         ]
     )

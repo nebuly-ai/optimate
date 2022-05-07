@@ -84,7 +84,11 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         self.input_names = input_names
         self.lib = lib
         self.target = target
-        self.engine_path = engine_path
+        self.engine_path = (
+            self._store_file(engine_path)
+            if engine_path is not None
+            else engine_path
+        )
 
     def _predict_array(
         self, input_arrays: Generator[np.ndarray, None, None]
