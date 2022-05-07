@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
+from nebullvm.base import ModelParams
 from nebullvm.converters import ONNXConverter
 
 
@@ -25,9 +26,14 @@ class TorchTestModel(torch.nn.Module):
 
 @pytest.mark.parametrize("ai_model", [TorchTestModel()])
 def test_onnx_converter(ai_model):
+    model_params = ModelParams(
+        batch_size=1,
+        input_infos=[{"size": (3, 256, 256), "dtype": "float"}],
+        output_sizes=[(2,)],
+    )
     converter = ONNXConverter(model_name="test_model")
     with TemporaryDirectory() as tmp_dir:
         converted_model_path = converter.convert(
-            ai_model, input_size=(3, 256, 256), save_path=Path(tmp_dir)
+            ai_model, model_params=model_params, save_path=Path(tmp_dir)
         )
         assert converted_model_path.exists()
