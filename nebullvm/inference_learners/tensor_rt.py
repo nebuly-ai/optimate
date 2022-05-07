@@ -73,7 +73,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         self.output_names = output_names
         self.cuda_stream = cuda_stream
         self.nvidia_logger = nvidia_logger
-        self.__post_init__()
+        self._set_cuda_env()
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         metadata = {
@@ -101,7 +101,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
                 "on a machine not connected to any GPU supporting CUDA."
             )
 
-    def __post_init__(self):
+    def _set_cuda_env(self):
         self.check_env()
         if self.nvidia_logger is None:
             self.nvidia_logger = trt.Logger(trt.Logger.WARNING)
