@@ -4,7 +4,9 @@ from pathlib import Path
 
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.inference_learners.onnx_mlir import (
-    ONNX_MLIR_INFERENCE_LEARNERS, ONNXMlirInferenceLearner)
+    ONNX_MLIR_INFERENCE_LEARNERS,
+    ONNXMlirInferenceLearner,
+)
 from nebullvm.optimizers.base import BaseOptimizer
 
 
@@ -35,9 +37,9 @@ class ONNXMlirOptimizer(BaseOptimizer):
         shape_info = "--shapeInformation="
         for input_index in range(len(inputs)):
             shape_info += (
-                f'{input_index}:{model_params.batch_size}x'
-                + f'x'.join(map(str, inputs[input_index]))
-                + ','
+                f"{input_index}:{model_params.batch_size}x"
+                + f"x".join(map(str, inputs[input_index]))
+                + ","
             )
         shape_info = shape_info[:-1]
 
@@ -51,9 +53,9 @@ class ONNXMlirOptimizer(BaseOptimizer):
         process = subprocess.Popen(
             command,
             cwd=os.path.join(
-                os.environ.get('ONNX_MLIR_HOME', ''),
-                'bin',
-            )
+                os.environ.get("ONNX_MLIR_HOME", ""),
+                "bin",
+            ),
         )
         process.wait()
 

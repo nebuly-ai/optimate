@@ -13,27 +13,29 @@ import tensorflow as tf
 import torch
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.config import ONNX_MLIR_FILENAMES
-from nebullvm.inference_learners.base import (BaseInferenceLearner,
-                                              LearnerMetadata,
-                                              PytorchBaseInferenceLearner,
-                                              TensorflowBaseInferenceLearner)
+from nebullvm.inference_learners.base import (
+    BaseInferenceLearner,
+    LearnerMetadata,
+    PytorchBaseInferenceLearner,
+    TensorflowBaseInferenceLearner,
+)
 
 try:
     # Set the ONNX_MLIR_HOME as the environment variable and append in the path,
     # directory path where the MLIR is built
     MLIR_INSTALLATION_ROOT = Path.home()
 
-    os.environ['ONNX_MLIR_HOME'] = os.path.join(
+    os.environ["ONNX_MLIR_HOME"] = os.path.join(
         MLIR_INSTALLATION_ROOT,
-        'onnx-mlir',
-        'build',
-        'Debug',
+        "onnx-mlir",
+        "build",
+        "Debug",
     )
 
     sys.path.append(
         os.path.join(
-            os.environ.get('ONNX_MLIR_HOME', ''),
-            'lib',
+            os.environ.get("ONNX_MLIR_HOME", ""),
+            "lib",
         )
     )
     import PyRuntime
@@ -50,8 +52,8 @@ except ImportError:
 
 
 class ONNXMlirInferenceLearner(BaseInferenceLearner, ABC):
-    """Model converted from ONNX to Shared Object file using ONNX-MLIR dialect 
-    and run with ONNX-MLIR's PyRuntime 
+    """Model converted from ONNX to Shared Object file using ONNX-MLIR dialect
+    and run with ONNX-MLIR's PyRuntime
     created at onnx-mlir/build/Debug/lib/PyRuntime.cpython-<target>.so.
 
     Attributes:
@@ -107,7 +109,8 @@ class ONNXMlirInferenceLearner(BaseInferenceLearner, ABC):
                 f"Got {kwargs}."
             )
         onnx_mlir_model_path = os.path.join(
-            str(path), ONNX_MLIR_FILENAMES["model_name"])
+            str(path), ONNX_MLIR_FILENAMES["model_name"]
+        )
         metadata = LearnerMetadata.read(path)
 
         return cls(
@@ -116,9 +119,7 @@ class ONNXMlirInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     def _predict_arrays(self, input_arrays: Generator[np.ndarray, None, None]):
-        outputs = self._session.run(
-            list(input_arrays)
-        )
+        outputs = self._session.run(list(input_arrays))
         return outputs
 
 
@@ -156,10 +157,7 @@ class PytorchONNXMlirInferenceLearner(
             for input_tensor in input_tensors
         )
         outputs = self._predict_arrays(input_arrays)
-        return tuple(
-            torch.from_numpy(output)
-            for output in outputs
-        )
+        return tuple(torch.from_numpy(output) for output in outputs)
 
 
 class TensorflowONNXMlirInferenceLearner(
@@ -191,16 +189,10 @@ class TensorflowONNXMlirInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        input_arrays = (
-            input_tensor.numpy()
-            for input_tensor in input_tensors
-        )
+        input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
         outputs = self._predict_arrays(input_arrays)
         # noinspection PyTypeChecker
-        return tuple(
-            tf.convert_to_tensor(output)
-            for output in outputs
-        )
+        return tuple(tf.convert_to_tensor(output) for output in outputs)
 
 
 ONNX_MLIR_INFERENCE_LEARNERS: Dict[
