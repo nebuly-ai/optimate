@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://nebuly.ai/">Website</a> |
   <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
-  <a href="https://twitter.com/nebuly_ai">Twitter</a>
+  <a href="https://twitter.com/nebuly_ai">Twitter</a> |
   <a href="https://discord.gg/jyjtZTPyHS">Discord</a>
 </p>
   
@@ -21,6 +21,7 @@
 -  [How Nebullvm Works](#how-nebullvm-works)
 -  [Technology Demonstration and Benchmarks](#technology-demonstration-and-benchmarks)
 -  [Installation and Get Started](#installation-and-get-started)
+-  <a href="https://discord.gg/jyjtZTPyHS">Nebuly Tribe</a>
 
 ## How Nebullvm Works
 
@@ -392,6 +393,6 @@ Currently `nebullvm` supports as AI compilers:
 <p align="center">
   <a href="https://nebuly.ai/">Website</a> |
   <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
-  <a href="https://twitter.com/nebuly_ai">Twitter</a>
+  <a href="https://twitter.com/nebuly_ai">Twitter</a> |
   <a href="https://discord.gg/jyjtZTPyHS">Discord</a>
 </p>
