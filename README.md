@@ -366,6 +366,33 @@ in the section <a href="#technology-demonstration">Technology demonstration</a>.
 - TVM
 - MLIR (Coming soon 🚀)
 
+
+## Integration with other open-source libraries
+
+Deep learning libraries
+
+- [Clip-as-Service by Jina AI](https://github.com/jina-ai/clip-as-service) ![](https://img.shields.io/github/stars/jina-ai/clip-as-service.svg?style=social) Embed images and sentences into fixed-length vectors with CLIP. (🚀 coming soon   🌖)
+- [SignLangGNN by Anindyadeep](https://github.com/Anindyadeep/SignLangGNN) ![](https://img.shields.io/github/stars/Anindyadeep/SignLangGNN.svg?style=social) ASL sign language classification on static images using graph neural networks.
+    
+Repositories of the best tools for AI
+
+- [Awesome Deep Learning](https://github.com/ChristosChristofidis/awesome-deep-learning#tools) ![](https://img.shields.io/github/stars/ChristosChristofidis/awesome-deep-learning.svg?style=social) A curated list of awesome Deep Learning tutorials, projects and communities.
+- [Awesome Production ML](https://github.com/EthicalML/awesome-production-machine-learning#optimized-computation-frameworks) ![](https://img.shields.io/github/stars/EthicalML/awesome-production-machine-learning.svg?style=social) A list of open-source libraries to deploy, monitor, version and scale your machine learning.
+- [Best of ML Python](https://github.com/ml-tooling/best-of-ml-python#model-serialization--deployment) ![](https://img.shields.io/github/stars/ml-tooling/best-of-ml-python.svg?style=social) - A ranked list of awesome machine learning Python libraries.
+- [Awesome MLOps](https://github.com/EthicalML/awesome-production-machine-learning#optimization-tools) ![](https://img.shields.io/github/stars/kelvins/awesome-mlops.svg?style=social) - A curated list of MLOps tools.
+
+Do you want to integrate nebullvm in your open-source library? Try it out and if you need support, do not hesitate to contact us at [info@nebuly.ai](mailto:info@nebuly.ai).
+
+
+
+
+
+
+
+
+
+
+
 ## Community
 You are interested in making AI more efficient? You want to meet other people 
 sharing the vision of an efficient AI which is actually easy to use without 
