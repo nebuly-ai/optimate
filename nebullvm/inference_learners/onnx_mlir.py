@@ -45,15 +45,27 @@ try:
     )
     import PyRuntime
 except ImportError:
-    warnings.warn(
-        "No valid mlir-onnx installation found. Trying to install it..."
-    )
-    from nebullvm.installers.installers import install_onnx_mlir
+    # Disable the ONNX-MLIR auto-installer for the time being as it takes long to
+    #  install, can be installed by explicitly running the install_onnx_mlir function
 
-    install_onnx_mlir(
-        working_dir=MLIR_INSTALLATION_ROOT,
-    )
-    import PyRuntime
+    # TODO: Remove the False flag for allowing onnx-mlir to be installed by
+    #  the Auto-Installer.
+    if False and not NO_COMPILER_INSTALLATION:
+        warnings.warn(
+            "No valid onnx-mlir installation found. Trying to install it..."
+        )
+        from nebullvm.installers.installers import install_onnx_mlir
+
+        install_onnx_mlir(
+            working_dir=MLIR_INSTALLATION_ROOT,
+        )
+        import PyRuntime
+    else:
+        warnings.warn(
+            "Not found any valid onnx-mlir installation. "
+            "ONNX-MLIR will not be available in the following steps. "
+            "ONNX-MLIR should be explicitly installed using install_onnx_mlir."
+        )
 
 
 class ONNXMlirInferenceLearner(BaseInferenceLearner, ABC):
