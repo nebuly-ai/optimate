@@ -41,7 +41,7 @@ try:
     import PyRuntime
 except ImportError:
     warnings.warn(
-        "No valid onnxruntime installation found. Trying to install it..."
+        "No valid mlir-onnx installation found. Trying to install it..."
     )
     from nebullvm.installers.installers import install_onnx_mlir
 
@@ -126,7 +126,7 @@ class ONNXMlirInferenceLearner(BaseInferenceLearner, ABC):
 class PytorchONNXMlirInferenceLearner(
     ONNXMlirInferenceLearner, PytorchBaseInferenceLearner
 ):
-    """Model run with Microsoft's onnxruntime using a Pytorch interface.
+    """Model run with ONNX-MLIR's PyRuntime using a Pytorch interface.
 
     Attributes:
         onnx_mlir_model_path (str or Path): Path to the shared object mlir model.
@@ -163,7 +163,7 @@ class PytorchONNXMlirInferenceLearner(
 class TensorflowONNXMlirInferenceLearner(
     ONNXMlirInferenceLearner, TensorflowBaseInferenceLearner
 ):
-    """Model run with Microsoft's onnxruntime using a tensorflow interface.
+    """Model run with ONNX-MLIR's PyRuntime using a tensorflow interface.
 
     Attributes:
         onnx_mlir_model_path (str or Path): Path to the shared object mlir model.
