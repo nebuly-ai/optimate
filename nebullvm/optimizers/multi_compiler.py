@@ -28,7 +28,7 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.OPENVINO: OpenVinoOptimizer,
     ModelCompiler.TENSOR_RT: TensorRTOptimizer,
     ModelCompiler.ONNX_RUNTIME: ONNXOptimizer,
-    ModelCompiler.ONNX_MLIR_RUNTIME: ONNXMlirOptimizer,
+    ModelCompiler.ONNX_MLIR: ONNXMlirOptimizer,
 }
 
 
@@ -44,7 +44,7 @@ def _tvm_is_available() -> bool:
 def select_compilers_from_hardware():
     compilers = [
         ModelCompiler.ONNX_RUNTIME,
-        ModelCompiler.ONNX_MLIR_RUNTIME,
+        ModelCompiler.ONNX_MLIR,
     ]
     if _tvm_is_available():
         compilers.append(ModelCompiler.APACHE_TVM)

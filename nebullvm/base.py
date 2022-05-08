@@ -106,7 +106,7 @@ class ModelCompiler(Enum):
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
-    ONNX_MLIR_RUNTIME = "onnx_mlir"
+    ONNX_MLIR = "onnx_mlir"
 
 
 class QuantizationType(Enum):
