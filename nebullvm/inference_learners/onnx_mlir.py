@@ -23,7 +23,12 @@ from nebullvm.inference_learners.base import (
 try:
     # Set the ONNX_MLIR_HOME as the environment variable and append in the path,
     # directory path where the MLIR is built
-    MLIR_INSTALLATION_ROOT = Path.home()
+
+    # retrieve the ONNX-MLIR installation directory from environment variable
+    # if exists otherwise set to home directory
+    MLIR_INSTALLATION_ROOT = os.environ.get(
+        "MLIR_INSTALLATION_ROOT", Path.home()
+    )
 
     os.environ["ONNX_MLIR_HOME"] = os.path.join(
         MLIR_INSTALLATION_ROOT,
