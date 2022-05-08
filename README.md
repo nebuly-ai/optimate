@@ -255,6 +255,7 @@ python -c "from nebullvm.inference_learners import onnx_mlir"
 <details> 
 <summary> [Click to expand] Possible installation issues </summary>
 
+
 **MacOS**: the installation may fail on MacOS for MacBooks with the Apple Silicon 
 chip, due to scipy compilation errors. The easy fix is to install `scipy` with 
 another package manager such as conda (the Apple Silicon distribution of 
