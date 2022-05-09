@@ -1,12 +1,16 @@
 <img  src="https://user-images.githubusercontent.com/59367323/167455174-f3935b7c-c0a9-4fde-8560-97ebd920a3b9.png">
 
 <p align="center">
-<a href="??????????">NEW RELEASE</a> •
+<a href="https://github.com/nebuly-ai/nebullvm/releases">NEW RELEASE</a>
+</p>
+
+<p align="center">
 <a href="#how-nebullvm-works">How Nebullvm Works</a> •
-<a href="???????????">Tutorials</a> •
+<a href="tutorials-and-notebooks">Tutorials</a> •
 <a href="#benchmarks">Benchmarks</a> •
 <a href="#installation-and-get-started">Installation</a> •
-<a href="#get-started">Get Started</a>
+<a href="#get-started">Get Started</a> •
+<a href="#optimization-examples">Optimization Examples</a>
 </p>
 
 <p align="center">
@@ -23,8 +27,9 @@
 -  [How Nebullvm Works](#how-nebullvm-works)
 -  [Benchmarks](https://github.com/nebuly-ai/nebullvm#benchmarks)
 -  [Installation and Get Started](#installation-and-get-started)
+-  [Optmization Examples](#optimization-examples)
 -  [Tutorials and Notebooks](#tutorials-and-notebooks)
--  <a href="https://discord.gg/jyjtZTPyHS">Join the community for AI acceleration</a>
+-  <a href="https://discord.gg/jyjtZTPyHS">Join the Community for AI acceleration</a>
 
 
 
@@ -61,46 +66,13 @@ Do you like the concept? Leave a ⭐ if you enjoy the project and [join the Di
 
 <img  src="https://user-images.githubusercontent.com/59367323/167450183-8bd2f76e-3b1d-4de7-b00e-5a755097ed19.png">
 
-## **Benchmarks**
+## Benchmarks
 
 We have tested `nebullvm` on popular AI models and hardware from leading vendors.
 
 The table below shows the inference speedup provided by nebullvm. The speedup is calculated as the response time of the unoptimized model divided by the response time of the accelerated model, as an average over 100 experiments. For instance, if the response time of an unoptimized model was on average 600 milliseconds, and after nebullvm optimization only 240 milliseconds, the resulting speed increase is 2.5x times, implying 150% faster inference.
 
 A comprehensive description of the experiment and findings can be found on this page.
-
-
-
-## Technology demonstration and benchmarks
-
-### Technology demonstration
-
-We suggest testing the library on your AI models right away by following the 
-[installation instructions](#installation-and-get-started) below. 
-If you want to get a first feel for the library's capabilities, 
-we have built 3 notebooks where the library can be tested on the most popular 
-AI frameworks Tensorflow, PyTorch and Hugging Face.
-
--  [Resnet34 with FastAI](https://nebullvm-notebooks.s3.amazonaws.com/Accelerate-FastAI-inference.ipynb)
--  [YOLO with PyTorch](https://nebullvm-notebooks.s3.amazonaws.com/YOLO-Darknet+Optimization.ipynb)
--  [GPT2 and BERT with Hugging Face](https://nebullvm-notebooks.s3.amazonaws.com/Huggingface-Transformers.ipynb)
-
-The notebooks will run locally on your hardware, so you can get an idea of the 
-performance you would achieve with `nebullvm` on your AI models. 
-Note that it will take several minutes to install the library the first time.
-
-### Benchmarks
-
-We have tested `nebullvm` on popular AI models and hardware from leading vendors.
-
--   Hardware: M1 Pro, NVIDIA T4, Intel Xeon, AMD EPYC
--   AI Models: EfficientNet, Resnet, SqueezeNet, BERT, GPT2
-
-The table below shows the response time in milliseconds (ms) of the non-optimized 
-model and the optimized model for the various model-hardware couplings as an 
-average value over 100 experiments. It also displays the **speedup** provided 
-by `nebullvm`, where speedup is defined as the response time of the optimized 
-model over the response time of the non-optimized model.
 
 |                         |  **M1 Pro**  | **Intel Xeon** | **AMD EPYC** | **Nvidia T4** |
 |-------------------------|:------------:|:---------------:|:-------------:|:-------------:|
@@ -123,6 +95,7 @@ Overall, the library provides great results, with more than 2x acceleration in m
 
 Besides, across all scenarios, `nebullvm` is very helpful for its ease of use, allowing you to take advantage of inference optimization techniques without having to spend hours studying, testing and debugging these technologies.
 
+
 ## Tutorials and Notebooks
 
 We suggest testing the library on your AI models right away by following the installation instructions below. If you want to get a first feel of the library's capabilities, or take a look at how nebullvm can be readily implemented in an AI workflow, we have built 3 tutorials and notebooks where the library can be tested on the most popular AI frameworks TensorFlow, PyTorch and Hugging Face.
@@ -133,7 +106,9 @@ We suggest testing the library on your AI models right away by following the ins
 
 ## Installation and Get Started
 
-### Step 1: Installation of nebullvm library
+<details> 
+<summary> Step 1: Installation of nebullvm library </summary>
+
 
 There are two ways to install `nebullvm`:
 
@@ -164,7 +139,11 @@ cd nebullvm
 pip install .
 ```
 
-### Step 2: Installation of deep learning compilers
+</details>
+
+  
+<details> 
+<summary> Step 2: Installation of deep learning compilers </summary>
 
 Now you need to install the compilers that the library leverages to create the 
 optimized version of your models. We have built an auto-installer to install them 
@@ -226,13 +205,19 @@ running
 python -c "from tvm.runtime import Module"
 ```
 
-### Possible installation issues
+</details>
+
+<details> 
+<summary> Possible installation issues </summary>
 
 **MacOS**: the installation may fail on MacOS for MacBooks with the Apple Silicon 
 chip, due to scipy compilation errors. The easy fix is to install `scipy` with 
 another package manager such as conda (the Apple Silicon distribution of 
 Mini-conda) and then install `nebullvm`. For any additional issues do not 
 hesitate to open an issue or contact directly `info@nebuly.ai` by email.
+
+</details>
+
 
 
 ## Get Started
@@ -255,8 +240,9 @@ feature as explained below.
 And please leave a ⭐ for the work in developing the library. if many people like the library, we will keep building great new features. We already have a long list of ideas in mind ✨
 ![Picture1324234](https://user-images.githubusercontent.com/59367323/167461266-be3290c6-e76b-4f63-ba3d-dfd691286fd1.png)
 
-### Optimization with PyTorch, TensorFlow, ONNX and Hugging Face
 
+
+### Optimization examples
 <details> 
 <summary> Optimization with PyTorch </summary>
 Here we present an example of optimizing a `pytorch` model with `nebullvm`:
@@ -498,15 +484,23 @@ Currently `nebullvm` supports as AI compilers:
 
 ---
 
+
 <p align="center">
-  <a href="#how-nebullvm-works">How Nebullvm Works</a> •
-  <a href="#benchmarks">Benchmarks</a> •
-  <a href="#installation-and-get-started">Installation</a> •
-  <a href="#get-started">Get Started</a>
+<a href="#how-nebullvm-works">How Nebullvm Works</a> •
+<a href="tutorials-and-notebooks">Tutorials</a> •
+<a href="#benchmarks">Benchmarks</a> •
+<a href="#installation-and-get-started">Installation</a> •
+<a href="#get-started">Get Started</a> •
+<a href="#optimization-examples">Optimization Examples</a>
 </p>
+
 <p align="center">
-  <a href="https://nebuly.ai/">Website</a> |
-  <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
-  <a href="https://twitter.com/nebuly_ai">Twitter</a>
-  <a href="https://discord.gg/jyjtZTPyHS">Discord</a>
+<a href="https://discord.gg/RbeQMu886J">Discord</a> |
+<a href="https://nebuly.ai/](https://nebuly.ai/">Website</a> |
+<a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
+<a href="https://twitter.com/nebuly_ai">Twitter</a>
 </p>
+
+
+
+
