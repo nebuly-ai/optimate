@@ -1,8 +1,7 @@
 import os
 import uuid
-from typing import Tuple, Dict, List, Optional, Callable
+from typing import Tuple, Dict, Optional, Callable
 
-import numpy as np
 import onnx
 import torch.cuda
 
@@ -16,6 +15,7 @@ from nebullvm.inference_learners.tvm import (
     ApacheTVMInferenceLearner,
 )
 from nebullvm.optimizers.base import BaseOptimizer
+from nebullvm.optimizers.quantization.tvm import TVMCalibrator
 from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
@@ -52,16 +52,16 @@ class ApacheTVMOptimizer(BaseOptimizer):
         torch_model: torch.nn.Module,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        quantization_ths: float = None,
+        perf_loss_ths: float = None,
         quantization_type: QuantizationType = None,
-        quantization_metric: Callable = None,
+        perf_metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         target = self._get_target()
         mod, params = self._build_tvm_model_from_torch(
             torch_model, model_params
         )
-        if quantization_ths is not None:
+        if perf_loss_ths is not None:
             if quantization_type is QuantizationType.HALF:
                 mod = tvm.relay.transform.ToMixedPrecision(
                     mixed_precision_type="float16"
@@ -115,8 +115,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 model,
                 inputs,
                 output_data,
-                quantization_ths,
-                metric_func=quantization_metric,
+                perf_loss_ths,
+                metric_func=perf_metric,
                 ys=ys,
             )
             if not is_valid:
@@ -129,9 +129,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        quantization_ths: float = None,
+        perf_loss_ths: float = None,
         quantization_type: QuantizationType = None,
-        quantization_metric: Callable = None,
+        perf_metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         """Optimize the input model with Apache TVM.
@@ -144,12 +144,12 @@ class ApacheTVMOptimizer(BaseOptimizer):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            quantization_ths (float, optional): Threshold for the accepted drop
+            perf_loss_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
-            quantization_metric (Callable, optional): If given it should
+            perf_metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
@@ -159,10 +159,10 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        check_quantization(quantization_type, quantization_ths)
+        check_quantization(quantization_type, perf_loss_ths)
         target = self._get_target()
         mod, params = self._build_tvm_model_from_onnx(onnx_model, model_params)
-        if quantization_ths is not None:
+        if perf_loss_ths is not None:
             if quantization_type is QuantizationType.HALF:
                 mod = tvm.relay.transform.ToMixedPrecision(
                     mixed_precision_type="float16"
@@ -182,6 +182,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                         ]
                     else:
                         inputs = input_data.get_numpy_list(300, with_ys=False)
+                    inputs = TVMCalibrator(inputs, get_input_names(onnx_model))
                 else:
                     return
                 mod = self._quantize(mod, params, input_data=inputs)
@@ -217,8 +218,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 model,
                 inputs,
                 output_data,
-                quantization_ths,
-                metric_func=quantization_metric,
+                perf_loss_ths,
+                metric_func=perf_metric,
                 ys=ys,
             )
             if not is_valid:
@@ -274,7 +275,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
     def _quantize(
         mod: IRModule,
         params: Dict[str, NDArray],
-        input_data: List[Tuple[np.ndarray]] = None,
+        input_data: TVMCalibrator = None,
     ) -> IRModule:
         if input_data is not None:
             with relay.quantize.qconfig(

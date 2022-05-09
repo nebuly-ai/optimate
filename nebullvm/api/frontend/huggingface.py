@@ -17,7 +17,7 @@ import numpy as np
 import torch
 
 from nebullvm import optimize_torch_model
-from nebullvm.api.frontend.utils import ifnone
+from nebullvm.api.frontend.utils import ifnone, QUANTIZATION_METRIC_MAP
 from nebullvm.base import DataType, ModelCompiler
 from nebullvm.inference_learners.base import (
     PytorchBaseInferenceLearner,
@@ -353,8 +353,8 @@ def optimize_huggingface_model(
     use_torch_api: bool = False,
     tokenizer_args: Dict = None,
     ignore_compilers: List[str] = None,
-    quantization_ths: float = None,
-    quantization_metric: Union[str, Callable] = None,
+    perf_loss_ths: float = None,
+    perf_metric: Union[str, Callable] = None,
     ys: List = None,
 ):
     """Optimize the HuggingFace model.
@@ -371,7 +371,7 @@ def optimize_huggingface_model(
         tokenizer (PreTrainedTokenizer): Tokenizer used for building model's
             inputs.
         input_texts (List[str]): Texts either from the training set or similar
-            to the ones contained in the text. If the quantization_ths is
+            to the ones contained in the text. If the perf_loss_ths is
             passed the input_text will be used for computing the drop in
             precision and for setting the quantization parameters. If you
             selected a quantization metric needing the input labels you need to
@@ -401,36 +401,39 @@ def optimize_huggingface_model(
         ignore_compilers (List[str], optional): List of DL compilers we want
             to ignore while running the optimization. Compiler name should be
             one between "tvm", "tensor RT", "openvino" and "onnxruntime".
-        quantization_ths (float, optional): Tolerated relative error for
-            performing quantization before compiling the model. If no value
-            is given, no quantization will be performed.
-        quantization_metric (Union[Callable, str], optional): The metric to
-            be used for accepting or refusing a quantization proposal. If none
-            is given but a `quantization_ths` is received, the
-            `nebullvm.measure.compute_relative_difference` metric will
-            be used as default one. A user-defined metric can be passed as
-            function accepting as inputs two tuples of tensors (produced by the
-            baseline and the quantized model) and the related original labels.
+        perf_loss_ths (float, optional): Tolerated relative error for
+            performing approximation techniques before compiling the model.
+            If no value is given, no optimization will be performed. Note that
+            it will not be used for compilers using the torch API when
+            `use_torch_api` is `True`. Just dynamic quantization will be
+            performed, since no data is given as input.
+        perf_metric (Union[Callable, str], optional): The metric to
+            be used for accepting or refusing a precision-reduction
+            optimization proposal. If none is given but a `perf_loss_ths` is
+            received, the `nebullvm.measure.compute_relative_difference`
+            metric will be used as default one. A user-defined metric can
+            be passed as function accepting as inputs two tuples of tensors
+            (produced by the baseline and the quantized model) and the related
+            original labels.
             For more information see
             `nebullvm.measure.compute_relative_difference` and
-            `nebullvm.measure.compute_accuracy_drop`. `quantization_metric`
+            `nebullvm.measure.compute_accuracy_drop`. `perf_metric`
             accepts as value also a string containing the metric name. At the
             current stage the supported metrics are `"precision"` and
             `"accuracy"`.
         ys: List of target labels. For each input in `input_texts` there should
             be the corresponding label. Note that this feature is just used for
-            estimating the accuracy drop while doing quantization. It will be
-            ignored if quantization is not activated.
+            estimating the accuracy drop while running precision-reduction
+            techniques. It will be ignored if these techniques are not
+            activated.
     """
-    if (
-        quantization_ths is not None
-        and ys is None
-        and quantization_metric == "accuracy"
-    ):
+    if perf_loss_ths is not None and ys is None and perf_metric == "accuracy":
         raise ValueError(
             "You cannot select the accuracy as quantization metric without "
             "providing valid labels!"
         )
+    if isinstance(perf_metric, str):
+        perf_metric = QUANTIZATION_METRIC_MAP.get(perf_metric)
     tokenizer_args = tokenizer_args or {}
     tokenizer_args.update({"return_tensors": "pt"})
     output_structure, output_type = _get_output_structure(
@@ -465,8 +468,8 @@ def optimize_huggingface_model(
             )
             if not use_static_shape
             else None,
-            quantization_ths=quantization_ths,
-            quantization_metric=quantization_metric,
+            perf_loss_ths=perf_loss_ths,
+            perf_metric=perf_metric,
             dataloader=_HFDataset(
                 input_texts,
                 ys,

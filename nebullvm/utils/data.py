@@ -15,14 +15,14 @@ class DataManager:
     """
 
     def __init__(self, data_reader: Sequence):
-        self.data_reader = data_reader
+        self._data_reader = data_reader
         self._pointer = 0
 
     def __getitem__(self, item):
-        return self.data_reader[item]
+        return self._data_reader[item]
 
     def __len__(self):
-        return len(self.data_reader)
+        return len(self._data_reader)
 
     def __iter__(self):
         self._pointer = 0
@@ -30,7 +30,7 @@ class DataManager:
 
     def __next__(self):
         if self._pointer < len(self):
-            data = self.data_reader[self._pointer]
+            data = self[self._pointer]
             self._pointer += 1
             return data
         else:
@@ -69,7 +69,7 @@ class DataManager:
                     ]
                 )
         if not with_ys:
-            return [self.data_reader[i][0] for i in idx]
+            return [self[i][0] for i in idx]
 
         ys, xs = [], []
         for x, y in self:

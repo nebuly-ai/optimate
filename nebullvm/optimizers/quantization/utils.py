@@ -12,7 +12,7 @@ def check_precision(
     optimized_learner: BaseInferenceLearner,
     input_data: List[Tuple[Any, ...]],
     base_outputs_list: List[Tuple[Any, ...]],
-    quantization_ths: float,
+    perf_loss_ths: float,
     metric_func: Callable = None,
     ys: List = None,
     aggregation_func: Callable = np.mean,
@@ -29,18 +29,18 @@ def check_precision(
         )
         relative_differences.append(relative_difference)
     relative_difference = aggregation_func(relative_differences)
-    return relative_difference <= quantization_ths
+    return relative_difference <= perf_loss_ths
 
 
 def check_quantization(
-    quantization_type: QuantizationType, quantization_threshold: float
+    quantization_type: QuantizationType, perf_loss_ths: float
 ):
-    if quantization_type is None and quantization_threshold is not None:
+    if quantization_type is None and perf_loss_ths is not None:
         raise ValueError(
             "When a quantization threshold is given it is necessary to "
             "specify the quantization algorithm too."
         )
-    if quantization_type is not None and quantization_threshold is None:
+    if quantization_type is not None and perf_loss_ths is None:
         warnings.warn(
             "Got a valid quantization type without any given quantization "
             "threshold. The quantization step will be ignored."

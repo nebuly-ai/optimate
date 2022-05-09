@@ -87,8 +87,8 @@ def optimize_tf_model(
     input_types: List[str] = None,
     extra_input_info: List[Dict] = None,
     dynamic_axis: Dict = None,
-    quantization_ths: float = None,
-    quantization_metric: Union[str, Callable] = None,
+    perf_loss_ths: float = None,
+    perf_metric: Union[str, Callable] = None,
     ignore_compilers: List[str] = None,
     custom_optimizers: List[BaseOptimizer] = None,
 ):
@@ -130,22 +130,23 @@ def optimize_tf_model(
             The inner dictionary should have as key an integer, i.e. the
             dynamic axis (considering also the batch size) and as value a
             string giving a "tag" to it, e.g. "batch_size".
-        quantization_ths (float, optional): Tolerated relative error for
-            performing quantization before compiling the model. If no value
-            is given, no quantization will be performed. Note that
-            just dynamic quantization will be performed, since no
-            data is given as input. For using other types of quantization
-            please use `optimize_tf_model_from_data` instead.
-        quantization_metric (Union[Callable, str], optional): The metric to
-            be used for accepting or refusing a quantization proposal. If none
-            is given but a `quantization_ths` is received, the
-            `nebullvm.measure.compute_relative_difference` metric will
-            be used as default one. A user-defined metric can be passed as
-            function accepting as inputs two tuples of tensors (produced by the
-            baseline and the quantized model) and the related original labels.
+        perf_loss_ths (float, optional): Tolerated relative error for
+            performing approximation techniques before compiling the model.
+            If no value is given, no optimization will be performed. Note that
+            it will not be used for compilers using the torch API when
+            `use_torch_api` is `True`. Just dynamic quantization will be
+            performed, since no data is given as input.
+        perf_metric (Union[Callable, str], optional): The metric to
+            be used for accepting or refusing a precision-reduction
+            optimization proposal. If none is given but a `perf_loss_ths` is
+            received, the `nebullvm.measure.compute_relative_difference`
+            metric will be used as default one. A user-defined metric can
+            be passed as function accepting as inputs two tuples of tensors
+            (produced by the baseline and the quantized model) and the related
+            original labels.
             For more information see
             `nebullvm.measure.compute_relative_difference` and
-            `nebullvm.measure.compute_accuracy_drop`. `quantization_metric`
+            `nebullvm.measure.compute_accuracy_drop`. `perf_metric`
             accepts as value also a string containing the metric name. At the
             current stage the supported metrics are `"precision"` and
             `"accuracy"`.
@@ -176,8 +177,8 @@ def optimize_tf_model(
         input_data = DataManager(dataset)
     else:
         input_data = None
-    if isinstance(quantization_metric, str):
-        quantization_metric = QUANTIZATION_METRIC_MAP.get(quantization_metric)
+    if isinstance(perf_metric, str):
+        perf_metric = QUANTIZATION_METRIC_MAP.get(perf_metric)
     if input_types is None:
         input_types = ["float"] * len(input_sizes)
     if extra_input_info is None:
@@ -225,8 +226,8 @@ def optimize_tf_model(
             output_library=dl_library,
             model_params=model_params,
             input_tfms=input_tfms,
-            quantization_ths=quantization_ths,
-            quantization_metric=quantization_metric,
+            perf_loss_ths=perf_loss_ths,
+            perf_metric=perf_metric,
             input_data=input_data,
         )
         model_optimized.save(save_dir)

@@ -37,12 +37,15 @@ class HuggingFaceOptimizer(BaseOptimizer):
     def __init__(
         self,
         hugging_face_params: Dict,
-        quantization_ths: float = None,
+        perf_loss_ths: float = None,
+        perf_metric: Callable = None,
         logger: Logger = None,
     ):
         super(HuggingFaceOptimizer, self).__init__(logger)
         self.hf_params = hugging_face_params
-        self.quantization_ths = quantization_ths
+        self.perf_loss_ths = perf_loss_ths
+        self.perf_metric = perf_metric
+        self.q_type = QuantizationType.HALF
 
     def optimize(
         self,
@@ -50,15 +53,15 @@ class HuggingFaceOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        quantization_ths: float = None,
+        perf_loss_ths: float = None,
         quantization_type: QuantizationType = None,
-        quantization_metric: Callable = None,
+        perf_metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ONNXInferenceLearner]:
         optimized_model = optimizer.optimize_model(
             onnx_model, **self.hf_params
         )
-        if quantization_ths is not None:
+        if perf_loss_ths is not None:
             if quantization_type is not QuantizationType.HALF:
                 return None
             optimized_model.convert_float_to_float16()
@@ -73,7 +76,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
             input_names=get_input_names(new_onnx_model),
             output_names=get_output_names(new_onnx_model),
         )
-        if quantization_ths is not None:
+        if perf_loss_ths is not None:
             # TODO: Add dataset and metric from user
             if input_data is None:
                 inputs = [learner.get_inputs_example()]
@@ -91,8 +94,8 @@ class HuggingFaceOptimizer(BaseOptimizer):
                 learner,
                 inputs,
                 base_outputs,
-                quantization_ths,
-                metric_func=quantization_metric,
+                perf_loss_ths,
+                metric_func=perf_metric,
                 ys=ys,
             )
             if not is_valid:
