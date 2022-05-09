@@ -403,7 +403,9 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 To make `nebullvm` work with `huggingface` we have changed the API slightly so that you can use the `optimize_huggingface_model` function to optimize your model. Below we show an example of how to accelerate GPT2 with `nebullvm` without loss of accuracy by leveraging only deep learning compilers (option A).
 
 ```
->>> from transformers import GPT2Tokenizer, GPT2Model
+To make `nebullvm` work with `huggingface` we have changed the API slightly so that you can use the `optimize_huggingface_model` function to optimize your model.
+
+`>>> from transformers import GPT2Tokenizer, GPT2Model
 >>> from nebullvm.api.frontend.huggingface import optimize_huggingface_model
 >>> tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 >>> model = GPT2Model.from_pretrained('gpt2')
@@ -421,7 +423,7 @@ To make `nebullvm` work with `huggingface` we have changed the API slightly so t
 ...     save_dir=".",
 ...     extra_input_info=[{}, {"max_value": 1, "min_value": 0}],
 ... )
->>> res = optimized_model(**encoded_input)
+>>> res = optimized_model(**encoded_input)` 
 ```
 
 </details>
