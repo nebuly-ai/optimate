@@ -1,8 +1,10 @@
 from pathlib import Path
+from typing import List, Tuple, Optional, Callable
 
+import numpy as np
 import torch
 
-from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.tensor_rt import (
     NVIDIA_INFERENCE_LEARNERS,
@@ -11,7 +13,21 @@ from nebullvm.inference_learners.tensor_rt import (
 from nebullvm.optimizers.base import (
     BaseOptimizer,
 )
-from nebullvm.utils.onnx import get_input_names, get_output_names
+from nebullvm.optimizers.quantization.onnx import quantize_onnx
+from nebullvm.optimizers.quantization.tensor_rt import TensorRTCalibrator
+from nebullvm.optimizers.quantization.utils import (
+    check_precision,
+    check_quantization,
+)
+from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
+from nebullvm.utils.onnx import (
+    get_input_names,
+    get_output_names,
+    create_model_inputs_onnx,
+    run_onnx_model,
+    convert_to_numpy,
+)
 
 if torch.cuda.is_available():
     try:
@@ -38,7 +54,13 @@ class TensorRTOptimizer(BaseOptimizer):
     """Class for compiling the AI models on Nvidia GPUs using TensorRT."""
 
     def _build_and_save_the_engine(
-        self, engine_path: str, onnx_model_path: str, model_params: ModelParams
+        self,
+        engine_path: str,
+        onnx_model_path: str,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        quantization_type: QuantizationType = None,
+        input_data: List[Tuple[np.ndarray, ...]] = None,
     ):
         # -- Build phase --
         nvidia_logger = trt.Logger(trt.Logger.WARNING)
@@ -47,6 +69,28 @@ class TensorRTOptimizer(BaseOptimizer):
         network = builder.create_network(
             1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
         )
+        # build the engine
+        # TODO: setup config value for the class in a config file
+        config = builder.create_builder_config()
+        config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
+        if quantization_type is QuantizationType.HALF:
+            config.set_flag(trt.BuilderFlag.FP16)
+        elif quantization_type is QuantizationType.STATIC:
+            assert input_data is not None, (
+                "You need to specify the calibration data for "
+                "performing static quantization."
+            )
+            calibrator = TensorRTCalibrator(
+                batch_size=model_params.batch_size,
+                input_data=input_data,
+            )
+            config.set_flag(trt.BuilderFlag.INT8)
+            config.int8_calibrator = calibrator
+        elif quantization_type is QuantizationType.DYNAMIC:
+            onnx_model_path, _ = quantize_onnx(
+                onnx_model_path, quantization_type, input_tfms, input_data
+            )
+            config.set_flag(trt.BuilderFlag.kINT8)
         # import the model
         parser = trt.OnnxParser(network, nvidia_logger)
         success = parser.parse_from_file(onnx_model_path)
@@ -60,10 +104,6 @@ class TensorRTOptimizer(BaseOptimizer):
                 f"ONNX file at {onnx_model_path}"
             )
 
-        # build the engine
-        # TODO: setup config value for the class in a config file
-        config = builder.create_builder_config()
-        config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
         if model_params.dynamic_info is not None:
             profile = builder.create_optimization_profile()
             for input_name, input_dynamic_info, input_info in zip(
@@ -97,7 +137,12 @@ class TensorRTOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-    ) -> NvidiaInferenceLearner:
+        input_tfms: MultiStageTransformation = None,
+        perf_loss_ths: float = None,
+        quantization_type: QuantizationType = None,
+        perf_metric: Callable = None,
+        input_data: DataManager = None,
+    ) -> Optional[NvidiaInferenceLearner]:
         """Optimize the input model with TensorRT.
 
         Args:
@@ -105,6 +150,18 @@ class TensorRTOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
+            perf_loss_ths (float, optional): Threshold for the accepted drop
+                in terms of precision. Any optimized model with an higher drop
+                will be ignored.
+            quantization_type (QuantizationType, optional): The desired
+                quantization algorithm to be used.
+            perf_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             TensorRTInferenceLearner: Model optimized with TensorRT. The model
@@ -116,12 +173,64 @@ class TensorRTOptimizer(BaseOptimizer):
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
             )
+        check_quantization(quantization_type, perf_loss_ths)
         engine_path = Path(onnx_model).parent / NVIDIA_FILENAMES["engine"]
-        self._build_and_save_the_engine(engine_path, onnx_model, model_params)
+        if (
+            perf_loss_ths is not None
+            and quantization_type is QuantizationType.STATIC
+        ):
+            if input_data is None:
+                input_data_onnx = [
+                    tuple(
+                        create_model_inputs_onnx(
+                            model_params.batch_size, model_params.input_infos
+                        )
+                    )
+                ]
+            else:
+                input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
+        else:
+            input_data_onnx = None
+        self._build_and_save_the_engine(
+            engine_path=engine_path,
+            onnx_model_path=onnx_model,
+            model_params=model_params,
+            input_tfms=input_tfms,
+            quantization_type=quantization_type,
+            input_data=input_data_onnx,
+        )
         model = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
+            input_tfms=input_tfms,
             network_parameters=model_params,
             engine_path=engine_path,
             input_names=get_input_names(onnx_model),
             output_names=get_output_names(onnx_model),
         )
+        if quantization_type is not None:
+            if input_data is None:
+                inputs = [model.get_inputs_example()]
+                ys = None
+            else:
+                inputs, ys = input_data.get_numpy_list(
+                    100, shuffle=True, with_ys=True
+                )
+            output_data = [
+                tuple(
+                    run_onnx_model(
+                        onnx_model,
+                        [convert_to_numpy(x) for x in tuple_],
+                    )
+                )
+                for tuple_ in inputs
+            ]
+            is_valid = check_precision(
+                model,
+                inputs,
+                output_data,
+                perf_loss_ths,
+                metric_func=perf_metric,
+                ys=ys,
+            )
+            if not is_valid:
+                return None
         return model
