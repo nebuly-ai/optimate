@@ -25,7 +25,7 @@
 **`nebullvm` speeds up AI inference by 2-30x in just a few lines of code 🚀**
 
 -  [How Nebullvm Works](#how-nebullvm-works)
--  [Benchmarks](https://github.com/nebuly-ai/nebullvm#benchmarks)
+-  [Benchmarks](#benchmarks)
 -  [Installation and Get Started](#installation)
 -  [Optimization Examples](#optimization-examples)
 -  [Tutorials](#tutorials)
@@ -228,11 +228,11 @@ hesitate to open an issue or contact directly `info@nebuly.ai` by email.
 
 ### Option A: 2-10x acceleration, NO performance loss
 
-If you choose this option, nebullvm will test multiple deep learning compilers (TensorRT, OpenVINO, ONNX Runtime, etc.) and identify the optimal way to compile your model on your hardware, increasing inference speed by 2-10 times without affecting the performance of your model.
+If you choose this option, `nebullvm` will test multiple deep learning compilers (TensorRT, OpenVINO, ONNX Runtime, etc.) and identify the optimal way to compile your model on your hardware, increasing inference speed by 2-10 times without affecting the performance of your model.
 
 ### Option B: 2-30x acceleration, supervised performance loss
 
-Nebullvm is capable of speeding up inference by much more than 10 times in case you are willing to sacrifice a fraction of your model's performance. If you specify how much performance loss you are willing to sustain, nebullvm will push your model's response time to its limits by identifying the best possible blend of state-of-the-art inference optimization techniques, such as deep learning compilers, distillation, quantization, half precision, sparsity, etc.
+`Nebullvm` is capable of speeding up inference by much more than 10 times in case you are willing to sacrifice a fraction of your model's performance. If you specify how much performance loss you are willing to sustain, `nebullvm` will push your model's response time to its limits by identifying the best possible blend of state-of-the-art inference optimization techniques, such as deep learning compilers, distillation, quantization, half precision, sparsity, etc.
 
 Performance monitoring is accomplished using the `perf_loss_ths` (performance loss threshold), and the `perf_metric` for performance estimation.
 
@@ -241,7 +241,7 @@ Performance monitoring is accomplished using the `perf_loss_ths` (performance lo
 When a predefined metric (e.g. “accuracy”) or a custom metric is passed as the perf_metric argument, the value of perf_loss_ths will be used as the maximum acceptable loss for the given metric evaluated on your datasets.
 
 #### Options B.2 and B.3
-When no `perf_metric` input is provided as input, nebullvm calculates the performance loss using the default `precision` function. If the `dataset` is provided, the precision will be calculated on 100 sampled data (option B.2), otherwise the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
+When no `perf_metric` is provided as input, `nebullvm` calculates the performance loss using the default `precision` function. If the `dataset` is provided, the precision will be calculated on 100 sampled data (option B.2). Otherwise, the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
 
 <details> 
 <summary> Options B.2 and B.3: Impact of perf_loss_ths on precision </summary>
