@@ -34,3 +34,18 @@ def create_model_inputs_torch(
         for input_info in input_infos
     )
     return list(input_tensors)
+
+
+def run_torch_model(
+    torch_model: torch.nn.Module, input_tensors: List[torch.Tensor]
+) -> List[torch.Tensor]:
+    if torch.cuda.is_available():
+        torch_model.cuda()
+        input_tensors = (t.cuda() for t in input_tensors)
+    with torch.no_grad():
+        pred = torch_model(*input_tensors)
+    if isinstance(pred, torch.Tensor):
+        pred = [pred.cpu()]
+    else:
+        pred = [p.cpu() for p in pred]
+    return pred
