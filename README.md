@@ -73,7 +73,7 @@ We have tested `nebullvm` on popular AI models and hardware from leading vendo
 
 The table below shows the inference speedup provided by `nebullvm`. The speedup is calculated as the response time of the unoptimized model divided by the response time of the accelerated model, as an average over 100 experiments. As an example, if the response time of an unoptimized model was on average 600 milliseconds and after `nebullvm` optimization only 240 milliseconds, the resulting speedup is 2.5x times, meaning 150% faster inference.
 
-A comprehensive description of the experiment and findings can be found on <a href="https://github.com/nebuly-ai/nebullvm/resources/README.md">this page</a>.
+A complete overview of the experiment and findings can be found on <a href="https://github.com/nebuly-ai/nebullvm/resources/README.md">this page</a>.
 
 |                         |  **M1 Pro**  | **Intel Xeon** | **AMD EPYC** | **Nvidia T4** |
 |-------------------------|:------------:|:---------------:|:-------------:|:-------------:|
@@ -234,19 +234,17 @@ If you choose this option, nebullvm will test multiple deep learning compilers (
 
 Nebullvm is capable of speeding up inference by much more than 10 times in case you are willing to sacrifice a fraction of your model's performance. If you specify how much performance loss you are willing to sustain, nebullvm will push your model's response time to its limits by identifying the best possible blend of state-of-the-art inference optimization techniques, such as deep learning compilers, distillation, quantization, half precision, sparsity, etc.
 
-Performance monitoring is accomplished using the `perf_loss_ths` (performance loss threshold), and the `perf_metric` for performance estimation. If no `perf_metric` is given as argument, nebullvm will use its default metric function `"precision"`. Some examples on using `perf_loss_ths` can be found in the tutorials above.
+Performance monitoring is accomplished using the `perf_loss_ths` (performance loss threshold), and the `perf_metric` for performance estimation.
 
-<details> 
-<summary> Option B.1 </summary>
+#### Option B.1 
   
 When a predefined metric (e.g. “accuracy”) or a custom metric is passed as the perf_metric argument, the value of perf_loss_ths will be used as the maximum acceptable loss for the given metric evaluated on your datasets.
 
-</details>
+#### Options B.2 and B.3
+When no `perf_metric` input is provided as input, nebullvm calculates the performance loss using the default `precision` function. If the `dataset` is provided, the precision will be calculated on 100 sampled data (option B.2), otherwise the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
 
 <details> 
-<summary> Option B.2 and B.3 </summary>
-
-When no `perf_metric` input is provided as input, the default `precision` is used by default by `nebullvm`. If the `dataset` is provided (option B.2), the `precision` will be calculated on 100 sampled data, otherwise the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
+<summary> Options B.2 and B.3: Impact of perf_loss_ths on precision </summary>
 
 The table below shows the impact of `perf_loss_ths` on the default metric `"precision"`.
 
