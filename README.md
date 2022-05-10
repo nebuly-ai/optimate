@@ -6,9 +6,9 @@
 
 <p align="center">
 <a href="#how-nebullvm-works">How Nebullvm Works</a> •
-<a href="tutorials-and-notebooks">Tutorials</a> •
+<a href="#tutorials">Tutorials</a> •
 <a href="#benchmarks">Benchmarks</a> •
-<a href="#installation-and-get-started">Installation</a> •
+<a href="#installation">Installation</a> •
 <a href="#get-started">Get Started</a> •
 <a href="#optimization-examples">Optimization Examples</a>
 </p>
@@ -25,11 +25,11 @@
 **`nebullvm` speeds up AI inference by 2-30x in just a few lines of code 🚀**
 
 -  [How Nebullvm Works](#how-nebullvm-works)
--  [Benchmarks](https://github.com/nebuly-ai/nebullvm#benchmarks)
--  [Installation and Get Started](#installation-and-get-started)
--  [Optmization Examples](#optimization-examples)
--  [Tutorials and Notebooks](#tutorials-and-notebooks)
--  <a href="https://discord.gg/jyjtZTPyHS">Join the Community for AI acceleration</a>
+-  [Benchmarks](#benchmarks)
+-  [Installation and Get Started](#installation)
+-  [Optimization Examples](#optimization-examples)
+-  [Tutorials](#tutorials)
+-  <a href="https://discord.gg/jyjtZTPyHS">Join the Community for AI Acceleration</a>
 
 
 
@@ -47,7 +47,8 @@
 
 The goal of `nebullvm` is to let any developer benefit from the most advanced inference optimization techniques without having to spend countless hours understanding, installing, testing and debugging these powerful technologies.
 
-#### The library aims to be:
+
+The library aims to be:
 
 ☘️ **Easy-to-use**. It takes a few lines of code to install the library and optimize your models.
 
@@ -61,7 +62,7 @@ The goal of `nebullvm` is to let any developer benefit from the most advanced 
 
 ✨ **Leveraging the best optimization techniques**. There are many inference optimization techniques such as deep learning compilers, quantization, half precision or distillation, which are all meant to optimize the way your AI models run on your hardware. It would take a developer countless hours to install and test them on every model deployment. The library does that for you.
 
-Do you like the concept? Leave a ⭐ if you enjoy the project and [join the Discord community](https://discord.gg/RbeQMu886J) where we chat about nebullvm and AI optimization. And happy acceleration 🚀🚀
+Do you like the concept? Leave a ⭐ if you enjoy the project and [join the Discord community](https://discord.gg/RbeQMu886J) where we chat about `nebullvm` and AI optimization. And happy acceleration 🚀🚀
 
 
 <img  src="https://user-images.githubusercontent.com/59367323/167450183-8bd2f76e-3b1d-4de7-b00e-5a755097ed19.png">
@@ -70,9 +71,9 @@ Do you like the concept? Leave a ⭐ if you enjoy the project and [join the Di
 
 We have tested `nebullvm` on popular AI models and hardware from leading vendors.
 
-The table below shows the inference speedup provided by nebullvm. The speedup is calculated as the response time of the unoptimized model divided by the response time of the accelerated model, as an average over 100 experiments. For instance, if the response time of an unoptimized model was on average 600 milliseconds, and after nebullvm optimization only 240 milliseconds, the resulting speed increase is 2.5x times, implying 150% faster inference.
+The table below shows the inference speedup provided by `nebullvm`. The speedup is calculated as the response time of the unoptimized model divided by the response time of the accelerated model, as an average over 100 experiments. As an example, if the response time of an unoptimized model was on average 600 milliseconds and after `nebullvm` optimization only 240 milliseconds, the resulting speedup is 2.5x times, meaning 150% faster inference.
 
-A comprehensive description of the experiment and findings can be found on this page.
+A complete overview of the experiment and findings can be found on <a href="https://github.com/nebuly-ai/nebullvm/resources/README.md">this page</a>.
 
 |                         |  **M1 Pro**  | **Intel Xeon** | **AMD EPYC** | **Nvidia T4** |
 |-------------------------|:------------:|:---------------:|:-------------:|:-------------:|
@@ -91,20 +92,20 @@ A comprehensive description of the experiment and findings can be found on this 
 | ____________________ | ____________ |   ____________  |  ____________ |  ____________ |
 
  
-Overall, the library provides great results, with more than 2x acceleration in most cases and around 20x in a few applications. We can also observe that acceleration varies greatly across different hardware-model couplings, so we suggest you test nebullvm on your model and hardware to assess its full potential. You can find the instructions below.
+Overall, the library provides great results, with more than 2x acceleration in most cases and around 20x in a few applications. We can also observe that acceleration varies greatly across different hardware-model couplings, so we suggest you test `nebullvm` on your model and hardware to assess its full potential. You can find the instructions below.
 
 Besides, across all scenarios, `nebullvm` is very helpful for its ease of use, allowing you to take advantage of inference optimization techniques without having to spend hours studying, testing and debugging these technologies.
 
 
-## Tutorials and Notebooks
+## Tutorials
 
-We suggest testing the library on your AI models right away by following the installation instructions below. If you want to get a first feel of the library's capabilities, or take a look at how nebullvm can be readily implemented in an AI workflow, we have built 3 tutorials and notebooks where the library can be tested on the most popular AI frameworks TensorFlow, PyTorch and Hugging Face.
+We suggest testing the library on your AI models right away by following the installation instructions below. If you want to get a first feel of the library's capabilities or take a look at how `nebullvm` can be readily implemented in an AI workflow, we have built 3 tutorials and notebooks where the library can be tested on the most popular AI frameworks TensorFlow, PyTorch and Hugging Face.
 
-- Speedup Resnet34 with FastAI with nebullvm [Read tutorial - Try notebook]
-- Speedup YOLO with PyTorch with nebullvm [Read tutorial, Try notebook]
-- Speedup GPT2 and BERT with Hugging Face with nebullvm [Read tutorial, Try notebook]
+- <a href="https://github.com/nebuly-ai/nebullvm/resources/notebooks/Accelerate-FastAI-Resnet34-with-nebullvm.ipynb">Notebook</a>: Accelerate FastAI's Resnet34 with nebullvm
+- <a href="https://github.com/nebuly-ai/nebullvm/resources/notebooks/Accelerate-PyTorch-YOLO-with-nebullvm.ipynb">Notebook</a>: Accelerate PyTorch YOLO with nebullvm
+- <a href="https://github.com/nebuly-ai/nebullvm/resources/notebooks/Accelerate-Hugging-Face-GPT2-and-BERT-with-nebullvm.ipynb">Notebook</a>: Accelerate Hugging Face's GPT2 and BERT with nebullvm
 
-## Installation and Get Started
+## Installation
 
 <details> 
 <summary> Step 1: Installation of nebullvm library </summary>
@@ -221,28 +222,47 @@ hesitate to open an issue or contact directly `info@nebuly.ai` by email.
 
 
 ## Get Started
-
 `Nebullvm` reduces the computation time of deep learning model inference by 2-30 times by testing multiple optimization techniques (deep learning compilers, quantization, half precision, distillation, and more) and identifying the optimal way to execute your AI model on your specific hardware.
 
----
----
----
----
----
----
----
+`Nebullvm` can be deployed in two ways.
 
-Currently `nebullvm` supports models in the `pytorch`, `tensorflow` and 
-`huggingface` frameworks, and many others will be included soon. Models can be 
-easily imported from one of the supported frameworks using the appropriate 
-feature as explained below.
+### Option A: 2-10x acceleration, NO performance loss
 
-And please leave a ⭐ for the work in developing the library. if many people like the library, we will keep building great new features. We already have a long list of ideas in mind ✨
-![Picture1324234](https://user-images.githubusercontent.com/59367323/167461266-be3290c6-e76b-4f63-ba3d-dfd691286fd1.png)
+If you choose this option, `nebullvm` will test multiple deep learning compilers (TensorRT, OpenVINO, ONNX Runtime, etc.) and identify the optimal way to compile your model on your hardware, increasing inference speed by 2-10 times without affecting the performance of your model.
+
+### Option B: 2-30x acceleration, supervised performance loss
+
+`Nebullvm` is capable of speeding up inference by much more than 10 times in case you are willing to sacrifice a fraction of your model's performance. If you specify how much performance loss you are willing to sustain, `nebullvm` will push your model's response time to its limits by identifying the best possible blend of state-of-the-art inference optimization techniques, such as deep learning compilers, distillation, quantization, half precision, sparsity, etc.
+
+Performance monitoring is accomplished using the `perf_loss_ths` (performance loss threshold), and the `perf_metric` for performance estimation.
+
+#### Option B.1 
+  
+When a predefined metric (e.g. “accuracy”) or a custom metric is passed as the perf_metric argument, the value of perf_loss_ths will be used as the maximum acceptable loss for the given metric evaluated on your datasets.
+
+#### Options B.2 and B.3
+When no `perf_metric` is provided as input, `nebullvm` calculates the performance loss using the default `precision` function. If the `dataset` is provided, the precision will be calculated on 100 sampled data (option B.2). Otherwise, the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
+
+<details> 
+<summary> Options B.2 and B.3: Impact of perf_loss_ths on precision </summary>
+
+The table below shows the impact of `perf_loss_ths` on the default metric `"precision"`.
+
+| **perf_loss_ths** | **Expected behavior with the default “precision” metric**                                                                                                                                                                                  |
+|:-----------------:|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **None or 0**     | No precision-reduction technique (distillation, quantization, half precision, sparsity, etc.) will be applied, as per Option A.                                                                                                            |
+| **1**             | Nebullvm will accept the outcome of precision-reduction techniques only if the relative change of the smallest output logit is smaller than 1. This is usually correlated with a marginal drop in precision.                               |
+| **2**             | Nebullvm will accept a "riskier" output from precision-reduction techniques to achieve increased inference speed. This can usually have an impact on the accuracy of ~0.1%.                                                                 |
+| **≥3**            | Aggressive precision reduction techniques are used to produce the lightest and fastest model possible. Accuracy drops depend on both model type and task type. A simple binary classification can still show accuracy drops around ~0.1%.  | 
+
+</details>
+
+And please leave a ⭐ for the work in developing the library. If many people like the library, we will keep building great new features. We already have a long list of ideas in mind ✨
+
+<img  src="https://user-images.githubusercontent.com/83510798/167514430-896577a1-7d70-416a-b170-5d861ba58cad.png">
 
 
-
-### Optimization examples
+## Optimization examples
 <details> 
 <summary> Optimization with PyTorch </summary>
 Here we present an example of optimizing a `pytorch` model with `nebullvm`:
@@ -308,7 +328,7 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 ... model, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
 ... )
 >>>
->>> # ONLY FOR OPTION B.2
+>>> # ONLY FOR OPTION B.1
 >>> input_data = [((tf.random_normal_inizializer()(shape=(1, 224, 224, 3)), ), 0)]
 >>> perf_loss_ths = 0.1  # We can accept a drop in the loss function up to 10%
 >>> optimized_model = optimize_tf_model(
@@ -382,10 +402,10 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 <details> 
 <summary> Optimization with Hugging Face </summary>
 
-```
-To make `nebullvm` work with `huggingface` we have changed the API slightly so that you can use the `optimize_huggingface_model` function to optimize your model.
+To make `nebullvm` work with `huggingface` we have changed the API slightly so that you can use the `optimize_huggingface_model` function to optimize your model. Below we show an example of how to accelerate GPT2 with `nebullvm` without loss of accuracy by leveraging only deep learning compilers (option A).
 
-`>>> from transformers import GPT2Tokenizer, GPT2Model
+```
+>>> from transformers import GPT2Tokenizer, GPT2Model
 >>> from nebullvm.api.frontend.huggingface import optimize_huggingface_model
 >>> tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 >>> model = GPT2Model.from_pretrained('gpt2')
@@ -403,7 +423,7 @@ To make `nebullvm` work with `huggingface` we have changed the API slightly so t
 ...     save_dir=".",
 ...     extra_input_info=[{}, {"max_value": 1, "min_value": 0}],
 ... )
->>> res = optimized_model(**encoded_input)` 
+>>> res = optimized_model(**encoded_input)
 ```
 
 </details>
@@ -411,7 +431,7 @@ To make `nebullvm` work with `huggingface` we have changed the API slightly so t
 
 ### Set the number of threads per model
 When running multiple replicas of the model in parallel, it would be useful 
-for cpu-optimized algorithms to limit the number of threads to use for each model.
+for CPU-optimized algorithms to limit the number of threads to use for each model.
 In nebullvm, it is possible to set the maximum number of threads a single model 
 can use with the environment variable `NEBULLVM_THREADS_PER_MODEL`. 
 For instance, you can run
@@ -420,11 +440,6 @@ export NEBULLVM_THREADS_PER_MODEL = 2
 ```
 for using just two CPU-threads per model at inference time and during optimization.
 
-## Testing the library on your models
-
-If you want to compare the performance of a model optimized by `nebullvm` with 
-its non-optimized version, you can find guidelines in the notebooks presented 
-in the section <a href="#technology-demonstration">Technology demonstration</a>.
 
 ## Supported frameworks
 
@@ -459,26 +474,17 @@ Do you want to integrate nebullvm in your open-source library? Try it out and if
 
 
 
+## The community for AI acceleration
 
-
-
-
-
-
-
-## Community
-You are interested in making AI more efficient? You want to meet other people 
-sharing the vision of an efficient AI which is actually easy to use without 
-needing deep knowledge on the hardware side? Join us in the [Nebuly tribe](https://discord.gg/jyjtZTPyHS) on
-Discord!
+Do you want to meet nebullvm contributors and other developers who share the vision of an superfast and sustainable artificial intelligence? Or would you like to report bugs or improvement ideas for nebullvm? [Join the community](https://discord.gg/RbeQMu886J) for AI acceleration on Discord!
 
 ## Acknowledgments
 
-`Nebullvm` builds on the outstanding work being accomplished by the open-source 
-community and major hardware vendors on deep learning compilers. 
-Currently `nebullvm` supports as AI compilers:
+`Nebullvm` was built by [Nebuly](https://nebuly.ai/), with a major contribution by [Diego Fiori](https://www.linkedin.com/in/diego-fiori-b64b3016a/), as well as a lot of support from the community who submitted pull requests, provided very useful feedback, and opened issues. 
 
-- [OpenVINO](https://docs.openvino.ai/latest/index.html) (on [Intel](https://www.intel.com/) Machines)
+`Nebullvm` builds on the outstanding work being accomplished by the open-source community and major hardware vendors on deep learning compilers.
+
+- [OpenVINO](https://docs.openvino.ai/latest/index.html) (on [Intel](https://www.intel.com/) machines)
 - [TensorRT](https://developer.nvidia.com/tensorrt) (on [NVIDIA](https://www.nvidia.com/) GPUs)
 - [Apache TVM](https://tvm.apache.org/)
 
@@ -487,9 +493,9 @@ Currently `nebullvm` supports as AI compilers:
 
 <p align="center">
 <a href="#how-nebullvm-works">How Nebullvm Works</a> •
-<a href="tutorials-and-notebooks">Tutorials</a> •
+<a href="#tutorials">Tutorials</a> •
 <a href="#benchmarks">Benchmarks</a> •
-<a href="#installation-and-get-started">Installation</a> •
+<a href="#installation">Installation</a> •
 <a href="#get-started">Get Started</a> •
 <a href="#optimization-examples">Optimization Examples</a>
 </p>
