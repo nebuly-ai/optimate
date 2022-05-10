@@ -5,8 +5,7 @@ We have tested nebullvm on popular AI models and hardware from leading vendors.
 - Hardware: M1 Pro, Intel Xeon, AMD EPYC and  NVIDIA T4
 - AI Models: EfficientNet, Resnet, SqueezeNet, GPT2, BERT
 
-<details> 
-<summary> Reponse time acceleration (milliseconds) </summary>
+## Reponse time acceleration in milliseconds
 
 The table below shows the response time in milliseconds of the non-optimized model and the optimized model for the various model-hardware couplings as an average value over 100 experiments.
   
@@ -41,8 +40,7 @@ Optimized performance is provided in the case where acceleration has not resulte
 </details> 
   
   
-<details> 
-<summary> Reponse time acceleration (inference speedup) </summary>
+## Reponse time acceleration (inference speedup)
   
 The table below displays the speedup provided by nebullvm, where speedup is defined as the response time of the optimized model over the response time of the non-optimized model. 
 
@@ -74,4 +72,6 @@ The speedup is shown for option A and B. We also present the B-boost, which refe
 | **GPT2 - 1024 tokens** |     1.8x     |      -      |     1.8x     |       1.3x       |        -        |     1.3x     |       1.6x       |       -       |     1.6x     |       1.1x       |      2.7x     |     3.1x     |
 | **Bert - 8 tokens**    |     39.39    |     6.2     |      6.2     |       31.31      |      14.87      |     10.86    |       164.9      |     38.12     |     34.08    |       10.35      |      3.78     |     2.51     |
 | **Bert - 512 tokens**  |    489.52    |    276.35   |    276.35    |      494.21      |      376.13     |    378.45    |      2985.27     |    1847.31    |    1888.74   |       31.25      |     27.37     |     10.12    |
-</details> 
+
+  
+  
