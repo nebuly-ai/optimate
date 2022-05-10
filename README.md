@@ -108,7 +108,7 @@ We suggest testing the library on your AI models right away by following the ins
 ## Installation
 
 <details> 
-<summary> Step 1: Installation of nebullvm library </summary>
+<summary> [Click to expand] Step 1: Installation of nebullvm library </summary>
 
 
 There are two ways to install `nebullvm`:
@@ -144,7 +144,7 @@ pip install .
 
   
 <details> 
-<summary> Step 2: Installation of deep learning compilers </summary>
+<summary> [Click to expand] Step 2: Installation of deep learning compilers </summary>
 
 Now you need to install the compilers that the library leverages to create the 
 optimized version of your models. We have built an auto-installer to install them 
@@ -209,7 +209,7 @@ python -c "from tvm.runtime import Module"
 </details>
 
 <details> 
-<summary> Possible installation issues </summary>
+<summary> [Click to expand] Possible installation issues </summary>
 
 **MacOS**: the installation may fail on MacOS for MacBooks with the Apple Silicon 
 chip, due to scipy compilation errors. The easy fix is to install `scipy` with 
@@ -244,7 +244,7 @@ When a predefined metric (e.g. “accuracy”) or a custom metric is passed as t
 When no `perf_metric` is provided as input, `nebullvm` calculates the performance loss using the default `precision` function. If the `dataset` is provided, the precision will be calculated on 100 sampled data (option B.2). Otherwise, the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
 
 <details> 
-<summary> Options B.2 and B.3: Impact of perf_loss_ths on precision </summary>
+<summary> [Click to expand] Options B.2 and B.3: Impact of perf_loss_ths on precision </summary>
 
 The table below shows the impact of `perf_loss_ths` on the default metric `"precision"`.
 
@@ -262,7 +262,7 @@ The table below shows the impact of `perf_loss_ths` on the default metric `"prec
 
 ## Optimization examples
 <details> 
-<summary> Optimization with PyTorch </summary>
+<summary> [Click to expand] Optimization with PyTorch </summary>
 Here we present an example of optimizing a `pytorch` model with `nebullvm`:
 
 ```
@@ -310,7 +310,7 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 </details> 
 
 <details> 
-<summary> Optimization with TensorFlow </summary>
+<summary> [Click to expand] Optimization with TensorFlow </summary>
 
 ```
 >>> # FOR EACH OPTION
@@ -354,7 +354,7 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 </details>
 
 <details> 
-<summary> Optimization with ONNX </summary>
+<summary> [Click to expand] Optimization with ONNX </summary>
 
 ```
 >>> # FOR EACH OPTION
@@ -398,7 +398,7 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 </details>
 
 <details> 
-<summary> Optimization with Hugging Face </summary>
+<summary> [Click to expand] Optimization with Hugging Face </summary>
 
 To make `nebullvm` work with `huggingface` we have changed the API slightly so that you can use the `optimize_huggingface_model` function to optimize your model. Below we show an example of how to accelerate GPT2 with `nebullvm` without loss of accuracy by leveraging only deep learning compilers (option A).
 
