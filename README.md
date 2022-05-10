@@ -238,7 +238,7 @@ Performance monitoring is accomplished using the `perf_loss_ths` (performance lo
 
 #### Option B.1 
   
-When a predefined metric (e.g. “accuracy”) or a custom metric is passed as the perf_metric argument, the value of perf_loss_ths will be used as the maximum acceptable loss for the given metric evaluated on your datasets.
+When a predefined metric (e.g. “accuracy”) or a custom metric is passed as the `perf_metric` argument, the value of `perf_loss_ths` will be used as the maximum acceptable loss for the given metric evaluated on your datasets.
 
 #### Options B.2 and B.3
 When no `perf_metric` is provided as input, `nebullvm` calculates the performance loss using the default `precision` function. If the `dataset` is provided, the precision will be calculated on 100 sampled data (option B.2). Otherwise, the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
@@ -256,8 +256,6 @@ The table below shows the impact of `perf_loss_ths` on the default metric `"prec
 | **≥3**            | Aggressive precision reduction techniques are used to produce the lightest and fastest model possible. Accuracy drops depend on both model type and task type. A simple binary classification can still show accuracy drops around ~0.1%.  | 
 
 </details>
-
-And please leave a ⭐ for the work in developing the library. If many people like the library, we will keep building great new features. We already have a long list of ideas in mind ✨
 
 <img  src="https://user-images.githubusercontent.com/83510798/167514430-896577a1-7d70-416a-b170-5d861ba58cad.png">
 
@@ -299,11 +297,11 @@ Here we present an example of optimizing a `pytorch` model with `nebullvm`:
 >>> perf_loss_ths = 2  # Relative error on the smallest logits accepted
 >>> bs, input_sizes = 1, [(3, 256, 256)]
 >>> optimized_model = optimize_torch_model(
-... model, batch_size=bs, input_sizes=input_sizes,, save_dir=save_dir, perf_loss_ths=perf_loss_ths, 
+... model, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir, perf_loss_ths=perf_loss_ths, 
 ... )
 >>>
 >>> # FOR EACH OPTION
->>> x = torch.randn((bs, *input_sizes[0]))
+>>> x = torch.randn(bs, 3, 256, 256)
 >>> res = optimized_model(x)
 ```
 
