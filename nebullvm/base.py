@@ -113,3 +113,4 @@ class QuantizationType(Enum):
     DYNAMIC = "DYNAMIC"
     STATIC = "STATIC"
     QAT = "QAT"
+    HALF = "HALF"

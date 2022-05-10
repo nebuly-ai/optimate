@@ -28,3 +28,12 @@ def create_model_inputs_tf(
         )
         for input_info in input_infos
     ]
+
+
+def run_tf_model(
+    model: tf.Module, input_tensors: Tuple[tf.Tensor]
+) -> Tuple[tf.Tensor]:
+    pred = model.predict(*input_tensors)
+    if isinstance(pred, tf.Module):
+        pred = (pred,)
+    return pred

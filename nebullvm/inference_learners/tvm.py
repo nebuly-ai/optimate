@@ -1,7 +1,6 @@
 import shutil
 import warnings
 from abc import ABC
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
 
@@ -18,6 +17,7 @@ from nebullvm.inference_learners.base import (
     NumpyBaseInferenceLearner,
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.transformations.base import MultiStageTransformation
 
 try:
     import tvm
@@ -50,7 +50,6 @@ except ImportError:
         GraphModule = object
 
 
-@dataclass
 class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
     """Model optimized using ApacheTVM.
 
@@ -71,11 +70,25 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             after loading the model (avoiding double engine serialization).
     """
 
-    graph_executor_module: GraphModule
-    input_names: List[str]
-    lib: Module
-    target: str
-    engine_path: Path = None
+    def __init__(
+        self,
+        graph_executor_module: GraphModule,
+        input_names: List[str],
+        lib: Module,
+        target: str,
+        engine_path: Path = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.graph_executor_module = graph_executor_module
+        self.input_names = input_names
+        self.lib = lib
+        self.target = target
+        self.engine_path = (
+            self._store_file(engine_path)
+            if engine_path is not None
+            else engine_path
+        )
 
     def _predict_array(
         self, input_arrays: Generator[np.ndarray, None, None]
@@ -138,6 +151,11 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         lib = tvm.runtime.load_module(path / TVM_FILENAMES["engine"])
         target_device = metadata["target"]
         input_names = metadata["input_names"]
+        input_tfms = metadata.get("input_tfms")
+        if input_tfms is not None:
+            metadata["input_tfms"] = MultiStageTransformation.from_dict(
+                input_tfms
+            )
         self = cls.from_runtime_module(
             network_parameters=network_parameters,
             lib=lib,
@@ -154,6 +172,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         lib: Module,
         target_device: str,
         input_names: List[str],
+        input_tfms: MultiStageTransformation = None,
     ):
         """Build the model from the runtime module (lib).
 
@@ -166,10 +185,14 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
                 or `cuda`.
             input_names (List[str]): Names associated to the model input
                 tensors.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
         """
         dev = tvm.device(str(target_device), 0)
         graph_executor_module = GraphModule(lib["default"](dev))
         return cls(
+            input_tfms=input_tfms,
             network_parameters=network_parameters,
             graph_executor_module=graph_executor_module,
             input_names=input_names,
@@ -254,9 +277,7 @@ class PytorchApacheTVMInferenceLearner(
             or "cuda" for targeting GPUs.
     """
 
-    def predict(
-        self, *input_tensors: torch.Tensor
-    ) -> Tuple[torch.Tensor, ...]:
+    def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -318,7 +339,7 @@ class TensorflowApacheTVMInferenceLearner(
             or "cuda" for targeting GPUs.
     """
 
-    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
+    def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -370,7 +391,7 @@ class NumpyApacheTVMInferenceLearner(
             or "cuda" for targeting GPUs.
     """
 
-    def predict(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
+    def run(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
