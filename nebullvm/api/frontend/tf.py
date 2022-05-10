@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Tuple, Union, Dict, Optional, Callable
+from typing import List, Tuple, Union, Dict, Optional, Callable, Any
 
 import tensorflow as tf
 
@@ -30,7 +30,7 @@ from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
 def _extract_dynamic_axis(
     tf_model: tf.Module,
-    dataset: tf.data.Dataset,
+    dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]],
     input_sizes: List[Tuple[int, ...]],
     batch_size: int,
     max_data: int = 100,
@@ -59,7 +59,7 @@ def _extract_dynamic_axis(
 
 def _extract_info_from_data(
     tf_model: tf.Module,
-    dataset: tf.data.Dataset,
+    dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]],
     batch_size: int,
     input_sizes: List[Tuple[int, ...]],
     input_types: List[str],
@@ -81,7 +81,7 @@ def _extract_info_from_data(
 def optimize_tf_model(
     model: Union[tf.Module, tf.keras.Model],
     save_dir: str,
-    dataset: tf.data.Dataset = None,
+    dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]] = None,
     batch_size: int = None,
     input_sizes: List[Tuple[int, ...]] = None,
     input_types: List[str] = None,
@@ -101,7 +101,7 @@ def optimize_tf_model(
     Args:
         model (tf.Module or keras.Model): Model that needs optimization.
         save_dir (str): Path to the directory where saving the final model.
-        dataset (Dataset, optional):  Dataset containing data in the form of
+        dataset (List, optional):  Dataset containing data in the form of
             (xs, y) where xs are tuples of Tensors and ys can be whatever
             needed for computing the selected metric at quantization time.
             The data will be used for extracting all the data related
