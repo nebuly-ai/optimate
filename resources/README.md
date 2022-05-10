@@ -9,7 +9,7 @@ We have tested nebullvm on popular AI models and hardware from leading vendors.
 
 The table below shows the response time in milliseconds of the non-optimized model and the optimized model for the various model-hardware couplings as an average value over 100 experiments.
   
-Optimized performance is provided in the case where acceleration has not resulted in any performance loss by using deep learning compilers (Option A) or when also other otpimization techniques such as quantization and half precision (Option B) are also applied with perf_loss_ths parameter set to 2. Refer to the <a href="https://github.com/nebuly-ai/nebullvm#get-started">nebullvm library readme</a> for more clarification on the two options and the perf_loss_ths parameter.
+Optimized performance is provided in the case where acceleration has not resulted in any performance loss by using deep learning compilers (Option A) or when also other otpimization techniques such as quantization and half precision (Option B) are also applied with perf_loss_ths parameter set to 2. Refer to the <a href="https://github.com/nebuly-ai/nebullvm">nebullvm library readme</a> for more clarification on the two options and the perf_loss_ths parameter.
 
 |                   | <--   |  **M1 Pro**  |   -->      |    <--   | **Intel Xeon** |  -->      |   <--  | **AMD EPYC** |   -->     |    <--  | **Nvidia T4** |  -->     |
 |:----------------------:|:-----------:|:------------:|:------------:|:-----------:|:---------------:|:------------:|:-----------:|:-------------:|:------------:|:-----------:|:-------------:|:------------:|
@@ -44,7 +44,7 @@ Optimized performance is provided in the case where acceleration has not resulte
   
 The table below displays the speedup provided by nebullvm, where speedup is defined as the response time of the optimized model over the response time of the non-optimized model. 
 
-The speedup is shown for option A and B. We also present the B-boost, which refers to the additional acceleration provided by the techniques used only in Option B (quantization and half-precision) over those also used in Option A (deep learning compilers. Refer to the <a href="https://github.com/nebuly-ai/nebullvm#get-started">nebullvm library readme</a> for more information about Option A and B.
+The speedup is shown for option A and B. We also present the B-boost, which refers to the additional acceleration provided by the techniques used only in Option B (quantization and half-precision) over those also used in Option A (deep learning compilers. Refer to the <a href="https://github.com/nebuly-ai/nebullvm">nebullvm library readme</a> for more information about Option A and B.
   
   
 |                   | <--   |  **M1 Pro**  |   -->      |    <--   | **Intel Xeon** |  -->      |   <--  | **AMD EPYC** |   -->     |    <--  | **Nvidia T4** |  -->     |
