@@ -73,7 +73,7 @@ We have tested `nebullvm` on popular AI models and hardware from leading vendo
 
 The table below shows the inference speedup provided by `nebullvm`. The speedup is calculated as the response time of the unoptimized model divided by the response time of the accelerated model, as an average over 100 experiments. As an example, if the response time of an unoptimized model was on average 600 milliseconds and after `nebullvm` optimization only 240 milliseconds, the resulting speedup is 2.5x times, meaning 150% faster inference.
 
-A complete overview of the experiment and findings can be found on <a href="https://github.com/nebuly-ai/nebullvm/resources/README.md">this page</a>.
+A complete overview of the experiment and findings can be found on <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/README.md">this page</a>.
 
 |                         |  **M1 Pro**  | **Intel Xeon** | **AMD EPYC** | **Nvidia T4** |
 |-------------------------|:------------:|:---------------:|:-------------:|:-------------:|
@@ -101,9 +101,9 @@ Besides, across all scenarios, `nebullvm` is very helpful for its ease of use,
 
 We suggest testing the library on your AI models right away by following the installation instructions below. If you want to get a first feel of the library's capabilities or take a look at how `nebullvm` can be readily implemented in an AI workflow, we have built 3 tutorials and notebooks where the library can be tested on the most popular AI frameworks TensorFlow, PyTorch and Hugging Face.
 
-- <a href="https://github.com/nebuly-ai/nebullvm/resources/notebooks/Accelerate-FastAI-Resnet34-with-nebullvm.ipynb">Notebook</a>: Accelerate FastAI's Resnet34 with nebullvm
-- <a href="https://github.com/nebuly-ai/nebullvm/resources/notebooks/Accelerate-PyTorch-YOLO-with-nebullvm.ipynb">Notebook</a>: Accelerate PyTorch YOLO with nebullvm
-- <a href="https://github.com/nebuly-ai/nebullvm/resources/notebooks/Accelerate-Hugging-Face-GPT2-and-BERT-with-nebullvm.ipynb">Notebook</a>: Accelerate Hugging Face's GPT2 and BERT with nebullvm
+- <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-FastAI-Resnet34-with-nebullvm.ipynb">Notebook</a>: Accelerate FastAI's Resnet34 with nebullvm
+- <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-PyTorch-YOLO-with-nebullvm.ipynb">Notebook</a>: Accelerate PyTorch YOLO with nebullvm
+- <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-Hugging-Face-GPT2-and-BERT-with-nebullvm.ipynb">Notebook</a>: Accelerate Hugging Face's GPT2 and BERT with nebullvm
 
 ## Installation
 
