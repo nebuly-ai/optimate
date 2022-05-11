@@ -10,7 +10,12 @@ import numpy as np
 import torch
 
 
-from nebullvm.base import ModelCompiler, DeepLearningFramework, ModelParams
+from nebullvm.base import (
+    ModelCompiler,
+    DeepLearningFramework,
+    ModelParams,
+    QuantizationType,
+)
 from nebullvm.config import NEBULLVM_DEBUG_FILE
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
@@ -21,6 +26,8 @@ from nebullvm.optimizers import (
     OpenVinoOptimizer,
     ONNXOptimizer,
 )
+from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.APACHE_TVM: ApacheTVMOptimizer,
@@ -61,13 +68,27 @@ def _optimize_with_compiler(
     return _optimize_with_optimizer(optimizer, logger, metric_func, **kwargs)
 
 
-def _save_info(optimizer: BaseOptimizer, score: float, debug_file: str):
+def _save_info(
+    optimizer: BaseOptimizer,
+    score: float,
+    debug_file: str,
+    optimization_params: Dict,
+):
     if Path(debug_file).exists():
         with open(debug_file, "r") as f:
             old_dict = json.load(f)
     else:
         old_dict = {}
-    old_dict[optimizer.__class__.__name__] = f"{score}"
+    optimization_string = optimizer.__class__.__name__
+    quantization_string = "_".join(
+        [
+            str(optimization_params.get(param)) or ""
+            for param in ["perf_loss_ths", "quantization_type"]
+        ]
+    )
+    if len(quantization_string) > 1:
+        optimization_string += "_" + quantization_string
+    old_dict[optimization_string] = f"{score}"
     with open(debug_file, "w") as f:
         json.dump(old_dict, f)
 
@@ -96,7 +117,7 @@ def _optimize_with_optimizer(
         latency = np.inf
         model_optimized = None
     if debug_file:
-        _save_info(optimizer, latency, debug_file)
+        _save_info(optimizer, latency, debug_file, kwargs)
     return model_optimized, latency
 
 
@@ -144,6 +165,11 @@ class MultiCompilerOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
+        perf_loss_ths: float = None,
+        quantization_type: QuantizationType = None,
+        perf_metric: Callable = None,
+        input_data: DataManager = None,
     ) -> BaseInferenceLearner:
         """Optimize the ONNX model using the available compilers.
 
@@ -152,10 +178,32 @@ class MultiCompilerOptimizer(BaseOptimizer):
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
+            perf_loss_ths (float, optional): Threshold for the accepted drop
+                in terms of precision. Any optimized model with an higher drop
+                will be ignored.
+            quantization_type (QuantizationType, optional): The desired
+                quantization algorithm to be used.
+            perf_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             BaseInferenceLearner: Model optimized for inference.
         """
+        if perf_loss_ths is not None and quantization_type is None:
+            quantization_types = [
+                None,
+                QuantizationType.DYNAMIC,
+                QuantizationType.HALF,
+            ]
+            if input_data is not None:
+                quantization_types.append(QuantizationType.STATIC)
+        else:
+            quantization_types = [quantization_type]
         optimized_models = [
             _optimize_with_compiler(
                 compiler,
@@ -163,9 +211,17 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 onnx_model=onnx_model,
                 output_library=output_library,
                 model_params=model_params,
+                input_tfms=input_tfms.copy()
+                if input_tfms is not None
+                else None,
                 debug_file=self.debug_file,
+                perf_loss_ths=perf_loss_ths if q_type is not None else None,
+                quantization_type=q_type,
+                perf_metric=perf_metric,
+                input_data=input_data,
             )
             for compiler in self.compilers
+            for q_type in quantization_types
         ]
         if self.extra_optimizers is not None:
             optimized_models += [
@@ -175,9 +231,19 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     onnx_model=onnx_model,
                     output_library=output_library,
                     model_params=model_params,
+                    input_tfms=input_tfms.copy()
+                    if input_tfms is not None
+                    else None,
                     debug_file=self.debug_file,
+                    perf_loss_ths=perf_loss_ths
+                    if q_type is not None
+                    else None,
+                    quantization_type=q_type,
+                    perf_metric=perf_metric,
+                    input_data=input_data,
                 )
                 for op in self.extra_optimizers
+                for q_type in quantization_types
             ]
         optimized_models.sort(key=lambda x: x[1], reverse=False)
         return optimized_models[0][0]
@@ -188,6 +254,11 @@ class MultiCompilerOptimizer(BaseOptimizer):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
+        perf_loss_ths: float = None,
+        quantization_type: QuantizationType = None,
+        perf_metric: Callable = None,
+        input_data: DataManager = None,
         return_all: bool = False,
     ):
         """Optimize the ONNX model using the available compilers and give the
@@ -203,9 +274,21 @@ class MultiCompilerOptimizer(BaseOptimizer):
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
             return_all (bool, optional): Boolean flag. If true the method
                 returns the tuple (compiled_model, score) for each available
                 compiler. Default `False`.
+            perf_loss_ths (float, optional): Threshold for the accepted drop
+                in terms of precision. Any optimized model with an higher drop
+                will be ignored.
+            quantization_type (QuantizationType, optional): The desired
+                quantization algorithm to be used.
+            perf_metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             Union[BaseInferenceLearner, Tuple[BaseInferenceLearner, float]]:
@@ -213,6 +296,16 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 `return_all` is `False` or all the compiled models and their
                 scores otherwise.
         """
+        if perf_loss_ths is not None and quantization_type is None:
+            quantization_types = [
+                None,
+                QuantizationType.DYNAMIC,
+                QuantizationType.HALF,
+            ]
+            if input_data is not None:
+                quantization_types.append(QuantizationType.STATIC)
+        else:
+            quantization_types = [quantization_type]
         optimized_models = [
             _optimize_with_compiler(
                 compiler,
@@ -221,9 +314,17 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 onnx_model=onnx_model,
                 output_library=output_library,
                 model_params=model_params,
-                debug_mode=self.debug_mode,
+                input_tfms=input_tfms.copy()
+                if input_tfms is not None
+                else None,
+                debug_file=self.debug_file,
+                perf_loss_ths=perf_loss_ths if q_type is not None else None,
+                quantization_type=q_type,
+                perf_metric=perf_metric,
+                input_data=input_data,
             )
             for compiler in self.compilers
+            for q_type in quantization_types
         ]
         if self.extra_optimizers is not None:
             optimized_models += [
@@ -233,9 +334,19 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     onnx_model=onnx_model,
                     output_library=output_library,
                     model_params=model_params,
-                    debug_mode=self.debug_mode,
+                    input_tfms=input_tfms.copy()
+                    if input_tfms is not None
+                    else None,
+                    debug_file=self.debug_file,
+                    perf_loss_ths=perf_loss_ths
+                    if q_type is not None
+                    else None,
+                    quantization_type=q_type,
+                    perf_metric=perf_metric,
+                    input_data=input_data,
                 )
                 for op in self.extra_optimizers
+                for q_type in quantization_types
             ]
         if return_all:
             return optimized_models
