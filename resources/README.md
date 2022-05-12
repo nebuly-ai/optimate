@@ -11,7 +11,7 @@ The table below shows the response time in milliseconds of the non-optimized mod
   
 Optimized performance is provided in the case where acceleration has not resulted in any performance loss by using deep learning compilers (Option A) or when also other otpimization techniques such as quantization and half precision (Option B) are also applied with perf_loss_ths parameter set to 2. Refer to the <a href="https://github.com/nebuly-ai/nebullvm">nebullvm library readme</a> for more clarification on the two options and the perf_loss_ths parameter.
 
-|                   | <--   |  **M1 Pro**  |   -->      |    <--   | **Intel Xeon** |  -->      |   <--  | **AMD EPYC** |   -->     |    <--  | **Nvidia T4** |  -->     |
+|Response time (milliseconds)| <--   |  **M1 Pro**  |   -->      |    <--   | **Intel Xeon** |  -->      |   <--  | **AMD EPYC** |   -->     |    <--  | **Nvidia T4** |  -->     |
 |:----------------------:|:-----------:|:------------:|:------------:|:-----------:|:---------------:|:------------:|:-----------:|:-------------:|:------------:|:-----------:|:-------------:|:------------:|
 |                        | **Vanilla** | **Option A** | **Option B** | **Vanilla** |   **Option A**  | **Option B** | **Vanilla** |  **Option A** | **Option B** | **Vanilla** |  **Option A** | **Option B** |
 | **EfficientNetB0**     |    214.95   |     24.4     |     9.24     |    36.07    |      12.15      |     10.44    |    86.29    |     38.64     |     31.67    |    12.92    |      9.59     |       -      |
@@ -44,12 +44,12 @@ Optimized performance is provided in the case where acceleration has not resulte
   
 The table below displays the speedup provided by nebullvm, where speedup is defined as the response time of the optimized model over the response time of the non-optimized model. 
 
-The speedup is shown for option A and B. We also present the B-boost, which refers to the additional acceleration provided by the techniques used only in Option B (quantization and half-precision) over those also used in Option A (deep learning compilers. Refer to the <a href="https://github.com/nebuly-ai/nebullvm">nebullvm library readme</a> for more information about Option A and B.
+The speedup is shown for option A and B. We also present the OpB boost, which refers to the additional acceleration provided by the techniques used only in Option B (quantization and half-precision) over those also used in Option A (deep learning compilers. Refer to the <a href="https://github.com/nebuly-ai/nebullvm">nebullvm library readme</a> for more information about Option A and B.
   
   
-|                   | <--   |  **M1 Pro**  |   -->      |    <--   | **Intel Xeon** |  -->      |   <--  | **AMD EPYC** |   -->     |    <--  | **Nvidia T4** |  -->     |
+|Infefence speedup| <--   |  **M1 Pro**  |   -->      |    <--   | **Intel Xeon** |  -->      |   <--  | **AMD EPYC** |   -->     |    <--  | **Nvidia T4** |  -->     |
 |:----------------------:|:------------:|:-----------:|:------------:|:----------------:|:---------------:|:------------:|:----------------:|:-------------:|:------------:|:----------------:|:-------------:|:------------:|
-|                        | **Option A** | **B-boost** | **Option B** | **DL compilers** |   **B-boost**   | **Option B** | **DL compilers** |  **B-boost**  | **Option B** | **DL compilers** |  **B-boost**  | **Option B** |
+|                        | **Option A** | **OpB boost** | **Option B** | **DL compilers** |   **OpB boost**   | **Option B** | **DL compilers** |  **OpB boost**  | **Option B** | **DL compilers** |  **OpB boost**  | **Option B** |
 | **EfficientNetB0**     | 8.8x | 2.6x | 23.3x | 3.0x | 1.2x | 3.5x | 2.2x | 1.2x | 2.7x | 1.3x |   -  | 1.3x |
 | **EfficientNetB1**     | 8.3x | 2.5x | 21.0x | 2.9x | 1.1x | 3.1x | 1.6x | 1.4x | 2.3x | 1.3x |   -  | 1.3x |
 | **EfficientNetB2**     | 7.7x | 2.5x | 19.6x | 2.6x | 1.1x | 2.8x | 1.5x |   -  | 1.5x | 2.7x |   -  | 2.7x |
