@@ -15,7 +15,7 @@
 
 <p align="center">
 <a href="https://discord.gg/RbeQMu886J">Discord</a> |
-<a href="https://nebuly.ai/](https://nebuly.ai/">Website</a> |
+<a href="https://nebuly.ai/">Website</a> |
 <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
 <a href="https://twitter.com/nebuly_ai">Twitter</a>
 </p>
@@ -500,7 +500,7 @@ Do you want to meet nebullvm contributors and other developers who share the vis
 
 <p align="center">
 <a href="https://discord.gg/RbeQMu886J">Discord</a> |
-<a href="https://nebuly.ai/](https://nebuly.ai/">Website</a> |
+<a href="https://nebuly.ai/">Website</a> |
 <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
 <a href="https://twitter.com/nebuly_ai">Twitter</a>
 </p>
