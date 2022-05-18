@@ -47,6 +47,8 @@
 The goal of `nebullvm` is to let any developer benefit from the most advanced inference optimization techniques without having to spend countless hours understanding, installing, testing and debugging these powerful technologies.
 
 
+The library aims to be:
+
 ☘️ **Easy-to-use**. It takes a few lines of code to install the library and optimize your models.
 
 🔥 **Framework agnostic**. `nebullvm` supports the most widely used frameworks (PyTorch, TensorFlow, ONNX and Hugging Face, etc.) and provides as output an optimized version of your model with the same interface (PyTorch, TensorFlow, etc.).
@@ -101,7 +103,6 @@ We suggest testing the library on your AI models right away by following the ins
 - <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-FastAI-Resnet34-with-nebullvm.ipynb">Notebook</a>: Accelerate FastAI's Resnet34 with nebullvm
 - <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-PyTorch-YOLO-with-nebullvm.ipynb">Notebook</a>: Accelerate PyTorch YOLO with nebullvm
 - <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-Hugging-Face-GPT2-and-BERT-with-nebullvm.ipynb">Notebook</a>: Accelerate Hugging Face's GPT2 and BERT with nebullvm
-
 
 ## Installation
 
@@ -263,7 +264,6 @@ The table below shows the impact of `perf_loss_ths` on the default metric `"prec
 ## Optimization examples
 <details> 
 <summary> [Click to expand] Optimization with PyTorch </summary>
-
 Here we present an example of optimizing a `pytorch` model with `nebullvm`:
 
 ```
@@ -327,7 +327,7 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 ... model, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
 ... )
 >>>
->>> # ONLY FOR OPTION B.2
+>>> # ONLY FOR OPTION B.1
 >>> input_data = [((tf.random_normal_inizializer()(shape=(1, 224, 224, 3)), ), 0)]
 >>> perf_loss_ths = 0.1  # We can accept a drop in the loss function up to 10%
 >>> optimized_model = optimize_tf_model(
@@ -478,7 +478,6 @@ Do you want to integrate nebullvm in your open-source library? Try it out and if
 ## The community for AI acceleration
 
 Do you want to meet nebullvm contributors and other developers who share the vision of an superfast and sustainable artificial intelligence? Or would you like to report bugs or improvement ideas for nebullvm? [Join the community](https://discord.gg/RbeQMu886J) for AI acceleration on Discord!
-
 
 ## Acknowledgments
 
