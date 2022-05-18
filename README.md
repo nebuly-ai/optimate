@@ -47,8 +47,6 @@
 The goal of `nebullvm` is to let any developer benefit from the most advanced inference optimization techniques without having to spend countless hours understanding, installing, testing and debugging these powerful technologies.
 
 
-The library aims to be:
-
 ☘️ **Easy-to-use**. It takes a few lines of code to install the library and optimize your models.
 
 🔥 **Framework agnostic**. `nebullvm` supports the most widely used frameworks (PyTorch, TensorFlow, ONNX and Hugging Face, etc.) and provides as output an optimized version of your model with the same interface (PyTorch, TensorFlow, etc.).
@@ -240,6 +238,7 @@ Performance monitoring is accomplished using the `perf_loss_ths` (performance lo
   
 When a predefined metric (e.g. “accuracy”) or a custom metric is passed as the `perf_metric` argument, the value of `perf_loss_ths` will be used as the maximum acceptable loss for the given metric evaluated on your datasets.
 
+
 #### Options B.2 and B.3
 When no `perf_metric` is provided as input, `nebullvm` calculates the performance loss using the default `precision` function. If the `dataset` is provided, the precision will be calculated on 100 sampled data (option B.2). Otherwise, the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
 
@@ -254,6 +253,7 @@ The table below shows the impact of `perf_loss_ths` on the default metric `"prec
 | **1**             | Nebullvm will accept the outcome of precision-reduction techniques only if the relative change of the smallest output logit is smaller than 1. This is usually correlated with a marginal drop in precision.                               |
 | **2**             | Nebullvm will accept a "riskier" output from precision-reduction techniques to achieve increased inference speed. This can usually have an impact on the accuracy of ~0.1%.                                                                 |
 | **≥3**            | Aggressive precision reduction techniques are used to produce the lightest and fastest model possible. Accuracy drops depend on both model type and task type. A simple binary classification can still show accuracy drops around ~0.1%.  | 
+
 
 </details>
 
@@ -327,7 +327,7 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 ... model, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
 ... )
 >>>
->>> # ONLY FOR OPTION B.1
+>>> # ONLY FOR OPTION B.2
 >>> input_data = [((tf.random_normal_inizializer()(shape=(1, 224, 224, 3)), ), 0)]
 >>> perf_loss_ths = 0.1  # We can accept a drop in the loss function up to 10%
 >>> optimized_model = optimize_tf_model(
@@ -478,6 +478,7 @@ Do you want to integrate nebullvm in your open-source library? Try it out and if
 ## The community for AI acceleration
 
 Do you want to meet nebullvm contributors and other developers who share the vision of an superfast and sustainable artificial intelligence? Or would you like to report bugs or improvement ideas for nebullvm? [Join the community](https://discord.gg/RbeQMu886J) for AI acceleration on Discord!
+
 
 ## Acknowledgments
 

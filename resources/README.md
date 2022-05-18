@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+# Benchmarks and tutorials
+
+WRITE HERE THE README
+=======
 # Benchmarks
 
 We have tested nebullvm on popular AI models and hardware from leading vendors.
@@ -75,3 +80,4 @@ The speedup is shown for option A and B. We also present the OpB boost, which re
 
 
   
+>>>>>>> upstream/main
