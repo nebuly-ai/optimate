@@ -15,7 +15,7 @@
 
 <p align="center">
 <a href="https://discord.gg/RbeQMu886J">Discord</a> |
-<a href="https://nebuly.ai/](https://nebuly.ai/">Website</a> |
+<a href="https://nebuly.ai/">Website</a> |
 <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
 <a href="https://twitter.com/nebuly_ai">Twitter</a>
 </p>
@@ -30,7 +30,6 @@
 -  [Optimization Examples](#optimization-examples)
 -  [Tutorials](#tutorials)
 -  <a href="https://discord.gg/jyjtZTPyHS">Join the Community for AI Acceleration</a>
-
 
 
 ## How Nebullvm Works
@@ -101,7 +100,7 @@ Besides, across all scenarios, `nebullvm` is very helpful for its ease of use,
 
 We suggest testing the library on your AI models right away by following the installation instructions below. If you want to get a first feel of the library's capabilities or take a look at how `nebullvm` can be readily implemented in an AI workflow, we have built 3 tutorials and notebooks where the library can be tested on the most popular AI frameworks TensorFlow, PyTorch and Hugging Face.
 
-- <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-FastAI-Resnet34-with-nebullvm.ipynb">Notebook</a>: Accelerate FastAI's Resnet34 with nebullvm
+- <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-fast.ai-Resnet34-with-nebullvm.ipynb">Notebook</a>: Accelerate fast.ai's Resnet34 with nebullvm
 - <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-PyTorch-YOLO-with-nebullvm.ipynb">Notebook</a>: Accelerate PyTorch YOLO with nebullvm
 - <a href="https://github.com/nebuly-ai/nebullvm/tree/main/resources/notebooks/Accelerate-Hugging-Face-GPT2-and-BERT-with-nebullvm.ipynb">Notebook</a>: Accelerate Hugging Face's GPT2 and BERT with nebullvm
 
@@ -284,6 +283,7 @@ Performance monitoring is accomplished using the `perf_loss_ths` (performance lo
   
 When a predefined metric (e.g. “accuracy”) or a custom metric is passed as the `perf_metric` argument, the value of `perf_loss_ths` will be used as the maximum acceptable loss for the given metric evaluated on your datasets.
 
+
 #### Options B.2 and B.3
 When no `perf_metric` is provided as input, `nebullvm` calculates the performance loss using the default `precision` function. If the `dataset` is provided, the precision will be calculated on 100 sampled data (option B.2). Otherwise, the data will be randomly generated from the metadata provided as input, i.e. `input_sizes` and `batch_size` (option B.3).
 
@@ -298,6 +298,7 @@ The table below shows the impact of `perf_loss_ths` on the default metric `"prec
 | **1**             | Nebullvm will accept the outcome of precision-reduction techniques only if the relative change of the smallest output logit is smaller than 1. This is usually correlated with a marginal drop in precision.                               |
 | **2**             | Nebullvm will accept a "riskier" output from precision-reduction techniques to achieve increased inference speed. This can usually have an impact on the accuracy of ~0.1%.                                                                 |
 | **≥3**            | Aggressive precision reduction techniques are used to produce the lightest and fastest model possible. Accuracy drops depend on both model type and task type. A simple binary classification can still show accuracy drops around ~0.1%.  | 
+
 
 </details>
 
@@ -447,7 +448,9 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 To make `nebullvm` work with `huggingface` we have changed the API slightly so that you can use the `optimize_huggingface_model` function to optimize your model. Below we show an example of how to accelerate GPT2 with `nebullvm` without loss of accuracy by leveraging only deep learning compilers (option A).
 
 ```
->>> from transformers import GPT2Tokenizer, GPT2Model
+To make `nebullvm` work with `huggingface` we have changed the API slightly so that you can use the `optimize_huggingface_model` function to optimize your model.
+
+`>>> from transformers import GPT2Tokenizer, GPT2Model
 >>> from nebullvm.api.frontend.huggingface import optimize_huggingface_model
 >>> tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 >>> model = GPT2Model.from_pretrained('gpt2')
@@ -465,7 +468,7 @@ To make `nebullvm` work with `huggingface` we have changed the API slightly so t
 ...     save_dir=".",
 ...     extra_input_info=[{}, {"max_value": 1, "min_value": 0}],
 ... )
->>> res = optimized_model(**encoded_input)
+>>> res = optimized_model(**encoded_input)` 
 ```
 
 </details>
@@ -544,7 +547,7 @@ Do you want to meet nebullvm contributors and other developers who share the vis
 
 <p align="center">
 <a href="https://discord.gg/RbeQMu886J">Discord</a> |
-<a href="https://nebuly.ai/](https://nebuly.ai/">Website</a> |
+<a href="https://nebuly.ai/">Website</a> |
 <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
 <a href="https://twitter.com/nebuly_ai">Twitter</a>
 </p>
