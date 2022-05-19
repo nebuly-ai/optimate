@@ -62,9 +62,9 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
     def __init__(
         self,
-        model: openvino.pyopenvino.Model,
-        compiled_model: openvino.runtime.ie_api.CompiledModel,
-        infer_request: openvino.runtime.ie_api.InferRequest,
+        model: openvino.runtime.Model,
+        compiled_model: openvino.runtime.CompiledModel,
+        infer_request: openvino.runtime.InferRequest,
         input_keys: List,
         output_keys: List,
         description_file: str,
