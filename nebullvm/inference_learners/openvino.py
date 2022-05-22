@@ -16,8 +16,10 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
     TensorflowBaseInferenceLearner,
+    NumpyBaseInferenceLearner,
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.transformations.base import MultiStageTransformation
 
 try:
     from openvino.inference_engine import IECore
@@ -69,8 +71,8 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         self.exec_network = exec_network
         self.input_keys = input_keys
         self.output_keys = output_keys
-        self.description_file = description_file
-        self.weights_file = weights_file
+        self.description_file = self._store_file(description_file)
+        self.weights_file = self._store_file(weights_file)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -92,6 +94,11 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         metadata["network_parameters"] = ModelParams(
             **metadata["network_parameters"]
         )
+        input_tfms = metadata.get("input_tfms")
+        if input_tfms is not None:
+            metadata["input_tfms"] = MultiStageTransformation.from_dict(
+                input_tfms
+            )
         model_name = str(path / OPENVINO_FILENAMES["description_file"])
         model_weights = str(path / OPENVINO_FILENAMES["weights"])
         return cls.from_model_name(
@@ -104,6 +111,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         network_parameters: ModelParams,
         model_name: str,
         model_weights: str,
+        input_tfms: MultiStageTransformation = None,
         **kwargs,
     ):
         """Build the optimized model from the network description and its
@@ -131,6 +139,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             exec_network,
             input_keys,
             output_keys,
+            input_tfms=input_tfms,
             network_parameters=network_parameters,
             description_file=model_name,
             weights_file=model_weights,
@@ -139,7 +148,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
     def _rebuild_network(self, input_shapes: Dict):
         network = self.exec_network.get_exec_graph_info()
         if all(
-            input_shape == tuple(network.inputs[input_name].shape)
+            input_shape == tuple(network.input_info[input_name].input_data.shape)
             for input_name, input_shape in input_shapes.items()
         ):
             # If the new input shapes is equal to the previous one do nothing.
@@ -225,7 +234,7 @@ class PytorchOpenVinoInferenceLearner(
         weights_file (str): File containing the model weights.
     """
 
-    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+    def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -280,7 +289,7 @@ class TensorflowOpenVinoInferenceLearner(
         weights_file (str): File containing the model weights.
     """
 
-    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+    def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -312,9 +321,61 @@ class TensorflowOpenVinoInferenceLearner(
         )
 
 
+class NumpyOpenVinoInferenceLearner(
+    OpenVinoInferenceLearner, NumpyBaseInferenceLearner
+):
+    """Model optimized using ApacheTVM with a numpy interface.
+
+    This class can be used exactly in the same way as a sklearn or
+    numpy-based model.
+    At prediction time it takes as input numpy arrays given as positional
+    arguments.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        exec_network (any): The graph executor. This is the
+            central component in the OpenVino optimized model execution.
+        input_keys (List): Keys associated to the inputs.
+        output_keys (List): Keys associated to the outputs.
+        description_file (str): File containing a description of the optimized
+            model.
+        weights_file (str): File containing the model weights.
+    """
+
+    def run(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[np.ndarray]): Input tensors belonging to
+                the same batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[np.ndarray]: Output tensors. Note that the output tensors
+                does not correspond to the prediction on the input tensors
+                with a 1 to 1 mapping. In fact the output tensors are produced
+                as the multiple-output of the model given a (multi-) tensor
+                input.
+        """
+        input_arrays = (input_tensor for input_tensor in input_tensors)
+        extra_kwargs = {}
+        if self.network_parameters.dynamic_info is not None:
+            extra_kwargs["input_shapes"] = (
+                tuple(input_tensor.shape) for input_tensor in input_tensors
+            )
+        output_arrays = self._predict_array(input_arrays, **extra_kwargs)
+        return tuple(output_arrays)
+
+
 OPENVINO_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[OpenVinoInferenceLearner]
 ] = {
     DeepLearningFramework.PYTORCH: PytorchOpenVinoInferenceLearner,
     DeepLearningFramework.TENSORFLOW: TensorflowOpenVinoInferenceLearner,
+    DeepLearningFramework.NUMPY: NumpyOpenVinoInferenceLearner,
 }

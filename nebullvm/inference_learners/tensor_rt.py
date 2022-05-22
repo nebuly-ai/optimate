@@ -1,10 +1,10 @@
 import json
 import warnings
 from abc import ABC
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Union, Dict, Type, List, Tuple, Generator
+from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
 
+import numpy as np
 import tensorflow as tf
 import torch
 
@@ -14,8 +14,10 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
     TensorflowBaseInferenceLearner,
+    NumpyBaseInferenceLearner,
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.transformations.base import MultiStageTransformation
 
 if torch.cuda.is_available():
     try:
@@ -39,7 +41,6 @@ if torch.cuda.is_available():
             )
 
 
-@dataclass
 class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
     """Model optimized using TensorRT.
 
@@ -57,11 +58,22 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         nvidia_logger (any, optional): Logger used by the Nvidia service
     """
 
-    engine: Any
-    input_names: List[str]
-    output_names: List[str]
-    cuda_stream: Any = None
-    nvidia_logger: Any = None
+    def __init__(
+        self,
+        engine: Any,
+        input_names: List[str],
+        output_names: List[str],
+        cuda_stream: Any = None,
+        nvidia_logger: Any = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.engine = engine
+        self.input_names = input_names
+        self.output_names = output_names
+        self.cuda_stream = cuda_stream
+        self.nvidia_logger = nvidia_logger
+        self._set_cuda_env()
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         metadata = {
@@ -89,7 +101,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
                 "on a machine not connected to any GPU supporting CUDA."
             )
 
-    def __post_init__(self):
+    def _set_cuda_env(self):
         self.check_env()
         if self.nvidia_logger is None:
             self.nvidia_logger = trt.Logger(trt.Logger.WARNING)
@@ -105,6 +117,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         output_names: List[str],
         nvidia_logger: Any = None,
         cuda_stream: Any = None,
+        input_tfms: MultiStageTransformation = None,
         **kwargs,
     ):
         """Build the model from the serialised engine.
@@ -121,6 +134,9 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             cuda_stream (any, optional): Stream used for communication with
                 Nvidia GPUs.
             nvidia_logger (any, optional): Logger used by the Nvidia service
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
 
         Returns:
             NvidiaInferenceLearner: The optimized model.
@@ -137,6 +153,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             serialized_engine = f.read()
         engine = runtime.deserialize_cuda_engine(serialized_engine)
         return cls(
+            input_tfms=input_tfms,
             network_parameters=network_parameters,
             engine=engine,
             input_names=input_names,
@@ -159,7 +176,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         output_idxs = (
             self.engine[output_name] for output_name in self.output_names
         )
-        input_shapes = input_shapes or (yield None)
+        input_shapes = input_shapes or [None] * len(self.input_names)
         for input_idx, input_ptr, input_shape in zip(
             input_idxs, input_ptrs, input_shapes
         ):
@@ -208,6 +225,11 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         metadata["network_parameters"] = ModelParams(
             **metadata["network_parameters"]
         )
+        input_tfms = metadata.get("input_tfms")
+        if input_tfms is not None:
+            metadata["input_tfms"] = MultiStageTransformation.from_dict(
+                input_tfms
+            )
         return cls.from_engine_path(
             engine_path=path / NVIDIA_FILENAMES["engine"], **metadata
         )
@@ -244,7 +266,7 @@ class PytorchNvidiaInferenceLearner(
     def stream_ptr(self):
         return self.cuda_stream.cuda_stream
 
-    def predict(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+    def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -307,8 +329,75 @@ class PytorchNvidiaInferenceLearner(
         return tuple(output_tensor.cpu() for output_tensor in output_tensors)
 
 
+class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
+    """Base Model that can be used for all array-based
+    NvidiaInferenceLearners.
+    """
+
+    def _synchronize_stream(self):
+        self.cuda_stream.synchronize()
+
+    @staticmethod
+    def _get_default_cuda_stream() -> Any:
+        return polygraphy.Stream()
+
+    @property
+    def stream_ptr(self):
+        return self.cuda_stream.ptr
+
+    @staticmethod
+    def _convert_to_array_and_free_memory(cuda_array) -> np.ndarray:
+        array = cuda_array.numpy()
+        cuda_array.free()
+        return array
+
+    def _predict_array(
+        self,
+        cuda_input_arrays: List,
+        input_shapes: Optional[List[Tuple[int, ...]]],
+    ) -> Generator[np.ndarray, None, None]:
+        if self.network_parameters.dynamic_info is None:
+            cuda_output_arrays = [
+                polygraphy.DeviceArray(
+                    shape=(self.network_parameters.batch_size, *output_size)
+                )
+                for output_size in self.network_parameters.output_sizes
+            ]
+        else:
+            dynamic_info = self.network_parameters.dynamic_info
+            output_sizes = (
+                (self.network_parameters.batch_size, *output_size)
+                for output_size in self.network_parameters.output_sizes
+            )
+
+            cuda_output_arrays = [
+                polygraphy.DeviceArray(
+                    shape=tuple(
+                        x
+                        if i in dyn_out_axis.keys()
+                        else dynamic_info.retrieve_output_dim(
+                            input_shapes, j, i, x
+                        )
+                        for i, x in enumerate(output_size)
+                    )
+                )
+                for j, (output_size, dyn_out_axis) in enumerate(
+                    zip(output_sizes, dynamic_info.outputs)
+                )
+            ]
+        input_ptrs = (cuda_array.ptr for cuda_array in cuda_input_arrays)
+        output_ptrs = (cuda_array.ptr for cuda_array in cuda_output_arrays)
+        self._predict_tensors(input_ptrs, output_ptrs, input_shapes)
+        for cuda_input_array in cuda_input_arrays:
+            cuda_input_array.free()
+        return (
+            self._convert_to_array_and_free_memory(array)
+            for array in cuda_output_arrays
+        )
+
+
 class TensorflowNvidiaInferenceLearner(
-    NvidiaInferenceLearner, TensorflowBaseInferenceLearner
+    BaseArrayNvidiaInferenceLearner, TensorflowBaseInferenceLearner
 ):
     """Model optimized using TensorRT with a tensorflow interface.
 
@@ -328,18 +417,7 @@ class TensorflowNvidiaInferenceLearner(
         nvidia_logger (any, optional): Logger used by the Nvidia service.
     """
 
-    def _synchronize_stream(self):
-        self.cuda_stream.synchronize()
-
-    @staticmethod
-    def _get_default_cuda_stream() -> Any:
-        return polygraphy.Stream()
-
-    @property
-    def stream_ptr(self):
-        return self.cuda_stream.ptr
-
-    def predict(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor]:
+    def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -363,53 +441,67 @@ class TensorflowNvidiaInferenceLearner(
             )
             for input_tensor in input_tensors
         ]
-        if self.network_parameters.dynamic_info is None:
-            cuda_output_arrays = [
-                polygraphy.DeviceArray(
-                    shape=(self.network_parameters.batch_size, *output_size)
-                )
-                for output_size in self.network_parameters.output_sizes
-            ]
-            input_shapes = None
-        else:
-            dynamic_info = self.network_parameters.dynamic_info
-            output_sizes = (
-                (self.network_parameters.batch_size, *output_size)
-                for output_size in self.network_parameters.output_sizes
-            )
-            input_shapes = [
-                input_tensor.shape for input_tensor in input_tensors
-            ]
-            cuda_output_arrays = [
-                polygraphy.DeviceArray(
-                    shape=tuple(
-                        x
-                        if i in dyn_out_axis.keys()
-                        else dynamic_info.retrieve_output_dim(
-                            input_shapes, j, i, x
-                        )
-                        for i, x in enumerate(output_size)
-                    )
-                )
-                for j, (output_size, dyn_out_axis) in enumerate(
-                    zip(output_sizes, dynamic_info.outputs)
-                )
-            ]
-        input_ptrs = (cuda_array.ptr for cuda_array in cuda_input_arrays)
-        output_ptrs = (cuda_array.ptr for cuda_array in cuda_output_arrays)
-        self._predict_tensors(input_ptrs, output_ptrs, input_shapes)
-        for cuda_input_array in cuda_input_arrays:
-            cuda_input_array.free()
-        return tuple(
-            self._convert_to_array_and_free_memory(array)
-            for array in cuda_output_arrays
+        input_shapes = (
+            [tuple(input_tensor.shape) for input_tensor in input_tensors]
+            if self.network_parameters.dynamic_info is not None
+            else None
         )
+        out_arrays = self._predict_array(cuda_input_arrays, input_shapes)
+        return tuple(tf.convert_to_tensor(array) for array in out_arrays)
 
-    @staticmethod
-    def _convert_to_array_and_free_memory(cuda_array) -> tf.Tensor:
-        array = cuda_array.numpy()
-        cuda_array.free()
-        return array
+
+class NumpyNvidiaInferenceLearner(
+    BaseArrayNvidiaInferenceLearner, NumpyBaseInferenceLearner
+):
+    """Model optimized using TensorRT with a tensorflow interface.
+
+    This class can be used exactly in the same way as a tf.Module or
+    keras.Model object.
+    At prediction time it takes as input tensorflow tensors given as positional
+    arguments.
+
+    Attributes:
+        network_parameters (ModelParams): The model parameters as batch
+                size, input and output sizes.
+        engine (any): The tensorRT engine.
+        input_names (List[str]): Names associated to the model input tensors.
+        output_names (List[str]): Names associated to the model output tensors.
+        cuda_stream (any, optional): Stream used for communication with Nvidia
+            GPUs.
+        nvidia_logger (any, optional): Logger used by the Nvidia service.
+    """
+
+    def run(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
+        """Predict on the input tensors.
+
+        Note that the input tensors must be on the same batch. If a sequence
+        of tensors is given when the model is expecting a single input tensor
+        (with batch size >= 1) an error is raised.
+
+        Args:
+            input_tensors (Tuple[np.ndarray]): Input tensors belonging to
+                the same batch. The tensors are expected having dimensions
+                (batch_size, dim1, dim2, ...).
+
+        Returns:
+            Tuple[np.ndarray]: Output tensors. Note that the output tensors
+                does not correspond to the prediction on the input tensors
+                with a 1 to 1 mapping. In fact the output tensors are produced
+                as the multiple-output of the model given a (multi-) tensor
+                input.
+        """
+        cuda_input_arrays = [
+            polygraphy.DeviceArray.copy_from(
+                input_tensor, stream=self.cuda_stream
+            )
+            for input_tensor in input_tensors
+        ]
+        input_shapes = (
+            [tuple(input_tensor.shape) for input_tensor in input_tensors]
+            if self.network_parameters.dynamic_info is not None
+            else None
+        )
+        return tuple(self._predict_array(cuda_input_arrays, input_shapes))
 
 
 NVIDIA_INFERENCE_LEARNERS: Dict[
@@ -417,4 +509,5 @@ NVIDIA_INFERENCE_LEARNERS: Dict[
 ] = {
     DeepLearningFramework.PYTORCH: PytorchNvidiaInferenceLearner,
     DeepLearningFramework.TENSORFLOW: TensorflowNvidiaInferenceLearner,
+    DeepLearningFramework.NUMPY: NumpyNvidiaInferenceLearner,
 }

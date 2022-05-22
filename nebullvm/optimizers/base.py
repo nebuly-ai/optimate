@@ -1,23 +1,11 @@
 from abc import abstractmethod, ABC
 from logging import Logger
+from typing import Optional, Callable
 
-import onnx
-
-from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.base import BaseInferenceLearner
-
-
-def get_input_names(onnx_model: str):
-    model = onnx.load(onnx_model)
-
-    input_all = [node.name for node in model.graph.input]
-    return input_all
-
-
-def get_output_names(onnx_model: str):
-    model = onnx.load(onnx_model)
-    output_all = [node.name for node in model.graph.output]
-    return output_all
+from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 
 
 class BaseOptimizer(ABC):
@@ -32,5 +20,10 @@ class BaseOptimizer(ABC):
         onnx_model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-    ) -> BaseInferenceLearner:
+        input_tfms: MultiStageTransformation = None,
+        perf_loss_ths: float = None,
+        quantization_type: QuantizationType = None,
+        perf_metric: Callable = None,
+        input_data: DataManager = None,
+    ) -> Optional[BaseInferenceLearner]:
         raise NotImplementedError

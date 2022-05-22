@@ -1,49 +1,49 @@
 import os
-from pathlib import Path
+import shutil
 from tempfile import TemporaryDirectory
-from typing import List, Tuple, Union, Dict, Optional, Callable, Any
+from typing import List, Tuple, Dict, Optional, Callable, Union
 
-import tensorflow as tf
+import numpy as np
 
 from nebullvm.api.frontend.utils import (
-    ifnone,
     inspect_dynamic_size,
+    ifnone,
     QUANTIZATION_METRIC_MAP,
 )
 from nebullvm.base import (
+    InputInfo,
     DeepLearningFramework,
     ModelParams,
-    InputInfo,
     ModelCompiler,
 )
-from nebullvm.converters import ONNXConverter
+from nebullvm.inference_learners.base import NumpyBaseInferenceLearner
 from nebullvm.optimizers import BaseOptimizer
+from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.tf import (
-    get_outputs_sizes_tf,
-    create_model_inputs_tf,
-    run_tf_model,
+from nebullvm.utils.onnx import (
+    create_model_inputs_onnx,
+    get_output_sizes_onnx,
+    run_onnx_model,
 )
-from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
 
 def _extract_dynamic_axis(
-    tf_model: tf.Module,
-    dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]],
+    onnx_model: str,
+    data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
     input_sizes: List[Tuple[int, ...]],
     batch_size: int,
     max_data: int = 100,
 ) -> Optional[Dict]:
     dynamic_axis = {"inputs": [{}] * len(input_sizes), "outputs": []}
     output_sizes = []
-    for i, (input_tensors, y) in enumerate(dataset):
+    for i, (input_tensors, y) in enumerate(data):
         if i >= max_data:
             break
         inspect_dynamic_size(
             input_tensors, input_sizes, batch_size, dynamic_axis["inputs"]
         )
-        outputs = tuple(run_tf_model(tf_model, input_tensors))
+        outputs = tuple(run_onnx_model(onnx_model, list(input_tensors)))
         if i == 0:
             dynamic_axis["outputs"] = [{}] * len(outputs)
             output_sizes = [tuple(output.shape[1:]) for output in outputs]
@@ -58,14 +58,14 @@ def _extract_dynamic_axis(
 
 
 def _extract_info_from_data(
-    tf_model: tf.Module,
-    dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]],
+    onnx_model: str,
+    data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
     batch_size: int,
     input_sizes: List[Tuple[int, ...]],
     input_types: List[str],
     dynamic_axis: Dict,
 ):
-    input_row, _ = dataset[0]
+    input_row, _ = data[0]
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
     input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
     input_types = ifnone(
@@ -73,15 +73,15 @@ def _extract_info_from_data(
     )
     dynamic_axis = ifnone(
         dynamic_axis,
-        _extract_dynamic_axis(tf_model, dataset, input_sizes, batch_size),
+        _extract_dynamic_axis(onnx_model, data, input_sizes, batch_size),
     )
     return batch_size, input_sizes, input_types, dynamic_axis
 
 
-def optimize_tf_model(
-    model: Union[tf.Module, tf.keras.Model],
+def optimize_onnx_model(
+    model_path: str,
     save_dir: str,
-    dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]] = None,
+    data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]] = None,
     batch_size: int = None,
     input_sizes: List[Tuple[int, ...]] = None,
     input_types: List[str] = None,
@@ -91,29 +91,29 @@ def optimize_tf_model(
     perf_metric: Union[str, Callable] = None,
     ignore_compilers: List[str] = None,
     custom_optimizers: List[BaseOptimizer] = None,
-):
-    """Basic function for optimizing a tensorflow model.
+) -> NumpyBaseInferenceLearner:
+    """Basic function for optimizing an onnx model.
 
     This function saves the output model as well in a nebuly-readable format
     in order to avoid temporary-files corruptions which would prevent the model
     saving later in the process.
 
     Args:
-        model (tf.Module or keras.Model): Model that needs optimization.
+        model_path (str): ONNX model that needs optimization.
         save_dir (str): Path to the directory where saving the final model.
-        dataset (List, optional):  Dataset containing data in the form of
-            (xs, y) where xs are tuples of Tensors and ys can be whatever
-            needed for computing the selected metric at quantization time.
-            The data will be used for extracting all the data related
-            information or completing the missing information in the case of
-            partially given ones. If no data is given, both the `batch_size`
-            and the `input_sizes` must be passed by the user.
+        data (List):  List of tuples in the form of (xs, y) where xs are
+            tuples of np.ndarray and ys can be whatever needed for computing
+            the selected metric at quantization time. The data will be used
+            for extracting all the data related information or completing
+            the missing information in the case of partially given ones. If no
+            data is given, both the `batch_size` and the `input_sizes` must be
+            passed by the user.
         batch_size (int, optional): The model batch size.
         input_sizes (List[Tuple]], optional): List containing the size of all
             the input tensors of the model. Note that even just a single
             tensor is needed as model input, this field must be a list
             containing (in the exposed case) a single element). The tuple must
-            contain all then input tensor dimensions excluding the batch size.
+            contain all the input tensor dimensions excluding the batch size.
             This means that the final input tensor size will be considered as
             `(batch_size, *input_tensor_size)`, where `input_tensor_size` is
             one list element of `input_sizes`.
@@ -150,9 +150,9 @@ def optimize_tf_model(
             accepts as value also a string containing the metric name. At the
             current stage the supported metrics are `"precision"` and
             `"accuracy"`.
-        ignore_compilers (List[str]): List of DL compilers we want to ignore
-            while running the optimization. Compiler name should be one
-            between "tvm", "tensor RT", "openvino" and "onnxruntime".
+        ignore_compilers (List[str], optional): List of DL compilers we want
+            to ignore while running the optimization. Compiler name should be
+            one between "tvm", "tensor RT", "openvino" and "onnxruntime".
         custom_optimizers (List[BaseOptimizer], optional): List of optimizers
             which can be used for producing InferenceLearners, i.e. models
             optimized for inference. This list is useful when some compilers,
@@ -161,20 +161,25 @@ def optimize_tf_model(
             to be used.
 
     Returns:
-        BaseInferenceLearner: Optimized model usable with the classical
-            tensorflow interface. Note that as a torch model it takes as input
-            and it gives as output `tf.Tensor` s.
+        PytorchBaseInferenceLearner: Optimized model usable with the classical
+            Pytorch interface. Note that as a torch model it takes as input
+            and it gives as output `torch.Tensor`s.
     """
-    if dataset is not None:
+    if data is not None:
         (
             batch_size,
             input_sizes,
             input_types,
             dynamic_axis,
         ) = _extract_info_from_data(
-            model, dataset, batch_size, input_sizes, input_types, dynamic_axis
+            model_path,
+            data,
+            batch_size,
+            input_sizes,
+            input_types,
+            dynamic_axis,
         )
-        input_data = DataManager(dataset)
+        input_data = DataManager(data)
     else:
         input_data = None
     if isinstance(perf_metric, str):
@@ -195,13 +200,13 @@ def optimize_tf_model(
             input_sizes, input_types, extra_input_info
         )
     ]
-    dl_library = DeepLearningFramework.TENSORFLOW
+    dl_library = DeepLearningFramework.NUMPY
     model_params = ModelParams(
         batch_size=batch_size,
         input_infos=input_infos,
-        output_sizes=get_outputs_sizes_tf(
-            model,
-            input_tensors=create_model_inputs_tf(batch_size, input_infos),
+        output_sizes=get_output_sizes_onnx(
+            model_path,
+            input_tensors=create_model_inputs_onnx(batch_size, input_infos),
         ),
         dynamic_info=dynamic_axis,
     )
@@ -211,24 +216,29 @@ def optimize_tf_model(
         else [ModelCompiler(compiler) for compiler in ignore_compilers]
     )
     input_tfms = MultiStageTransformation([])
-    model_converter = ONNXConverter()
-    model_optimizer = MultiCompilerOptimizer(
-        ignore_compilers=ignore_compilers,
-        extra_optimizers=custom_optimizers,
-        debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
-    )
     with TemporaryDirectory() as tmp_dir:
-        onnx_path = model_converter.convert(
-            model, model_params.input_sizes, Path(tmp_dir)
+        onnx_path = shutil.copy(model_path, tmp_dir)
+        model_optimizer = MultiCompilerOptimizer(
+            ignore_compilers=ignore_compilers,
+            extra_optimizers=custom_optimizers,
+            debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
         )
-        model_optimized = model_optimizer.optimize(
-            onnx_model=str(onnx_path),
-            output_library=dl_library,
-            model_params=model_params,
-            input_tfms=input_tfms,
-            perf_loss_ths=perf_loss_ths,
-            perf_metric=perf_metric,
-            input_data=input_data,
-        )
+        if model_optimizer.usable:
+            model_optimized = model_optimizer.optimize(
+                onnx_model=str(onnx_path),
+                output_library=dl_library,
+                model_params=model_params,
+                input_tfms=input_tfms,
+                perf_loss_ths=perf_loss_ths,
+                perf_metric=perf_metric,
+                input_data=input_data,
+            )
+        else:
+            model_optimized = None
+        if model_optimized is None:
+            raise RuntimeError(
+                "No valid compiled model has been produced. "
+                "Look at the logs for further information about the failure."
+            )
         model_optimized.save(save_dir)
     return model_optimized.load(save_dir)

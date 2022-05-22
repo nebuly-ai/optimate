@@ -7,6 +7,7 @@ import tensorflow as tf
 import tf2onnx
 
 from nebullvm.base import ModelParams, DataType
+from nebullvm.config import ONNX_OPSET_VERSION
 
 
 def convert_tf_to_onnx(
@@ -30,7 +31,7 @@ def convert_tf_to_onnx(
             "--output",
             f"{output_file_path}",
             "--opset",
-            "11",
+            f"{ONNX_OPSET_VERSION}",
         ]
         subprocess.run(onnx_cmd)
 
@@ -57,5 +58,8 @@ def convert_keras_to_onnx(
         for i, input_info in enumerate(model_params.input_infos)
     )
     tf2onnx.convert.from_keras(
-        model, input_signature=spec, opset=11, output_path=output_file_path
+        model,
+        input_signature=spec,
+        opset=ONNX_OPSET_VERSION,
+        output_path=output_file_path,
     )
