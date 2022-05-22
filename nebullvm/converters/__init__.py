@@ -1,4 +1,6 @@
-from .converters import BaseConverter, ONNXConverter  # noqa F401
+# flake8: noqa
+
+from .converters import BaseConverter, ONNXConverter
 from .tensorflow_converters import convert_tf_to_onnx, convert_keras_to_onnx
 from .torch_converters import convert_torch_to_onnx
 

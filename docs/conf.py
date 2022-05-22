@@ -13,18 +13,19 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../'))
 
-import sphinx_rtd_theme
+sys.path.insert(0, os.path.abspath("../"))
+
+# import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'nebullvm'
-copyright = '2022, nebuly'
-author = 'nebuly'
+project = "nebullvm"
+copyright = "2022, nebuly"
+author = "nebuly"
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = "0.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -53,7 +54,7 @@ autodoc_inherit_docstrings = False
 autodoc_member_order = "bysource"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -73,4 +74,3 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
-
