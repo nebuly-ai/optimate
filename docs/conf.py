@@ -25,7 +25,7 @@ copyright = "2022, nebuly"
 author = "nebuly"
 
 # The full version, including alpha/beta/rc tags
-release = "0.1"
+release = "0.3.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -68,7 +68,15 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 
-html_theme = "sphinx_rtd_theme"
+# html_theme = "sphinx_rtd_theme"
+html_theme_options = {
+    "light_css_variables": {
+        "color-brand-primary": "red",
+        "color-brand-content": "#CC3333",
+        "color-admonition-background": "orange",
+    },
+}
+html_theme = "furo"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
