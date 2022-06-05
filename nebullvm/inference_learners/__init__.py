@@ -1,28 +1,28 @@
 # flake8: noqa
 
-from .base import (
+from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
     TensorflowBaseInferenceLearner,
     InferenceLearnerWrapper,
 )
-from .onnx import (
+from nebullvm.inference_learners.onnx import (
     ONNXInferenceLearner,
     PytorchONNXInferenceLearner,
     TensorflowONNXInferenceLearner,
 )
-from .openvino import (
+from nebullvm.inference_learners.openvino import (
     OpenVinoInferenceLearner,
     PytorchOpenVinoInferenceLearner,
     TensorflowOpenVinoInferenceLearner,
 )
-from .tensor_rt import (
+from nebullvm.inference_learners.tensor_rt import (
     NvidiaInferenceLearner,
     PytorchNvidiaInferenceLearner,
     TensorflowNvidiaInferenceLearner,
 )
-from .tvm import (
+from nebullvm.inference_learners.tvm import (
     ApacheTVMInferenceLearner,
     PytorchApacheTVMInferenceLearner,
     TensorflowApacheTVMInferenceLearner,

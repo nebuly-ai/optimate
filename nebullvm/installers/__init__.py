@@ -1,6 +1,6 @@
 # flake8: noqa
 
-from .installers import (
+from nebullvm.installers.installers import (
     install_tvm,
     install_tensor_rt,
     install_openvino,
