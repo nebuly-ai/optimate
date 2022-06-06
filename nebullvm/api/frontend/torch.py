@@ -185,7 +185,7 @@ def optimize_torch_model(
     Returns:
         PytorchBaseInferenceLearner: Optimized model usable with the classical
             Pytorch interface. Note that as a torch model it takes as input
-            and it gives as output `torch.Tensor`s.
+            and it gives as output `torch.Tensor` s.
     """
     check_inputs(
         input_data=dataloader, batch_size=batch_size, input_sizes=input_sizes
