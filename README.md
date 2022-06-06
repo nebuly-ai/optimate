@@ -112,11 +112,12 @@ We suggest testing the library on your AI models right away by following the ins
 
 There are two ways to install `nebullvm`:
 
-1. Using PyPI. We suggest installing the library with `pip` to get the stable 
+- Step 1-A: Using PyPI. We suggest installing the library with `pip` to get the stable 
 version of `nebullvm`
-2. From source code to get the latest features
+  
+- Step 1-B: From source code to get the latest features
 
-#### Option 1A: Installation with PyPI (recommended)
+#### Step 1-A: Installation with PyPI (recommended)
 
 The easiest way to install `nebullvm` is by using `pip`, running
 
@@ -124,7 +125,7 @@ The easiest way to install `nebullvm` is by using `pip`, running
 pip install nebullvm
 ```
 
-#### Option 1B: Source code installation
+#### Step 1-B: Source code installation
 
 To install the source code you have to clone the directory on your local machine 
 using `git`.
@@ -147,9 +148,9 @@ pip install .
 
 Now you need to install the compilers that the library leverages to create the 
 optimized version of your models. We have built an auto-installer to install them 
-automatically.
+automatically. We propose 3 options (2-A, 2-B and 2-C) to achieve this goal.
 
-#### Option 2A: Installation at the first optimization run
+#### Step 2-A: Installation at the first optimization run
 
 The auto-installer is activated after you import `nebullvm` and perform your 
 first optimization. You may run into import errors related to the deep learning 
@@ -157,7 +158,7 @@ compiler installation, but you can ignore these errors/warnings.
 It is also recommended restarting the python kernel between the auto-installation 
 and the first optimization, otherwise not all compilers will be activated.
 
-#### Option B: Installation before the first optimization run (recommended)
+#### Step 2-B: Installation before the first optimization run (recommended)
 
 To avoid any problems, we strongly recommend running the auto-installation 
 before performing the first optimization by running
@@ -169,7 +170,7 @@ python -c "import nebullvm"
 You should ignore at this stage any import warning resulting from the previous 
 command.
 
-#### Option 2C: Selective installation of deep learning compilers
+#### Step 2-C: Selective installation of deep learning compilers
 
 The library automatically installs all deep learning compilers it supports. In case you would be interested in bypassing the automatic installation, you can export the environment variable 
 `NO_COMPILER_INSTALLATION=1` by running
