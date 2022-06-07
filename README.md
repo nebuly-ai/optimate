@@ -1,20 +1,20 @@
 <img  src="https://user-images.githubusercontent.com/59367323/167455174-f3935b7c-c0a9-4fde-8560-97ebd920a3b9.png">
 
 <p align="center">
-<a href="https://github.com/nebuly-ai/nebullvm/releases">NEW RELEASE</a>
+  <a href="https://discord.gg/RbeQMu886J">Join the community</a> |
+  <a href="https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions">Contribute to the library</a>
 </p>
 
 <p align="center">
-<a href="#how-nebullvm-works">How Nebullvm Works</a> •
+<a href="#how-nebullvm-works">How nebullvm works</a> •
 <a href="#tutorials">Tutorials</a> •
 <a href="#benchmarks">Benchmarks</a> •
 <a href="#installation">Installation</a> •
-<a href="#get-started">Get Started</a> •
-<a href="#optimization-examples">Optimization Examples</a>
+<a href="#get-started">Get started</a> •
+<a href="#optimization-examples">Optimization examples</a>
 </p>
 
 <p align="center">
-<a href="https://discord.gg/RbeQMu886J">Discord</a> |
 <a href="https://nebuly.ai/">Website</a> |
 <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
 <a href="https://twitter.com/nebuly_ai">Twitter</a>
@@ -29,10 +29,10 @@
 -  [Installation and Get Started](#installation)
 -  [Optimization Examples](#optimization-examples)
 -  [Tutorials](#tutorials)
--  <a href="https://discord.gg/jyjtZTPyHS">Join the Community for AI Acceleration</a>
+-  <a href="https://discord.gg/jyjtZTPyHS">Join the community for AI acceleration</a>
 
 
-## How Nebullvm Works
+## How nebullvm works
 
 > This open-source library takes your AI model as input and outputs an 
 > optimized version that runs 2-30 times faster on your hardware. Nebullvm 
@@ -47,7 +47,9 @@
 The goal of `nebullvm` is to let any developer benefit from the most advanced inference optimization techniques without having to spend countless hours understanding, installing, testing and debugging these powerful technologies.
 
 
-The library aims to be:
+### So why nebullvm?
+
+🚀 **Superfast**. nebullvm speeds up the response time of AI models to enable real-time AI applications with reduced computing cost and low power consumption.
 
 ☘️ **Easy-to-use**. It takes a few lines of code to install the library and optimize your models.
 
@@ -56,8 +58,6 @@ The library aims to be:
 💻 **Deep learning model agnostic.** `nebullvm` supports all the most popular architectures such as transformers, LSTMs, CNNs and FCNs.
 
 🤖 **Hardware agnostic**. The library now works on most CPUs and GPUs and will soon support TPUs and other deep learning-specific ASICs.
-
-🔑 **Secure.** Everything runs locally on your machine.
 
 ✨ **Leveraging the best optimization techniques**. There are many inference optimization techniques such as deep learning compilers, quantization, half precision or distillation, which are all meant to optimize the way your AI models run on your hardware. It would take a developer countless hours to install and test them on every model deployment. The library does that for you.
 
@@ -221,7 +221,7 @@ hesitate to open an issue or contact directly `info@nebuly.ai` by email.
 
 
 
-## Get Started
+## Get started
 `Nebullvm` reduces the computation time of deep learning model inference by 2-30 times by testing multiple optimization techniques (deep learning compilers, quantization, half precision, distillation, and more) and identifying the optimal way to execute your AI model on your specific hardware.
 
 `Nebullvm` can be deployed in two ways.
@@ -453,6 +453,7 @@ for using just two CPU-threads per model at inference time and during optimizati
 
 - OpenVINO
 - TensorRT
+- ONNX Runtime
 - TVM
 - MLIR (Coming soon 🚀)
 
@@ -462,18 +463,15 @@ for using just two CPU-threads per model at inference time and during optimizati
 Deep learning libraries
 
 - [Clip-as-Service by Jina AI](https://github.com/jina-ai/clip-as-service) ![](https://img.shields.io/github/stars/jina-ai/clip-as-service.svg?style=social) Embed images and sentences into fixed-length vectors with CLIP. (🚀 coming soon   🌖)
-- [SignLangGNN by Anindyadeep](https://github.com/Anindyadeep/SignLangGNN) ![](https://img.shields.io/github/stars/Anindyadeep/SignLangGNN.svg?style=social) ASL sign language classification on static images using graph neural networks.
     
 Repositories of the best tools for AI
 
+- [Awesome Machine Learning](https://github.com/josephmisiti/awesome-machine-learning) ![](https://img.shields.io/github/stars/josephmisiti/awesome-machine-learning.svg?style=social) List of awesome Machine Learning frameworks, libraries and software.
 - [Awesome Deep Learning](https://github.com/ChristosChristofidis/awesome-deep-learning#tools) ![](https://img.shields.io/github/stars/ChristosChristofidis/awesome-deep-learning.svg?style=social) A curated list of awesome Deep Learning tutorials, projects and communities.
 - [Awesome Production ML](https://github.com/EthicalML/awesome-production-machine-learning#optimized-computation-frameworks) ![](https://img.shields.io/github/stars/EthicalML/awesome-production-machine-learning.svg?style=social) A list of open-source libraries to deploy, monitor, version and scale your machine learning.
 - [Best of ML Python](https://github.com/ml-tooling/best-of-ml-python#model-serialization--deployment) ![](https://img.shields.io/github/stars/ml-tooling/best-of-ml-python.svg?style=social) - A ranked list of awesome machine learning Python libraries.
-- [Awesome MLOps](https://github.com/EthicalML/awesome-production-machine-learning#optimization-tools) ![](https://img.shields.io/github/stars/kelvins/awesome-mlops.svg?style=social) - A curated list of MLOps tools.
 
 Do you want to integrate nebullvm in your open-source library? Try it out and if you need support, do not hesitate to contact us at [info@nebuly.ai](mailto:info@nebuly.ai).
-
-
 
 
 ## The community for AI acceleration
@@ -492,18 +490,21 @@ Do you want to meet nebullvm contributors and other developers who share the vis
 
 ---
 
-
 <p align="center">
-<a href="#how-nebullvm-works">How Nebullvm Works</a> •
-<a href="#tutorials">Tutorials</a> •
-<a href="#benchmarks">Benchmarks</a> •
-<a href="#installation">Installation</a> •
-<a href="#get-started">Get Started</a> •
-<a href="#optimization-examples">Optimization Examples</a>
+  <a href="https://discord.gg/RbeQMu886J">Join the community</a> |
+  <a href="https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions">Contribute to the library</a>
 </p>
 
 <p align="center">
-<a href="https://discord.gg/RbeQMu886J">Discord</a> |
+<a href="#how-nebullvm-works">How nebullvm works</a> •
+<a href="#tutorials">Tutorials</a> •
+<a href="#benchmarks">Benchmarks</a> •
+<a href="#installation">Installation</a> •
+<a href="#get-started">Get started</a> •
+<a href="#optimization-examples">Optimization examples</a>
+</p>
+
+<p align="center">
 <a href="https://nebuly.ai/">Website</a> |
 <a href="https://www.linkedin.com/company/72460022/">LinkedIn</a> |
 <a href="https://twitter.com/nebuly_ai">Twitter</a>
