@@ -38,6 +38,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install transformers
           pip install scipy==1.5.4
+          pip install numpy==1.22.4
         # Install pytest
       - name: Install pytest
         run: pip install pytest
