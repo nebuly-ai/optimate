@@ -22,8 +22,7 @@ from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 
 try:
-    import openvino
-    from openvino.runtime import Core
+    from openvino.runtime import Core, Model, CompiledModel, InferRequest
 except ImportError:
     if "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
         warnings.warn(
@@ -33,13 +32,13 @@ except ImportError:
         from nebullvm.installers.installers import install_openvino
 
         install_openvino(with_optimization=True)
-        import openvino
-        from openvino.runtime import Core
+        from openvino.runtime import Core, Model, CompiledModel, InferRequest
     else:
         warnings.warn(
             "No Openvino library detected. "
             "The Openvino Inference learner should not be used."
         )
+        Model = CompiledModel = InferRequest = object
 
 
 class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
@@ -62,9 +61,9 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
     def __init__(
         self,
-        model: openvino.runtime.Model,
-        compiled_model: openvino.runtime.CompiledModel,
-        infer_request: openvino.runtime.InferRequest,
+        model: Model,
+        compiled_model: CompiledModel,
+        infer_request: InferRequest,
         input_keys: List,
         output_keys: List,
         description_file: str,
