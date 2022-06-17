@@ -22,7 +22,8 @@ from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 
 try:
-    from openvino.inference_engine import IECore
+    import openvino
+    from openvino.runtime import Core
 except ImportError:
     if "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
         warnings.warn(
@@ -32,7 +33,8 @@ except ImportError:
         from nebullvm.installers.installers import install_openvino
 
         install_openvino(with_optimization=True)
-        from openvino.inference_engine import IECore
+        import openvino
+        from openvino.runtime import Core
     else:
         warnings.warn(
             "No Openvino library detected. "
@@ -60,7 +62,9 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
     def __init__(
         self,
-        exec_network,
+        model: openvino.runtime.Model,
+        compiled_model: openvino.runtime.CompiledModel,
+        infer_request: openvino.runtime.InferRequest,
         input_keys: List,
         output_keys: List,
         description_file: str,
@@ -68,7 +72,9 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.exec_network = exec_network
+        self.model = model
+        self.compiled_model = compiled_model
+        self.infer_request = infer_request
         self.input_keys = input_keys
         self.output_keys = output_keys
         self.description_file = self._store_file(description_file)
@@ -126,17 +132,23 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         """
         if len(kwargs) > 0:
             warnings.warn(f"Found extra parameters: {kwargs}")
-        inference_engine = IECore()
-        network = inference_engine.read_network(
-            model=model_name, weights=model_weights
+
+        core = Core()
+        model = core.read_model(model=model_name, weights=model_weights)
+        compiled_model = core.compile_model(model=model, device_name="CPU")
+        infer_request = compiled_model.create_infer_request()
+
+        input_keys = list(
+            map(lambda obj: obj.get_any_name(), compiled_model.inputs)
         )
-        exec_network = inference_engine.load_network(
-            network=network, device_name="CPU"
+        output_keys = list(
+            map(lambda obj: obj.get_any_name(), compiled_model.outputs)
         )
-        input_keys = list(iter(exec_network.input_info))
-        output_keys = list(iter(exec_network.outputs.keys()))
+
         return cls(
-            exec_network,
+            model,
+            compiled_model,
+            infer_request,
             input_keys,
             output_keys,
             input_tfms=input_tfms,
@@ -146,24 +158,29 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     def _rebuild_network(self, input_shapes: Dict):
-        network = self.exec_network.get_exec_graph_info()
+        # get the input name and input shape info from model
+        model_inputs_info = {
+            item.get_any_name(): tuple(item.shape)
+            for item in self.model.inputs
+        }
         if all(
-            input_shape
-            == tuple(network.input_info[input_name].input_data.shape)
+            input_shape == model_inputs_info[input_name]
             for input_name, input_shape in input_shapes.items()
         ):
             # If the new input shapes is equal to the previous one do nothing.
             return
 
-        inference_engine = IECore()
-        network = inference_engine.read_network(
+        core = Core()
+        model = core.read_model(
             model=self.description_file, weights=self.weights_file
         )
-        network.reshape(input_shapes)
-        exec_network = inference_engine.load_network(
-            network=network, device_name="CPU"
-        )
-        self.exec_network = exec_network
+        model.reshape(input_shapes)
+        compiled_model = core.compile_model(model=model, device_name="CPU")
+        infer_request = compiled_model.create_infer_request()
+
+        self.model = model
+        self.compiled_model = compiled_model
+        self.infer_request = infer_request
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         # metadata = {
@@ -203,7 +220,8 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
                 name: size for name, size in zip(self.input_keys, input_shapes)
             }
             self._rebuild_network(input_shapes_dict)
-        results = self.exec_network.infer(
+
+        results = self.infer_request.infer(
             inputs={
                 input_key: input_array
                 for input_key, input_array in zip(
@@ -211,6 +229,11 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
                 )
             }
         )
+        results = {
+            output_key.get_any_name(): output_arr
+            for output_key, output_arr in results.items()
+        }
+
         return (results[output_key] for output_key in self.output_keys)
 
 
