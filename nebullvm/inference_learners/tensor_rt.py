@@ -18,6 +18,7 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.transformations.tensor_tfms import VerifyContiguity
 
 if torch.cuda.is_available():
     try:
@@ -148,6 +149,9 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             )
         if nvidia_logger is None:
             nvidia_logger = trt.Logger(trt.Logger.WARNING)
+        if input_tfms is None:
+            input_tfms = MultiStageTransformation([])
+        input_tfms.append(VerifyContiguity())
         runtime = trt.Runtime(nvidia_logger)
         with open(engine_path, "rb") as f:
             serialized_engine = f.read()
