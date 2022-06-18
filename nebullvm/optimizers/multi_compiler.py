@@ -1,4 +1,6 @@
 import json
+import os
+import sys
 import warnings
 from logging import Logger
 from pathlib import Path
@@ -25,6 +27,7 @@ from nebullvm.optimizers import (
     ApacheTVMOptimizer,
     OpenVinoOptimizer,
     ONNXOptimizer,
+    ONNXMlirOptimizer,
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
@@ -34,7 +37,40 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.OPENVINO: OpenVinoOptimizer,
     ModelCompiler.TENSOR_RT: TensorRTOptimizer,
     ModelCompiler.ONNX_RUNTIME: ONNXOptimizer,
+    ModelCompiler.ONNX_MLIR: ONNXMlirOptimizer,
 }
+
+
+def _onnx_mlir_pyruntime_is_available() -> bool:
+    try:
+        # Set the ONNX_MLIR_HOME as the environment variable and append in the path,
+        # directory path where the MLIR is built
+
+        # retrieve the ONNX-MLIR installation directory from environment variable
+        # if exists otherwise set to home directory
+        MLIR_INSTALLATION_ROOT = os.environ.get(
+            "MLIR_INSTALLATION_ROOT", Path.home()
+        )
+
+        os.environ["ONNX_MLIR_HOME"] = os.path.join(
+            MLIR_INSTALLATION_ROOT,
+            "onnx-mlir",
+            "build",
+            "Debug",
+        )
+
+        sys.path.append(
+            os.path.join(
+                os.environ.get("ONNX_MLIR_HOME", ""),
+                "lib",
+            )
+        )
+
+        import PyRuntime  # noqa F401
+
+        return True
+    except ImportError:
+        return False
 
 
 def _tvm_is_available() -> bool:
@@ -47,7 +83,13 @@ def _tvm_is_available() -> bool:
 
 
 def select_compilers_from_hardware():
-    compilers = [ModelCompiler.ONNX_RUNTIME]
+    compilers = [
+        ModelCompiler.ONNX_RUNTIME,
+    ]
+
+    if _onnx_mlir_pyruntime_is_available():
+        compilers.append(ModelCompiler.ONNX_MLIR)
+
     if _tvm_is_available():
         compilers.append(ModelCompiler.APACHE_TVM)
     if torch.cuda.is_available():

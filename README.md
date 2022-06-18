@@ -206,6 +206,50 @@ running
 python -c "from tvm.runtime import Module"
 ```
 
+### Step 2-tris: Install ONNX-MLIR Compiler
+Since `ONNX-MLIR` compiler need to be installed from the source code, it build
+the specific commit of [llvm-project](https://github.com/llvm/llvm-project) from
+source, further builds [ONNX-MLIR](https://github.com/onnx/onnx-mlir) from source.
+Its installation can take several minutes (or even hours) for being performed.
+For this reason we decided to not include it in the default auto-installer. However,
+if you want to  squeeze out the maximum of the performance from your model on your machine,
+we highly recommend installing ONNX-MLIR as well. With `nebullvm` it is super-easy! Just run
+
+```
+python -c "from nebullvm.installers.installers import install_onnx_mlir; install_onnx_mlir()"
+```
+and wait for the compiler to be installed! You can check that everything worked by running
+```
+python -c "from nebullvm.inference_learners import onnx_mlir"
+```
+The default installation location of `ONNX-MLIR` is in home directory,
+if you want to install it in different directory, installation directory can be
+changed by specifying the custom installation directory in `install_onnx_mlir` function
+```
+python -c "from nebullvm.installers.installers import install_onnx_mlir; 
+install_onnx_mlir(absolute_path_of_installation_directory)"
+```
+and wait for the compiler to be installed!
+In the subsequent run, specify ONNX-MLIR installation directory by exporting
+the environment variable `MLIR_INSTALLATION_ROOT="absolute_path_of_installation_directory"` by running
+
+```
+export MLIR_INSTALLATION_ROOT="absolute_path_of_installation_directory"
+```
+
+from your command line or adding
+
+```
+import os
+os.environ["MLIR_INSTALLATION_ROOT"] = "absolute_path_of_installation_directory"
+```
+in your python code before importing `nebullvm` for the first time.
+You can check that everything worked by running
+```
+export MLIR_INSTALLATION_ROOT="absolute_path_of_installation_directory"
+python -c "from nebullvm.inference_learners import onnx_mlir"
+```
+
 </details>
 
 <details> 

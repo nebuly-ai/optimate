@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, List, Dict, Union
+from typing import Dict, List, Tuple, Union
 
 
 class DataType(str, Enum):
@@ -106,6 +106,7 @@ class ModelCompiler(Enum):
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
+    ONNX_MLIR = "onnx_mlir"
 
 
 class QuantizationType(Enum):

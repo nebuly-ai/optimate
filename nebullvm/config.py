@@ -37,3 +37,7 @@ OPENVINO_FILENAMES = {
     "description_file": "description.xml",
     "weights": "weights.bin",
 }
+
+ONNX_MLIR_FILENAMES = {
+    "model_name": "mlir_model.so",
+}
