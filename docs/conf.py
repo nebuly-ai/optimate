@@ -10,6 +10,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+# flake8: noqa
 
 import os
 import sys
@@ -25,7 +26,7 @@ copyright = "2022, nebuly"
 author = "nebuly"
 
 # The full version, including alpha/beta/rc tags
-#release = "0.3.0"
+# release = "0.3.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -90,7 +91,7 @@ html_theme_options = {
         },
     ],
     "light_logo": "Logo_azure.svg",
-    "dark_logo":  "Logo_azure.svg",
+    "dark_logo": "Logo_azure.svg",
 }
 
 
@@ -98,9 +99,9 @@ html_static_path = ["_static"]
 html_title = ""
 
 
-#html_theme_options = {
+# html_theme_options = {
 #    "announcement": "<em>Important</em> announcement!",
-#}
+# }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

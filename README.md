@@ -360,7 +360,7 @@ In the example above for options B.1 and B.2 we provided a dataset containing a 
 
 ```
 >>> # FOR EACH OPTION
->>> from nebullvm import optimize_torch_model
+>>> from nebullvm import optimize_onnx_model
 >>> import numpy as np
 >>> model_path = "path-to-onnx-model"
 >>> save_dir = "."
