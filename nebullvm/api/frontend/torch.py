@@ -20,6 +20,7 @@ from nebullvm.base import (
     ModelCompiler,
     InputInfo,
     QuantizationType,
+    SparsityParams
 )
 from nebullvm.converters import ONNXConverter
 from nebullvm.transformations.base import MultiStageTransformation
@@ -31,7 +32,7 @@ from nebullvm.utils.torch import (
 )
 from nebullvm.inference_learners.base import PytorchBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
-from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer
+from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer, DeepSparseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
 
@@ -107,7 +108,8 @@ def optimize_torch_model(
     perf_metric: Union[str, Callable] = None,
     ignore_compilers: List[str] = None,
     custom_optimizers: List[BaseOptimizer] = None,
-) -> PytorchBaseInferenceLearner:
+    sparsity_parameters: Dict = None
+ ) -> PytorchBaseInferenceLearner:
     """Basic function for optimizing a torch model.
 
     This function saves the output model as well in a nebuly-readable format
@@ -239,6 +241,16 @@ def optimize_torch_model(
         ),
         dynamic_info=dynamic_axis,
     )
+
+    if sparsity_parameters is not None:
+        sparsity_params = SparsityParams(
+            train_dataloader=sparsity_parameters["train_dataloader"],
+            val_dataloader=sparsity_parameters["val_dataloader"],
+            finetuning_batch_size=sparsity_parameters["finetuning_batch_size"]
+        )
+    else:
+        sparsity_params = None
+
     ignore_compilers = (
         []
         if ignore_compilers is None
@@ -259,7 +271,7 @@ def optimize_torch_model(
                 q_types = [None]
             torch_res = [
                 _torch_api_optimization(
-                    model, model_params, perf_loss_ths, q_type
+                    model, model_params, sparsity_params, perf_loss_ths, q_type
                 )
                 for q_type in q_types
             ]
@@ -277,6 +289,7 @@ def optimize_torch_model(
             onnx_path = model_converter.convert(
                 model, model_params, Path(tmp_dir)
             )
+
             model_optimized = model_optimizer.optimize(
                 onnx_model=str(onnx_path),
                 output_library=dl_library,
@@ -306,9 +319,31 @@ def optimize_torch_model(
 def _torch_api_optimization(
     model: torch.nn.Module,
     model_params: ModelParams,
+    sparsity_params: SparsityParams,
     quantization_ths: float,
     quantization_type: QuantizationType,
 ) -> Tuple[Optional[PytorchBaseInferenceLearner], float, List]:
+    
+    best_torch_opt_model = None
+    best_latency = np.inf
+    used_compilers = []
+
+    if quantization_type is None and sparsity_params is not None:
+        try:
+            best_torch_opt_model = DeepSparseOptimizer().optimize_from_torch(
+                torch_model=model,
+                model_params=model_params,
+                sparsity_params=sparsity_params,
+                perf_loss_ths=quantization_ths
+            )
+            best_latency = compute_optimized_running_time(best_torch_opt_model)
+            used_compilers = [ModelCompiler.DEEPSPARSE]
+        except Exception as ex:
+            warnings.warn(
+                f"Compilation failed with torch interface of DeepSparse. "
+                f"Got error {ex}."
+            )
+            
     try:
         best_torch_opt_model = ApacheTVMOptimizer().optimize_from_torch(
             torch_model=model,
@@ -326,9 +361,7 @@ def _torch_api_optimization(
             f"Got error {ex}. The compilation will be re-scheduled "
             f"with the ONNX interface."
         )
-        best_torch_opt_model = None
-        best_latency = np.inf
-        used_compilers = []
+        
     return best_torch_opt_model, best_latency, used_compilers
 
 

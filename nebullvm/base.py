@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple, List, Dict, Union
+from torch.utils.data import DataLoader
 
 
 class DataType(str, Enum):
@@ -61,6 +62,13 @@ class InputInfo:
 
 
 @dataclass
+class SparsityParams:
+    train_dataloader: DataLoader
+    val_dataloader: DataLoader
+    finetuning_batch_size: int
+
+
+@dataclass
 class ModelParams:
     batch_size: int
     input_infos: List[InputInfo]
@@ -106,6 +114,7 @@ class ModelCompiler(Enum):
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
+    DEEPSPARSE = "deepsparse"
 
 
 class QuantizationType(Enum):
