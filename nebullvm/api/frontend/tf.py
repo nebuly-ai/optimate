@@ -222,7 +222,7 @@ def optimize_tf_model(
             model, model_params.input_sizes, Path(tmp_dir)
         )
         model_optimized = model_optimizer.optimize(
-            onnx_model=str(onnx_path),
+            model=str(onnx_path),
             output_library=dl_library,
             model_params=model_params,
             input_tfms=input_tfms,

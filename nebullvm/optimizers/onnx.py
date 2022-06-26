@@ -27,7 +27,7 @@ class ONNXOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -39,7 +39,7 @@ class ONNXOptimizer(BaseOptimizer):
         """Build the ONNX runtime learner from the onnx model.
 
         Args:
-            onnx_model (str): Path to the saved onnx model.
+            model (str): Path to the saved onnx model.
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
@@ -77,18 +77,18 @@ class ONNXOptimizer(BaseOptimizer):
                     300, with_ys=True
                 )
             output_data_onnx = [
-                tuple(run_onnx_model(onnx_model, list(input_tensors)))
+                tuple(run_onnx_model(model, list(input_tensors)))
                 for input_tensors in input_data_onnx
             ]
-            onnx_model, input_tfms = quantize_onnx(
-                onnx_model, quantization_type, input_tfms, input_data_onnx
+            model, input_tfms = quantize_onnx(
+                model, quantization_type, input_tfms, input_data_onnx
             )
         learner = ONNX_INFERENCE_LEARNERS[output_library](
             input_tfms=input_tfms,
             network_parameters=model_params,
-            onnx_path=onnx_model,
-            input_names=get_input_names(onnx_model),
-            output_names=get_output_names(onnx_model),
+            onnx_path=model,
+            input_names=get_input_names(model),
+            output_names=get_output_names(model),
         )
         if perf_loss_ths is not None:
             inputs = [

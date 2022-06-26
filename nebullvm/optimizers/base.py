@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from logging import Logger
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.base import BaseInferenceLearner
@@ -17,7 +17,7 @@ class BaseOptimizer(ABC):
     @abstractmethod
     def optimize(
         self,
-        onnx_model: str,
+        model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,

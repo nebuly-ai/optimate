@@ -125,7 +125,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -137,7 +137,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         """Optimize the input model with Apache TVM.
 
         Args:
-            onnx_model (str): Path to the saved onnx model.
+            model (str): Path to the saved onnx model.
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
@@ -161,7 +161,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         """
         check_quantization(quantization_type, perf_loss_ths)
         target = self._get_target()
-        mod, params = self._build_tvm_model_from_onnx(onnx_model, model_params)
+        mod, params = self._build_tvm_model_from_onnx(model, model_params)
         if perf_loss_ths is not None:
             if quantization_type is QuantizationType.HALF:
                 mod = tvm.relay.transform.ToMixedPrecision(
@@ -182,7 +182,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                         ]
                     else:
                         inputs = input_data.get_numpy_list(300, with_ys=False)
-                    inputs = TVMCalibrator(inputs, get_input_names(onnx_model))
+                    inputs = TVMCalibrator(inputs, get_input_names(model))
                 else:
                     return
                 mod = self._quantize(mod, params, input_data=inputs)
@@ -195,7 +195,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             network_parameters=model_params,
             lib=lib,
             target_device=target,
-            input_names=get_input_names(onnx_model),
+            input_names=get_input_names(model),
         )
         if quantization_type is not None:
             if input_data is None:
@@ -208,7 +208,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             output_data = [
                 tuple(
                     run_onnx_model(
-                        onnx_model,
+                        model,
                         [convert_to_numpy(x) for x in tuple_],
                     )
                 )

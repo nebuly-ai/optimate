@@ -134,7 +134,7 @@ class TensorRTOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -146,7 +146,7 @@ class TensorRTOptimizer(BaseOptimizer):
         """Optimize the input model with TensorRT.
 
         Args:
-            onnx_model (str): Path to the saved onnx model.
+            model (str): Path to the saved onnx model.
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
@@ -174,7 +174,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 "on a machine not connected to any GPU supporting CUDA."
             )
         check_quantization(quantization_type, perf_loss_ths)
-        engine_path = Path(onnx_model).parent / NVIDIA_FILENAMES["engine"]
+        engine_path = Path(model).parent / NVIDIA_FILENAMES["engine"]
         if (
             perf_loss_ths is not None
             and quantization_type is QuantizationType.STATIC
@@ -193,7 +193,7 @@ class TensorRTOptimizer(BaseOptimizer):
             input_data_onnx = None
         self._build_and_save_the_engine(
             engine_path=engine_path,
-            onnx_model_path=onnx_model,
+            onnx_model_path=model,
             model_params=model_params,
             input_tfms=input_tfms,
             quantization_type=quantization_type,
@@ -203,8 +203,8 @@ class TensorRTOptimizer(BaseOptimizer):
             input_tfms=input_tfms,
             network_parameters=model_params,
             engine_path=engine_path,
-            input_names=get_input_names(onnx_model),
-            output_names=get_output_names(onnx_model),
+            input_names=get_input_names(model),
+            output_names=get_output_names(model),
         )
         if quantization_type is not None:
             if input_data is None:
@@ -217,7 +217,7 @@ class TensorRTOptimizer(BaseOptimizer):
             output_data = [
                 tuple(
                     run_onnx_model(
-                        onnx_model,
+                        model,
                         [convert_to_numpy(x) for x in tuple_],
                     )
                 )

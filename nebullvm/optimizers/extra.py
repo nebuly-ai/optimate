@@ -49,7 +49,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -58,16 +58,14 @@ class HuggingFaceOptimizer(BaseOptimizer):
         perf_metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ONNXInferenceLearner]:
-        optimized_model = optimizer.optimize_model(
-            onnx_model, **self.hf_params
-        )
+        optimized_model = optimizer.optimize_model(model, **self.hf_params)
         if perf_loss_ths is not None:
             if quantization_type is not QuantizationType.HALF:
                 return None
             optimized_model.convert_float_to_float16()
-            new_onnx_model = onnx_model.replace(".onnx", "_fp16.onnx")
+            new_onnx_model = model.replace(".onnx", "_fp16.onnx")
         else:
-            new_onnx_model = onnx_model.replace(".onnx", "_opt.onnx")
+            new_onnx_model = model.replace(".onnx", "_opt.onnx")
         optimized_model.save_model_to_file(new_onnx_model)
         learner = ONNX_INFERENCE_LEARNERS[output_library](
             input_tfms=input_tfms,
@@ -87,7 +85,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
                 tuple(convert_to_numpy(x) for x in input_) for input_ in inputs
             ]
             base_outputs = [
-                tuple(run_onnx_model(onnx_model, list(input_onnx)))
+                tuple(run_onnx_model(model, list(input_onnx)))
                 for input_onnx in inputs_onnx
             ]
             is_valid = check_precision(

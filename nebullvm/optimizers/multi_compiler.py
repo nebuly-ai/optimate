@@ -162,7 +162,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -174,7 +174,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         """Optimize the ONNX model using the available compilers.
 
         Args:
-            onnx_model (str): Path to the ONNX model.
+            model (str): Path to the ONNX model.
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
@@ -208,7 +208,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
             _optimize_with_compiler(
                 compiler,
                 logger=self.logger,
-                onnx_model=onnx_model,
+                onnx_model=model,
                 output_library=output_library,
                 model_params=model_params,
                 input_tfms=input_tfms.copy()
@@ -228,7 +228,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 _optimize_with_optimizer(
                     op,
                     logger=self.logger,
-                    onnx_model=onnx_model,
+                    onnx_model=model,
                     output_library=output_library,
                     model_params=model_params,
                     input_tfms=input_tfms.copy()
