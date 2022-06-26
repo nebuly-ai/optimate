@@ -244,8 +244,8 @@ def optimize_torch_model(
 
     if sparsity_parameters is not None:
         sparsity_params = SparsityParams(
-            train_dataloader=sparsity_parameters["train_dataloader"],
-            val_dataloader=sparsity_parameters["val_dataloader"],
+            train_dataloader=sparsity_parameters["train_loader"],
+            val_dataloader=sparsity_parameters["train_loader"],
             finetuning_batch_size=sparsity_parameters["finetuning_batch_size"]
         )
     else:
@@ -271,7 +271,7 @@ def optimize_torch_model(
                 q_types = [None]
             torch_res = [
                 _torch_api_optimization(
-                    model, model_params, sparsity_params, perf_loss_ths, q_type
+                    model, model_params, sparsity_params, perf_loss_ths, q_type, input_data
                 )
                 for q_type in q_types
             ]
@@ -322,6 +322,7 @@ def _torch_api_optimization(
     sparsity_params: SparsityParams,
     quantization_ths: float,
     quantization_type: QuantizationType,
+    input_data: DataManager = None
 ) -> Tuple[Optional[PytorchBaseInferenceLearner], float, List]:
     
     best_torch_opt_model = None
@@ -334,7 +335,8 @@ def _torch_api_optimization(
                 torch_model=model,
                 model_params=model_params,
                 sparsity_params=sparsity_params,
-                perf_loss_ths=quantization_ths
+                perf_loss_ths=quantization_ths,
+                input_data = input_data
             )
             best_latency = compute_optimized_running_time(best_torch_opt_model)
             used_compilers = [ModelCompiler.DEEPSPARSE]
