@@ -5,9 +5,6 @@ import cpuinfo
 import numpy as np
 import onnx
 import torch
-from onnxmltools.utils.float16_converter import (
-    convert_float_to_float16_model_path,
-)
 from torch.utils.data import DataLoader
 
 from nebullvm.base import QuantizationType
@@ -17,6 +14,9 @@ from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 from nebullvm.utils.onnx import get_input_names
 
 try:
+    from onnxmltools.utils.float16_converter import (
+        convert_float_to_float16_model_path,
+    )
     from onnxruntime.quantization import (
         QuantType,
         quantize_static,
