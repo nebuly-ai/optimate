@@ -25,9 +25,8 @@ try:
     )
 except ImportError:
     if NO_COMPILER_INSTALLATION:
-        QuantType = (
-            quantize_static
-        ) = quantize_dynamic = CalibrationDataReader = None
+        QuantType = quantize_static = quantize_dynamic = None
+        CalibrationDataReader = object
     else:
         from nebullvm.installers.installers import install_onnxruntime
 
