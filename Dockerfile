@@ -15,7 +15,7 @@ RUN apt-get install -y python3-opencv python3-pip && \
 ARG NEBULLVM_VERSION=latest
 RUN if [ "$NEBULLVM_VERSION" = "latest" ] ; then \
         # pip install nebullvm ; \
-        git clone -b feat/add_backends https://github.com/nebuly-ai/nebullvm.git ; \
+        git clone https://github.com/nebuly-ai/nebullvm.git ; \
         cd nebullvm ; \
         pip install . ;\
     else \
