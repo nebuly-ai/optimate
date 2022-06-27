@@ -33,8 +33,11 @@ except ImportError:
             "No valid onnxruntime installation found. The compiler will raise "
             "an error if used."
         )
-        ort = object()
-        ort.SessionOptions = None
+
+        class ort:
+            pass
+
+        setattr(ort, "SessionOptions", None)
     else:
         warnings.warn(
             "No valid onnxruntime installation found. Trying to install it..."
