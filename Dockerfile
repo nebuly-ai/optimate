@@ -42,12 +42,5 @@ RUN if [ "$COMPILER" = "all" ] ; then \
 # Install TVM
 RUN if [ "$COMPILER" = "all" ] || [ "$COMPILER" = "tvm" ] ; then \
         python3 -c "from nebullvm.installers.installers import install_tvm; install_tvm()" ; \
-        #### Trick to fix tvm configs issue
-        mv /root/tvm/configs /root/tvm/configs_orig ; touch /root/tvm/configs ; \
-        python3 -c "from nebullvm.installers.installers import install_tvm; install_tvm()" ; \
-        # Manually copy the configs folder to the correct path
-        export TVM_DIR_NAME=$(ls -d /root/.local/lib/python3.8/site-packages/tvm*) ; cp -R /root/tvm/configs_orig "$TVM_DIR_NAME/tvm/configs" ; \
-        # RUN /root/.local/bin/tvmc
-        ####
         python3 -c "from tvm.runtime import Module" ; \
     fi

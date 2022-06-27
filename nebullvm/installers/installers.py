@@ -48,11 +48,27 @@ def install_tvm(working_dir: str = None):
         ),
         **dict(os.environ.copy()),
     }
-    subprocess.run(
-        ["bash", installation_file],
-        cwd=working_dir or Path.home(),
-        env=env_dict,
-    )
+
+    try:
+        subprocess.run(
+            ["bash", installation_file],
+            cwd=working_dir or Path.home(),
+            env=env_dict,
+        )
+    except Exception as e:
+        os.system("mv /root/tvm/configs /root/tvm/configs_orig")
+        os.system("touch /root/tvm/configs")
+
+        subprocess.run(
+            ["bash", installation_file],
+            cwd=working_dir or Path.home(),
+            env=env_dict,
+        )
+
+        # Manually copy the configs folder to the correct path
+        # export TVM_DIR_NAME=$(ls -d /root/.local/lib/python3.8/site-packages/tvm*) ; cp -R /root/tvm/configs_orig "$TVM_DIR_NAME/tvm/configs" ; \
+        # RUN /root/.local/bin/tvmc
+
 
 
 def install_tensor_rt():
