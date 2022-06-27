@@ -8,6 +8,10 @@ then
   git clone --recursive https://github.com/apache/tvm tvm
 fi
 
+# Fix for tvm
+mv /root/tvm/configs /root/tvm/configs_orig
+touch /root/tvm/configs
+
 cd tvm
 mkdir -p build
 cp $CONFIG_PATH build/

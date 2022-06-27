@@ -264,7 +264,7 @@ def optimize_torch_model(
             q_types = [None]
         torch_res = [
             _torch_api_optimization(
-                model, model_params, perf_loss_ths, q_type, use_torch_api
+                model, model_params, perf_loss_ths, q_type, use_torch_api, input_data
             )
             for q_type in tqdm(q_types)
         ]
@@ -329,6 +329,7 @@ def _torch_api_optimization(
     quantization_ths: float,
     quantization_type: QuantizationType,
     use_extra_compilers: bool,
+    input_data: DataManager
 ) -> Tuple[Optional[PytorchBaseInferenceLearner], float, List]:
     used_compilers = []
     best_torch_opt_model = None
@@ -345,6 +346,7 @@ def _torch_api_optimization(
                     if quantization_type is not None
                     else None,
                     quantization_type=quantization_type,
+                    input_data=input_data,
                 )
             else:
                 candidate_model = optimizer.optimize(
@@ -355,6 +357,7 @@ def _torch_api_optimization(
                     if quantization_type is not None
                     else None,
                     quantization_type=quantization_type,
+                    input_data=input_data,
                 )
             candidate_latency = compute_optimized_running_time(candidate_model)
             if candidate_latency < best_latency:
