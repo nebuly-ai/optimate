@@ -2,6 +2,8 @@ from typing import List, Tuple, Any
 
 import numpy as np
 
+from nebullvm.config import NO_COMPILER_INSTALLATION
+
 try:
     from openvino.tools.pot import DataLoader
     from openvino.tools.pot import IEEngine
@@ -11,7 +13,10 @@ try:
 except ImportError:
     import cpuinfo
 
-    if "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
+    if (
+        "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+        and not NO_COMPILER_INSTALLATION
+    ):
         from nebullvm.installers.installers import install_openvino
 
         install_openvino()

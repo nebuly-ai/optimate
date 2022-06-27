@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.config import OPENVINO_FILENAMES
+from nebullvm.config import OPENVINO_FILENAMES, NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -24,7 +24,10 @@ from nebullvm.transformations.base import MultiStageTransformation
 try:
     from openvino.runtime import Core, Model, CompiledModel, InferRequest
 except ImportError:
-    if "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
+    if (
+        "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+        and not NO_COMPILER_INSTALLATION
+    ):
         warnings.warn(
             "No valid OpenVino installation has been found. "
             "Trying to re-install it from source."
