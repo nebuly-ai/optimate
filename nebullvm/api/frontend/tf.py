@@ -1,9 +1,13 @@
+import logging
 import os
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Tuple, Union, Dict, Optional, Callable, Any
 
+import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
 
 from nebullvm.api.frontend.utils import (
     ifnone,
@@ -15,9 +19,13 @@ from nebullvm.base import (
     ModelParams,
     InputInfo,
     ModelCompiler,
+    QuantizationType,
 )
 from nebullvm.converters import ONNXConverter
+from nebullvm.inference_learners import TensorflowBaseInferenceLearner
+from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import BaseOptimizer
+from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.tf import (
@@ -26,6 +34,8 @@ from nebullvm.utils.tf import (
     run_tf_model,
 )
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_dynamic_axis(
@@ -216,8 +226,31 @@ def optimize_tf_model(
         ignore_compilers=ignore_compilers,
         extra_optimizers=custom_optimizers,
         debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
+        logger=logger,
     )
     with TemporaryDirectory() as tmp_dir:
+        logger.info("Running Optimization using tensorflow interface (1/3)")
+        if perf_loss_ths is not None:
+            q_types = [
+                None,
+                QuantizationType.DYNAMIC,
+                QuantizationType.HALF,
+            ]
+            if dataset is not None:
+                q_types.append(QuantizationType.STATIC)
+        else:
+            q_types = [None]
+        torch_res = [
+            _torch_api_optimization(
+                model, model_params, perf_loss_ths, q_type, False, input_data
+            )
+            for q_type in tqdm(q_types)
+        ]
+        (tf_api_model, tf_api_latency, used_compilers,) = sorted(
+            torch_res, key=lambda x: x[1]
+        )[0]
+        ignore_compilers.extend(used_compilers)
+        logger.info("Running Optimization using ONNX interface (2/3)")
         onnx_path = model_converter.convert(
             model, model_params.input_sizes, Path(tmp_dir)
         )
@@ -230,5 +263,86 @@ def optimize_tf_model(
             perf_metric=perf_metric,
             input_data=input_data,
         )
+        logger.info("Running comparison between optimized models (3/3).")
+        model_optimized = _compare_optimized_models(
+            model_optimized, tf_api_model, tf_api_latency
+        )
+        if model_optimized is None:
+            raise RuntimeError(
+                "No valid compiled model has been produced. "
+                "Look at the logs for further information about the failure."
+            )
         model_optimized.save(save_dir)
     return model_optimized.load(save_dir)
+
+
+def _compare_optimized_models(
+    new_model: TensorflowBaseInferenceLearner,
+    previous_best_model: TensorflowBaseInferenceLearner,
+    previous_latency: float,
+) -> TensorflowBaseInferenceLearner:
+    if new_model is not None:
+        new_latency = compute_optimized_running_time(new_model)
+        if new_latency < previous_latency:
+            return new_model
+    return previous_best_model
+
+
+def _get_optimizers_supporting_tf_api(use_extra_compilers: bool):
+    if use_extra_compilers:
+        logger.warning(
+            "No compiler found supporting the tensorflow interface."
+        )
+    return [(ModelCompiler.TFLITE, TensorflowBackendOptimizer(logger=logger))]
+
+
+def _torch_api_optimization(
+    model: tf.Module,
+    model_params: ModelParams,
+    quantization_ths: float,
+    quantization_type: QuantizationType,
+    use_extra_compilers: bool,
+    input_data: DataManager,
+) -> Tuple[Optional[TensorflowBaseInferenceLearner], float, List]:
+    used_compilers = []
+    best_tf_opt_model = None
+    best_latency = np.inf
+    for compiler, optimizer in tqdm(
+        _get_optimizers_supporting_tf_api(use_extra_compilers)
+    ):
+        try:
+            if hasattr(optimizer, "optimize_from_tf"):
+                candidate_model = optimizer.optimize_from_tf(
+                    torch_model=model,
+                    model_params=model_params,
+                    perf_loss_ths=quantization_ths
+                    if quantization_type is not None
+                    else None,
+                    quantization_type=quantization_type,
+                    input_data=input_data,
+                )
+            else:
+                candidate_model = optimizer.optimize(
+                    model=model,
+                    output_library=DeepLearningFramework.PYTORCH,
+                    model_params=model_params,
+                    perf_loss_ths=quantization_ths
+                    if quantization_type is not None
+                    else None,
+                    quantization_type=quantization_type,
+                    input_data=input_data,
+                )
+            candidate_latency = compute_optimized_running_time(candidate_model)
+            if candidate_latency < best_latency:
+                best_latency = candidate_latency
+                best_tf_opt_model = candidate_model
+            used_compilers.append(compiler)
+        except Exception as ex:
+            warnings.warn(
+                f"Compilation failed with torch interface of {compiler}. "
+                f"Got error {ex}. If possible the compilation will be "
+                f"re-scheduled with the ONNX interface. Please consult the "
+                f"documentation for further info or open an issue on GitHub "
+                f"for receiving assistance."
+            )
+    return best_tf_opt_model, best_latency, used_compilers

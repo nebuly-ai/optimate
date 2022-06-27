@@ -20,9 +20,9 @@ from nebullvm.utils.onnx import convert_to_target_framework
 from nebullvm.utils.tf import create_model_inputs_tf, run_tf_model
 
 
-class PytorchBackendOptimizer(BaseOptimizer):
-    """Optimizer working directly on the pytorch backend, with no need of a
-    conversion to ONNX. The model will be finally compiled using torchscript.
+class TensorflowBackendOptimizer(BaseOptimizer):
+    """Optimizer working directly on the tensorflow backend, with no need of a
+    conversion to ONNX. The model will be finally compiled using tflite.
     For avoiding un-wanted modification to the input model models are copied
     before being optimized.
 
