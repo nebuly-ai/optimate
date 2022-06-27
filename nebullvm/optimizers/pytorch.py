@@ -64,6 +64,10 @@ class PytorchBackendOptimizer(BaseOptimizer):
         Returns:
             PytorchBackendInferenceLearner: Model optimized for inference.
         """
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         assert output_library is DeepLearningFramework.PYTORCH, (
             "Other APIs than the Pytorch one are not supported "
             "for the Pytorch Backend yet."

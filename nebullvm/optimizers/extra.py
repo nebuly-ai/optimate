@@ -58,6 +58,10 @@ class HuggingFaceOptimizer(BaseOptimizer):
         perf_metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ONNXInferenceLearner]:
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         optimized_model = optimizer.optimize_model(model, **self.hf_params)
         if perf_loss_ths is not None:
             if quantization_type is not QuantizationType.HALF:

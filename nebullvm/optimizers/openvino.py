@@ -59,6 +59,10 @@ class OpenVinoOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         cmd = [
             "mo",
             "--input_model",

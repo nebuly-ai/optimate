@@ -61,6 +61,10 @@ class ONNXOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         input_data_onnx, output_data_onnx, ys = [], [], None
         check_quantization(quantization_type, perf_loss_ths)
         if perf_loss_ths is not None:

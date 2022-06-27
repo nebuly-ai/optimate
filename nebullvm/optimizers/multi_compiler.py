@@ -8,7 +8,7 @@ import uuid
 import cpuinfo
 import numpy as np
 import torch
-
+from tqdm import tqdm
 
 from nebullvm.base import (
     ModelCompiler,
@@ -221,9 +221,10 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 input_data=input_data,
             )
             for compiler in self.compilers
-            for q_type in quantization_types
+            for q_type in tqdm(quantization_types)
         ]
         if self.extra_optimizers is not None:
+            self._log("Running extra-optimizers...")
             optimized_models += [
                 _optimize_with_optimizer(
                     op,
@@ -243,7 +244,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers
-                for q_type in quantization_types
+                for q_type in tqdm(quantization_types)
             ]
         optimized_models.sort(key=lambda x: x[1], reverse=False)
         return optimized_models[0][0]
@@ -324,7 +325,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 input_data=input_data,
             )
             for compiler in self.compilers
-            for q_type in quantization_types
+            for q_type in tqdm(quantization_types)
         ]
         if self.extra_optimizers is not None:
             optimized_models += [
@@ -346,7 +347,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers
-                for q_type in quantization_types
+                for q_type in tqdm(quantization_types)
             ]
         if return_all:
             return optimized_models

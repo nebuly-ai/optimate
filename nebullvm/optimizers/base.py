@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod, ABC
 from logging import Logger
 from typing import Optional, Callable, Any
@@ -27,3 +28,9 @@ class BaseOptimizer(ABC):
         input_data: DataManager = None,
     ) -> Optional[BaseInferenceLearner]:
         raise NotImplementedError
+
+    def _log(self, message: str, level: int = logging.INFO):
+        if self.logger is None:
+            logging.log(level, message)
+        else:
+            self.logger.log(level, message)

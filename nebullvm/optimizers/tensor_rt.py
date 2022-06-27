@@ -168,6 +168,10 @@ class TensorRTOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         if not torch.cuda.is_available():
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "

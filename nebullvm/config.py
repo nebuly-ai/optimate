@@ -37,3 +37,8 @@ OPENVINO_FILENAMES = {
     "description_file": "description.xml",
     "weights": "weights.bin",
 }
+
+TENSORFLOW_BACKEND_FILENAMES = {
+    "tflite_model": "tf_model.tflite",
+    "tf_model": "tf_model.h5",
+}

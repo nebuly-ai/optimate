@@ -1,8 +1,10 @@
+import os.path
 from typing import List, Tuple
 
 import tensorflow as tf
 
 from nebullvm.base import QuantizationType
+from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
 from nebullvm.transformations.base import MultiStageTransformation
 
 
@@ -37,15 +39,23 @@ def quantize_tf(
     model: tf.Module,
     quantization_type: QuantizationType,
     input_tfms: MultiStageTransformation,
-    input_data_torch: List[Tuple[tf.Tensor, ...]],
+    input_data: List[Tuple[tf.Tensor, ...]],
+    tmp_dir: str,
 ):
     if quantization_type is QuantizationType.DYNAMIC:
-        return _quantize_dynamic(model), input_tfms
+        quantized_model = _quantize_dynamic(model)
     elif quantization_type is QuantizationType.STATIC:
-        return _quantize_static(model, input_data_torch), input_tfms
+        quantized_model = _quantize_static(model, input_data)
     elif quantization_type is QuantizationType.HALF:
-        return _half_precision(model), input_tfms
+        quantized_model = _half_precision(model)
     else:
         raise NotImplementedError(
             f"Quantization not supported for type {quantization_type}"
         )
+
+    filepath = os.path.join(
+        tmp_dir, TENSORFLOW_BACKEND_FILENAMES["tflite_model"]
+    )
+    with open(filepath, "wb") as f:
+        f.write(quantized_model)
+    return filepath, input_tfms

@@ -57,6 +57,10 @@ class ApacheTVMOptimizer(BaseOptimizer):
         perf_metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         target = self._get_target()
         mod, params = self._build_tvm_model_from_torch(
             torch_model, model_params
@@ -159,6 +163,10 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         check_quantization(quantization_type, perf_loss_ths)
         target = self._get_target()
         mod, params = self._build_tvm_model_from_onnx(model, model_params)

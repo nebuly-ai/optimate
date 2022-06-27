@@ -9,6 +9,7 @@ REQUIREMENTS = [
     "tensorflow>=2.7.0, <2.8.0",
     "tf2onnx>=1.8.4",
     "torch>=1.10.0",
+    "tqdm>=4.63.0",
 ]
 
 this_directory = Path(__file__).parent
