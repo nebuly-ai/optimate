@@ -48,13 +48,11 @@ def install_tvm(working_dir: str = None):
         ),
         **dict(os.environ.copy()),
     }
-
     subprocess.run(
         ["bash", installation_file],
         cwd=working_dir or Path.home(),
         env=env_dict,
     )
-
 
 
 def install_tensor_rt():
