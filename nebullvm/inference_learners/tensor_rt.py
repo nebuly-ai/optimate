@@ -378,7 +378,7 @@ class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
                 polygraphy.cuda.DeviceArray(
                     shape=tuple(
                         x
-                        if i in dyn_out_axis.keys()
+                        if i not in dyn_out_axis.keys()
                         else dynamic_info.retrieve_output_dim(
                             input_shapes, j, i, x
                         )
