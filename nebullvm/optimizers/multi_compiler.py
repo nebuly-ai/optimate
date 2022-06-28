@@ -8,7 +8,7 @@ import uuid
 import cpuinfo
 import numpy as np
 import torch
-
+from tqdm import tqdm
 
 from nebullvm.base import (
     ModelCompiler,
@@ -162,7 +162,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -174,7 +174,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         """Optimize the ONNX model using the available compilers.
 
         Args:
-            onnx_model (str): Path to the ONNX model.
+            model (str): Path to the ONNX model.
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
@@ -208,7 +208,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
             _optimize_with_compiler(
                 compiler,
                 logger=self.logger,
-                onnx_model=onnx_model,
+                model=model,
                 output_library=output_library,
                 model_params=model_params,
                 input_tfms=input_tfms.copy()
@@ -221,14 +221,15 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 input_data=input_data,
             )
             for compiler in self.compilers
-            for q_type in quantization_types
+            for q_type in tqdm(quantization_types)
         ]
         if self.extra_optimizers is not None:
+            self._log("Running extra-optimizers...")
             optimized_models += [
                 _optimize_with_optimizer(
                     op,
                     logger=self.logger,
-                    onnx_model=onnx_model,
+                    model=model,
                     output_library=output_library,
                     model_params=model_params,
                     input_tfms=input_tfms.copy()
@@ -243,7 +244,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers
-                for q_type in quantization_types
+                for q_type in tqdm(quantization_types)
             ]
         optimized_models.sort(key=lambda x: x[1], reverse=False)
         return optimized_models[0][0]
@@ -251,7 +252,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
     def optimize_on_custom_metric(
         self,
         metric_func: Callable,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -270,7 +271,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 InferenceLearner and return a numerical value. Note that the
                 outputs will be sorted in an ascendant order, i.e. the compiled
                 model with the smallest value will be selected.
-            onnx_model (str): Path to the ONNX model.
+            model (str): Path to the ONNX model.
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
@@ -311,7 +312,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 compiler,
                 metric_func=metric_func,
                 logger=self.logger,
-                onnx_model=onnx_model,
+                model=model,
                 output_library=output_library,
                 model_params=model_params,
                 input_tfms=input_tfms.copy()
@@ -324,14 +325,14 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 input_data=input_data,
             )
             for compiler in self.compilers
-            for q_type in quantization_types
+            for q_type in tqdm(quantization_types)
         ]
         if self.extra_optimizers is not None:
             optimized_models += [
                 _optimize_with_optimizer(
                     op,
                     logger=self.logger,
-                    onnx_model=onnx_model,
+                    model=model,
                     output_library=output_library,
                     model_params=model_params,
                     input_tfms=input_tfms.copy()
@@ -346,7 +347,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers
-                for q_type in quantization_types
+                for q_type in tqdm(quantization_types)
             ]
         if return_all:
             return optimized_models

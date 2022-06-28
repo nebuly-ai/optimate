@@ -225,7 +225,7 @@ def optimize_onnx_model(
         )
         if model_optimizer.usable:
             model_optimized = model_optimizer.optimize(
-                onnx_model=str(onnx_path),
+                model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
                 input_tfms=input_tfms,

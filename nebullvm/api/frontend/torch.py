@@ -1,3 +1,4 @@
+import logging
 import os
 import warnings
 from pathlib import Path
@@ -7,6 +8,7 @@ from typing import List, Tuple, Dict, Optional, Callable, Union, Sequence
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from nebullvm.api.frontend.utils import (
     check_inputs,
@@ -22,6 +24,7 @@ from nebullvm.base import (
     QuantizationType,
 )
 from nebullvm.converters import ONNXConverter
+from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import (
@@ -33,6 +36,12 @@ from nebullvm.inference_learners.base import PytorchBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
+
+logging.basicConfig(
+    format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"
+)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def _extract_dynamic_axis(
@@ -246,39 +255,46 @@ def optimize_torch_model(
     )
     input_tfms = MultiStageTransformation([])
     with TemporaryDirectory() as tmp_dir:
-        if use_torch_api:
-            if perf_loss_ths is not None:
-                q_types = [
-                    None,
-                    QuantizationType.DYNAMIC,
-                    QuantizationType.HALF,
-                ]
-                if dataloader is not None:
-                    q_types.append(QuantizationType.STATIC)
-            else:
-                q_types = [None]
-            torch_res = [
-                _torch_api_optimization(
-                    model, model_params, perf_loss_ths, q_type
-                )
-                for q_type in q_types
+        logger.info("Running Optimization using torch interface (1/3)")
+        if perf_loss_ths is not None:
+            q_types = [
+                None,
+                QuantizationType.DYNAMIC,
+                QuantizationType.HALF,
             ]
-            (torch_api_model, torch_api_latency, used_compilers,) = sorted(
-                torch_res, key=lambda x: x[1]
-            )[0]
-            ignore_compilers.extend(used_compilers)
+            if dataloader is not None:
+                q_types.append(QuantizationType.STATIC)
+        else:
+            q_types = [None]
+        torch_res = [
+            _torch_api_optimization(
+                model,
+                model_params,
+                perf_loss_ths,
+                q_type,
+                use_torch_api,
+                input_data,
+            )
+            for q_type in tqdm(q_types)
+        ]
+        (torch_api_model, torch_api_latency, used_compilers,) = sorted(
+            torch_res, key=lambda x: x[1]
+        )[0]
+        ignore_compilers.extend(used_compilers)
+        logger.info("Running Optimization using ONNX interface (2/3)")
         model_converter = ONNXConverter()
         model_optimizer = MultiCompilerOptimizer(
             ignore_compilers=ignore_compilers,
             extra_optimizers=custom_optimizers,
             debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
+            logger=logger,
         )
         if model_optimizer.usable:
             onnx_path = model_converter.convert(
                 model, model_params, Path(tmp_dir)
             )
             model_optimized = model_optimizer.optimize(
-                onnx_model=str(onnx_path),
+                model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
                 input_tfms=input_tfms,
@@ -288,12 +304,12 @@ def optimize_torch_model(
             )
         else:
             model_optimized = None
-        if use_torch_api:
-            model_optimized = _compare_optimized_models(
-                model_optimized,
-                torch_api_model,
-                torch_api_latency,
-            )
+        logger.info("Running comparison between optimized models (3/3).")
+        model_optimized = _compare_optimized_models(
+            model_optimized,
+            torch_api_model,
+            torch_api_latency,
+        )
         if model_optimized is None:
             raise RuntimeError(
                 "No valid compiled model has been produced. "
@@ -303,32 +319,68 @@ def optimize_torch_model(
     return model_optimized.load(save_dir)
 
 
+def _get_optimizers_supporting_torch_api(
+    use_extra_compilers: bool,
+) -> List[Tuple[ModelCompiler, BaseOptimizer]]:
+    optimizers = [
+        (ModelCompiler.TORCHVISION, PytorchBackendOptimizer(logger=logger)),
+    ]
+    if use_extra_compilers:
+        optimizers.append(
+            (ModelCompiler.APACHE_TVM, ApacheTVMOptimizer(logger=logger))
+        )
+    return optimizers
+
+
 def _torch_api_optimization(
     model: torch.nn.Module,
     model_params: ModelParams,
     quantization_ths: float,
     quantization_type: QuantizationType,
+    use_extra_compilers: bool,
+    input_data: DataManager,
 ) -> Tuple[Optional[PytorchBaseInferenceLearner], float, List]:
-    try:
-        best_torch_opt_model = ApacheTVMOptimizer().optimize_from_torch(
-            torch_model=model,
-            model_params=model_params,
-            perf_loss_ths=quantization_ths
-            if quantization_type is not None
-            else None,
-            quantization_type=quantization_type,
-        )
-        best_latency = compute_optimized_running_time(best_torch_opt_model)
-        used_compilers = [ModelCompiler.APACHE_TVM]
-    except Exception as ex:
-        warnings.warn(
-            f"Compilation failed with torch interface of TVM. "
-            f"Got error {ex}. The compilation will be re-scheduled "
-            f"with the ONNX interface."
-        )
-        best_torch_opt_model = None
-        best_latency = np.inf
-        used_compilers = []
+    used_compilers = []
+    best_torch_opt_model = None
+    best_latency = np.inf
+    for compiler, optimizer in tqdm(
+        _get_optimizers_supporting_torch_api(use_extra_compilers)
+    ):
+        try:
+            if hasattr(optimizer, "optimize_from_torch"):
+                candidate_model = optimizer.optimize_from_torch(
+                    torch_model=model,
+                    model_params=model_params,
+                    perf_loss_ths=quantization_ths
+                    if quantization_type is not None
+                    else None,
+                    quantization_type=quantization_type,
+                    input_data=input_data,
+                )
+            else:
+                candidate_model = optimizer.optimize(
+                    model=model,
+                    output_library=DeepLearningFramework.PYTORCH,
+                    model_params=model_params,
+                    perf_loss_ths=quantization_ths
+                    if quantization_type is not None
+                    else None,
+                    quantization_type=quantization_type,
+                    input_data=input_data,
+                )
+            candidate_latency = compute_optimized_running_time(candidate_model)
+            if candidate_latency < best_latency:
+                best_latency = candidate_latency
+                best_torch_opt_model = candidate_model
+            used_compilers.append(compiler)
+        except Exception as ex:
+            warnings.warn(
+                f"Compilation failed with torch interface of {compiler}. "
+                f"Got error {ex}. If possible the compilation will be "
+                f"re-scheduled with the ONNX interface. Please consult the "
+                f"documentation for further info or open an issue on GitHub "
+                f"for receiving assistance."
+            )
     return best_torch_opt_model, best_latency, used_compilers
 
 

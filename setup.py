@@ -9,6 +9,7 @@ REQUIREMENTS = [
     "tensorflow>=2.7.0, <2.8.0",
     "tf2onnx>=1.8.4",
     "torch>=1.10.0",
+    "tqdm>=4.63.0",
 ]
 
 this_directory = Path(__file__).parent
@@ -16,7 +17,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="nebullvm",
-    version="0.3.0",
+    version="0.3.1",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     package_data={

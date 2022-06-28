@@ -11,7 +11,11 @@ import tensorflow as tf
 import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
-from nebullvm.config import ONNX_FILENAMES, CUDA_PROVIDERS
+from nebullvm.config import (
+    ONNX_FILENAMES,
+    CUDA_PROVIDERS,
+    NO_COMPILER_INSTALLATION,
+)
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -24,13 +28,24 @@ from nebullvm.transformations.base import MultiStageTransformation
 try:
     import onnxruntime as ort
 except ImportError:
-    warnings.warn(
-        "No valid onnxruntime installation found. Trying to install it..."
-    )
-    from nebullvm.installers.installers import install_onnxruntime
+    if NO_COMPILER_INSTALLATION:
+        warnings.warn(
+            "No valid onnxruntime installation found. The compiler will raise "
+            "an error if used."
+        )
 
-    install_onnxruntime()
-    import onnxruntime as ort
+        class ort:
+            pass
+
+        setattr(ort, "SessionOptions", None)
+    else:
+        warnings.warn(
+            "No valid onnxruntime installation found. Trying to install it..."
+        )
+        from nebullvm.installers.installers import install_onnxruntime
+
+        install_onnxruntime()
+        import onnxruntime as ort
 
 
 def _is_intel_cpu():

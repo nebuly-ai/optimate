@@ -23,7 +23,7 @@ from nebullvm.transformations.tensor_tfms import VerifyContiguity
 if torch.cuda.is_available():
     try:
         import tensorrt as trt
-        import polygraphy
+        import polygraphy.cuda
     except ImportError:
         if not NO_COMPILER_INSTALLATION:
             from nebullvm.installers.installers import install_tensor_rt
@@ -34,7 +34,7 @@ if torch.cuda.is_available():
             )
             install_tensor_rt()
             import tensorrt as trt
-            import polygraphy
+            import polygraphy.cuda
         else:
             warnings.warn(
                 "No TensorRT valid installation has been found. "
@@ -343,7 +343,7 @@ class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
 
     @staticmethod
     def _get_default_cuda_stream() -> Any:
-        return polygraphy.Stream()
+        return polygraphy.cuda.Stream()
 
     @property
     def stream_ptr(self):
@@ -362,7 +362,7 @@ class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
     ) -> Generator[np.ndarray, None, None]:
         if self.network_parameters.dynamic_info is None:
             cuda_output_arrays = [
-                polygraphy.DeviceArray(
+                polygraphy.cuda.DeviceArray(
                     shape=(self.network_parameters.batch_size, *output_size)
                 )
                 for output_size in self.network_parameters.output_sizes
@@ -375,10 +375,10 @@ class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
             )
 
             cuda_output_arrays = [
-                polygraphy.DeviceArray(
+                polygraphy.cuda.DeviceArray(
                     shape=tuple(
                         x
-                        if i in dyn_out_axis.keys()
+                        if i not in dyn_out_axis.keys()
                         else dynamic_info.retrieve_output_dim(
                             input_shapes, j, i, x
                         )
@@ -440,9 +440,10 @@ class TensorflowNvidiaInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         cuda_input_arrays = [
-            polygraphy.DeviceArray.copy_from(
-                input_tensor.numpy(), stream=self.cuda_stream
-            )
+            polygraphy.cuda.DeviceArray(
+                shape=tuple(input_tensor.shape),
+                dtype=input_tensor.numpy().dtype,
+            ).copy_from(input_tensor.numpy(), stream=self.cuda_stream)
             for input_tensor in input_tensors
         ]
         input_shapes = (
@@ -495,9 +496,9 @@ class NumpyNvidiaInferenceLearner(
                 input.
         """
         cuda_input_arrays = [
-            polygraphy.DeviceArray.copy_from(
-                input_tensor, stream=self.cuda_stream
-            )
+            polygraphy.cuda.DeviceArray(
+                shape=tuple(input_tensor.shape), dtype=input_tensor.dtype
+            ).copy_from(input_tensor, stream=self.cuda_stream)
             for input_tensor in input_tensors
         ]
         input_shapes = (

@@ -2,6 +2,8 @@ from typing import List, Tuple, Any
 
 import numpy as np
 
+from nebullvm.config import NO_COMPILER_INSTALLATION
+
 try:
     from openvino.tools.pot import DataLoader
     from openvino.tools.pot import IEEngine
@@ -11,7 +13,10 @@ try:
 except ImportError:
     import cpuinfo
 
-    if "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
+    if (
+        "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+        and not NO_COMPILER_INSTALLATION
+    ):
         from nebullvm.installers.installers import install_openvino
 
         install_openvino()
@@ -32,10 +37,13 @@ class _CalibrationDataLoader(DataLoader):
         self._input_names = input_names
 
     def __len__(self):
-        return self._input_data
+        return len(self._input_data[0])
 
     def __getitem__(self, item):
-        return dict(zip(self._input_names, self._input_data[item]))
+        return (
+            dict(zip(self._input_names, self._input_data[0][item])),
+            self._input_data[1][item],
+        )
 
 
 def quantize_openvino(
@@ -56,7 +64,11 @@ def quantize_openvino(
     algorithms = [
         {
             "name": "DefaultQuantization",
-            "params": {"target_device": "ANY", "stat_subset_size": 300},
+            "params": {
+                "target_device": "ANY",
+                "preset": "performance",
+                "stat_subset_size": len(input_data),
+            },
         }
     ]
     data_loader = _CalibrationDataLoader(

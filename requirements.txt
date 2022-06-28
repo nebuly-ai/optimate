@@ -5,5 +5,6 @@ py-cpuinfo==8.0.0
 tensorflow>=2.7.0, <2.8.0
 tf2onnx>=1.8.4
 torch>=1.10.0
+tqdm>=4.63.0
 transformers
 pytest

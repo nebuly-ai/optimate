@@ -106,6 +106,8 @@ class ModelCompiler(Enum):
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
+    TORCHVISION = "torchvision"
+    TFLITE = "tflite"
 
 
 class QuantizationType(Enum):
