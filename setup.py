@@ -17,7 +17,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="nebullvm",
-    version="0.3.0",
+    version="0.3.1",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     package_data={
