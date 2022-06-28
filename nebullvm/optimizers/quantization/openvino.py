@@ -37,10 +37,13 @@ class _CalibrationDataLoader(DataLoader):
         self._input_names = input_names
 
     def __len__(self):
-        return len(self._input_data)
+        return len(self._input_data[0])
 
     def __getitem__(self, item):
-        return dict(zip(self._input_names, self._input_data[item]))
+        return (
+            dict(zip(self._input_names, self._input_data[0][item])),
+            self._input_data[1][item],
+        )
 
 
 def quantize_openvino(

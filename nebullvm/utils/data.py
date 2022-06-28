@@ -72,7 +72,8 @@ class DataManager:
             return [self[i][0] for i in idx]
 
         ys, xs = [], []
-        for x, y in self:
+        for i in idx:
+            x, y = self[i]
             xs.append(x)
             ys.append(y)
         return xs, ys
