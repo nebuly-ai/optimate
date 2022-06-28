@@ -440,9 +440,10 @@ class TensorflowNvidiaInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         cuda_input_arrays = [
-            polygraphy.cuda.DeviceArray.copy_from(
-                input_tensor.numpy(), stream=self.cuda_stream
-            )
+            polygraphy.cuda.DeviceArray(
+                shape=tuple(input_tensor.shape),
+                dtype=input_tensor.numpy().dtype,
+            ).copy_from(input_tensor.numpy(), stream=self.cuda_stream)
             for input_tensor in input_tensors
         ]
         input_shapes = (
@@ -495,9 +496,9 @@ class NumpyNvidiaInferenceLearner(
                 input.
         """
         cuda_input_arrays = [
-            polygraphy.cuda.DeviceArray.copy_from(
-                input_tensor, stream=self.cuda_stream
-            )
+            polygraphy.cuda.DeviceArray(
+                shape=tuple(input_tensor.shape), dtype=input_tensor.dtype
+            ).copy_from(input_tensor, stream=self.cuda_stream)
             for input_tensor in input_tensors
         ]
         input_shapes = (
