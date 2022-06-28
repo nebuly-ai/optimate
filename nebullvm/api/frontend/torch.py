@@ -37,7 +37,11 @@ from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
+logging.basicConfig(
+    format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"
+)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def _extract_dynamic_axis(
@@ -264,7 +268,12 @@ def optimize_torch_model(
             q_types = [None]
         torch_res = [
             _torch_api_optimization(
-                model, model_params, perf_loss_ths, q_type, use_torch_api, input_data
+                model,
+                model_params,
+                perf_loss_ths,
+                q_type,
+                use_torch_api,
+                input_data,
             )
             for q_type in tqdm(q_types)
         ]
@@ -329,7 +338,7 @@ def _torch_api_optimization(
     quantization_ths: float,
     quantization_type: QuantizationType,
     use_extra_compilers: bool,
-    input_data: DataManager
+    input_data: DataManager,
 ) -> Tuple[Optional[PytorchBaseInferenceLearner], float, List]:
     used_compilers = []
     best_torch_opt_model = None

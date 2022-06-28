@@ -16,14 +16,20 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
 
     def __init__(self, torch_model: torch.jit.ScriptModule, **kwargs):
         super().__init__(**kwargs)
-        self.model = torch_model
+        self.model = torch_model.eval()
+        if torch.cuda.is_available():
+            self.model.cuda()
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        device = input_tensors[0].device
+        if torch.cuda.is_available():
+            input_tensors = (t.cuda() for t in input_tensors)
         with torch.no_grad():
             res = self.model(*input_tensors)
             if not isinstance(res, tuple):
+                res = res.to(device)
                 return (res,)
-            return res
+            return tuple(out.to(device) for out in res)
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path)
@@ -49,7 +55,7 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         network_parameters: ModelParams,
         input_tfms: Optional[MultiStageTransformation] = None,
     ):
-        model_scripted = torch.jit.script(model, optimize=True)
+        model_scripted = torch.jit.script(model)
         return cls(
             torch_model=model_scripted,
             network_parameters=network_parameters,
