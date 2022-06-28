@@ -37,7 +37,7 @@ class _CalibrationDataLoader(DataLoader):
         self._input_names = input_names
 
     def __len__(self):
-        return self._input_data
+        return len(self._input_data)
 
     def __getitem__(self, item):
         return dict(zip(self._input_names, self._input_data[item]))
@@ -61,7 +61,11 @@ def quantize_openvino(
     algorithms = [
         {
             "name": "DefaultQuantization",
-            "params": {"target_device": "ANY", "stat_subset_size": 300},
+            "params": {
+                "target_device": "ANY",
+                "preset": "performance",
+                "stat_subset_size": len(input_data),
+            },
         }
     ]
     data_loader = _CalibrationDataLoader(

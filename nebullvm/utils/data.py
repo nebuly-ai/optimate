@@ -58,7 +58,7 @@ class DataManager:
         if shuffle:
             idx = np.random.choice(len(self), n, replace=n > len(self))
         else:
-            idx = np.arange(0, max(n, len(self)))
+            idx = np.arange(0, min(n, len(self)))
             if n > len(self):
                 idx = np.concatenate(
                     [

@@ -98,14 +98,15 @@ class OpenVinoOptimizer(BaseOptimizer):
             perf_loss_ths is not None
             and quantization_type is not QuantizationType.HALF
         ):
-            if input_data is not None:
-                input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
+            if input_data is not None and quantization_type:
+                input_data_onnx = input_data.get_numpy_list(300, with_ys=True)
             else:
                 input_data_onnx = [
-                    tuple(
+                    (
                         create_model_inputs_onnx(
                             model_params.batch_size, model_params.input_infos
-                        )
+                        ),
+                        0,
                     )
                 ]
             # Add post training optimization
@@ -115,7 +116,7 @@ class OpenVinoOptimizer(BaseOptimizer):
                 input_names=get_input_names(model),
                 input_data=input_data_onnx,
             )
-        model = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
+        learner = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
             model_name=str(openvino_model_path),
             model_weights=str(openvino_model_weights),
             network_parameters=model_params,
@@ -123,7 +124,7 @@ class OpenVinoOptimizer(BaseOptimizer):
         )
         if perf_loss_ths is not None:
             if input_data is None:
-                inputs = [model.get_inputs_example()]
+                inputs = [learner.get_inputs_example()]
                 ys = None
             else:
                 inputs, ys = input_data.get_list(
@@ -139,7 +140,7 @@ class OpenVinoOptimizer(BaseOptimizer):
                 for tuple_ in inputs
             ]
             is_valid = check_precision(
-                model,
+                learner,
                 inputs,
                 output_data_onnx,
                 perf_loss_ths,
@@ -148,4 +149,4 @@ class OpenVinoOptimizer(BaseOptimizer):
             )
             if not is_valid:
                 return None
-        return model
+        return learner
