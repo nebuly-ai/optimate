@@ -5,6 +5,7 @@ from torch.ao.quantization.stubs import QuantStub, DeQuantStub
 
 from nebullvm.base import QuantizationType
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 
 
 class _QuantWrapper(torch.nn.Module):
@@ -56,6 +57,7 @@ def quantize_torch(
     input_data_torch: List[Tuple[torch.Tensor, ...]],
 ):
     if quantization_type is QuantizationType.HALF:
+        input_tfms.append(HalfPrecisionTransformation())
         return _half_precision(model), input_tfms
     elif quantization_type is QuantizationType.STATIC:
         return _quantize_static(model, input_data_torch), input_tfms
