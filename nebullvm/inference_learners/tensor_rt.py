@@ -23,7 +23,7 @@ from nebullvm.transformations.tensor_tfms import VerifyContiguity
 if torch.cuda.is_available():
     try:
         import tensorrt as trt
-        import polygraphy
+        import polygraphy.cuda
     except ImportError:
         if not NO_COMPILER_INSTALLATION:
             from nebullvm.installers.installers import install_tensor_rt
@@ -34,7 +34,7 @@ if torch.cuda.is_available():
             )
             install_tensor_rt()
             import tensorrt as trt
-            import polygraphy
+            import polygraphy.cuda
         else:
             warnings.warn(
                 "No TensorRT valid installation has been found. "
