@@ -192,9 +192,9 @@ As an example, below is code for accelerating a PyTorch model with nebullvm's Py
 >>> save_dir = "."
 >>> bs, input_sizes = 1, [(3, 256, 256)]
 >>> optimized_model = optimize_torch_model(
-... model_path, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
+... model, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
 ... )
->>> x = np.random.randn(1, 3, 256, 256).astype(np.float32)
+>>> x = torch.randn(1, 3, 256, 256)
 >>> res = optimized_model(x)
 ```
 
