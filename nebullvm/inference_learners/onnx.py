@@ -213,12 +213,13 @@ class PytorchONNXInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
+        device = input_tensors[0].device
         input_arrays = (
             input_tensor.cpu().detach().numpy()
             for input_tensor in input_tensors
         )
         outputs = self._predict_arrays(input_arrays)
-        return tuple(torch.from_numpy(output) for output in outputs)
+        return tuple(torch.from_numpy(output).to(device) for output in outputs)
 
 
 class TensorflowONNXInferenceLearner(

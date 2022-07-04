@@ -289,6 +289,7 @@ class PytorchNvidiaInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         input_tensors = [input_tensor.cuda() for input_tensor in input_tensors]
+        device = input_tensors[0].device
         if self.network_parameters.dynamic_info is None:
             output_tensors = [
                 torch.Tensor(
@@ -330,7 +331,9 @@ class PytorchNvidiaInferenceLearner(
             output_tensor.data_ptr() for output_tensor in output_tensors
         )
         self._predict_tensors(input_ptrs, output_ptrs, input_sizes)
-        return tuple(output_tensor.cpu() for output_tensor in output_tensors)
+        return tuple(
+            output_tensor.to(device) for output_tensor in output_tensors
+        )
 
 
 class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
