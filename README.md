@@ -132,7 +132,7 @@ To install them, there are thee ways:
 - [Download Docker images with preinstalled compilers](#download-docker-images-with-preinstalled-compilers)
 
 Note that:
-- Apache TVM is not installed with the below instructions. TVM can be installed separately by following this [guide](https://nebuly.gitbook.io/nebuly/nebullvm/installation/possible-installation-issues-with-macos).
+- Apache TVM is not installed with the below instructions. TVM can be installed separately by following this [guide](https://nebuly.gitbook.io/nebuly/nebullvm/installation/install-and-activate-the-apache-tvm-compiler).
 - As an alternative to automatic installation of all compilers, they can be selectively installed by following these [instructions](https://nebuly.gitbook.io/nebuly/nebullvm/installation/selective-installation-of-deep-learning-compilers).
 
 #### Installation at the first optimization run
