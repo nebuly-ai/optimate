@@ -9,8 +9,8 @@ then
 fi
 
 # Fix for tvm
-mv /root/tvm/configs /root/tvm/configs_orig
-touch /root/tvm/configs
+mv tvm/configs tvm/configs_orig
+touch tvm/configs
 
 cd tvm
 mkdir -p build
