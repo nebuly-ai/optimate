@@ -2,7 +2,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 REQUIREMENTS = [
-    "numpy>=1.20.0",
+    "numpy>=1.20.0, <1.23.0",
     "scipy<=1.5.4",
     "onnx>=1.10.0",
     "onnxmltools>=1.11.0",
