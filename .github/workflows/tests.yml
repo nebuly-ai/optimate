@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "main"
-      - "fix"
   pull_request:
     branches:
       - "main"
@@ -30,12 +29,12 @@ jobs:
         # Display the Python version being used
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
-        # Install the package using the setup.py
-      - name: Install package
+        # Install nebullvm
+      - name: Install nebullvm
         run: |
           python -m pip install --upgrade pip
           pip install .
-        # Install compilers ecxcept tvm
+        # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -c "import nebullvm"
         # Install pytest
