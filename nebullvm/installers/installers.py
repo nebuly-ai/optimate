@@ -89,6 +89,8 @@ def install_openvino(with_optimization: bool = True):
     openvino_version = "openvino-dev" if with_optimization else "openvino"
     cmd = ["pip3", "install", f"{openvino_version}[onnx]"]
     subprocess.run(cmd)
+    cmd = ["pip3", "install", "numpy>=1.20,<1.23"]
+    subprocess.run(cmd)
 
 
 def install_onnxruntime():
