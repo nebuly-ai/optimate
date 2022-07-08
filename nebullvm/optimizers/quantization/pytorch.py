@@ -1,3 +1,4 @@
+import copy
 from typing import List, Tuple
 
 import torch
@@ -56,6 +57,7 @@ def quantize_torch(
     input_tfms: MultiStageTransformation,
     input_data_torch: List[Tuple[torch.Tensor, ...]],
 ):
+    model = copy.deepcopy(model)
     if quantization_type is QuantizationType.HALF:
         input_tfms.append(HalfPrecisionTransformation())
         return _half_precision(model), input_tfms

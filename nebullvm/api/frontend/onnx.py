@@ -21,6 +21,7 @@ from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.data_collector import DATA_COLLECTOR
 from nebullvm.utils.onnx import (
     create_model_inputs_onnx,
     get_output_sizes_onnx,
@@ -210,6 +211,7 @@ def optimize_onnx_model(
         ),
         dynamic_info=dynamic_axis,
     )
+    DATA_COLLECTOR.start_collection(model_path, framework=dl_library)
     ignore_compilers = (
         []
         if ignore_compilers is None
@@ -241,4 +243,5 @@ def optimize_onnx_model(
                 "Look at the logs for further information about the failure."
             )
         model_optimized.save(save_dir)
+    DATA_COLLECTOR.send_data()
     return model_optimized.load(save_dir)

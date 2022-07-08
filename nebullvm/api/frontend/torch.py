@@ -27,6 +27,7 @@ from nebullvm.converters import ONNXConverter
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.data_collector import DATA_COLLECTOR
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
@@ -248,6 +249,7 @@ def optimize_torch_model(
         ),
         dynamic_info=dynamic_axis,
     )
+    DATA_COLLECTOR.start_collection(model, framework=dl_library)
     ignore_compilers = (
         []
         if ignore_compilers is None
@@ -272,6 +274,7 @@ def optimize_torch_model(
                 model_params,
                 perf_loss_ths,
                 q_type,
+                input_tfms,
                 use_torch_api,
                 input_data,
             )
@@ -316,6 +319,7 @@ def optimize_torch_model(
                 "Look at the logs for further information about the failure."
             )
         model_optimized.save(save_dir)
+    DATA_COLLECTOR.send_data()
     return model_optimized.load(save_dir)
 
 
@@ -337,6 +341,7 @@ def _torch_api_optimization(
     model_params: ModelParams,
     quantization_ths: float,
     quantization_type: QuantizationType,
+    input_tfms: MultiStageTransformation,
     use_extra_compilers: bool,
     input_data: DataManager,
 ) -> Tuple[Optional[PytorchBaseInferenceLearner], float, List]:
@@ -355,6 +360,7 @@ def _torch_api_optimization(
                     if quantization_type is not None
                     else None,
                     quantization_type=quantization_type,
+                    input_tfms=input_tfms.copy(),
                     input_data=input_data,
                 )
             else:
@@ -366,12 +372,19 @@ def _torch_api_optimization(
                     if quantization_type is not None
                     else None,
                     quantization_type=quantization_type,
+                    input_tfms=input_tfms.copy(),
                     input_data=input_data,
                 )
             candidate_latency = compute_optimized_running_time(candidate_model)
             if candidate_latency < best_latency:
                 best_latency = candidate_latency
                 best_torch_opt_model = candidate_model
+            DATA_COLLECTOR.store_compiler_result(
+                compiler,
+                quantization_type,
+                quantization_ths,
+                candidate_latency,
+            )
             used_compilers.append(compiler)
         except Exception as ex:
             warnings.warn(
@@ -380,6 +393,9 @@ def _torch_api_optimization(
                 f"re-scheduled with the ONNX interface. Please consult the "
                 f"documentation for further info or open an issue on GitHub "
                 f"for receiving assistance."
+            )
+            DATA_COLLECTOR.store_compiler_result(
+                compiler, quantization_type, quantization_ths, None
             )
     return best_torch_opt_model, best_latency, used_compilers
 
