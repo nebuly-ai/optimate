@@ -1,5 +1,6 @@
 from pathlib import Path
 from setuptools import setup, find_packages
+from glob import glob
 
 REQUIREMENTS = [
     "numpy>=1.20.0, <1.23.0",
@@ -21,12 +22,6 @@ setup(
     version="0.3.1",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
-    package_data={
-        # Include all bash files:
-        "": ["*.sh"],
-        # And include any file needed for config
-        "nebullvm": ["*config.cmake"],
-    },
     long_description=long_description,
     long_description_content_type="text/markdown",
 )
