@@ -198,6 +198,10 @@ class ApacheTVMOptimizer(BaseOptimizer):
         with autotvm.apply_history_best(tuning_records):
             with tvm.transform.PassContext(opt_level=3, config={}):
                 lib = relay.build(mod, target=target, params=params)
+
+        # Remove temporary file created by tvm
+        os.remove(tuning_records)
+
         model = TVM_INFERENCE_LEARNERS[output_library].from_runtime_module(
             input_tfms=input_tfms,
             network_parameters=model_params,
