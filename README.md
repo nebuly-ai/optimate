@@ -132,7 +132,7 @@ To install them, there are thee ways:
 - [Download Docker images with preinstalled compilers](#download-docker-images-with-preinstalled-compilers)
 
 Note that:
-- Apache TVM is not installed with the below instructions. TVM can be installed separately by following this [guide](https://nebuly.gitbook.io/nebuly/nebullvm/installation/possible-installation-issues-with-macos).
+- Apache TVM is not installed with the below instructions. TVM can be installed separately by following this [guide](https://nebuly.gitbook.io/nebuly/nebullvm/installation/install-and-activate-the-apache-tvm-compiler).
 - As an alternative to automatic installation of all compilers, they can be selectively installed by following these [instructions](https://nebuly.gitbook.io/nebuly/nebullvm/installation/selective-installation-of-deep-learning-compilers).
 
 #### Installation at the first optimization run
@@ -192,9 +192,9 @@ As an example, below is code for accelerating a PyTorch model with nebullvm's Py
 >>> save_dir = "."
 >>> bs, input_sizes = 1, [(3, 256, 256)]
 >>> optimized_model = optimize_torch_model(
-... model_path, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
+... model, batch_size=bs, input_sizes=input_sizes, save_dir=save_dir
 ... )
->>> x = np.random.randn(1, 3, 256, 256).astype(np.float32)
+>>> x = torch.randn(1, 3, 256, 256)
 >>> res = optimized_model(x)
 ```
 
