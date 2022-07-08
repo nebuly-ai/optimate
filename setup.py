@@ -1,6 +1,5 @@
 from pathlib import Path
 from setuptools import setup, find_packages
-from glob import glob
 
 REQUIREMENTS = [
     "numpy>=1.20.0, <1.23.0",
@@ -23,5 +22,6 @@ setup(
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     long_description=long_description,
+    include_package_data=True,
     long_description_content_type="text/markdown",
 )
