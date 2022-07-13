@@ -204,7 +204,7 @@ As an example, below is code for accelerating a PyTorch model with nebullvm's Py
 
 <br>
 
-Check out the <a href="https://nebuly.gitbook.io/nebuly/nebullvm/get-started">documentation</a> for more information on nebullvm APIs, how to use them, and for tutorials. 
+Check out the <a href="https://nebuly.gitbook.io/nebuly/nebullvm/get-started">documentation</a> for more information on nebullvm APIs, how to use them, and for tutorials. Also find more information on how to [contribute to the library](https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions) and [share feedback](https://nebuly.gitbook.io/nebuly/nebullvm/how-nebullvm-works/continuous-improvement#sharing-feedback-to-improve-nebullvm) to support its continuous improvement.
 
 And leave a star ⭐ to support the project 💫
 
@@ -212,7 +212,7 @@ And leave a star ⭐ to support the project 💫
 
 <p align="center">
   <a href="https://discord.gg/RbeQMu886J">Join the community</a> |
-  <a href="https://nebuly.gitbook.io/nebuly/nebulgym/get-started">Contribute to the library</a>
+  <a href="https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions">Contribute to the library</a>
 </p>
 
 <p align="center">
