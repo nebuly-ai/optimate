@@ -17,6 +17,7 @@ from nebullvm.base import (
     ModelCompiler,
     QuantizationType,
 )
+from nebullvm.config import VERSION
 
 NEBULLVM_METADATA_PATH = Path.home() / ".nebullvm/collect.json"
 
@@ -45,7 +46,7 @@ def _read_model_size(model: Any):
     return f"{round(size * 1e-6, 2)} MB"
 
 
-class DataCollector:
+class FeedbackCollector:
     def __init__(self):
         if NEBULLVM_METADATA_PATH.exists():
             with open(NEBULLVM_METADATA_PATH, "r") as f:
@@ -74,31 +75,28 @@ class DataCollector:
     @staticmethod
     def _ask_permissions(timeout: int = 30):
         message = (
-            "Hello user! Nebullvm is a super young project and we are trying "
-            "to improve it always more! However we need your help! We just "
-            "collect the minimum amount of data for analysing the "
-            "performances of nebullvm and fix possible bugs even before you "
-            "can notice it! For a full description of the data collected and "
-            "the data treatment please refer to the 'Data collection' section "
-            "in the documentation. Press enter for accepting or write 'No' for"
-            "denying the consensus. "
+            "Would you like to contribute to nebullvm continuous improvement? "
+            "Press enter to share the performance achieved with nebullvm and "
+            '"No" to not contribute. You can find full details in the '
+            '"Sharing feedback to improve nebullvm" section of the '
+            'documentation. [enter/"No"] '
         )
         metadata = {}
         flag = True
         while flag:
             try:
-                collect_data_bool = _input_with_timeout(message, timeout)
+                collect_feedback_bool = _input_with_timeout(message, timeout)
             except TimeoutError:
-                collect_data_bool = "no"
-            if len(collect_data_bool) == 0:
+                collect_feedback_bool = "no"
+            if len(collect_feedback_bool) == 0:
                 flag = False
                 metadata["allow_data_collection"] = True
-            elif collect_data_bool.lower().strip() == "no":
+            elif collect_feedback_bool.lower().strip() == "no":
                 flag = False
                 metadata["allow_data_collection"] = False
             message = (
-                "Press enter for accepting or write 'No' for denying the "
-                "consensus. "
+                'Press enter to give your consent or type "No" to deny '
+                "consent."
             )
         return metadata
 
@@ -114,7 +112,7 @@ class DataCollector:
         else:
             model_name = model.__class__.__name__
 
-        self._model_id = (self._generate_model_id(model_name),)
+        self._model_id = self._generate_model_id(model_name)
         self._model_info = {
             "model_name": model_name,
             "model_size": _read_model_size(model),
@@ -134,11 +132,13 @@ class DataCollector:
         q_type_key = (
             f"{q_type.value}_{perf_loss_ths}"
             if q_type is not None and perf_loss_ths is not None
-            else None
+            else "noopt"
         )
-        self._latency_dict[(compiler.value, q_type_key)] = latency
+        compiler_dict = self._latency_dict.get(compiler.value, {})
+        compiler_dict[q_type_key] = latency if latency else -1.0
+        self._latency_dict[compiler.value] = compiler_dict
 
-    def send_data(self):
+    def send_feedback(self):
         if self._model_id is None:
             return {}
         request_body = {
@@ -146,12 +146,13 @@ class DataCollector:
             "latency_dict": self._latency_dict,
             "hardware_setup": self._hw_info,
             "model_metadata": self._model_info,
+            "nebullvm_version": VERSION,
         }
         headers = {
             "accept": "application/json",
             "Content-Type": "application/json",
         }
-        url = "https://nebuly.cloud:80/v1/store_nebullvm_results"
+        url = "https://nebuly.cloud/v1/store_nebullvm_results"
         response = requests.post(
             url,
             data=json.dumps(request_body),
@@ -163,4 +164,4 @@ class DataCollector:
         return response
 
 
-DATA_COLLECTOR = DataCollector()
+FEEDBACK_COLLECTOR = FeedbackCollector()

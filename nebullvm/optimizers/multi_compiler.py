@@ -28,7 +28,7 @@ from nebullvm.optimizers import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.data_collector import DATA_COLLECTOR
+from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.APACHE_TVM: ApacheTVMOptimizer,
@@ -110,7 +110,7 @@ def _optimize_with_optimizer(
     try:
         model_optimized = optimizer.optimize(**kwargs)
         latency = metric_func(model_optimized)
-        DATA_COLLECTOR.store_compiler_result(
+        FEEDBACK_COLLECTOR.store_compiler_result(
             OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
             kwargs["quantization_type"],
             kwargs["perf_loss_ths"],
@@ -127,7 +127,7 @@ def _optimize_with_optimizer(
             logger.warning(warning_msg)
         latency = np.inf
         model_optimized = None
-        DATA_COLLECTOR.store_compiler_result(
+        FEEDBACK_COLLECTOR.store_compiler_result(
             OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
             kwargs["quantization_type"],
             kwargs["perf_loss_ths"],

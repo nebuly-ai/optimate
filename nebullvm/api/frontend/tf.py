@@ -28,7 +28,7 @@ from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.data_collector import DATA_COLLECTOR
+from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.utils.tf import (
     get_outputs_sizes_tf,
     create_model_inputs_tf,
@@ -220,7 +220,7 @@ def optimize_tf_model(
         ),
         dynamic_info=dynamic_axis,
     )
-    DATA_COLLECTOR.start_collection(model, framework=dl_library)
+    FEEDBACK_COLLECTOR.start_collection(model, framework=dl_library)
     ignore_compilers = (
         []
         if ignore_compilers is None
@@ -285,7 +285,7 @@ def optimize_tf_model(
                 "Look at the logs for further information about the failure."
             )
         model_optimized.save(save_dir)
-    DATA_COLLECTOR.send_data()
+    FEEDBACK_COLLECTOR.send_feedback()
     return model_optimized.load(save_dir)
 
 
@@ -352,7 +352,7 @@ def _torch_api_optimization(
             if candidate_latency < best_latency:
                 best_latency = candidate_latency
                 best_tf_opt_model = candidate_model
-            DATA_COLLECTOR.store_compiler_result(
+            FEEDBACK_COLLECTOR.store_compiler_result(
                 compiler,
                 quantization_type,
                 quantization_ths,
@@ -367,7 +367,7 @@ def _torch_api_optimization(
                 f"documentation for further info or open an issue on GitHub "
                 f"for receiving assistance."
             )
-            DATA_COLLECTOR.store_compiler_result(
+            FEEDBACK_COLLECTOR.store_compiler_result(
                 compiler, quantization_type, quantization_ths, None
             )
     return best_tf_opt_model, best_latency, used_compilers
