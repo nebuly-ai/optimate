@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Tuple, Union, Optional, List
+import os
 
 import torch
 
@@ -34,6 +35,7 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path) / SAVE_DIR_NAME
+        os.makedirs(path, exist_ok=True)
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
         self.model.save(path / self.MODEL_NAME)

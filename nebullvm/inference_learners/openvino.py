@@ -4,6 +4,7 @@ from abc import ABC
 import json
 from pathlib import Path
 from typing import Dict, Union, Type, Generator, Tuple, List
+import os
 
 import cpuinfo
 import numpy as np
@@ -203,6 +204,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
                 the model metadata file.
         """
         path = Path(path) / SAVE_DIR_NAME
+        os.makedirs(path, exist_ok=True)
         metadata = self._get_metadata(**kwargs)
         with open(path / OPENVINO_FILENAMES["metadata"], "w") as fout:
             json.dump(metadata.to_dict(), fout)

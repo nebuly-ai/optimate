@@ -3,6 +3,7 @@ import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
+import os
 
 import numpy as np
 import tensorflow as tf
@@ -202,6 +203,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
                 the model metadata file.
         """
         path = Path(path) / SAVE_DIR_NAME
+        os.makedirs(path, exist_ok=True)
         serialized_engine = self.engine.serialize()
         with open(path / NVIDIA_FILENAMES["engine"], "wb") as fout:
             fout.write(serialized_engine)

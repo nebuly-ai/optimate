@@ -3,6 +3,7 @@ import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
+import os
 
 import numpy as np
 import tensorflow as tf
@@ -123,6 +124,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
                 the model metadata file.
         """
         path = Path(path) / SAVE_DIR_NAME
+        os.makedirs(path, exist_ok=True)
         metadata = LearnerMetadata.from_model(
             self, input_names=self.input_names, target=self.target, **kwargs
         )
