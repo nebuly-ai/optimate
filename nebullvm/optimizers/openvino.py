@@ -116,11 +116,16 @@ class OpenVinoOptimizer(BaseOptimizer):
                 input_names=get_input_names(model),
                 input_data=input_data_onnx,
             )
+        if input_data is not None:
+            input_tensors = list(input_data.get_list(1)[0])
         learner = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
             model_name=str(openvino_model_path),
             model_weights=str(openvino_model_weights),
             network_parameters=model_params,
             input_tfms=input_tfms,
+            input_data=input_tensors
+            if input_data is not None
+            else None,
         )
         if perf_loss_ths is not None:
             if input_data is None:

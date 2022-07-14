@@ -157,6 +157,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             network_parameters=network_parameters,
             description_file=model_name,
             weights_file=model_weights,
+            input_data=kwargs.get("input_data"),
         )
 
     def _rebuild_network(self, input_shapes: Dict):

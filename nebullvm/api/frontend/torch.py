@@ -242,7 +242,7 @@ def optimize_torch_model(
     dl_library = DeepLearningFramework.PYTORCH
 
     if input_data is not None:
-        input_tensors = [data[0][0] for data in input_data]
+        input_tensors = list(input_data.get_list(1)[0])
     else:
         input_tensors = create_model_inputs_torch(input_infos)
 
