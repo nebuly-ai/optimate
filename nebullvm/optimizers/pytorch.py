@@ -77,9 +77,8 @@ class PytorchBackendOptimizer(BaseOptimizer):
             if input_data is None:
                 input_data_torch = [
                     tuple(
-                        # TODO: modify create_model_inputs_torch
                         create_model_inputs_torch(
-                            model_params.batch_size, model_params.input_infos
+                            model_params.input_infos
                         )
                     )
                 ]

@@ -71,12 +71,19 @@ class HuggingFaceOptimizer(BaseOptimizer):
         else:
             new_onnx_model = model.replace(".onnx", "_opt.onnx")
         optimized_model.save_model_to_file(new_onnx_model)
+
+        if input_data is not None:
+            input_tensors = list(input_data.get_list(1)[0])
+
         learner = ONNX_INFERENCE_LEARNERS[output_library](
             input_tfms=input_tfms,
             network_parameters=model_params,
             onnx_path=new_onnx_model,
             input_names=get_input_names(new_onnx_model),
             output_names=get_output_names(new_onnx_model),
+            input_data=input_tensors
+            if input_data is not None
+            else None,
         )
         if perf_loss_ths is not None:
             # TODO: Add dataset and metric from user

@@ -202,12 +202,18 @@ class ApacheTVMOptimizer(BaseOptimizer):
         # Remove temporary file created by tvm
         os.remove(tuning_records)
 
+        if input_data is not None:
+            input_tensors = list(input_data.get_list(1)[0])
+
         model = TVM_INFERENCE_LEARNERS[output_library].from_runtime_module(
             input_tfms=input_tfms,
             network_parameters=model_params,
             lib=lib,
             target_device=target,
             input_names=get_input_names(model),
+            input_data=input_tensors
+            if input_data is not None
+            else None,
         )
         if quantization_type is not None:
             if input_data is None:
@@ -250,9 +256,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
             for i, input_size in enumerate(model_params.input_sizes)
         }
         inputs = tuple(
-            # TODO: modify create_model_inputs_torch
             create_model_inputs_torch(
-                model_params.batch_size, model_params.input_infos
+                model_params.input_infos
             )
         )
         if torch.cuda.is_available():
