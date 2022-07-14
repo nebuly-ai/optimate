@@ -20,6 +20,7 @@ from nebullvm.inference_learners.base import (
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
+from nebullvm.utils.data import DataManager
 
 if torch.cuda.is_available():
     try:
@@ -120,6 +121,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         nvidia_logger: Any = None,
         cuda_stream: Any = None,
         input_tfms: MultiStageTransformation = None,
+        input_data: DataManager = None,
         **kwargs,
     ):
         """Build the model from the serialised engine.
@@ -139,6 +141,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
+            input_data (DataManager, optional); User defined data
 
         Returns:
             NvidiaInferenceLearner: The optimized model.
@@ -165,6 +168,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             output_names=output_names,
             nvidia_logger=nvidia_logger,
             cuda_stream=cuda_stream,
+            input_data=input_data,
         )
 
     def _predict_tensors(

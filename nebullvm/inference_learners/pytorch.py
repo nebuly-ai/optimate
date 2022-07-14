@@ -11,6 +11,7 @@ from nebullvm.inference_learners import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.config import SAVE_DIR_NAME
+from nebullvm.utils.data import DataManager
 
 
 class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
@@ -57,7 +58,7 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         model: torch.nn.Module,
         network_parameters: ModelParams,
         input_tfms: Optional[MultiStageTransformation] = None,
-        input_data: List[torch.Tensor] = None,
+        input_data: DataManager = None,
     ):
         model_scripted = torch.jit.script(model)
         return cls(

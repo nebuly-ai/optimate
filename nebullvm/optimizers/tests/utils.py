@@ -37,8 +37,8 @@ def _build_static_model() -> Tuple[torch.nn.Module, ModelParams]:
     model_params = {
         "batch_size": STATIC_BATCH_SIZE,
         "input_infos": [
-            {"size": INPUT_SHAPE, "dtype": "float"},
-            {"size": INPUT_SHAPE, "dtype": "float"},
+            {"size": (DYNAMIC_BATCH_SIZE,) + INPUT_SHAPE, "dtype": "float"},
+            {"size": (DYNAMIC_BATCH_SIZE,) + INPUT_SHAPE, "dtype": "float"},
         ],
         "output_sizes": [OUTPUT_SHAPE],
     }
@@ -52,8 +52,8 @@ def _build_dynamic_model() -> Tuple[torch.nn.Module, ModelParams]:
     model_params = {
         "batch_size": DYNAMIC_BATCH_SIZE,
         "input_infos": [
-            {"size": INPUT_SHAPE, "dtype": "float"},
-            {"size": INPUT_SHAPE, "dtype": "float"},
+            {"size": (DYNAMIC_BATCH_SIZE,) + INPUT_SHAPE, "dtype": "float"},
+            {"size": (DYNAMIC_BATCH_SIZE,) + INPUT_SHAPE, "dtype": "float"},
         ],
         "output_sizes": [OUTPUT_SHAPE],
         "dynamic_info": {

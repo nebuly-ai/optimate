@@ -21,6 +21,7 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 
 try:
     from openvino.runtime import Core, Model, CompiledModel, InferRequest
@@ -121,6 +122,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         model_name: str,
         model_weights: str,
         input_tfms: MultiStageTransformation = None,
+        input_data: DataManager = None,
         **kwargs,
     ):
         """Build the optimized model from the network description and its
@@ -132,6 +134,10 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             model_name (str): File containing a description of the optimized
                 model.
             model_weights (str): File containing the model weights.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
+            input_data (DataManager, optional); User defined data.
         """
         if len(kwargs) > 0:
             warnings.warn(f"Found extra parameters: {kwargs}")
@@ -158,7 +164,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             network_parameters=network_parameters,
             description_file=model_name,
             weights_file=model_weights,
-            input_data=kwargs.get("input_data"),
+            input_data=input_data,
         )
 
     def _rebuild_network(self, input_shapes: Dict):

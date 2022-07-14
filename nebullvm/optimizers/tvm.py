@@ -277,10 +277,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         onnx_model_path: str, model_params: ModelParams
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {
-            input_key: (
-                model_params.batch_size,
-                *input_size,
-            )
+            input_key: input_size
             for input_key, input_size in zip(
                 get_input_names(onnx_model_path), model_params.input_sizes
             )
