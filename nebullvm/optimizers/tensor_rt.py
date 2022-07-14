@@ -123,8 +123,8 @@ class TensorRTOptimizer(BaseOptimizer):
                             for i, shape in enumerate(input_info.size)
                         ),
                     ),
-                    (model_params.batch_size, *input_info.size),
-                    (model_params.batch_size, *input_info.size),
+                    input_info.size,
+                    input_info.size,
                 )
             config.add_optimization_profile(profile)
         serialized_engine = builder.build_serialized_network(network, config)
