@@ -17,7 +17,7 @@ def convert_torch_to_onnx(
     torch_model: Module,
     model_params: ModelParams,
     output_file_path: Union[str, Path],
-    input_data: DataManager,
+    input_data: DataManager = None,
 ):
     """Function importing a custom model in pytorch and converting it in ONNX
 
@@ -27,10 +27,12 @@ def convert_torch_to_onnx(
             dynamic axis information.
         output_file_path (str or Path): Path where storing the output
             ONNX file.
+        input_data (DataManager, optional): custom data provided by user to be used
+            as input for the converter
     """
 
     if input_data is not None:
-        input_tensors = [data[0][0] for data in input_data]
+        input_tensors = list(input_data.get_list(1)[0])
     else:
         input_tensors = create_model_inputs_torch(model_params.input_infos)
 
@@ -52,7 +54,7 @@ def convert_torch_to_onnx(
     torch.onnx.export(
         torch_model,  # model being run
         tuple(input_tensors),  # model input (or a tuple for multiple inputs)
-        output_file_path,
+        str(output_file_path),
         # where to save the model (can be a file or file-like object)
         export_params=True,
         # store the trained parameter weights inside the model file

@@ -40,7 +40,7 @@ class ONNXConverter(BaseConverter):
 
     ONNX_MODEL_EXTENSION = ".onnx"
 
-    def convert(self, model: Any, model_params: ModelParams, save_path: Path, input_data: DataManager):
+    def convert(self, model: Any, model_params: ModelParams, save_path: Path, input_data: DataManager = None):
         """Convert the input model in ONNX.
 
         Args:
@@ -50,6 +50,8 @@ class ONNXConverter(BaseConverter):
                 dynamic axis information.
             save_path (Path): Path to the directory where saving the onnx
                 model.
+            input_data (DataManager, optional) custom data provided by user to be used
+                as input for the converter
 
         Returns:
             Path: Path to the onnx file.

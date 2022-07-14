@@ -131,4 +131,13 @@ dmypy.json
 
 # MacOS DS_Store
 .DS_Store
+
+# Pickle folder
+.pkl_memoize_py3
+
+# Folder where optimized models are stored
+optimized_model
+
+
 main.py
+main2.py

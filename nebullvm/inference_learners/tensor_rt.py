@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION, SAVE_DIR_NAME
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -201,7 +201,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             kwargs (Dict): Dictionary of key-value pairs that will be saved in
                 the model metadata file.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         serialized_engine = self.engine.serialize()
         with open(path / NVIDIA_FILENAMES["engine"], "wb") as fout:
             fout.write(serialized_engine)
@@ -222,7 +222,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         Returns:
             NvidiaInferenceLearner: The optimized model.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         with open(path / NVIDIA_FILENAMES["metadata"], "r") as fin:
             metadata = json.load(fin)
         metadata.update(kwargs)

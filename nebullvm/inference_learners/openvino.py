@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.config import OPENVINO_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.config import OPENVINO_FILENAMES, NO_COMPILER_INSTALLATION, SAVE_DIR_NAME
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -95,7 +95,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         Returns:
             OpenVinoInferenceLearner: The optimized model.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         with open(path / OPENVINO_FILENAMES["metadata"], "r") as fin:
             metadata = json.load(fin)
         metadata.update(kwargs)
@@ -202,7 +202,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             kwargs (Dict): Dictionary of key-value pairs that will be saved in
                 the model metadata file.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         metadata = self._get_metadata(**kwargs)
         with open(path / OPENVINO_FILENAMES["metadata"], "w") as fout:
             json.dump(metadata.to_dict(), fout)

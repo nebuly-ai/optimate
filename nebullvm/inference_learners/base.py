@@ -11,7 +11,7 @@ import tensorflow as tf
 import torch
 
 from nebullvm.base import ModelParams
-from nebullvm.config import LEARNER_METADATA_FILENAME
+from nebullvm.config import LEARNER_METADATA_FILENAME, SAVE_DIR_NAME
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import create_model_inputs_onnx
 from nebullvm.utils.tf import create_model_inputs_tf
@@ -32,7 +32,7 @@ class BaseInferenceLearner(ABC):
         self._tmp_folder = Path(mkdtemp())
 
     def _store_file(self, file_path: Union[str, Path]):
-        return shutil.copy(str(file_path), str(self._tmp_folder))
+        return shutil.copytree('/'.join(str(file_path).split("/")[:-1]), str(self._tmp_folder), dirs_exist_ok=True)
 
     def __del__(self):
         shutil.rmtree(self._tmp_folder, ignore_errors=True)
@@ -296,7 +296,7 @@ class LearnerMetadata:
         Returns:
             LearnerMetadata: Metadata associated with the model.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         with open(path / cls.NAME, "r") as fin:
             metadata_dict = json.load(fin)
         return cls(**metadata_dict)
@@ -330,7 +330,7 @@ class LearnerMetadata:
                 function.
         """
         exec(f"from {self.module_name} import {self.class_name}")
-        model = eval(self.class_name).load(path=path, **kwargs)
+        model = eval(self.class_name).load(path=path / SAVE_DIR_NAME, **kwargs)
         return model
 
 

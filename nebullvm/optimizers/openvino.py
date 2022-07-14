@@ -118,6 +118,7 @@ class OpenVinoOptimizer(BaseOptimizer):
             )
         if input_data is not None:
             input_tensors = list(input_data.get_list(1)[0])
+
         learner = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
             model_name=str(openvino_model_path),
             model_weights=str(openvino_model_weights),

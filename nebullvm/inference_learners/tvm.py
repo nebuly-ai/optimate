@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.config import TVM_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.config import TVM_FILENAMES, NO_COMPILER_INSTALLATION, SAVE_DIR_NAME
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -122,7 +122,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             kwargs (Dict): Dictionary of key-value pairs that will be saved in
                 the model metadata file.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         metadata = LearnerMetadata.from_model(
             self, input_names=self.input_names, target=self.target, **kwargs
         )
@@ -145,7 +145,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         Returns:
             ApacheTVMInferenceLearner: The optimized model.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         metadata = LearnerMetadata.read(path).to_dict()
         network_parameters = ModelParams(**metadata["network_parameters"])
         lib = tvm.runtime.load_module(path / TVM_FILENAMES["engine"])

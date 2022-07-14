@@ -15,6 +15,7 @@ from nebullvm.config import (
     ONNX_FILENAMES,
     CUDA_PROVIDERS,
     NO_COMPILER_INSTALLATION,
+    SAVE_DIR_NAME,
 )
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -131,12 +132,19 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             output_names=self.output_names,
             **kwargs,
         )
+
+        path = os.path.join(str(path), SAVE_DIR_NAME)
+        # Create folder if it doesn't exist
+        os.makedirs(path, exist_ok=True)
+
         metadata.save(path)
 
-        shutil.copy(
-            self.onnx_path,
-            os.path.join(str(path), ONNX_FILENAMES["model_name"]),
-        )
+        files = os.listdir(self.onnx_path)
+        for fname in files:
+            dest_file_name = fname
+            if ".onnx" in fname:
+                dest_file_name = ONNX_FILENAMES["model_name"]
+            shutil.copy2(os.path.join(self.onnx_path, fname), os.path.join(path, dest_file_name))
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -156,7 +164,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )
-        onnx_path = os.path.join(str(path), ONNX_FILENAMES["model_name"])
+        onnx_path = os.path.join(str(path), SAVE_DIR_NAME, ONNX_FILENAMES["model_name"])
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
         if input_tfms is not None:
