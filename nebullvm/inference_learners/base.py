@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import Union, Dict, Any, List, Optional
+import os
 
 import numpy as np
 import tensorflow as tf
@@ -308,6 +309,7 @@ class LearnerMetadata:
             path (Path): Path to the directory where saving the model metadata.
         """
         path = Path(path)
+        os.makedirs(path, exist_ok=True)
         metadata_dict = self.to_dict()
         with open(path / self.NAME, "w") as fout:
             json.dump(metadata_dict, fout)
