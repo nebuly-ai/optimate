@@ -250,6 +250,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             for i, input_size in enumerate(model_params.input_sizes)
         }
         inputs = tuple(
+            # TODO: modify create_model_inputs_torch
             create_model_inputs_torch(
                 model_params.batch_size, model_params.input_infos
             )

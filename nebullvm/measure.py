@@ -7,6 +7,7 @@ import tensorflow as tf
 import torch
 
 from nebullvm.inference_learners.base import BaseInferenceLearner
+from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import convert_to_numpy
 
 
@@ -82,7 +83,11 @@ def compute_optimized_running_time(
     Returns:
         Float: Average latency.
     """
-    model_inputs = optimized_model.get_inputs_example()
+    if optimized_model.input_data is not None:
+        model_inputs = optimized_model.input_data
+    else:
+        model_inputs = optimized_model.get_inputs_example()
+
     latencies = []
     for _ in range(steps):
         starting_time = time.time()

@@ -117,6 +117,7 @@ def _optimize_with_optimizer(
             latency,
         )
     except Exception as ex:
+        raise ex
         warning_msg = (
             f"Compilation failed with {optimizer.__class__.__name__}. "
             f"Got error {ex}. The optimizer will be skipped."

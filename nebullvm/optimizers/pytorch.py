@@ -77,6 +77,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
             if input_data is None:
                 input_data_torch = [
                     tuple(
+                        # TODO: modify create_model_inputs_torch
                         create_model_inputs_torch(
                             model_params.batch_size, model_params.input_infos
                         )
@@ -101,8 +102,9 @@ class PytorchBackendOptimizer(BaseOptimizer):
                 model, quantization_type, input_tfms, input_data_torch
             )
 
+        input_tensors = [data[0][0] for data in input_data]
         learner = PytorchBackendInferenceLearner.from_torch_model(
-            model, network_parameters=model_params, input_tfms=input_tfms
+            model, network_parameters=model_params, input_tfms=input_tfms, input_data=input_tensors
         )
         if perf_loss_ths is not None:
             is_valid = check_precision(

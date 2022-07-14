@@ -24,6 +24,7 @@ class BaseInferenceLearner(ABC):
 
     network_parameters: ModelParams
     input_tfms: Optional[MultiStageTransformation] = None
+    input_data: List[torch.Tensor] = None
 
     def __post_init__(self):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
@@ -376,7 +377,6 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
     def get_inputs_example(self):
         return tuple(
             create_model_inputs_torch(
-                batch_size=self.network_parameters.batch_size,
                 input_infos=self.network_parameters.input_infos,
             )
         )

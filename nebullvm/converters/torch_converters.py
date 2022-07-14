@@ -6,6 +6,7 @@ from torch.nn import Module
 
 from nebullvm.base import ModelParams
 from nebullvm.config import ONNX_OPSET_VERSION
+from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
@@ -16,6 +17,7 @@ def convert_torch_to_onnx(
     torch_model: Module,
     model_params: ModelParams,
     output_file_path: Union[str, Path],
+    input_data: DataManager,
 ):
     """Function importing a custom model in pytorch and converting it in ONNX
 
@@ -26,9 +28,12 @@ def convert_torch_to_onnx(
         output_file_path (str or Path): Path where storing the output
             ONNX file.
     """
-    input_tensors = create_model_inputs_torch(
-        model_params.batch_size, model_params.input_infos
-    )
+
+    if input_data is not None:
+        input_tensors = [data[0][0] for data in input_data]
+    else:
+        input_tensors = create_model_inputs_torch(model_params.input_infos)
+
     output_sizes = get_outputs_sizes_torch(torch_model, input_tensors)
     if torch.cuda.is_available():  # move back tensors to cpu for conversion
         input_tensors = [x.cpu() for x in input_tensors]

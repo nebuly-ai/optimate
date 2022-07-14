@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union, Optional, List
 
 import torch
 
@@ -54,10 +54,12 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         model: torch.nn.Module,
         network_parameters: ModelParams,
         input_tfms: Optional[MultiStageTransformation] = None,
+        input_data: List[torch.Tensor] = None,
     ):
         model_scripted = torch.jit.script(model)
         return cls(
             torch_model=model_scripted,
             network_parameters=network_parameters,
             input_tfms=input_tfms,
+            input_data=input_data
         )

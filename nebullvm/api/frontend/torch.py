@@ -197,7 +197,7 @@ def optimize_torch_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor` s.
     """
-    check_inputs(
+    input_sizes = check_inputs(
         input_data=dataloader, batch_size=batch_size, input_sizes=input_sizes
     )
     if isinstance(perf_metric, str):
@@ -240,12 +240,18 @@ def optimize_torch_model(
         )
     ]
     dl_library = DeepLearningFramework.PYTORCH
+
+    if input_data is not None:
+        input_tensors = [data[0][0] for data in input_data]
+    else:
+        input_tensors = create_model_inputs_torch(input_infos)
+
     model_params = ModelParams(
         batch_size=batch_size,
         input_infos=input_infos,
         output_sizes=get_outputs_sizes_torch(
             model,
-            input_tensors=create_model_inputs_torch(batch_size, input_infos),
+            input_tensors=input_tensors,
         ),
         dynamic_info=dynamic_axis,
     )
@@ -294,7 +300,7 @@ def optimize_torch_model(
         )
         if model_optimizer.usable:
             onnx_path = model_converter.convert(
-                model, model_params, Path(tmp_dir)
+                model, model_params, Path(tmp_dir), input_data
             )
             model_optimized = model_optimizer.optimize(
                 model=str(onnx_path),
