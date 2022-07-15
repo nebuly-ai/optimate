@@ -113,9 +113,6 @@ class TensorRTOptimizer(BaseOptimizer):
                 profile.set_shape(
                     input_name,
                     (
-                        min(model_params.batch_size, 1)
-                        if 0 in input_dynamic_info
-                        else model_params.batch_size,
                         *(
                             shape
                             if i + 1 not in input_dynamic_info
