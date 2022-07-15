@@ -28,8 +28,8 @@ class TorchTestModel(torch.nn.Module):
 def test_onnx_converter(ai_model):
     model_params = ModelParams(
         batch_size=1,
-        input_infos=[{"size": (3, 256, 256), "dtype": "float"}],
-        output_sizes=[(2,)],
+        input_infos=[{"size": (1, 3, 256, 256), "dtype": "float"}],
+        output_sizes=[(1, 2)],
     )
     converter = ONNXConverter(model_name="test_model")
     with TemporaryDirectory() as tmp_dir:

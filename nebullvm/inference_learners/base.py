@@ -33,13 +33,24 @@ class BaseInferenceLearner(ABC):
         self._tmp_folder = Path(mkdtemp())
 
     def _store_file(self, file_path: Union[str, Path]):
-        return shutil.copytree('/'.join(str(file_path).split("/")[:-1]), str(self._tmp_folder), dirs_exist_ok=True)
+        filename = str(file_path).split("/")[-1]
+        try:
+            # For python >= 3.8
+            return os.path.join(
+                shutil.copytree('/'.join(str(file_path).split("/")[:-1]), str(self._tmp_folder), dirs_exist_ok=True),
+                filename)
+        except TypeError:
+            # For python <=3.7
+            if os.path.isdir(self._tmp_folder):
+                shutil.rmtree(str(self._tmp_folder))
+            return os.path.join(shutil.copytree('/'.join(str(file_path).split("/")[:-1]), str(self._tmp_folder)),
+                                filename)
 
     def __del__(self):
         shutil.rmtree(self._tmp_folder, ignore_errors=True)
 
     def predict_from_files(
-        self, input_files: List[str], output_files: List[str]
+            self, input_files: List[str], output_files: List[str]
     ):
         """Get a model prediction from file.
 
@@ -197,12 +208,12 @@ class LearnerMetadata:
     module_name: str
 
     def __init__(
-        self,
-        class_name: str,
-        module_name: str,
-        network_parameters: Union[ModelParams, Dict],
-        input_tfms: Union[MultiStageTransformation, Dict] = None,
-        **kwargs,
+            self,
+            class_name: str,
+            module_name: str,
+            network_parameters: Union[ModelParams, Dict],
+            input_tfms: Union[MultiStageTransformation, Dict] = None,
+            **kwargs,
     ):
         self.class_name = class_name
         self.module_name = module_name
@@ -261,8 +272,8 @@ class LearnerMetadata:
             LearnerMetadata: Metadata associated with the model.
         """
         if any(
-            key not in dictionary
-            for key in ("class_name", "module_name", "network_parameters")
+                key not in dictionary
+                for key in ("class_name", "module_name", "network_parameters")
         ):
             raise ValueError(
                 "The input dictionary should contain both the model class "
@@ -280,10 +291,10 @@ class LearnerMetadata:
             key: value
             for key, value in self.__dict__.items()
             if (
-                len(key) > 0
-                and key[0].islower()
-                and not key.startswith("_")
-                and value is not None
+                    len(key) > 0
+                    and key[0].islower()
+                    and not key.startswith("_")
+                    and value is not None
             )
         }
 
@@ -315,7 +326,7 @@ class LearnerMetadata:
             json.dump(metadata_dict, fout)
 
     def load_model(
-        self, path: Union[Path, str], **kwargs
+            self, path: Union[Path, str], **kwargs
     ) -> BaseInferenceLearner:
         """Method for loading the InferenceLearner from its metadata.
 
@@ -372,7 +383,7 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         return input_tensor
 
     def _save_file(
-        self, prediction: torch.Tensor, output_file: Union[str, Path]
+            self, prediction: torch.Tensor, output_file: Union[str, Path]
     ):
         torch.save(prediction, output_file)
 
@@ -468,7 +479,7 @@ class NumpyBaseInferenceLearner(BaseInferenceLearner, ABC):
         return numpy_array
 
     def _save_file(
-        self, prediction: np.ndarray, output_file: Union[str, Path]
+            self, prediction: np.ndarray, output_file: Union[str, Path]
     ):
         np.save(output_file, prediction)
 

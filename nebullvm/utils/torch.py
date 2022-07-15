@@ -15,9 +15,9 @@ def get_outputs_sizes_torch(
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
         if isinstance(outputs, torch.Tensor):
-            return [tuple(outputs.size())[1:]]
+            return [tuple(outputs.size())]
         else:
-            return [tuple(output.size())[1:] for output in outputs]
+            return [tuple(output.size()) for output in outputs]
 
 
 def create_model_inputs_torch(
