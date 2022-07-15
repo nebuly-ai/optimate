@@ -88,7 +88,7 @@ def _extract_info_from_data(
         else next(iter(dataloader))
     )
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
-    input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
+    input_sizes = ifnone(input_sizes, [tuple(x.shape) for x in input_row])
     input_types = ifnone(
         input_types,
         [

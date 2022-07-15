@@ -139,12 +139,13 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
 
         metadata.save(path)
 
-        files = os.listdir(self.onnx_path)
+        src_dir = "/".join(self.onnx_path.split("/")[:-1])
+        files = os.listdir(src_dir)
         for fname in files:
             dest_file_name = fname
             if ".onnx" in fname:
                 dest_file_name = ONNX_FILENAMES["model_name"]
-            shutil.copy2(os.path.join(self.onnx_path, fname), os.path.join(path, dest_file_name))
+            shutil.copy2(os.path.join(src_dir, fname), os.path.join(path, dest_file_name))
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
