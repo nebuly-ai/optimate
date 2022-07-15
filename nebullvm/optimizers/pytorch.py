@@ -78,7 +78,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
                 input_data_torch = [
                     tuple(
                         create_model_inputs_torch(
-                            model_params.input_infos
+                            model_params.batch_size, model_params.input_infos
                         )
                     )
                 ]

@@ -102,7 +102,12 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         tvm_outputs = (
             self.graph_executor_module.get_output(
                 i,
-                tvm.nd.empty(output_size),
+                tvm.nd.empty(
+                    (
+                        self.network_parameters.batch_size,
+                        *output_size,
+                    )
+                ),
             ).numpy()
             for i, output_size in enumerate(
                 self.network_parameters.output_sizes
@@ -220,7 +225,7 @@ class BaseArrayApacheTVMInferenceLearner(ApacheTVMInferenceLearner, ABC):
                         (0, abs(x - y))
                         for x, y in zip(
                             input_array.shape,
-                            input_size,
+                            (self.network_parameters.batch_size, *input_size),
                         )
                     ],
                     mode="constant",

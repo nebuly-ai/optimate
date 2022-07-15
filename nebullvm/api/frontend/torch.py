@@ -88,7 +88,7 @@ def _extract_info_from_data(
         else next(iter(dataloader))
     )
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
-    input_sizes = ifnone(input_sizes, [tuple(x.shape) for x in input_row])
+    input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
     input_types = ifnone(
         input_types,
         [
@@ -197,7 +197,7 @@ def optimize_torch_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor` s.
     """
-    input_sizes = check_inputs(
+    check_inputs(
         input_data=dataloader, batch_size=batch_size, input_sizes=input_sizes
     )
     if isinstance(perf_metric, str):
@@ -244,7 +244,7 @@ def optimize_torch_model(
     if input_data is not None:
         input_tensors = list(input_data.get_list(1)[0])
     else:
-        input_tensors = create_model_inputs_torch(input_infos)
+        input_tensors = create_model_inputs_torch(batch_size, input_infos)
 
     model_params = ModelParams(
         batch_size=batch_size,

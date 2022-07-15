@@ -74,7 +74,7 @@ class OpenVinoOptimizer(BaseOptimizer):
             "--input_shape",
             ",".join(
                 [
-                    str(list(shape))
+                    f"{list((model_params.batch_size,)+shape)}"
                     for shape in model_params.input_sizes
                 ]
             ),

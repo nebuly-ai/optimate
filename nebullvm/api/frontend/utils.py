@@ -12,18 +12,11 @@ QUANTIZATION_METRIC_MAP = {
 def check_inputs(
     input_data: Any, batch_size: int, input_sizes: List[Tuple[int, ...]]
 ):
-    if input_data is None and input_sizes is None:
+    if input_data is None and (batch_size is None or input_sizes is None):
         raise ValueError(
             "Non-admissible input detected. You need to specify either the "
-            "input data or directly the input sizes."
+            "input data or directly the batch size and the input sizes."
         )
-    if batch_size is not None:
-        warnings.warn(
-            "Batch size will be deprecated from the next release, please include "
-            "it directly inside the input sizes."
-        )
-        input_sizes = [(batch_size,) + input_size for input_size in input_sizes]
-    return input_sizes
 
 
 def ifnone(target, new_value):

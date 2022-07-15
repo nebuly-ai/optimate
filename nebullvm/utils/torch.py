@@ -15,20 +15,20 @@ def get_outputs_sizes_torch(
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
         if isinstance(outputs, torch.Tensor):
-            return [tuple(outputs.size())]
+            return [tuple(outputs.size())[1:]]
         else:
-            return [tuple(output.size()) for output in outputs]
+            return [tuple(output.size())[1:] for output in outputs]
 
 
 def create_model_inputs_torch(
-    input_infos: List[InputInfo]
+    batch_size: int, input_infos: List[InputInfo]
 ) -> List[torch.Tensor]:
     # Compute random tensor using information contained inside input_infos
     input_tensors = (
-        torch.randn(input_info.size)
+        torch.randn((batch_size, *input_info.size))
         if input_info.dtype is DataType.FLOAT
         else torch.randint(
-            size=input_info.size,
+            size=(batch_size, *input_info.size),
             low=input_info.min_value or 0,
             high=input_info.max_value or 100,
         )
