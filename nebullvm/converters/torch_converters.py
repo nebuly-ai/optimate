@@ -37,9 +37,9 @@ def convert_torch_to_onnx(
         input_tensors = create_model_inputs_torch(model_params.input_infos)
 
     output_sizes = get_outputs_sizes_torch(torch_model, input_tensors)
-    if torch.cuda.is_available():  # move back tensors to cpu for conversion
-        input_tensors = [x.cpu() for x in input_tensors]
-        torch_model.cpu()
+    if torch.cuda.is_available():  # move tensors to gpu if cuda is available
+        input_tensors = [x.cuda() for x in input_tensors]
+        torch_model.cuda()
     input_names = [f"input_{i}" for i in range(len(input_tensors))]
     output_names = [f"output_{i}" for i in range(len(output_sizes))]
     dynamic_info = model_params.dynamic_info
