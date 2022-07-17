@@ -56,7 +56,7 @@ class FeedbackCollector:
             NEBULLVM_METADATA_PATH.parent.mkdir(exist_ok=True)
             with open(NEBULLVM_METADATA_PATH, "w") as f:
                 json.dump(nebullvm_metadata, f)
-        self._is_active = nebullvm_metadata["allow_data_collection"]
+        self._is_active = nebullvm_metadata["allow_feedback_collection"]
         self._model_info = None
         self._model_id = None
         self._latency_dict = None
@@ -90,10 +90,10 @@ class FeedbackCollector:
                 collect_feedback_bool = "no"
             if len(collect_feedback_bool) == 0:
                 flag = False
-                metadata["allow_data_collection"] = True
+                metadata["allow_feedback_collection"] = True
             elif collect_feedback_bool.lower().strip() == "no":
                 flag = False
-                metadata["allow_data_collection"] = False
+                metadata["allow_feedback_collection"] = False
             message = (
                 'Press enter to give your consent or type "No" to deny '
                 "consent."
