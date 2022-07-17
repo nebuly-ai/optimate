@@ -1,7 +1,6 @@
 from typing import Any, List, Tuple, Dict
 
 from nebullvm.measure import compute_relative_difference, compute_accuracy_drop
-import warnings
 
 QUANTIZATION_METRIC_MAP = {
     "accuracy": compute_accuracy_drop,
