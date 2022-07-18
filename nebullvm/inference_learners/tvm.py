@@ -125,7 +125,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
                 the model metadata file.
         """
         path = Path(path) / SAVE_DIR_NAME
-        os.makedirs(path, exist_ok=True)
+        path.mkdir(exist_ok=True)
         metadata = LearnerMetadata.from_model(
             self, input_names=self.input_names, target=self.target, **kwargs
         )
@@ -192,7 +192,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            input_data (DataManager, optional): User defined data
+            input_data (DataManager, optional): User defined data.
         """
         dev = tvm.device(str(target_device), 0)
         graph_executor_module = GraphModule(lib["default"](dev))
@@ -203,7 +203,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             input_names=input_names,
             lib=lib,
             target=target_device,
-            input_data=input_data,
+            _input_data=input_data,
         )
 
 

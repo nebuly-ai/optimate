@@ -88,16 +88,13 @@ class ONNXOptimizer(BaseOptimizer):
                 model, quantization_type, input_tfms, input_data_onnx
             )
 
-        if input_data is not None:
-            input_tensors = list(input_data.get_list(1)[0])
-
         learner = ONNX_INFERENCE_LEARNERS[output_library](
             input_tfms=input_tfms,
             network_parameters=model_params,
             onnx_path=model,
             input_names=get_input_names(model),
             output_names=get_output_names(model),
-            input_data=input_tensors
+            _input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
         )

@@ -102,6 +102,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
             input_names=[
                 f"input_{i}" for i in range(len(model_params.input_infos))
             ],
+            input_data=list(input_data.get_list(1)[0])
+            if input_data is not None
+            else None,
         )
         if quantization_type is not None:
             if input_data is None:
@@ -202,16 +205,13 @@ class ApacheTVMOptimizer(BaseOptimizer):
         # Remove temporary file created by tvm
         os.remove(tuning_records)
 
-        if input_data is not None:
-            input_tensors = list(input_data.get_list(1)[0])
-
         model = TVM_INFERENCE_LEARNERS[output_library].from_runtime_module(
             input_tfms=input_tfms,
             network_parameters=model_params,
             lib=lib,
             target_device=target,
             input_names=get_input_names(model),
-            input_data=input_tensors
+            input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
         )

@@ -1,16 +1,15 @@
 from pathlib import Path
-from typing import Tuple, Union, Optional, List
-import os
+from typing import Tuple, Union, Optional
 
 import torch
 
 from nebullvm.base import ModelParams
+from nebullvm.config import SAVE_DIR_NAME
 from nebullvm.inference_learners import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
 )
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.config import SAVE_DIR_NAME
 from nebullvm.utils.data import DataManager
 
 
@@ -36,20 +35,21 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path) / SAVE_DIR_NAME
-        os.makedirs(path, exist_ok=True)
+        path.mkdir(exist_ok=True)
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
         self.model.save(path / self.MODEL_NAME)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
-        path = Path(path) / SAVE_DIR_NAME
-        model = torch.jit.load(path / cls.MODEL_NAME)
+        path = Path(path)
+        model = torch.jit.load(path / SAVE_DIR_NAME / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
+        input_tfms = MultiStageTransformation.from_dict(metadata.input_tfms)
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),
-            input_tfms=metadata.input_tfms,
+            input_tfms=input_tfms,
         )
 
     @classmethod
@@ -65,5 +65,5 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
             torch_model=model_scripted,
             network_parameters=network_parameters,
             input_tfms=input_tfms,
-            input_data=input_data
+            _input_data=input_data
         )

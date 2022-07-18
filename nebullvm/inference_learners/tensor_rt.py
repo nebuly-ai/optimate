@@ -1,14 +1,15 @@
 import json
+import os
 import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
-import os
 
 import numpy as np
 import tensorflow as tf
 import torch
 
+from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION, SAVE_DIR_NAME
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -17,7 +18,6 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
-from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
@@ -141,7 +141,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            input_data (DataManager, optional); User defined data
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             NvidiaInferenceLearner: The optimized model.
@@ -168,7 +168,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             output_names=output_names,
             nvidia_logger=nvidia_logger,
             cuda_stream=cuda_stream,
-            input_data=input_data,
+            _input_data=input_data,
         )
 
     def _predict_tensors(
@@ -207,7 +207,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
                 the model metadata file.
         """
         path = Path(path) / SAVE_DIR_NAME
-        os.makedirs(path, exist_ok=True)
+        path.mkdir(exist_ok=True)
         serialized_engine = self.engine.serialize()
         with open(path / NVIDIA_FILENAMES["engine"], "wb") as fout:
             fout.write(serialized_engine)

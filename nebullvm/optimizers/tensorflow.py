@@ -113,16 +113,13 @@ class TensorflowBackendOptimizer(BaseOptimizer):
                     tmp_dir=tmp_dir,
                 )
 
-            if input_data is not None:
-                input_tensors = list(input_data.get_list(1)[0])
-
             learner = TF_BACKEND_LEARNERS_DICT[
                 "tflite" if perf_loss_ths is not None else "tf"
             ](
                 model,
                 network_parameters=model_params,
                 input_tfms=input_tfms,
-                input_data=input_tensors
+                _input_data=list(input_data.get_list(1)[0])
                 if input_data is not None
                 else None,
             )

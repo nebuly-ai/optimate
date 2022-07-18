@@ -27,8 +27,8 @@ def convert_torch_to_onnx(
             dynamic axis information.
         output_file_path (str or Path): Path where storing the output
             ONNX file.
-        input_data (DataManager, optional): custom data provided by user to be used
-            as input for the converter
+        input_data (DataManager, optional): Custom data provided by user to be used
+            as input for the converter.
     """
 
     if input_data is not None:

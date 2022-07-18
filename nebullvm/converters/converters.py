@@ -50,8 +50,8 @@ class ONNXConverter(BaseConverter):
                 dynamic axis information.
             save_path (Path): Path to the directory where saving the onnx
                 model.
-            input_data (DataManager, optional) custom data provided by user to be used
-                as input for the converter
+            input_data (DataManager, optional): Custom data provided by user to be used
+                as input for the converter.
 
         Returns:
             Path: Path to the onnx file.

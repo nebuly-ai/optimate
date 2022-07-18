@@ -23,7 +23,6 @@ def get_outputs_sizes_torch(
 def create_model_inputs_torch(
     batch_size: int, input_infos: List[InputInfo]
 ) -> List[torch.Tensor]:
-    # Compute random tensor using information contained inside input_infos
     input_tensors = (
         torch.randn((batch_size, *input_info.size))
         if input_info.dtype is DataType.FLOAT

@@ -1,16 +1,17 @@
+import json
+import os
 import shutil
 import warnings
 from abc import ABC
-import json
 from pathlib import Path
 from typing import Dict, Union, Type, Generator, Tuple, List
-import os
 
 import cpuinfo
 import numpy as np
 import tensorflow as tf
 import torch
 
+from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import OPENVINO_FILENAMES, NO_COMPILER_INSTALLATION, SAVE_DIR_NAME
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -19,7 +20,6 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
-from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 
@@ -137,7 +137,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            input_data (DataManager, optional); User defined data.
+            input_data (DataManager, optional): User defined data.
         """
         if len(kwargs) > 0:
             warnings.warn(f"Found extra parameters: {kwargs}")
@@ -164,7 +164,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             network_parameters=network_parameters,
             description_file=model_name,
             weights_file=model_weights,
-            input_data=input_data,
+            _input_data=input_data,
         )
 
     def _rebuild_network(self, input_shapes: Dict):
@@ -210,7 +210,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
                 the model metadata file.
         """
         path = Path(path) / SAVE_DIR_NAME
-        os.makedirs(path, exist_ok=True)
+        path.mkdir(exist_ok=True)
         metadata = self._get_metadata(**kwargs)
         with open(path / OPENVINO_FILENAMES["metadata"], "w") as fout:
             json.dump(metadata.to_dict(), fout)

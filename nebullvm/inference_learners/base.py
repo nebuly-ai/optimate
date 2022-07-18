@@ -1,11 +1,12 @@
+import json
+import os
 import shutil
 from abc import ABC, abstractmethod
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import Union, Dict, Any, List, Optional
-import os
+
 
 import numpy as np
 import tensorflow as tf
@@ -25,7 +26,7 @@ class BaseInferenceLearner(ABC):
 
     network_parameters: ModelParams
     input_tfms: Optional[MultiStageTransformation] = None
-    input_data: List[torch.Tensor] = None
+    _input_data: List[Any] = None
 
     def __post_init__(self):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
@@ -33,18 +34,17 @@ class BaseInferenceLearner(ABC):
         self._tmp_folder = Path(mkdtemp())
 
     def _store_file(self, file_path: Union[str, Path]):
-        filename = str(file_path).split("/")[-1]
+        return shutil.copy(str(file_path), str(self._tmp_folder))
+
+    def _store_dir(self, dir_path: Union[str, Path]):
         try:
             # For python >= 3.8
-            return os.path.join(
-                shutil.copytree('/'.join(str(file_path).split("/")[:-1]), str(self._tmp_folder), dirs_exist_ok=True),
-                filename)
+            return shutil.copytree(str(dir_path), str(self._tmp_folder), dirs_exist_ok=True)
         except TypeError:
             # For python <=3.7
             if os.path.isdir(self._tmp_folder):
                 shutil.rmtree(str(self._tmp_folder))
-            return os.path.join(shutil.copytree('/'.join(str(file_path).split("/")[:-1]), str(self._tmp_folder)),
-                                filename)
+            return shutil.copytree(str(dir_path), str(self._tmp_folder))
 
     def __del__(self):
         shutil.rmtree(self._tmp_folder, ignore_errors=True)
@@ -320,7 +320,7 @@ class LearnerMetadata:
             path (Path): Path to the directory where saving the model metadata.
         """
         path = Path(path)
-        os.makedirs(path, exist_ok=True)
+        path.mkdir(exist_ok=True)
         metadata_dict = self.to_dict()
         with open(path / self.NAME, "w") as fout:
             json.dump(metadata_dict, fout)
@@ -388,12 +388,15 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         torch.save(prediction, output_file)
 
     def get_inputs_example(self):
-        return tuple(
-            create_model_inputs_torch(
-                batch_size=self.network_parameters.batch_size,
-                input_infos=self.network_parameters.input_infos,
+        if self._input_data is None:
+            return tuple(
+                create_model_inputs_torch(
+                    batch_size=self.network_parameters.batch_size,
+                    input_infos=self.network_parameters.input_infos,
+                )
             )
-        )
+        else:
+            return self._input_data
 
 
 class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
@@ -436,12 +439,15 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
         prediction.numpy().save(output_file)
 
     def get_inputs_example(self):
-        return tuple(
-            create_model_inputs_tf(
-                batch_size=self.network_parameters.batch_size,
-                input_infos=self.network_parameters.input_infos,
+        if self._input_data is None:
+            return tuple(
+                create_model_inputs_tf(
+                    batch_size=self.network_parameters.batch_size,
+                    input_infos=self.network_parameters.input_infos,
+                )
             )
-        )
+        else:
+            return self._input_data
 
 
 class NumpyBaseInferenceLearner(BaseInferenceLearner, ABC):
@@ -485,12 +491,15 @@ class NumpyBaseInferenceLearner(BaseInferenceLearner, ABC):
         np.save(output_file, prediction)
 
     def get_inputs_example(self):
-        return tuple(
-            create_model_inputs_onnx(
-                batch_size=self.network_parameters.batch_size,
-                input_infos=self.network_parameters.input_infos,
+        if self._input_data is None:
+            return tuple(
+                create_model_inputs_onnx(
+                    batch_size=self.network_parameters.batch_size,
+                    input_infos=self.network_parameters.input_infos,
+                )
             )
-        )
+        else:
+            return self._input_data
 
 
 class InferenceLearnerWrapper(BaseInferenceLearner, ABC):

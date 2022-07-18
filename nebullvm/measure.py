@@ -83,10 +83,8 @@ def compute_optimized_running_time(
     Returns:
         Float: Average latency.
     """
-    if optimized_model.input_data is not None:
-        model_inputs = optimized_model.input_data
-    else:
-        model_inputs = optimized_model.get_inputs_example()
+
+    model_inputs = optimized_model.get_inputs_example()
 
     latencies = []
     for _ in range(steps):
@@ -115,7 +113,7 @@ def compute_relative_difference(
 
 
 def compute_accuracy_drop(tensor_1: Any, tensor_2: Any, y: Any) -> float:
-    tensor_1, tensor_2 = map(convert_to_numpy, (tensor_1, tensor_2))
+    tensor_1, tensor_2, y = map(convert_to_numpy, (tensor_1, tensor_2, y))
     accuracy_1 = np.mean(tensor_1.argmax(axis=-1) == y)
     accuracy_2 = np.mean(tensor_2.argmax(axis=-1) == y)
     return accuracy_1 - accuracy_2

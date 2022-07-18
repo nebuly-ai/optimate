@@ -208,16 +208,13 @@ class TensorRTOptimizer(BaseOptimizer):
             input_data=input_data_onnx,
         )
 
-        if input_data is not None:
-            input_tensors = list(input_data.get_list(1)[0])
-
         learner = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             input_tfms=input_tfms,
             network_parameters=model_params,
             engine_path=engine_path,
             input_names=get_input_names(model),
             output_names=get_output_names(model),
-            input_data=input_tensors
+            input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
         )
