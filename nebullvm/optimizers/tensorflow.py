@@ -119,7 +119,7 @@ class TensorflowBackendOptimizer(BaseOptimizer):
                 model,
                 network_parameters=model_params,
                 input_tfms=input_tfms,
-                _input_data=list(input_data.get_list(1)[0])
+                input_data=list(input_data.get_list(1)[0])
                 if input_data is not None
                 else None,
             )

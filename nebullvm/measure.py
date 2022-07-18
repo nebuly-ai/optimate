@@ -7,7 +7,6 @@ import tensorflow as tf
 import torch
 
 from nebullvm.inference_learners.base import BaseInferenceLearner
-from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import convert_to_numpy
 
 

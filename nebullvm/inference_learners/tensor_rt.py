@@ -1,5 +1,4 @@
 import json
-import os
 import warnings
 from abc import ABC
 from pathlib import Path
@@ -10,7 +9,11 @@ import tensorflow as tf
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
-from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION, SAVE_DIR_NAME
+from nebullvm.config import (
+    NVIDIA_FILENAMES,
+    NO_COMPILER_INSTALLATION,
+    SAVE_DIR_NAME,
+)
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -168,7 +171,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             output_names=output_names,
             nvidia_logger=nvidia_logger,
             cuda_stream=cuda_stream,
-            _input_data=input_data,
+            input_data=input_data,
         )
 
     def _predict_tensors(

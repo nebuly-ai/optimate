@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, InitVar
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import Union, Dict, Any, List, Optional
@@ -25,12 +25,13 @@ class BaseInferenceLearner(ABC):
 
     network_parameters: ModelParams
     input_tfms: Optional[MultiStageTransformation] = None
-    _input_data: List[Any] = None
+    input_data: InitVar[List[Any]] = None
 
-    def __post_init__(self):
+    def __post_init__(self, input_data):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
             self.input_tfms = None
         self._tmp_folder = Path(mkdtemp())
+        self._input_data = input_data
 
     def _store_file(self, file_path: Union[str, Path]):
         return shutil.copy(str(file_path), str(self._tmp_folder))
@@ -38,7 +39,9 @@ class BaseInferenceLearner(ABC):
     def _store_dir(self, dir_path: Union[str, Path]):
         try:
             # For python >= 3.8
-            return shutil.copytree(str(dir_path), str(self._tmp_folder), dirs_exist_ok=True)
+            return shutil.copytree(
+                str(dir_path), str(self._tmp_folder), dirs_exist_ok=True
+            )
         except TypeError:
             # For python <=3.7
             if os.path.isdir(self._tmp_folder):

@@ -65,5 +65,5 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
             torch_model=model_scripted,
             network_parameters=network_parameters,
             input_tfms=input_tfms,
-            _input_data=input_data
+            input_data=input_data,
         )

@@ -137,7 +137,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             **kwargs,
         )
 
-        path = (Path(path) / SAVE_DIR_NAME)
+        path = Path(path) / SAVE_DIR_NAME
         path.mkdir(exist_ok=True)
 
         metadata.save(path)
@@ -151,12 +151,15 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             # Tries to load the model
             onnx.load(os.path.join(str(path), ONNX_FILENAMES["model_name"]))
         except FileNotFoundError:
-            # If missing files, it means it's saved in onnx external_data format
+            # If missing files, it means it's saved in onnx external_data
+            # format
             src_dir = "/".join(str(self.onnx_path).split("/")[:-1])
             files = os.listdir(src_dir)
             for fname in files:
                 if ".onnx" not in fname:
-                    shutil.copy2(os.path.join(src_dir, fname), os.path.join(path, fname))
+                    shutil.copy2(
+                        os.path.join(src_dir, fname), os.path.join(path, fname)
+                    )
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):

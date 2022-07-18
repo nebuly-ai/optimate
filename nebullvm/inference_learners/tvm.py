@@ -8,7 +8,11 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.config import TVM_FILENAMES, NO_COMPILER_INSTALLATION, SAVE_DIR_NAME
+from nebullvm.config import (
+    TVM_FILENAMES,
+    NO_COMPILER_INSTALLATION,
+    SAVE_DIR_NAME,
+)
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -175,7 +179,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         target_device: str,
         input_names: List[str],
         input_tfms: MultiStageTransformation = None,
-        input_data: DataManager = None
+        input_data: DataManager = None,
     ):
         """Build the model from the runtime module (lib).
 
@@ -202,7 +206,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             input_names=input_names,
             lib=lib,
             target=target_device,
-            _input_data=input_data,
+            input_data=input_data,
         )
 
 

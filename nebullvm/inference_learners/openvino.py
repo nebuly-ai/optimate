@@ -1,5 +1,4 @@
 import json
-import os
 import shutil
 import warnings
 from abc import ABC
@@ -12,7 +11,11 @@ import tensorflow as tf
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
-from nebullvm.config import OPENVINO_FILENAMES, NO_COMPILER_INSTALLATION, SAVE_DIR_NAME
+from nebullvm.config import (
+    OPENVINO_FILENAMES,
+    NO_COMPILER_INSTALLATION,
+    SAVE_DIR_NAME,
+)
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -164,7 +167,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             network_parameters=network_parameters,
             description_file=model_name,
             weights_file=model_weights,
-            _input_data=input_data,
+            input_data=input_data,
         )
 
     def _rebuild_network(self, input_shapes: Dict):

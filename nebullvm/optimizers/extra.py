@@ -78,7 +78,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
             onnx_path=new_onnx_model,
             input_names=get_input_names(new_onnx_model),
             output_names=get_output_names(new_onnx_model),
-            _input_data=list(input_data.get_list(1)[0])
+            input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
         )
