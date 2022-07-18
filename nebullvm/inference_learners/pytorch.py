@@ -42,8 +42,8 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
-        path = Path(path)
-        model = torch.jit.load(path / SAVE_DIR_NAME / cls.MODEL_NAME)
+        path = Path(path) / SAVE_DIR_NAME
+        model = torch.jit.load(path / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
         input_tfms = MultiStageTransformation.from_dict(metadata.input_tfms)
         return cls(

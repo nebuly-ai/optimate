@@ -83,7 +83,7 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         tflite_file = str(path / TENSORFLOW_BACKEND_FILENAMES["tflite_model"])
         metadata = LearnerMetadata.read(path)
         network_parameters = ModelParams(**metadata.network_parameters)

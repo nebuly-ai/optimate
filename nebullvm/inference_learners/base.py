@@ -308,7 +308,7 @@ class LearnerMetadata:
         Returns:
             LearnerMetadata: Metadata associated with the model.
         """
-        path = Path(path) / SAVE_DIR_NAME
+        path = Path(path)
         with open(path / cls.NAME, "r") as fin:
             metadata_dict = json.load(fin)
         return cls(**metadata_dict)

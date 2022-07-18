@@ -176,7 +176,8 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )
-        onnx_path = Path(path) / SAVE_DIR_NAME / ONNX_FILENAMES["model_name"]
+        path = Path(path) / SAVE_DIR_NAME
+        onnx_path = path / ONNX_FILENAMES["model_name"]
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
         if input_tfms is not None:
