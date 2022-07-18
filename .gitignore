@@ -137,9 +137,3 @@ dmypy.json
 
 # Folder where optimized models are stored
 optimized_model
-
-
-main.py
-main2.py
-main3.py
-flair.ipynb

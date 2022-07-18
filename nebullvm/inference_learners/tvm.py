@@ -3,7 +3,6 @@ import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
-import os
 
 import numpy as np
 import tensorflow as tf

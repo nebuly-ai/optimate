@@ -7,13 +7,12 @@ from pathlib import Path
 from tempfile import mkdtemp
 from typing import Union, Dict, Any, List, Optional
 
-
 import numpy as np
 import tensorflow as tf
 import torch
 
 from nebullvm.base import ModelParams
-from nebullvm.config import LEARNER_METADATA_FILENAME, SAVE_DIR_NAME
+from nebullvm.config import LEARNER_METADATA_FILENAME
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import create_model_inputs_onnx
 from nebullvm.utils.tf import create_model_inputs_tf
