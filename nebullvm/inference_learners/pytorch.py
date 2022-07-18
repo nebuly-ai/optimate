@@ -45,11 +45,12 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         path = Path(path) / SAVE_DIR_NAME
         model = torch.jit.load(path / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
-        input_tfms = MultiStageTransformation.from_dict(metadata.input_tfms)
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),
-            input_tfms=input_tfms,
+            input_tfms=MultiStageTransformation.from_dict(metadata.input_tfms)
+            if metadata.input_tfms is not None
+            else None,
         )
 
     @classmethod
