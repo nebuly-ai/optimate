@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
+from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import (
     TVM_FILENAMES,
     NO_COMPILER_INSTALLATION,
@@ -20,7 +21,6 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
-from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 
