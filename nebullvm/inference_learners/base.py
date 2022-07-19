@@ -389,8 +389,8 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
     ):
         torch.save(prediction, output_file)
 
-    def get_inputs_example(self):
-        if self._input_data is None:
+    def get_inputs_example(self, random=False):
+        if self._input_data is None or random:
             return tuple(
                 create_model_inputs_torch(
                     batch_size=self.network_parameters.batch_size,
@@ -440,8 +440,8 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
     def _save_file(self, prediction: tf.Tensor, output_file: Union[str, Path]):
         prediction.numpy().save(output_file)
 
-    def get_inputs_example(self):
-        if self._input_data is None:
+    def get_inputs_example(self, random=False):
+        if self._input_data is None or random:
             return tuple(
                 create_model_inputs_tf(
                     batch_size=self.network_parameters.batch_size,
@@ -492,8 +492,8 @@ class NumpyBaseInferenceLearner(BaseInferenceLearner, ABC):
     ):
         np.save(output_file, prediction)
 
-    def get_inputs_example(self):
-        if self._input_data is None:
+    def get_inputs_example(self, random=False):
+        if self._input_data is None or random:
             return tuple(
                 create_model_inputs_onnx(
                     batch_size=self.network_parameters.batch_size,
