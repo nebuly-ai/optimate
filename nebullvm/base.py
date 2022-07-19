@@ -46,13 +46,24 @@ class InputInfo:
             have.
     """
 
-    def __init__(self, size: Tuple[int, ...], dtype: str, **extra_info):
+    def __init__(
+        self,
+        size: Tuple[int, ...],
+        dtype: str,
+        example: object = None,
+        **extra_info
+    ):
         self.dtype = DataType(dtype)
         self.size = size
+        self._example = example
         self.__dict__.update(extra_info)
 
     def __getattr__(self, item):
         return self.__dict__.get(item)
+
+    @property
+    def example(self):
+        return self._example
 
     def dict(self):
         return {

@@ -20,17 +20,26 @@ def get_outputs_sizes_torch(
             return [tuple(output.size())[1:] for output in outputs]
 
 
-def create_model_inputs_torch(
-    batch_size: int, input_infos: List[InputInfo]
-) -> List[torch.Tensor]:
-    input_tensors = (
-        torch.randn((batch_size, *input_info.size))
-        if input_info.dtype is DataType.FLOAT
-        else torch.randint(
+def create_input_tensor_torch(
+    batch_size: int, input_info: InputInfo
+) -> torch.Tensor:
+    if input_info.dtype is DataType.FLOAT:
+        return torch.randn((batch_size, *input_info.size))
+    else:
+        return torch.randint(
             size=(batch_size, *input_info.size),
             low=input_info.min_value or 0,
             high=input_info.max_value or 100,
         )
+
+
+def create_model_inputs_torch(
+    batch_size: int, input_infos: List[InputInfo]
+) -> List[torch.Tensor]:
+    input_tensors = (
+        create_input_tensor_torch(batch_size, input_info)
+        if input_info.example is None
+        else input_info.example
         for input_info in input_infos
     )
     return list(input_tensors)

@@ -106,6 +106,7 @@ def optimize_torch_model(
     model: torch.nn.Module,
     save_dir: str,
     dataloader: Union[DataLoader, Sequence] = None,
+    example_inputs: List = None,
     batch_size: int = None,
     input_sizes: List[Tuple[int, ...]] = None,
     input_types: List[str] = None,
@@ -196,6 +197,8 @@ def optimize_torch_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor` s.
     """
+    if dataloader is None and example_inputs is not None:
+        dataloader = [[example_inputs, 0]]
     check_inputs(
         input_data=dataloader, batch_size=batch_size, input_sizes=input_sizes
     )
@@ -232,10 +235,14 @@ def optimize_torch_model(
             f"sizes, {len(input_types)} input types and "
             f"{len(extra_input_info)} extra input infos."
         )
+    if example_inputs is None:
+        example_inputs = [None for _ in input_sizes]
     input_infos = [
-        InputInfo(size=input_size, dtype=input_type, **extra_info)
-        for input_size, input_type, extra_info in zip(
-            input_sizes, input_types, extra_input_info
+        InputInfo(
+            size=input_size, dtype=input_type, example=example, **extra_info
+        )
+        for input_size, input_type, extra_info, example in zip(
+            input_sizes, input_types, extra_input_info, example_inputs
         )
     ]
     dl_library = DeepLearningFramework.PYTORCH
@@ -244,7 +251,9 @@ def optimize_torch_model(
         input_infos=input_infos,
         output_sizes=get_outputs_sizes_torch(
             model,
-            input_tensors=create_model_inputs_torch(batch_size, input_infos),
+            input_tensors=create_model_inputs_torch(batch_size, input_infos)
+            if example_inputs is None
+            else example_inputs,
         ),
         dynamic_info=dynamic_axis,
     )
