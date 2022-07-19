@@ -11,6 +11,7 @@ from nebullvm.converters.tensorflow_converters import (
     convert_keras_to_onnx,
 )
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
+from nebullvm.utils.data import DataManager
 
 
 class BaseConverter(ABC):
@@ -39,7 +40,13 @@ class ONNXConverter(BaseConverter):
 
     ONNX_MODEL_EXTENSION = ".onnx"
 
-    def convert(self, model: Any, model_params: ModelParams, save_path: Path):
+    def convert(
+        self,
+        model: Any,
+        model_params: ModelParams,
+        save_path: Path,
+        input_data: DataManager = None,
+    ):
         """Convert the input model in ONNX.
 
         Args:
@@ -49,6 +56,8 @@ class ONNXConverter(BaseConverter):
                 dynamic axis information.
             save_path (Path): Path to the directory where saving the onnx
                 model.
+            input_data (DataManager, optional): Custom data provided by user to
+                be used as input for the converter.
 
         Returns:
             Path: Path to the onnx file.
@@ -59,6 +68,7 @@ class ONNXConverter(BaseConverter):
                 torch_model=model,
                 model_params=model_params,
                 output_file_path=save_path / onnx_name,
+                input_data=input_data,
             )
             return save_path / onnx_name
         elif isinstance(model, tf.Module):

@@ -207,12 +207,16 @@ class TensorRTOptimizer(BaseOptimizer):
             quantization_type=quantization_type,
             input_data=input_data_onnx,
         )
+
         learner = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             input_tfms=input_tfms,
             network_parameters=model_params,
             engine_path=engine_path,
             input_names=get_input_names(model),
             output_names=get_output_names(model),
+            input_data=list(input_data.get_list(1)[0])
+            if input_data is not None
+            else None,
         )
         if quantization_type is not None:
             if input_data is None:

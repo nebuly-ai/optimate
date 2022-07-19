@@ -7,6 +7,7 @@ from typing import Union, List, Generator, Tuple, Dict, Type
 
 import cpuinfo
 import numpy as np
+import onnx
 import tensorflow as tf
 import torch
 
@@ -15,6 +16,7 @@ from nebullvm.config import (
     ONNX_FILENAMES,
     CUDA_PROVIDERS,
     NO_COMPILER_INSTALLATION,
+    SAVE_DIR_NAME,
 )
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -96,7 +98,10 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.onnx_path = self._store_file(onnx_path)
+        onnx_path = str(onnx_path)
+        filename = "/".join(onnx_path.split("/")[-1:])
+        dir_path = "/".join(onnx_path.split("/")[:-1])
+        self.onnx_path = Path(self._store_dir(dir_path)) / filename
         sess_options = _get_ort_session_options()
 
         if _is_intel_cpu():
@@ -131,12 +136,30 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             output_names=self.output_names,
             **kwargs,
         )
+
+        path = Path(path) / SAVE_DIR_NAME
+        path.mkdir(exist_ok=True)
+
         metadata.save(path)
 
         shutil.copy(
             self.onnx_path,
             os.path.join(str(path), ONNX_FILENAMES["model_name"]),
         )
+
+        try:
+            # Tries to load the model
+            onnx.load(os.path.join(str(path), ONNX_FILENAMES["model_name"]))
+        except FileNotFoundError:
+            # If missing files, it means it's saved in onnx external_data
+            # format
+            src_dir = "/".join(str(self.onnx_path).split("/")[:-1])
+            files = os.listdir(src_dir)
+            for fname in files:
+                if ".onnx" not in fname:
+                    shutil.copy2(
+                        os.path.join(src_dir, fname), os.path.join(path, fname)
+                    )
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -156,7 +179,8 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )
-        onnx_path = os.path.join(str(path), ONNX_FILENAMES["model_name"])
+        path = Path(path) / SAVE_DIR_NAME
+        onnx_path = path / ONNX_FILENAMES["model_name"]
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
         if input_tfms is not None:

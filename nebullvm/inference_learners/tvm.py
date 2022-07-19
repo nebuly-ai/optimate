@@ -8,7 +8,11 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.config import TVM_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.config import (
+    TVM_FILENAMES,
+    NO_COMPILER_INSTALLATION,
+    SAVE_DIR_NAME,
+)
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -18,6 +22,7 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.data import DataManager
 
 try:
     import tvm
@@ -122,7 +127,8 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             kwargs (Dict): Dictionary of key-value pairs that will be saved in
                 the model metadata file.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
+        path.mkdir(exist_ok=True)
         metadata = LearnerMetadata.from_model(
             self, input_names=self.input_names, target=self.target, **kwargs
         )
@@ -145,7 +151,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         Returns:
             ApacheTVMInferenceLearner: The optimized model.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         metadata = LearnerMetadata.read(path).to_dict()
         network_parameters = ModelParams(**metadata["network_parameters"])
         lib = tvm.runtime.load_module(path / TVM_FILENAMES["engine"])
@@ -173,6 +179,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         target_device: str,
         input_names: List[str],
         input_tfms: MultiStageTransformation = None,
+        input_data: DataManager = None,
     ):
         """Build the model from the runtime module (lib).
 
@@ -188,6 +195,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
+            input_data (DataManager, optional): User defined data.
         """
         dev = tvm.device(str(target_device), 0)
         graph_executor_module = GraphModule(lib["default"](dev))
@@ -198,6 +206,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             input_names=input_names,
             lib=lib,
             target=target_device,
+            input_data=input_data,
         )
 
 
