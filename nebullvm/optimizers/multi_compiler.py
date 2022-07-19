@@ -28,6 +28,7 @@ from nebullvm.optimizers import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.APACHE_TVM: ApacheTVMOptimizer,
@@ -35,6 +36,10 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.TENSOR_RT: TensorRTOptimizer,
     ModelCompiler.ONNX_RUNTIME: ONNXOptimizer,
 }
+
+OPTIMIZER_TO_COMPILER_MAP: Dict[Type[BaseOptimizer], ModelCompiler] = dict(
+    zip(COMPILER_TO_OPTIMIZER_MAP.values(), COMPILER_TO_OPTIMIZER_MAP.keys())
+)
 
 
 def _tvm_is_available() -> bool:
@@ -105,6 +110,12 @@ def _optimize_with_optimizer(
     try:
         model_optimized = optimizer.optimize(**kwargs)
         latency = metric_func(model_optimized)
+        FEEDBACK_COLLECTOR.store_compiler_result(
+            OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
+            kwargs["quantization_type"],
+            kwargs["perf_loss_ths"],
+            latency,
+        )
     except Exception as ex:
         warning_msg = (
             f"Compilation failed with {optimizer.__class__.__name__}. "
@@ -116,6 +127,12 @@ def _optimize_with_optimizer(
             logger.warning(warning_msg)
         latency = np.inf
         model_optimized = None
+        FEEDBACK_COLLECTOR.store_compiler_result(
+            OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
+            kwargs["quantization_type"],
+            kwargs["perf_loss_ths"],
+            None,
+        )
     if debug_file:
         _save_info(optimizer, latency, debug_file, kwargs)
     return model_optimized, latency

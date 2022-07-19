@@ -87,12 +87,16 @@ class ONNXOptimizer(BaseOptimizer):
             model, input_tfms = quantize_onnx(
                 model, quantization_type, input_tfms, input_data_onnx
             )
+
         learner = ONNX_INFERENCE_LEARNERS[output_library](
             input_tfms=input_tfms,
             network_parameters=model_params,
             onnx_path=model,
             input_names=get_input_names(model),
             output_names=get_output_names(model),
+            input_data=list(input_data.get_list(1)[0])
+            if input_data is not None
+            else None,
         )
         if perf_loss_ths is not None:
             inputs = [

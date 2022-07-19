@@ -5,7 +5,7 @@ from typing import Tuple, Union, Dict, Type
 import tensorflow as tf
 
 from nebullvm.base import ModelParams
-from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
+from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES, SAVE_DIR_NAME
 from nebullvm.inference_learners import (
     TensorflowBaseInferenceLearner,
     LearnerMetadata,
@@ -25,14 +25,15 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         return res
 
     def save(self, path: Union[str, Path], **kwargs):
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
+        path.mkdir(exist_ok=True)
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
         self.model.save(path / TENSORFLOW_BACKEND_FILENAMES["tf_model"])
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         metadata = LearnerMetadata.read(path)
         network_parameters = ModelParams(**metadata.network_parameters)
         input_tfms = metadata.input_tfms
@@ -81,7 +82,7 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         tflite_file = str(path / TENSORFLOW_BACKEND_FILENAMES["tflite_model"])
         metadata = LearnerMetadata.read(path)
         network_parameters = ModelParams(**metadata.network_parameters)

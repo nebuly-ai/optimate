@@ -1,5 +1,7 @@
 import os
 
+
+VERSION = "0.3.2"
 LEARNER_METADATA_FILENAME = "metadata.json"
 NO_COMPILER_INSTALLATION = int(os.getenv("NO_COMPILER_INSTALLATION", "0")) > 0
 ONNX_OPSET_VERSION = 13
@@ -42,3 +44,5 @@ TENSORFLOW_BACKEND_FILENAMES = {
     "tflite_model": "tf_model.tflite",
     "tf_model": "tf_model.h5",
 }
+
+SAVE_DIR_NAME = "optimized_model"
