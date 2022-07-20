@@ -70,7 +70,7 @@ def compute_tf_latency(
 
 
 def compute_optimized_running_time(
-    optimized_model: BaseInferenceLearner, steps: int = 100
+    optimized_model: BaseInferenceLearner, steps: int = 100, min_steps=5
 ) -> float:
     """Compute the running time of the optimized model.
 
@@ -86,11 +86,22 @@ def compute_optimized_running_time(
     model_inputs = optimized_model.get_inputs_example()
 
     latencies = []
+    last_median = None
     for _ in range(steps):
         starting_time = time.time()
         _ = optimized_model.predict(*model_inputs)
         latencies.append(time.time() - starting_time)
-    return sum(latencies) / steps
+        if len(latencies) > min_steps:
+            median = np.median(latencies)
+            diff = (
+                np.abs(median - last_median) / last_median
+                if last_median is not None
+                else 1.0
+            )
+            if diff < 0.05:
+                return median
+            last_median = median
+    return np.median(latencies)
 
 
 def compute_relative_difference(
