@@ -330,7 +330,7 @@ def _get_optimizers_supporting_torch_api(
     use_extra_compilers: bool,
 ) -> List[Tuple[ModelCompiler, BaseOptimizer]]:
     optimizers = [
-        (ModelCompiler.TORCHVISION, PytorchBackendOptimizer(logger=logger)),
+        (ModelCompiler.TORCHSCRIPT, PytorchBackendOptimizer(logger=logger)),
     ]
     if use_extra_compilers:
         optimizers.append(
