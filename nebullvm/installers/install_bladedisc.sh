@@ -10,6 +10,8 @@ fi
 
 cd BladeDISC && git submodule update --init --recursive
 
+apt update && sudo apt install bazel-5.1.1
+
 if [ $1 == "true" ]
 then
 cd pytorch_blade && bash ./scripts/build_pytorch_blade.sh

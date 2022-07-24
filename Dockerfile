@@ -32,7 +32,7 @@ ENV NO_COMPILER_INSTALLATION=1
 RUN if [ "$COMPILER" = "all" ] ; then \
         python3 -c "import os; os.environ['NO_COMPILER_INSTALLATION'] = '0'; import nebullvm" ; \
     elif [ "$COMPILER" = "tensorrt" ] ; then \
-        python3 -c "from nebullvm.installers.installers import install_bladedisc; install_bladedisc()"
+        python3 -c "from nebullvm.installers.installers import install_tensor_rt; install_tensor_rt()" ; \
     elif [ "$COMPILER" = "openvino" ] ; then \
         python3 -c "from nebullvm.installers.installers import install_openvino; install_openvino()" ; \
     elif [ "$COMPILER" = "onnxruntime" ] ; then \
