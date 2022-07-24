@@ -10,7 +10,12 @@ from nebullvm.api.frontend.onnx import extract_info_from_np_data
 from nebullvm.api.frontend.tf import extract_info_from_tf_data
 from nebullvm.api.frontend.torch import extract_info_from_torch_data
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
-from nebullvm.base import DeepLearningFramework, ModelParams, ModelCompiler
+from nebullvm.base import (
+    DeepLearningFramework,
+    ModelParams,
+    ModelCompiler,
+    OptimizationTime,
+)
 from nebullvm.converters.converters import CrossConverter
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
@@ -95,15 +100,70 @@ def _extract_info_from_data(
 def optimize_model(
     model: Any,
     input_data: Union[Iterable, Sequence],
-    metric_drop_ths: float,
-    metric: Union[str, Callable],
-    optimization_time: str,
-    dynamic_info: Dict,
-    config_file: str,
+    metric_drop_ths: float = None,
+    metric: Union[str, Callable] = None,
+    optimization_time: str = "constrained",
+    dynamic_info: Dict = None,
+    config_file: str = None,
     ignore_compilers: List[str] = None,
     **kwargs,
 ):
+    """Optimize the input model regardless of the framework it was used for
+    implementing it. The optimized model given as output will share with the
+    input one the same API, i.e. the optimized model will have the same
+    interface as the original one.
+
+    Args:
+        model (Any): The input model.
+        input_data (Iterable or Sequence): Input data to be used for
+            optimizing the model. Note that if 'unconstrained' is selected as
+            `optimization_time`, it would be beneficial to provide at least 100
+            data samples in order to use all the techniques supported by
+            Nebullvm. The data can be given in either as sequence (data can be
+            accessed by "element", e.g. `data[i]`) or iterable (data needs to
+            be accessed with loop, e.g. `for x in data`). PyTorch, TensorFlow
+            and Onnx respectively accept input tensor in `torch.Tensor`,
+            `tf.Tensor` and `np.ndarray` formats. Note that the each input
+            sample must be a tuple containing a tuple as first element, the
+            `inputs`, and the `label` as second element. The `inputs` needs to
+            be passed as tuple even if a single input is needed by the model
+            (in this case the `inputs` tuple will contain just an element).
+            HuggingFace models can take as data samples both dictionaries or
+            strings. Strings will then be converted in data samples using the
+            HuggingFace tokenizer which must be given as input when just a
+            list of string is provided as input_data (tokenizers can be passed
+            as extra arguments of this function using the keyword `tokenizer`).
+        metric_drop_ths (float, optional): Maximum reduction in the
+            selected metric accepted. No model with an higher error will be
+            accepted, i.e. all optimized model having a larger error respect to
+            the original one will be discarded, without even considering their
+            possible speed-up.
+        metric (Callable): Metric to be used for estimating the error
+            due to the optimization techniques.
+        optimization_time (OptimizationTime): The optimization time mode.
+            It can be either 'constrained' or 'unconstrained'. For
+            'constrained' mode just compilers and precision reduction
+            techniques are used (no compression). 'Unconstrained' optimization
+            allows the usage of more time consuming techniques as pruning and
+            distillation. Note that for using many of the sophisticated
+            techniques in the 'unconstrained' optimization, a small fine-tuning
+            of the model will be needed. Thus we highly recommend to give as
+            input_data at least 100 samples for when selecting 'unconstrained'
+            optimization.
+        dynamic_info (Dict, optional): Dictionary containing info about the
+            dynamic axis. It should contain as keys both "inputs" and "outputs"
+            and as values two lists of dictionaries where each dictionary
+            represents the dynamic axis information for an input/output tensor.
+            The inner dictionary should have as key an integer, i.e. the
+            dynamic axis (considering also the batch size) and as value a
+            string giving a "tag" to it, e.g. "batch_size".
+        config_file (str, optional): Configuration file containing the
+            parameters needed for defining the CompressionStep in the pipeline.
+        ignore_compilers (List, optional): List containing the compilers to be
+            ignored during the OptimizerStep.
+    """
     dl_framework = _get_dl_framework(model)
+    optimization_time = OptimizationTime(optimization_time)
     FEEDBACK_COLLECTOR.start_collection(model, framework=dl_framework)
     if isinstance(metric, str):
         metric = QUANTIZATION_METRIC_MAP.get(metric)
@@ -134,6 +194,7 @@ def optimize_model(
     with TemporaryDirectory as tmp_dir:
         tmp_dir = Path(tmp_dir)
         models = converter.convert(model, model_params, tmp_dir, input_data)
+
         if ignore_compilers is None:
             ignore_compilers = []
         else:
@@ -154,6 +215,7 @@ def optimize_model(
                 model_params=model_params,
                 input_tfms=input_tfms,
                 ignore_compilers=ignore_compilers,
+                optimization_time=optimization_time,
             )
             ignore_compilers = output_dict["ignore_compilers"]
             optimized_models.extend(output_dict["optimized_models"])

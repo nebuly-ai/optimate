@@ -116,3 +116,8 @@ class QuantizationType(Enum):
     STATIC = "STATIC"
     QAT = "QAT"
     HALF = "HALF"
+
+
+class OptimizationTime(Enum):
+    CONSTRAINED = "constrained"
+    UNCONSTRAINED = "unconstrained"

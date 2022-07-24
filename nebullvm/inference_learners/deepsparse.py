@@ -13,21 +13,17 @@ from nebullvm.config import ONNX_FILENAMES
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
-    PytorchBaseInferenceLearner
+    PytorchBaseInferenceLearner,
 )
 from nebullvm.transformations.base import MultiStageTransformation
-from deepsparse import compile_model, cpu
 
 try:
-    import onnxruntime as ort
+    from deepsparse import compile_model, cpu
 except ImportError:
     warnings.warn(
-        "No valid onnxruntime installation found. Trying to install it..."
+        "No valid deepsparse installation found. "
+        "The compiler won't be used in the following."
     )
-    from nebullvm.installers.installers import install_onnxruntime
-
-    install_onnxruntime()
-    import onnxruntime as ort
 
 
 class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
@@ -54,8 +50,9 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
         self.onnx_path = self._store_file(onnx_path)
 
         # Compile model
-        cores_per_socket, _ , _ = cpu.cpu_details()
-        # Define the number of cores to use, by default it will make use of all physical cores on the system
+        cores_per_socket, _, _ = cpu.cpu_details()
+        # Define the number of cores to use, by default it will make use of
+        # all physical cores on the system
         num_cores = cores_per_socket
         batch_size = kwargs["network_parameters"].batch_size
         self.engine = compile_model(onnx_path, batch_size, num_cores)
@@ -167,6 +164,4 @@ class PytorchDeepSparseInferenceLearner(
 
 DEEPSPARSE_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[DeepSparseInferenceLearner]
-] = {
-    DeepLearningFramework.PYTORCH: PytorchDeepSparseInferenceLearner
-}
+] = {DeepLearningFramework.PYTORCH: PytorchDeepSparseInferenceLearner}

@@ -13,9 +13,11 @@ from nebullvm.base import (
     ModelParams,
     QuantizationType,
     ModelCompiler,
+    OptimizationTime,
 )
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.compressors.intel import TorchIntelPruningCompressor
+from nebullvm.compressors.sparseml import SparseMLCompressor
 from nebullvm.inference_learners import (
     BaseInferenceLearner,
     PytorchBaseInferenceLearner,
@@ -38,15 +40,35 @@ from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
 
 class Step(ABC):
+    """Fundamental building block for the Pipeline.
+
+    Attributes:
+        logger (Logger, optional): Logger defined by the user.
+    """
+
     def __init__(self, logger: Logger = None):
         self._logger = logger
 
     @abstractmethod
     def run(self, *args, **kwargs) -> Dict:
+        """Run the pipeline step."""
         raise NotImplementedError()
 
 
 class CompressorStep(Step, ABC):
+    """Object managing the Compressor step in the Pipeline. This step manages
+    all the defined Compressor objects available considering the data given
+    by the user.
+
+    Attributes:
+        config_file (str, optional): The configuration file containing the
+            configuration parameter for each Compressor. The config_file is
+            a YAML file having as main keywords the Compressor names and as
+            values dictionaries containing the specific parameters for the
+            related Compressor object.
+        logger (Logger, optional): Logger defined by the user.
+    """
+
     def __init__(self, config_file: str = None, logger: Logger = None):
         super().__init__(logger)
         self._config_file = config_file
@@ -59,6 +81,20 @@ class CompressorStep(Step, ABC):
         metric: Callable = None,
         **kwargs,
     ) -> Dict:
+        """Run the CompressorStep.
+
+        Args:
+            model (Any): Model to be compressed.
+            input_data (DataManager): Data to be used for compressing the
+                model.
+            metric_drop_ths: Maximum reduction in the selected metric accepted.
+                No model with an higher error will be accepted. Note that the
+                maximum error is modified and then propagated to the next
+                steps.
+            metric (Callable): Metric to be used for estimating the error
+                due to the compression.
+            kwargs (Dict): Keyword arguments propagated to the next step.
+        """
         compressor_dict = self._get_compressors()
         models = {}
         train_input_data, eval_input_data = input_data.split(0.8)
@@ -84,8 +120,26 @@ class CompressorStep(Step, ABC):
 
 
 class TorchCompressorStep(CompressorStep):
+    """Object managing the Compressor step in the Pipeline for PyTorch models.
+    This step manages all the defined Compressor objects available considering
+    the data given by the user.
+
+    At the current state this step supports pruning with SparseML and (just on
+    intel devices) pruning with the IntelNeuralCompressor.
+
+    Attributes:
+        config_file (str, optional): The configuration file containing the
+            configuration parameter for each Compressor. The config_file is
+            a YAML file having as main keywords the Compressor names and as
+            values dictionaries containing the specific parameters for the
+            related Compressor object.
+        logger (Logger, optional): Logger defined by the user.
+    """
+
     def _get_compressors(self) -> Dict[str, BaseCompressor]:
-        compressors = {}
+        compressors = {
+            "sparseml": SparseMLCompressor(config_file=self._config_file)
+        }
         if "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
             compressors["intel_pruning"] = TorchIntelPruningCompressor(
                 config_file=self._config_file
@@ -94,11 +148,25 @@ class TorchCompressorStep(CompressorStep):
 
 
 class NoCompressionStep(Step):
+    """Step to be used when no compression is required.
+
+    Attributes:
+        logger (Logger, optional): Logger defined by the user.
+    """
+
     def run(self, model: Any, **kwargs) -> Dict:
         return {"models": {"": model}, **kwargs}
 
 
 class OptimizerStep(Step, ABC):
+    """Object managing the Optimizers in the pipeline step. All available
+    optimizers are run on the model given as input and a list of tuples
+    (optimized_model, latency) is given as output.
+
+    Attributes:
+        logger (Logger, optional): Logger defined by the user.
+    """
+
     def run(
         self,
         models: Dict[str, Tuple[Any, Optional[float]]] = None,
@@ -108,8 +176,35 @@ class OptimizerStep(Step, ABC):
         metric: Optional[Callable] = None,
         input_data: Optional[DataManager] = None,
         ignore_compilers: List[ModelCompiler] = None,
+        optimization_time: OptimizationTime = None,
         **kwargs,
     ) -> Dict:
+        """Run the OptimizerStep for all the available compilers.
+
+        Args:
+            models (Dict): Dictionary of models produced by the CompressorStep.
+                For each model produced by the previous step, the updated
+                metric_drop_ths (i.e. the error allowed on the model) is
+                given together with the model. Keys represent the compression
+                technique used for obtaining the model.
+            output_library (DeepLearningFramework): The target framework.
+            model_params (ModelParams): The model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction.
+            metric (Callable): Metric to be used for estimating the error
+                due to the compression.
+            input_data (DataManager): Input data to be used for optimizing the
+                model.
+            ignore_compilers (List): List of compilers to be ignored.
+            optimization_time (OptimizationTime): The optimization time mode.
+                It can be either 'constrained' or 'unconstrained'. For
+                'unconstrained' optimization all the compilers are re-used on
+                the different framework interfaces, even if the model has
+                already been compiled with the same compiler on another
+                framework interface.
+            kwargs (Dict): Extra keywords that will be ignored.
+        """
 
         optimizers = self._get_optimizers(ignore_compilers)
         optimized_models = []
@@ -148,7 +243,11 @@ class OptimizerStep(Step, ABC):
                         else:
                             latency = np.inf
                         optimized_models.append((optimized_model, latency))
-                        if compiler not in ignore_compilers:
+                        if (
+                            compiler not in ignore_compilers
+                            and optimization_time
+                            is OptimizationTime.CONSTRAINED
+                        ):
                             ignore_compilers.append(compiler)
                         FEEDBACK_COLLECTOR.store_compiler_result(
                             compiler=compiler,
@@ -202,6 +301,15 @@ class OptimizerStep(Step, ABC):
 
 
 class TorchOptimizerStep(OptimizerStep):
+    """Object managing the Optimizers in the pipeline step supporting PyTorch
+    as compiler interface. All available optimizers are run on the model given
+    as input and a list of tuples (optimized_model, latency) is given as
+    output.
+
+    Attributes:
+        logger (Logger, optional): Logger defined by the user.
+    """
+
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler]
     ) -> Dict[ModelCompiler, BaseOptimizer]:
@@ -258,6 +366,15 @@ class TorchOptimizerStep(OptimizerStep):
 
 
 class TFOptimizerStep(OptimizerStep):
+    """Object managing the Optimizers in the pipeline step supporting
+    TensorFlow as compiler interface. All available optimizers are run on
+    the model given as input and a list of tuples (optimized_model, latency)
+    is given as output.
+
+    Attributes:
+        logger (Logger, optional): Logger defined by the user.
+    """
+
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler]
     ) -> Dict[ModelCompiler, BaseOptimizer]:
@@ -307,6 +424,15 @@ class TFOptimizerStep(OptimizerStep):
 
 
 class OnnxOptimizerStep(OptimizerStep):
+    """Object managing the Optimizers in the pipeline step supporting ONNX
+    as compiler interface. All available optimizers are run on the model given
+    as input and a list of tuples (optimized_model, latency) is given as
+    output.
+
+    Attributes:
+        logger (Logger, optional): Logger defined by the user.
+    """
+
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler]
     ) -> Dict[ModelCompiler, BaseOptimizer]:
@@ -345,6 +471,16 @@ class OnnxOptimizerStep(OptimizerStep):
 
 
 class Pipeline(Step):
+    """Pipeline object.
+
+    A Pipeline is a list of steps executed sequentially, where each step
+    takes as input the output of the previous one.
+
+    Attributes:
+        steps (List): List of Steps composing the pipeline.
+        logger (Logger): Logger defined by the user.
+    """
+
     def __init__(self, steps: List[Step], logger: Logger = None):
         super().__init__(logger)
         self._steps = steps
@@ -357,13 +493,13 @@ class Pipeline(Step):
 
 def _get_compressor_step(
     model: Any,
-    optimization_time: str,
+    optimization_time: OptimizationTime,
     config_file: Optional[str],
     metric_drop_ths: Optional[float],
     metric: Optional[Callable],
     logger: Optional[Logger],
 ) -> Step:
-    if optimization_time == "constrained":
+    if optimization_time is OptimizationTime.CONSTRAINED:
         return NoCompressionStep(logger=logger)
     if metric_drop_ths is None or metric is None:
         return NoCompressionStep(logger=logger)
@@ -387,12 +523,34 @@ def _get_optimizer_step(
 
 def build_pipeline_from_model(
     model: Any,
-    optimization_time: str,
+    optimization_time: OptimizationTime,
     metric_drop_ths: Optional[float],
     metric: Optional[Callable],
     config_file: Optional[str],
     logger: Logger = None,
 ) -> Pipeline:
+    """Function for building a pipeline from a model and user-defined
+    parameters
+
+    Args:
+        model (Any): The input model.
+        optimization_time (OptimizationTime): The optimization time mode.
+            It can be either 'constrained' or 'unconstrained'. For
+            'constrained' mode just compilers and precision reduction
+            techniques are used (no compression). 'Unconstrained' optimization
+            allows the usage of more time consuming techniques as pruning and
+            distillation.
+        metric_drop_ths (float, optional): Maximum reduction in the
+            selected metric accepted. No model with an higher error will be
+            accepted, i.e. all optimized model having a larger error respect to
+            the original one will be discarded, without even considering their
+            possible speed-up.
+        metric (Callable): Metric to be used for estimating the error
+            due to the optimization techniques.
+        config_file (str, optional): Configuration file containing the
+            parameters needed for defining the CompressionStep in the pipeline.
+        logger (Logger, optional): Logger defined by the user.
+    """
     compressor_step = _get_compressor_step(
         model, optimization_time, config_file, metric_drop_ths, metric, logger
     )
