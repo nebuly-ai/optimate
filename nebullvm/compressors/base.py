@@ -16,8 +16,8 @@ class BaseCompressor(ABC):
         model: Any,
         train_input_data: DataManager,
         eval_input_data: DataManager,
-        perf_loss_ths: float,
-        perf_metric: Callable,
+        metric_drop_ths: float,
+        metric: Callable,
     ) -> Tuple[Any, Optional[float]]:
         raise NotImplementedError()
 

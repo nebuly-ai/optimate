@@ -42,8 +42,8 @@ class SparseMLCompressor(BaseCompressor):
         model: torch.nn.Module,
         train_input_data: DataManager,
         eval_input_data: DataManager,
-        perf_loss_ths: float,
-        perf_metric: Callable,
+        metric_drop_ths: float,
+        metric: Callable,
     ) -> Tuple[Any, Optional[float]]:
         script_path = (
             Path(__file__).parent / "scripts/neural_magic_training.py"
@@ -81,11 +81,11 @@ class SparseMLCompressor(BaseCompressor):
             pruned_model = _load_model(pruned_model_path)
 
             error = self._compute_error(
-                model, pruned_model, eval_input_data, perf_metric
+                model, pruned_model, eval_input_data, metric
             )
-            if error > perf_loss_ths:
+            if error > metric_drop_ths:
                 return None, None
-            new_metric_ths = perf_loss_ths - error
+            new_metric_ths = metric_drop_ths - error
 
         return pruned_model, new_metric_ths
 

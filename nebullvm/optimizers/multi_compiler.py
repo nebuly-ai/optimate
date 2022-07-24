@@ -152,9 +152,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> BaseInferenceLearner:
         """Optimize the ONNX model using the available compilers.
@@ -167,12 +167,12 @@ class MultiCompilerOptimizer(BaseOptimizer):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            perf_loss_ths (float, optional): Threshold for the accepted drop
+            metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
-            perf_metric (Callable, optional): If given it should
+            metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
@@ -180,7 +180,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         Returns:
             BaseInferenceLearner: Model optimized for inference.
         """
-        if perf_loss_ths is not None and quantization_type is None:
+        if metric_drop_ths is not None and quantization_type is None:
             quantization_types = [
                 None,
                 QuantizationType.DYNAMIC,
@@ -201,9 +201,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 if input_tfms is not None
                 else None,
                 debug_file=self.debug_file,
-                perf_loss_ths=perf_loss_ths if q_type is not None else None,
+                perf_loss_ths=metric_drop_ths if q_type is not None else None,
                 quantization_type=q_type,
-                perf_metric=perf_metric,
+                perf_metric=metric,
                 input_data=input_data,
             )
             for compiler in self.compilers
@@ -222,11 +222,11 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     if input_tfms is not None
                     else None,
                     debug_file=self.debug_file,
-                    perf_loss_ths=perf_loss_ths
+                    perf_loss_ths=metric_drop_ths
                     if q_type is not None
                     else None,
                     quantization_type=q_type,
-                    perf_metric=perf_metric,
+                    perf_metric=metric,
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers
@@ -242,9 +242,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
         return_all: bool = False,
     ):
@@ -267,12 +267,12 @@ class MultiCompilerOptimizer(BaseOptimizer):
             return_all (bool, optional): Boolean flag. If true the method
                 returns the tuple (compiled_model, score) for each available
                 compiler. Default `False`.
-            perf_loss_ths (float, optional): Threshold for the accepted drop
+            metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
-            perf_metric (Callable, optional): If given it should
+            metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
@@ -283,7 +283,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 `return_all` is `False` or all the compiled models and their
                 scores otherwise.
         """
-        if perf_loss_ths is not None and quantization_type is None:
+        if metric_drop_ths is not None and quantization_type is None:
             quantization_types = [
                 None,
                 QuantizationType.DYNAMIC,
@@ -305,9 +305,9 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 if input_tfms is not None
                 else None,
                 debug_file=self.debug_file,
-                perf_loss_ths=perf_loss_ths if q_type is not None else None,
+                perf_loss_ths=metric_drop_ths if q_type is not None else None,
                 quantization_type=q_type,
-                perf_metric=perf_metric,
+                perf_metric=metric,
                 input_data=input_data,
             )
             for compiler in self.compilers
@@ -325,11 +325,11 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     if input_tfms is not None
                     else None,
                     debug_file=self.debug_file,
-                    perf_loss_ths=perf_loss_ths
+                    perf_loss_ths=metric_drop_ths
                     if q_type is not None
                     else None,
                     quantization_type=q_type,
-                    perf_metric=perf_metric,
+                    perf_metric=metric,
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers

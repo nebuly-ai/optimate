@@ -177,7 +177,7 @@ def optimize_huggingface_model(
             original labels.
             For more information see
             `nebullvm.measure.compute_relative_difference` and
-            `nebullvm.measure.compute_accuracy_drop`. `perf_metric`
+            `nebullvm.measure.compute_accuracy_drop`. `metric`
             accepts as value also a string containing the metric name. At the
             current stage the supported metrics are `"precision"` and
             `"accuracy"`.

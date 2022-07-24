@@ -252,7 +252,7 @@ class OptimizerStep(Step, ABC):
                         FEEDBACK_COLLECTOR.store_compiler_result(
                             compiler=compiler,
                             q_type=q_type,
-                            perf_loss_ths=metric_drop_ths,
+                            metric_drop_ths=metric_drop_ths,
                             latency=latency,
                             compression=prev_tech,
                         )
@@ -268,7 +268,7 @@ class OptimizerStep(Step, ABC):
                         FEEDBACK_COLLECTOR.store_compiler_result(
                             compiler=compiler,
                             q_type=q_type,
-                            perf_loss_ths=metric_drop_ths,
+                            metric_drop_ths=metric_drop_ths,
                             latency=None,
                             compression=prev_tech,
                         )
@@ -286,9 +286,9 @@ class OptimizerStep(Step, ABC):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> BaseInferenceLearner:
         raise NotImplementedError()
@@ -334,18 +334,19 @@ class TorchOptimizerStep(OptimizerStep):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> PytorchBaseInferenceLearner:
         if hasattr(optimizer, "optimize_from_torch"):
             optimized_model = optimizer.optimize_from_torch(
                 torch_model=model,
                 model_params=model_params,
-                perf_loss_ths=perf_loss_ths
+                metric_drop_ths=metric_drop_ths
                 if quantization_type is not None
                 else None,
+                metric=metric,
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
@@ -355,9 +356,10 @@ class TorchOptimizerStep(OptimizerStep):
                 model=model,
                 output_library=output_library,
                 model_params=model_params,
-                perf_loss_ths=perf_loss_ths
+                metric_drop_ths=metric_drop_ths
                 if quantization_type is not None
                 else None,
+                metric=metric,
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
@@ -392,18 +394,19 @@ class TFOptimizerStep(OptimizerStep):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> PytorchBaseInferenceLearner:
         if hasattr(optimizer, "optimize_from_tf"):
             optimized_model = optimizer.optimize_from_tf(
                 torch_model=model,
                 model_params=model_params,
-                perf_loss_ths=perf_loss_ths
+                metric_drop_ths=metric_drop_ths
                 if quantization_type is not None
                 else None,
+                metric=metric,
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
@@ -413,9 +416,10 @@ class TFOptimizerStep(OptimizerStep):
                 model=model,
                 output_library=output_library,
                 model_params=model_params,
-                perf_loss_ths=perf_loss_ths
+                metric_drop_ths=metric_drop_ths
                 if quantization_type is not None
                 else None,
+                metric=metric,
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
@@ -451,18 +455,19 @@ class OnnxOptimizerStep(OptimizerStep):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> PytorchBaseInferenceLearner:
         optimized_model = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,
-            perf_loss_ths=perf_loss_ths
+            metric_drop_ths=metric_drop_ths
             if quantization_type is not None
             else None,
+            metric=metric,
             quantization_type=quantization_type,
             input_tfms=input_tfms,
             input_data=input_data,

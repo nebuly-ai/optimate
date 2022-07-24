@@ -161,7 +161,7 @@ def optimize_tf_model(
             original labels.
             For more information see
             `nebullvm.measure.compute_relative_difference` and
-            `nebullvm.measure.compute_accuracy_drop`. `perf_metric`
+            `nebullvm.measure.compute_accuracy_drop`. `metric`
             accepts as value also a string containing the metric name. At the
             current stage the supported metrics are `"precision"` and
             `"accuracy"`.
@@ -276,8 +276,8 @@ def optimize_tf_model(
             output_library=dl_library,
             model_params=model_params,
             input_tfms=input_tfms,
-            perf_loss_ths=perf_loss_ths,
-            perf_metric=perf_metric,
+            metric_drop_ths=perf_loss_ths,
+            metric=perf_metric,
             input_data=input_data,
         )
         logger.info("Running comparison between optimized models (3/3).")
@@ -346,7 +346,7 @@ def _torch_api_optimization(
                     model=model,
                     output_library=DeepLearningFramework.PYTORCH,
                     model_params=model_params,
-                    perf_loss_ths=quantization_ths
+                    metric_drop_ths=quantization_ths
                     if quantization_type is not None
                     else None,
                     quantization_type=quantization_type,
