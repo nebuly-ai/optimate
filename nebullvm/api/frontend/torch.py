@@ -35,7 +35,7 @@ from nebullvm.utils.torch import (
 )
 from nebullvm.inference_learners.base import PytorchBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
-from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer
+from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer, DeepSparseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
 logging.basicConfig(
@@ -299,6 +299,7 @@ def optimize_torch_model(
             onnx_path = model_converter.convert(
                 model, model_params, Path(tmp_dir), input_data
             )
+
             model_optimized = model_optimizer.optimize(
                 model=str(onnx_path),
                 output_library=dl_library,

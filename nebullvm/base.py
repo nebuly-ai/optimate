@@ -106,6 +106,7 @@ class ModelCompiler(Enum):
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
+    DEEPSPARSE = "deepsparse"
     TORCHSCRIPT = "torchscript"
     TFLITE = "tflite"
 
