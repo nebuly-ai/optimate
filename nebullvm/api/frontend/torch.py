@@ -22,7 +22,6 @@ from nebullvm.base import (
     ModelCompiler,
     InputInfo,
     QuantizationType,
-    SparsityParams
 )
 from nebullvm.converters import ONNXConverter
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
