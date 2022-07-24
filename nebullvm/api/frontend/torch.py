@@ -117,7 +117,7 @@ def optimize_torch_model(
     perf_metric: Union[str, Callable] = None,
     ignore_compilers: List[str] = None,
     custom_optimizers: List[BaseOptimizer] = None,
- ) -> PytorchBaseInferenceLearner:
+) -> PytorchBaseInferenceLearner:
     """Basic function for optimizing a torch model.
 
     This function saves the output model as well in a nebuly-readable format
