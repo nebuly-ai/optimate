@@ -6,7 +6,7 @@ from nebullvm.optimizers.onnx import ONNXOptimizer  # noqa F401
 from nebullvm.optimizers.openvino import OpenVinoOptimizer  # noqa F401
 from nebullvm.optimizers.tensor_rt import TensorRTOptimizer  # noqa F401
 from nebullvm.optimizers.tvm import ApacheTVMOptimizer  # noqa F401
-from nebullvm.optimizers.deepsparse import DeepSparseOptimizer
+from nebullvm.optimizers.deepsparse import DeepSparseOptimizer  # noqa F401
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]
 
@@ -16,4 +16,5 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.OPENVINO: OpenVinoOptimizer,
     ModelCompiler.TENSOR_RT: TensorRTOptimizer,
     ModelCompiler.ONNX_RUNTIME: ONNXOptimizer,
+    ModelCompiler.DEEPSPARSE: DeepSparseOptimizer,
 }
