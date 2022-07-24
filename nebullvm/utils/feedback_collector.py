@@ -138,7 +138,7 @@ class FeedbackCollector:
         compiler_dict[q_type_key] = latency if latency else -1.0
         self._latency_dict[compiler.value] = compiler_dict
 
-    def send_feedback(self):
+    def send_feedback(self, timeout: int = 30):
         if self._model_id is None:
             return {}
         request_body = {
@@ -157,6 +157,7 @@ class FeedbackCollector:
             url,
             data=json.dumps(request_body),
             headers=headers,
+            timeout=timeout,
         )
         self._model_id = None
         self._latency_dict = None
