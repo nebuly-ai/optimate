@@ -126,6 +126,7 @@ class FeedbackCollector:
         q_type: Optional[QuantizationType],
         perf_loss_ths: Optional[float],
         latency: Optional[float],
+        compression: str = None,
     ):
         if self._model_id is None:
             return
@@ -134,6 +135,8 @@ class FeedbackCollector:
             if q_type is not None and perf_loss_ths is not None
             else "noopt"
         )
+        if compression is not None and len(compression) > 0:
+            q_type_key = compression + "_" + q_type_key
         compiler_dict = self._latency_dict.get(compiler.value, {})
         compiler_dict[q_type_key] = latency if latency else -1.0
         self._latency_dict[compiler.value] = compiler_dict

@@ -5,7 +5,7 @@ from typing import List, Tuple, Dict, Optional, Callable, Union
 
 import numpy as np
 
-from nebullvm.api.frontend.utils import (
+from nebullvm.api.utils import (
     inspect_dynamic_size,
     ifnone,
     QUANTIZATION_METRIC_MAP,
@@ -58,7 +58,7 @@ def _extract_dynamic_axis(
     return None
 
 
-def _extract_info_from_data(
+def extract_info_from_np_data(
     onnx_model: str,
     data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
     batch_size: int,
@@ -139,7 +139,7 @@ def optimize_onnx_model(
             performed, since no data is given as input.
         perf_metric (Union[Callable, str], optional): The metric to
             be used for accepting or refusing a precision-reduction
-            optimization proposal. If none is given but a `perf_loss_ths` is
+            optimization proposal. If none is given but a `metric_drop_ths` is
             received, the `nebullvm.measure.compute_relative_difference`
             metric will be used as default one. A user-defined metric can
             be passed as function accepting as inputs two tuples of tensors
@@ -172,7 +172,7 @@ def optimize_onnx_model(
             input_sizes,
             input_types,
             dynamic_axis,
-        ) = _extract_info_from_data(
+        ) = extract_info_from_np_data(
             model_path,
             data,
             batch_size,

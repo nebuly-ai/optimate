@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, Callable, Tuple
 
 import yaml
 
@@ -11,7 +11,14 @@ class BaseCompressor(ABC):
         self._config = self._read_config(config_file)
 
     @abstractmethod
-    def compress(self, model: Any, input_data: DataManager, *args, **kwargs):
+    def compress(
+        self,
+        model: Any,
+        train_input_data: DataManager,
+        eval_input_data: DataManager,
+        perf_loss_ths: float,
+        perf_metric: Callable,
+    ) -> Tuple[Any, Optional[float]]:
         raise NotImplementedError()
 
     def _read_config(self, config_file: Optional[str]) -> Dict:

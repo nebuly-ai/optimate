@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from nebullvm.api.frontend.utils import (
+from nebullvm.api.utils import (
     check_inputs,
     ifnone,
     inspect_dynamic_size,
@@ -74,7 +74,7 @@ def _extract_dynamic_axis(
     return None
 
 
-def _extract_info_from_data(
+def extract_info_from_torch_data(
     model: torch.nn.Module,
     dataloader: Union[DataLoader, Sequence],
     batch_size: int,
@@ -170,7 +170,7 @@ def optimize_torch_model(
             performed, since no data is given as input.
         perf_metric (Union[Callable, str], optional): The metric to
             be used for accepting or refusing a precision-reduction
-            optimization proposal. If none is given but a `perf_loss_ths` is
+            optimization proposal. If none is given but a `metric_drop_ths` is
             received, the `nebullvm.measure.compute_relative_difference`
             metric will be used as default one. A user-defined metric can
             be passed as function accepting as inputs two tuples of tensors
@@ -208,7 +208,7 @@ def optimize_torch_model(
             input_sizes,
             input_types,
             dynamic_axis,
-        ) = _extract_info_from_data(
+        ) = extract_info_from_torch_data(
             model,
             dataloader,
             batch_size,

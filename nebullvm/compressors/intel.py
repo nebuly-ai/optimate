@@ -2,8 +2,9 @@ import copy
 from abc import ABC, abstractmethod
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import Dict, Any
+from typing import Dict, Any, Callable, Optional, Tuple
 
+import numpy as np
 import torch.nn
 import tensorflow as tf
 import yaml
@@ -117,13 +118,38 @@ class IntelPruningCompressor(BaseCompressor, ABC):
             yaml.dump(config, f)
         return path_file
 
-    def compress(self, model: Any, input_data: DataManager, *args, **kwargs):
+    def compress(
+        self,
+        model: Any,
+        train_input_data: DataManager,
+        eval_input_data: DataManager,
+        metric_drop_ths: float,
+        metric: Callable,
+    ) -> Tuple[Any, Optional[float]]:
         config_file = self._prepare_config(model)
         prune = Pruning(config_file)
         prune.model = model
-        prune.train_dataloader = self._get_dataloader(input_data)
+        prune.train_dataloader = self._get_dataloader(train_input_data)
         compressed_model = prune.fit()
-        return compressed_model
+        if compressed_model is None:
+            return compressed_model, None
+        error = self._compute_error(
+            model, compressed_model, eval_input_data, metric
+        )
+        if error > metric_drop_ths:
+            return None, None
+        perf_loss_ths = metric_drop_ths - error
+        return compressed_model, perf_loss_ths
+
+    @abstractmethod
+    def _compute_error(
+        self,
+        model: Any,
+        compressed_model: Any,
+        eval_input_data: DataManager,
+        metric: Callable,
+    ):
+        raise NotImplementedError
 
     @staticmethod
     @abstractmethod
@@ -152,3 +178,19 @@ class TorchIntelPruningCompressor(IntelPruningCompressor):
         ds = _IPCDataset(input_data)
         dl = DataLoader(ds, bs)
         return dl
+
+    def _compute_error(
+        self,
+        model: torch.nn.Module,
+        compressed_model: torch.nn.Module,
+        eval_input_data: DataManager,
+        metric: Callable,
+    ):
+        if len(eval_input_data) == 0:
+            return np.inf
+        metric_val = 0
+        for inputs, y in eval_input_data:
+            pred_model = model(*inputs)
+            pred_compressed_model = compressed_model(*inputs)
+            metric_val += metric(pred_model, pred_compressed_model, y)
+        return metric_val / len(eval_input_data)

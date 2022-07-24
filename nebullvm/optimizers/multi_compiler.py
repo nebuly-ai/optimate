@@ -5,9 +5,7 @@ from pathlib import Path
 from typing import Dict, Type, Tuple, Callable, List
 import uuid
 
-import cpuinfo
 import numpy as np
-import torch
 from tqdm import tqdm
 
 from nebullvm.base import (
@@ -21,46 +19,17 @@ from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import (
     BaseOptimizer,
-    TensorRTOptimizer,
-    ApacheTVMOptimizer,
-    OpenVinoOptimizer,
-    ONNXOptimizer,
+    COMPILER_TO_OPTIMIZER_MAP,
 )
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.compilers import select_compilers_from_hardware_onnx
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
-COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
-    ModelCompiler.APACHE_TVM: ApacheTVMOptimizer,
-    ModelCompiler.OPENVINO: OpenVinoOptimizer,
-    ModelCompiler.TENSOR_RT: TensorRTOptimizer,
-    ModelCompiler.ONNX_RUNTIME: ONNXOptimizer,
-}
 
 OPTIMIZER_TO_COMPILER_MAP: Dict[Type[BaseOptimizer], ModelCompiler] = dict(
     zip(COMPILER_TO_OPTIMIZER_MAP.values(), COMPILER_TO_OPTIMIZER_MAP.keys())
 )
-
-
-def _tvm_is_available() -> bool:
-    try:
-        import tvm  # noqa F401
-
-        return True
-    except ImportError:
-        return False
-
-
-def select_compilers_from_hardware():
-    compilers = [ModelCompiler.ONNX_RUNTIME]
-    if _tvm_is_available():
-        compilers.append(ModelCompiler.APACHE_TVM)
-    if torch.cuda.is_available():
-        compilers.append(ModelCompiler.TENSOR_RT)
-    cpu_raw_info = cpuinfo.get_cpu_info()["brand_raw"].lower()
-    if "intel" in cpu_raw_info:
-        compilers.append(ModelCompiler.OPENVINO)
-    return compilers
 
 
 def _optimize_with_compiler(
@@ -88,7 +57,7 @@ def _save_info(
     quantization_string = "_".join(
         [
             str(optimization_params.get(param)) or ""
-            for param in ["perf_loss_ths", "quantization_type"]
+            for param in ["metric_drop_ths", "quantization_type"]
         ]
     )
     if len(quantization_string) > 1:
@@ -113,7 +82,7 @@ def _optimize_with_optimizer(
         FEEDBACK_COLLECTOR.store_compiler_result(
             OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
             kwargs["quantization_type"],
-            kwargs["perf_loss_ths"],
+            kwargs["metric_drop_ths"],
             latency,
         )
     except Exception as ex:
@@ -130,7 +99,7 @@ def _optimize_with_optimizer(
         FEEDBACK_COLLECTOR.store_compiler_result(
             OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
             kwargs["quantization_type"],
-            kwargs["perf_loss_ths"],
+            kwargs["metric_drop_ths"],
             None,
         )
     if debug_file:
@@ -169,7 +138,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         super().__init__(logger)
         self.compilers = [
             compiler
-            for compiler in select_compilers_from_hardware()
+            for compiler in select_compilers_from_hardware_onnx()
             if compiler not in (ignore_compilers or [])
         ]
         self.extra_optimizers = extra_optimizers
