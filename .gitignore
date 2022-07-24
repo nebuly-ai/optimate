@@ -128,7 +128,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-.DS_Store
-tmp/
-Dockerfile_old
-test_sparsity.py
