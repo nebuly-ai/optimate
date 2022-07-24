@@ -148,7 +148,8 @@ class OptimizerStep(Step, ABC):
                         else:
                             latency = np.inf
                         optimized_models.append((optimized_model, latency))
-                        ignore_compilers.append(compiler)
+                        if compiler not in ignore_compilers:
+                            ignore_compilers.append(compiler)
                         FEEDBACK_COLLECTOR.store_compiler_result(
                             compiler=compiler,
                             q_type=q_type,

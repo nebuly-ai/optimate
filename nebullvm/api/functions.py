@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Iterable, Sequence, Union, Dict, Callable
+from typing import Any, Iterable, Sequence, Union, Dict, Callable, List
 
 import torch.nn
 import tensorflow as tf
@@ -10,7 +10,7 @@ from nebullvm.api.frontend.onnx import extract_info_from_np_data
 from nebullvm.api.frontend.tf import extract_info_from_tf_data
 from nebullvm.api.frontend.torch import extract_info_from_torch_data
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
-from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.base import DeepLearningFramework, ModelParams, ModelCompiler
 from nebullvm.converters.converters import CrossConverter
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
@@ -100,6 +100,7 @@ def optimize_model(
     optimization_time: str,
     dynamic_info: Dict,
     config_file: str,
+    ignore_compilers: List[str] = None,
     **kwargs,
 ):
     dl_framework = _get_dl_framework(model)
@@ -133,7 +134,12 @@ def optimize_model(
     with TemporaryDirectory as tmp_dir:
         tmp_dir = Path(tmp_dir)
         models = converter.convert(model, model_params, tmp_dir, input_data)
-        ignore_compilers = []
+        if ignore_compilers is None:
+            ignore_compilers = []
+        else:
+            ignore_compilers = [
+                ModelCompiler(compiler) for compiler in ignore_compilers
+            ]
         for model in models:
             input_tfms = MultiStageTransformation([])
             pipeline = build_pipeline_from_model(
