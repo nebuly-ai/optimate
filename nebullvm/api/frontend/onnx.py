@@ -1,5 +1,6 @@
 import os
 import shutil
+import warnings
 from tempfile import TemporaryDirectory
 from typing import List, Tuple, Dict, Optional, Callable, Union
 
@@ -166,6 +167,11 @@ def optimize_onnx_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor`s.
     """
+    warnings.warn(
+        "Deprecated: The usage of the onnx api is deprecated. "
+        "`optimize_onnx_model`will be removed from the next release. "
+        "Use `optimize_model` instead."
+    )
     if data is not None:
         (
             batch_size,

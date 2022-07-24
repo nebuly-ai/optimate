@@ -180,6 +180,11 @@ def optimize_tf_model(
             tensorflow interface. Note that as a torch model it takes as input
             and it gives as output `tf.Tensor` s.
     """
+    warnings.warn(
+        "Deprecated: The usage of the tensorflow api is deprecated. "
+        "`optimize_tf_model`will be removed from the next release. "
+        "Use `optimize_model` instead."
+    )
     if dataset is not None:
         (
             batch_size,

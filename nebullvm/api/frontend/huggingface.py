@@ -1,3 +1,4 @@
+import warnings
 from tempfile import TemporaryDirectory
 from typing import (
     Tuple,
@@ -186,6 +187,11 @@ def optimize_huggingface_model(
             techniques. It will be ignored if these techniques are not
             activated.
     """
+    warnings.warn(
+        "Deprecated: The usage of the HuggingFace api is deprecated. "
+        "`optimize_huggingface_model`will be removed from the next release. "
+        "Use `optimize_model` instead."
+    )
     if perf_loss_ths is not None and ys is None and perf_metric == "accuracy":
         raise ValueError(
             "You cannot select the accuracy as quantization metric without "

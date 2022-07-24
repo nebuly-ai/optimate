@@ -35,7 +35,10 @@ from nebullvm.utils.torch import (
 )
 from nebullvm.inference_learners.base import PytorchBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
-from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer, DeepSparseOptimizer
+from nebullvm.optimizers import (
+    ApacheTVMOptimizer,
+    BaseOptimizer,
+)
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
 logging.basicConfig(
@@ -197,6 +200,11 @@ def optimize_torch_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor` s.
     """
+    warnings.warn(
+        "Deprecated: The usage of the torch api is deprecated. "
+        "`optimize_torch_model`will be removed from the next release. "
+        "Use `optimize_model` instead."
+    )
     check_inputs(
         input_data=dataloader, batch_size=batch_size, input_sizes=input_sizes
     )
