@@ -108,6 +108,7 @@ class ModelCompiler(Enum):
     ONNX_RUNTIME = "onnxruntime"
     TORCHVISION = "torchvision"
     TFLITE = "tflite"
+    BLADEDISC = "bladedisc"
 
 
 class QuantizationType(Enum):

@@ -25,6 +25,7 @@ from nebullvm.base import (
 )
 from nebullvm.converters import ONNXConverter
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
+from nebullvm.optimizers.blade_disc import BladeDISCOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
@@ -331,6 +332,7 @@ def _get_optimizers_supporting_torch_api(
 ) -> List[Tuple[ModelCompiler, BaseOptimizer]]:
     optimizers = [
         (ModelCompiler.TORCHVISION, PytorchBackendOptimizer(logger=logger)),
+        (ModelCompiler.BLADEDISC, BladeDISCOptimizer(logger=logger)),
     ]
     if use_extra_compilers:
         optimizers.append(
