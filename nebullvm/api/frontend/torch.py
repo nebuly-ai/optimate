@@ -117,7 +117,6 @@ def optimize_torch_model(
     perf_metric: Union[str, Callable] = None,
     ignore_compilers: List[str] = None,
     custom_optimizers: List[BaseOptimizer] = None,
-    sparsity_parameters: Dict = None
  ) -> PytorchBaseInferenceLearner:
     """Basic function for optimizing a torch model.
 
@@ -344,7 +343,6 @@ def _get_optimizers_supporting_torch_api(
 def _torch_api_optimization(
     model: torch.nn.Module,
     model_params: ModelParams,
-    sparsity_params: SparsityParams,
     quantization_ths: float,
     quantization_type: QuantizationType,
     input_tfms: MultiStageTransformation,
