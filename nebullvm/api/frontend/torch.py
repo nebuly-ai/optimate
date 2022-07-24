@@ -1,3 +1,4 @@
+import logging
 import os
 import warnings
 from pathlib import Path
@@ -7,8 +8,9 @@ from typing import List, Tuple, Dict, Optional, Callable, Union, Sequence
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-from nebullvm.api.frontend.utils import (
+from nebullvm.api.utils import (
     check_inputs,
     ifnone,
     inspect_dynamic_size,
@@ -23,8 +25,10 @@ from nebullvm.base import (
     SparsityParams
 )
 from nebullvm.converters import ONNXConverter
+from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
@@ -34,6 +38,12 @@ from nebullvm.inference_learners.base import PytorchBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer, DeepSparseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
+
+logging.basicConfig(
+    format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"
+)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def _extract_dynamic_axis(
@@ -65,7 +75,7 @@ def _extract_dynamic_axis(
     return None
 
 
-def _extract_info_from_data(
+def extract_info_from_torch_data(
     model: torch.nn.Module,
     dataloader: Union[DataLoader, Sequence],
     batch_size: int,
@@ -162,7 +172,7 @@ def optimize_torch_model(
             performed, since no data is given as input.
         perf_metric (Union[Callable, str], optional): The metric to
             be used for accepting or refusing a precision-reduction
-            optimization proposal. If none is given but a `perf_loss_ths` is
+            optimization proposal. If none is given but a `metric_drop_ths` is
             received, the `nebullvm.measure.compute_relative_difference`
             metric will be used as default one. A user-defined metric can
             be passed as function accepting as inputs two tuples of tensors
@@ -200,7 +210,7 @@ def optimize_torch_model(
             input_sizes,
             input_types,
             dynamic_axis,
-        ) = _extract_info_from_data(
+        ) = extract_info_from_torch_data(
             model,
             dataloader,
             batch_size,
@@ -232,25 +242,19 @@ def optimize_torch_model(
         )
     ]
     dl_library = DeepLearningFramework.PYTORCH
+
     model_params = ModelParams(
         batch_size=batch_size,
         input_infos=input_infos,
         output_sizes=get_outputs_sizes_torch(
             model,
-            input_tensors=create_model_inputs_torch(batch_size, input_infos),
+            input_tensors=list(input_data.get_list(1)[0])
+            if input_data is not None
+            else create_model_inputs_torch(batch_size, input_infos),
         ),
         dynamic_info=dynamic_axis,
     )
-
-    if sparsity_parameters is not None:
-        sparsity_params = SparsityParams(
-            train_dataloader=sparsity_parameters["train_loader"],
-            val_dataloader=sparsity_parameters["train_loader"],
-            finetuning_batch_size=sparsity_parameters["finetuning_batch_size"]
-        )
-    else:
-        sparsity_params = None
-
+    FEEDBACK_COLLECTOR.start_collection(model, framework=dl_library)
     ignore_compilers = (
         []
         if ignore_compilers is None
@@ -258,40 +262,48 @@ def optimize_torch_model(
     )
     input_tfms = MultiStageTransformation([])
     with TemporaryDirectory() as tmp_dir:
-        if use_torch_api:
-            if perf_loss_ths is not None:
-                q_types = [
-                    None,
-                    QuantizationType.DYNAMIC,
-                    QuantizationType.HALF,
-                ]
-                if dataloader is not None:
-                    q_types.append(QuantizationType.STATIC)
-            else:
-                q_types = [None]
-            torch_res = [
-                _torch_api_optimization(
-                    model, model_params, sparsity_params, perf_loss_ths, q_type, input_data
-                )
-                for q_type in q_types
+        logger.info("Running Optimization using torch interface (1/3)")
+        if perf_loss_ths is not None:
+            q_types = [
+                None,
+                QuantizationType.DYNAMIC,
+                QuantizationType.HALF,
             ]
-            (torch_api_model, torch_api_latency, used_compilers,) = sorted(
-                torch_res, key=lambda x: x[1]
-            )[0]
-            ignore_compilers.extend(used_compilers)
+            if dataloader is not None:
+                q_types.append(QuantizationType.STATIC)
+        else:
+            q_types = [None]
+        torch_res = [
+            _torch_api_optimization(
+                model,
+                model_params,
+                perf_loss_ths,
+                q_type,
+                input_tfms,
+                use_torch_api,
+                input_data,
+            )
+            for q_type in tqdm(q_types)
+        ]
+        (torch_api_model, torch_api_latency, used_compilers,) = sorted(
+            torch_res, key=lambda x: x[1]
+        )[0]
+        ignore_compilers.extend(used_compilers)
+        logger.info("Running Optimization using ONNX interface (2/3)")
         model_converter = ONNXConverter()
         model_optimizer = MultiCompilerOptimizer(
             ignore_compilers=ignore_compilers,
             extra_optimizers=custom_optimizers,
             debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
+            logger=logger,
         )
         if model_optimizer.usable:
             onnx_path = model_converter.convert(
-                model, model_params, Path(tmp_dir)
+                model, model_params, Path(tmp_dir), input_data
             )
 
             model_optimized = model_optimizer.optimize(
-                onnx_model=str(onnx_path),
+                model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
                 input_tfms=input_tfms,
@@ -301,19 +313,33 @@ def optimize_torch_model(
             )
         else:
             model_optimized = None
-        if use_torch_api:
-            model_optimized = _compare_optimized_models(
-                model_optimized,
-                torch_api_model,
-                torch_api_latency,
-            )
+        logger.info("Running comparison between optimized models (3/3).")
+        model_optimized = _compare_optimized_models(
+            model_optimized,
+            torch_api_model,
+            torch_api_latency,
+        )
         if model_optimized is None:
             raise RuntimeError(
                 "No valid compiled model has been produced. "
                 "Look at the logs for further information about the failure."
             )
         model_optimized.save(save_dir)
+    FEEDBACK_COLLECTOR.send_feedback()
     return model_optimized.load(save_dir)
+
+
+def _get_optimizers_supporting_torch_api(
+    use_extra_compilers: bool,
+) -> List[Tuple[ModelCompiler, BaseOptimizer]]:
+    optimizers = [
+        (ModelCompiler.TORCHSCRIPT, PytorchBackendOptimizer(logger=logger)),
+    ]
+    if use_extra_compilers:
+        optimizers.append(
+            (ModelCompiler.APACHE_TVM, ApacheTVMOptimizer(logger=logger))
+        )
+    return optimizers
 
 
 def _torch_api_optimization(
@@ -322,48 +348,62 @@ def _torch_api_optimization(
     sparsity_params: SparsityParams,
     quantization_ths: float,
     quantization_type: QuantizationType,
-    input_data: DataManager = None
+    input_tfms: MultiStageTransformation,
+    use_extra_compilers: bool,
+    input_data: DataManager,
 ) -> Tuple[Optional[PytorchBaseInferenceLearner], float, List]:
-    
+    used_compilers = []
     best_torch_opt_model = None
     best_latency = np.inf
-    used_compilers = []
-
-    if quantization_type is None and sparsity_params is not None:
+    for compiler, optimizer in tqdm(
+        _get_optimizers_supporting_torch_api(use_extra_compilers)
+    ):
         try:
-            best_torch_opt_model = DeepSparseOptimizer().optimize_from_torch(
-                torch_model=model,
-                model_params=model_params,
-                sparsity_params=sparsity_params,
-                perf_loss_ths=quantization_ths,
-                input_data = input_data
+            if hasattr(optimizer, "optimize_from_torch"):
+                candidate_model = optimizer.optimize_from_torch(
+                    torch_model=model,
+                    model_params=model_params,
+                    perf_loss_ths=quantization_ths
+                    if quantization_type is not None
+                    else None,
+                    quantization_type=quantization_type,
+                    input_tfms=input_tfms.copy(),
+                    input_data=input_data,
+                )
+            else:
+                candidate_model = optimizer.optimize(
+                    model=model,
+                    output_library=DeepLearningFramework.PYTORCH,
+                    model_params=model_params,
+                    perf_loss_ths=quantization_ths
+                    if quantization_type is not None
+                    else None,
+                    quantization_type=quantization_type,
+                    input_tfms=input_tfms.copy(),
+                    input_data=input_data,
+                )
+            candidate_latency = compute_optimized_running_time(candidate_model)
+            if candidate_latency < best_latency:
+                best_latency = candidate_latency
+                best_torch_opt_model = candidate_model
+            FEEDBACK_COLLECTOR.store_compiler_result(
+                compiler,
+                quantization_type,
+                quantization_ths,
+                candidate_latency,
             )
-            best_latency = compute_optimized_running_time(best_torch_opt_model)
-            used_compilers = [ModelCompiler.DEEPSPARSE]
+            used_compilers.append(compiler)
         except Exception as ex:
             warnings.warn(
-                f"Compilation failed with torch interface of DeepSparse. "
-                f"Got error {ex}."
+                f"Compilation failed with torch interface of {compiler}. "
+                f"Got error {ex}. If possible the compilation will be "
+                f"re-scheduled with the ONNX interface. Please consult the "
+                f"documentation for further info or open an issue on GitHub "
+                f"for receiving assistance."
             )
-            
-    try:
-        best_torch_opt_model = ApacheTVMOptimizer().optimize_from_torch(
-            torch_model=model,
-            model_params=model_params,
-            perf_loss_ths=quantization_ths
-            if quantization_type is not None
-            else None,
-            quantization_type=quantization_type,
-        )
-        best_latency = compute_optimized_running_time(best_torch_opt_model)
-        used_compilers = [ModelCompiler.APACHE_TVM]
-    except Exception as ex:
-        warnings.warn(
-            f"Compilation failed with torch interface of TVM. "
-            f"Got error {ex}. The compilation will be re-scheduled "
-            f"with the ONNX interface."
-        )
-        
+            FEEDBACK_COLLECTOR.store_compiler_result(
+                compiler, quantization_type, quantization_ths, None
+            )
     return best_torch_opt_model, best_latency, used_compilers
 
 

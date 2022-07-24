@@ -25,7 +25,7 @@ class OpenVinoOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -37,7 +37,7 @@ class OpenVinoOptimizer(BaseOptimizer):
         """Optimize the onnx model with OpenVino.
 
         Args:
-            onnx_model (str): Path to the saved onnx model.
+            model (str): Path to the saved onnx model.
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
@@ -59,18 +59,22 @@ class OpenVinoOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         cmd = [
             "mo",
             "--input_model",
-            onnx_model,
+            model,
             "--output_dir",
-            str(Path(onnx_model).parent),
+            str(Path(model).parent),
             "--input",
-            ",".join(get_input_names(onnx_model)),
+            ",".join(get_input_names(model)),
             "--input_shape",
             ",".join(
                 [
-                    f"{(model_params.batch_size,)+shape}"
+                    f"{list((model_params.batch_size,)+shape)}"
                     for shape in model_params.input_sizes
                 ]
             ),
@@ -87,39 +91,44 @@ class OpenVinoOptimizer(BaseOptimizer):
             return None
         process = subprocess.Popen(cmd)
         process.wait()
-        base_path = Path(onnx_model).parent
-        openvino_model_path = base_path / f"{Path(onnx_model).stem}.xml"
-        openvino_model_weights = base_path / f"{Path(onnx_model).stem}.bin"
+        base_path = Path(model).parent
+        openvino_model_path = base_path / f"{Path(model).stem}.xml"
+        openvino_model_weights = base_path / f"{Path(model).stem}.bin"
         if (
             perf_loss_ths is not None
             and quantization_type is not QuantizationType.HALF
         ):
-            if input_data is not None:
-                input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
+            if input_data is not None and quantization_type:
+                input_data_onnx = input_data.get_numpy_list(300, with_ys=True)
             else:
                 input_data_onnx = [
-                    tuple(
+                    (
                         create_model_inputs_onnx(
                             model_params.batch_size, model_params.input_infos
-                        )
+                        ),
+                        0,
                     )
                 ]
             # Add post training optimization
             openvino_model_path, openvino_model_weights = quantize_openvino(
                 model_topology=str(openvino_model_path),
                 model_weights=str(openvino_model_weights),
-                input_names=get_input_names(onnx_model),
+                input_names=get_input_names(model),
                 input_data=input_data_onnx,
             )
-        model = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
+
+        learner = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
             model_name=str(openvino_model_path),
             model_weights=str(openvino_model_weights),
             network_parameters=model_params,
             input_tfms=input_tfms,
+            input_data=list(input_data.get_list(1)[0])
+            if input_data is not None
+            else None,
         )
         if perf_loss_ths is not None:
             if input_data is None:
-                inputs = [model.get_inputs_example()]
+                inputs = [learner.get_inputs_example()]
                 ys = None
             else:
                 inputs, ys = input_data.get_list(
@@ -128,14 +137,14 @@ class OpenVinoOptimizer(BaseOptimizer):
             output_data_onnx = [
                 tuple(
                     run_onnx_model(
-                        onnx_model,
+                        model,
                         [convert_to_numpy(x) for x in tuple_],
                     )
                 )
                 for tuple_ in inputs
             ]
             is_valid = check_precision(
-                model,
+                learner,
                 inputs,
                 output_data_onnx,
                 perf_loss_ths,
@@ -144,4 +153,4 @@ class OpenVinoOptimizer(BaseOptimizer):
             )
             if not is_valid:
                 return None
-        return model
+        return learner

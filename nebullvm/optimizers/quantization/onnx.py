@@ -5,17 +5,18 @@ import cpuinfo
 import numpy as np
 import onnx
 import torch
-from onnxmltools.utils.float16_converter import (
-    convert_float_to_float16_model_path,
-)
 from torch.utils.data import DataLoader
 
 from nebullvm.base import QuantizationType
+from nebullvm.config import NO_COMPILER_INSTALLATION
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 from nebullvm.utils.onnx import get_input_names
 
 try:
+    from onnxmltools.utils.float16_converter import (
+        convert_float_to_float16_model_path,
+    )
     from onnxruntime.quantization import (
         QuantType,
         quantize_static,
@@ -23,15 +24,19 @@ try:
         CalibrationDataReader,
     )
 except ImportError:
-    from nebullvm.installers.installers import install_onnxruntime
+    if NO_COMPILER_INSTALLATION:
+        QuantType = quantize_static = quantize_dynamic = None
+        CalibrationDataReader = object
+    else:
+        from nebullvm.installers.installers import install_onnxruntime
 
-    install_onnxruntime()
-    from onnxruntime.quantization import (
-        QuantType,
-        quantize_static,
-        quantize_dynamic,
-        CalibrationDataReader,
-    )
+        install_onnxruntime()
+        from onnxruntime.quantization import (
+            QuantType,
+            quantize_static,
+            quantize_dynamic,
+            CalibrationDataReader,
+        )
 
 
 class _IterableCalibrationDataReader(CalibrationDataReader):

@@ -1,6 +1,7 @@
+import copy
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 import tensorflow as tf
 from torch.nn import Module
@@ -11,6 +12,7 @@ from nebullvm.converters.tensorflow_converters import (
     convert_keras_to_onnx,
 )
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
+from nebullvm.utils.data import DataManager
 
 
 class BaseConverter(ABC):
@@ -25,7 +27,13 @@ class BaseConverter(ABC):
         self.model_name = model_name or "temp"
 
     @abstractmethod
-    def convert(self, model: Any, model_params: ModelParams, save_path: Path):
+    def convert(
+        self,
+        model: Any,
+        model_params: ModelParams,
+        save_path: Path,
+        input_data: DataManager = None,
+    ):
         raise NotImplementedError
 
 
@@ -39,7 +47,13 @@ class ONNXConverter(BaseConverter):
 
     ONNX_MODEL_EXTENSION = ".onnx"
 
-    def convert(self, model: Any, model_params: ModelParams, save_path: Path):
+    def convert(
+        self,
+        model: Any,
+        model_params: ModelParams,
+        save_path: Path,
+        input_data: DataManager = None,
+    ):
         """Convert the input model in ONNX.
 
         Args:
@@ -49,6 +63,8 @@ class ONNXConverter(BaseConverter):
                 dynamic axis information.
             save_path (Path): Path to the directory where saving the onnx
                 model.
+            input_data (DataManager, optional): Custom data provided by user to
+                be used as input for the converter.
 
         Returns:
             Path: Path to the onnx file.
@@ -59,6 +75,7 @@ class ONNXConverter(BaseConverter):
                 torch_model=model,
                 model_params=model_params,
                 output_file_path=save_path / onnx_name,
+                input_data=input_data,
             )
             return save_path / onnx_name
         elif isinstance(model, tf.Module):
@@ -79,3 +96,36 @@ class ONNXConverter(BaseConverter):
                 f"The ONNX conversion from {type(model)} hasn't "
                 f"been implemented yet!"
             )
+
+
+class CrossConverter(BaseConverter):
+    ONNX_EXTENSION = ".onnx"
+    TORCH_EXTENSION = ".pt"
+    TF_EXTENSION = ".h5"
+
+    def convert(
+        self,
+        model: Any,
+        model_params: ModelParams,
+        save_path: Path,
+        input_data: DataManager = None,
+    ) -> List[Any]:
+        # TODO: Add cross conversion torch-tf
+        onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
+        if isinstance(model, Module):
+            convert_torch_to_onnx(
+                torch_model=copy.deepcopy(model),
+                model_params=model_params,
+                output_file_path=onnx_path,
+                input_data=input_data,
+            )
+            return [model, str(onnx_path)]
+        elif isinstance(model, tf.Module):
+            convert_tf_to_onnx(
+                model=copy.deepcopy(model),
+                output_file_path=onnx_path,
+            )
+            return [model, str(onnx_path)]
+
+        else:
+            return [model]

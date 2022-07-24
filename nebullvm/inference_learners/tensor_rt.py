@@ -8,7 +8,12 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.config import (
+    NVIDIA_FILENAMES,
+    NO_COMPILER_INSTALLATION,
+    SAVE_DIR_NAME,
+)
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -16,14 +21,14 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
-from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
+from nebullvm.utils.data import DataManager
 
 if torch.cuda.is_available():
     try:
         import tensorrt as trt
-        import polygraphy
+        import polygraphy.cuda
     except ImportError:
         if not NO_COMPILER_INSTALLATION:
             from nebullvm.installers.installers import install_tensor_rt
@@ -34,7 +39,7 @@ if torch.cuda.is_available():
             )
             install_tensor_rt()
             import tensorrt as trt
-            import polygraphy
+            import polygraphy.cuda
         else:
             warnings.warn(
                 "No TensorRT valid installation has been found. "
@@ -119,6 +124,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         nvidia_logger: Any = None,
         cuda_stream: Any = None,
         input_tfms: MultiStageTransformation = None,
+        input_data: DataManager = None,
         **kwargs,
     ):
         """Build the model from the serialised engine.
@@ -138,6 +144,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
+            input_data (DataManager, optional): User defined data.
 
         Returns:
             NvidiaInferenceLearner: The optimized model.
@@ -164,6 +171,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             output_names=output_names,
             nvidia_logger=nvidia_logger,
             cuda_stream=cuda_stream,
+            input_data=input_data,
         )
 
     def _predict_tensors(
@@ -201,7 +209,8 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             kwargs (Dict): Dictionary of key-value pairs that will be saved in
                 the model metadata file.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
+        path.mkdir(exist_ok=True)
         serialized_engine = self.engine.serialize()
         with open(path / NVIDIA_FILENAMES["engine"], "wb") as fout:
             fout.write(serialized_engine)
@@ -222,7 +231,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         Returns:
             NvidiaInferenceLearner: The optimized model.
         """
-        path = Path(path)
+        path = Path(path) / SAVE_DIR_NAME
         with open(path / NVIDIA_FILENAMES["metadata"], "r") as fin:
             metadata = json.load(fin)
         metadata.update(kwargs)
@@ -289,6 +298,7 @@ class PytorchNvidiaInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         input_tensors = [input_tensor.cuda() for input_tensor in input_tensors]
+        device = input_tensors[0].device
         if self.network_parameters.dynamic_info is None:
             output_tensors = [
                 torch.Tensor(
@@ -330,7 +340,9 @@ class PytorchNvidiaInferenceLearner(
             output_tensor.data_ptr() for output_tensor in output_tensors
         )
         self._predict_tensors(input_ptrs, output_ptrs, input_sizes)
-        return tuple(output_tensor.cpu() for output_tensor in output_tensors)
+        return tuple(
+            output_tensor.to(device) for output_tensor in output_tensors
+        )
 
 
 class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
@@ -343,7 +355,7 @@ class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
 
     @staticmethod
     def _get_default_cuda_stream() -> Any:
-        return polygraphy.Stream()
+        return polygraphy.cuda.Stream()
 
     @property
     def stream_ptr(self):
@@ -362,7 +374,7 @@ class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
     ) -> Generator[np.ndarray, None, None]:
         if self.network_parameters.dynamic_info is None:
             cuda_output_arrays = [
-                polygraphy.DeviceArray(
+                polygraphy.cuda.DeviceArray(
                     shape=(self.network_parameters.batch_size, *output_size)
                 )
                 for output_size in self.network_parameters.output_sizes
@@ -375,10 +387,10 @@ class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
             )
 
             cuda_output_arrays = [
-                polygraphy.DeviceArray(
+                polygraphy.cuda.DeviceArray(
                     shape=tuple(
                         x
-                        if i in dyn_out_axis.keys()
+                        if i not in dyn_out_axis.keys()
                         else dynamic_info.retrieve_output_dim(
                             input_shapes, j, i, x
                         )
@@ -440,9 +452,10 @@ class TensorflowNvidiaInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         cuda_input_arrays = [
-            polygraphy.DeviceArray.copy_from(
-                input_tensor.numpy(), stream=self.cuda_stream
-            )
+            polygraphy.cuda.DeviceArray(
+                shape=tuple(input_tensor.shape),
+                dtype=input_tensor.numpy().dtype,
+            ).copy_from(input_tensor.numpy(), stream=self.cuda_stream)
             for input_tensor in input_tensors
         ]
         input_shapes = (
@@ -495,9 +508,9 @@ class NumpyNvidiaInferenceLearner(
                 input.
         """
         cuda_input_arrays = [
-            polygraphy.DeviceArray.copy_from(
-                input_tensor, stream=self.cuda_stream
-            )
+            polygraphy.cuda.DeviceArray(
+                shape=tuple(input_tensor.shape), dtype=input_tensor.dtype
+            ).copy_from(input_tensor, stream=self.cuda_stream)
             for input_tensor in input_tensors
         ]
         input_shapes = (

@@ -5,7 +5,7 @@ from typing import List, Tuple, Dict, Optional, Callable, Union
 
 import numpy as np
 
-from nebullvm.api.frontend.utils import (
+from nebullvm.api.utils import (
     inspect_dynamic_size,
     ifnone,
     QUANTIZATION_METRIC_MAP,
@@ -21,6 +21,7 @@ from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.utils.onnx import (
     create_model_inputs_onnx,
     get_output_sizes_onnx,
@@ -57,7 +58,7 @@ def _extract_dynamic_axis(
     return None
 
 
-def _extract_info_from_data(
+def extract_info_from_np_data(
     onnx_model: str,
     data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
     batch_size: int,
@@ -138,7 +139,7 @@ def optimize_onnx_model(
             performed, since no data is given as input.
         perf_metric (Union[Callable, str], optional): The metric to
             be used for accepting or refusing a precision-reduction
-            optimization proposal. If none is given but a `perf_loss_ths` is
+            optimization proposal. If none is given but a `metric_drop_ths` is
             received, the `nebullvm.measure.compute_relative_difference`
             metric will be used as default one. A user-defined metric can
             be passed as function accepting as inputs two tuples of tensors
@@ -171,7 +172,7 @@ def optimize_onnx_model(
             input_sizes,
             input_types,
             dynamic_axis,
-        ) = _extract_info_from_data(
+        ) = extract_info_from_np_data(
             model_path,
             data,
             batch_size,
@@ -210,6 +211,7 @@ def optimize_onnx_model(
         ),
         dynamic_info=dynamic_axis,
     )
+    FEEDBACK_COLLECTOR.start_collection(model_path, framework=dl_library)
     ignore_compilers = (
         []
         if ignore_compilers is None
@@ -225,7 +227,7 @@ def optimize_onnx_model(
         )
         if model_optimizer.usable:
             model_optimized = model_optimizer.optimize(
-                onnx_model=str(onnx_path),
+                model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
                 input_tfms=input_tfms,
@@ -241,4 +243,5 @@ def optimize_onnx_model(
                 "Look at the logs for further information about the failure."
             )
         model_optimized.save(save_dir)
+    FEEDBACK_COLLECTOR.send_feedback()
     return model_optimized.load(save_dir)

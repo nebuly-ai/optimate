@@ -82,7 +82,9 @@ def compute_optimized_running_time(
     Returns:
         Float: Average latency.
     """
+
     model_inputs = optimized_model.get_inputs_example()
+
     latencies = []
     for _ in range(steps):
         starting_time = time.time()

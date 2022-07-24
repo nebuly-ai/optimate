@@ -13,7 +13,6 @@ from nebullvm.inference_learners.tensor_rt import (
 from nebullvm.optimizers.base import (
     BaseOptimizer,
 )
-from nebullvm.optimizers.quantization.onnx import quantize_onnx
 from nebullvm.optimizers.quantization.tensor_rt import TensorRTCalibrator
 from nebullvm.optimizers.quantization.utils import (
     check_precision,
@@ -87,10 +86,10 @@ class TensorRTOptimizer(BaseOptimizer):
             config.set_flag(trt.BuilderFlag.INT8)
             config.int8_calibrator = calibrator
         elif quantization_type is QuantizationType.DYNAMIC:
-            onnx_model_path, _ = quantize_onnx(
-                onnx_model_path, quantization_type, input_tfms, input_data
-            )
-            config.set_flag(trt.BuilderFlag.kINT8)
+            # onnx_model_path, _ = quantize_onnx(
+            #     onnx_model_path, quantization_type, input_tfms, input_data
+            # )
+            config.set_flag(trt.BuilderFlag.INT8)
         # import the model
         parser = trt.OnnxParser(network, nvidia_logger)
         success = parser.parse_from_file(onnx_model_path)
@@ -134,7 +133,7 @@ class TensorRTOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -146,7 +145,7 @@ class TensorRTOptimizer(BaseOptimizer):
         """Optimize the input model with TensorRT.
 
         Args:
-            onnx_model (str): Path to the saved onnx model.
+            model (str): Path to the saved onnx model.
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
@@ -168,13 +167,17 @@ class TensorRTOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
         if not torch.cuda.is_available():
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
             )
         check_quantization(quantization_type, perf_loss_ths)
-        engine_path = Path(onnx_model).parent / NVIDIA_FILENAMES["engine"]
+        engine_path = Path(model).parent / NVIDIA_FILENAMES["engine"]
         if (
             perf_loss_ths is not None
             and quantization_type is QuantizationType.STATIC
@@ -189,26 +192,35 @@ class TensorRTOptimizer(BaseOptimizer):
                 ]
             else:
                 input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
+        elif (
+            perf_loss_ths is not None
+            and quantization_type is QuantizationType.DYNAMIC
+        ):
+            return None  # Dynamic quantization is not supported on tensorRT
         else:
             input_data_onnx = None
         self._build_and_save_the_engine(
             engine_path=engine_path,
-            onnx_model_path=onnx_model,
+            onnx_model_path=model,
             model_params=model_params,
             input_tfms=input_tfms,
             quantization_type=quantization_type,
             input_data=input_data_onnx,
         )
-        model = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
+
+        learner = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             input_tfms=input_tfms,
             network_parameters=model_params,
             engine_path=engine_path,
-            input_names=get_input_names(onnx_model),
-            output_names=get_output_names(onnx_model),
+            input_names=get_input_names(model),
+            output_names=get_output_names(model),
+            input_data=list(input_data.get_list(1)[0])
+            if input_data is not None
+            else None,
         )
         if quantization_type is not None:
             if input_data is None:
-                inputs = [model.get_inputs_example()]
+                inputs = [learner.get_inputs_example()]
                 ys = None
             else:
                 inputs, ys = input_data.get_numpy_list(
@@ -217,14 +229,14 @@ class TensorRTOptimizer(BaseOptimizer):
             output_data = [
                 tuple(
                     run_onnx_model(
-                        onnx_model,
+                        model,
                         [convert_to_numpy(x) for x in tuple_],
                     )
                 )
                 for tuple_ in inputs
             ]
             is_valid = check_precision(
-                model,
+                learner,
                 inputs,
                 output_data,
                 perf_loss_ths,
@@ -233,4 +245,4 @@ class TensorRTOptimizer(BaseOptimizer):
             )
             if not is_valid:
                 return None
-        return model
+        return learner

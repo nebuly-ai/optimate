@@ -5,10 +5,8 @@ from pathlib import Path
 from typing import Dict, Type, Tuple, Callable, List
 import uuid
 
-import cpuinfo
 import numpy as np
-import torch
-
+from tqdm import tqdm
 
 from nebullvm.base import (
     ModelCompiler,
@@ -21,41 +19,17 @@ from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import (
     BaseOptimizer,
-    TensorRTOptimizer,
-    ApacheTVMOptimizer,
-    OpenVinoOptimizer,
-    ONNXOptimizer,
+    COMPILER_TO_OPTIMIZER_MAP,
 )
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.compilers import select_compilers_from_hardware_onnx
 from nebullvm.utils.data import DataManager
-
-COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
-    ModelCompiler.APACHE_TVM: ApacheTVMOptimizer,
-    ModelCompiler.OPENVINO: OpenVinoOptimizer,
-    ModelCompiler.TENSOR_RT: TensorRTOptimizer,
-    ModelCompiler.ONNX_RUNTIME: ONNXOptimizer,
-}
+from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
 
-def _tvm_is_available() -> bool:
-    try:
-        import tvm  # noqa F401
-
-        return True
-    except ImportError:
-        return False
-
-
-def select_compilers_from_hardware():
-    compilers = [ModelCompiler.ONNX_RUNTIME]
-    if _tvm_is_available():
-        compilers.append(ModelCompiler.APACHE_TVM)
-    if torch.cuda.is_available():
-        compilers.append(ModelCompiler.TENSOR_RT)
-    cpu_raw_info = cpuinfo.get_cpu_info()["brand_raw"].lower()
-    if "intel" in cpu_raw_info:
-        compilers.append(ModelCompiler.OPENVINO)
-    return compilers
+OPTIMIZER_TO_COMPILER_MAP: Dict[Type[BaseOptimizer], ModelCompiler] = dict(
+    zip(COMPILER_TO_OPTIMIZER_MAP.values(), COMPILER_TO_OPTIMIZER_MAP.keys())
+)
 
 
 def _optimize_with_compiler(
@@ -83,7 +57,7 @@ def _save_info(
     quantization_string = "_".join(
         [
             str(optimization_params.get(param)) or ""
-            for param in ["perf_loss_ths", "quantization_type"]
+            for param in ["metric_drop_ths", "quantization_type"]
         ]
     )
     if len(quantization_string) > 1:
@@ -105,6 +79,12 @@ def _optimize_with_optimizer(
     try:
         model_optimized = optimizer.optimize(**kwargs)
         latency = metric_func(model_optimized)
+        FEEDBACK_COLLECTOR.store_compiler_result(
+            OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
+            kwargs["quantization_type"],
+            kwargs["metric_drop_ths"],
+            latency,
+        )
     except Exception as ex:
         warning_msg = (
             f"Compilation failed with {optimizer.__class__.__name__}. "
@@ -116,6 +96,12 @@ def _optimize_with_optimizer(
             logger.warning(warning_msg)
         latency = np.inf
         model_optimized = None
+        FEEDBACK_COLLECTOR.store_compiler_result(
+            OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
+            kwargs["quantization_type"],
+            kwargs["metric_drop_ths"],
+            None,
+        )
     if debug_file:
         _save_info(optimizer, latency, debug_file, kwargs)
     return model_optimized, latency
@@ -152,7 +138,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         super().__init__(logger)
         self.compilers = [
             compiler
-            for compiler in select_compilers_from_hardware()
+            for compiler in select_compilers_from_hardware_onnx()
             if compiler not in (ignore_compilers or [])
         ]
         self.extra_optimizers = extra_optimizers
@@ -162,7 +148,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -174,7 +160,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         """Optimize the ONNX model using the available compilers.
 
         Args:
-            onnx_model (str): Path to the ONNX model.
+            model (str): Path to the ONNX model.
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
@@ -208,7 +194,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
             _optimize_with_compiler(
                 compiler,
                 logger=self.logger,
-                onnx_model=onnx_model,
+                model=model,
                 output_library=output_library,
                 model_params=model_params,
                 input_tfms=input_tfms.copy()
@@ -221,14 +207,15 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 input_data=input_data,
             )
             for compiler in self.compilers
-            for q_type in quantization_types
+            for q_type in tqdm(quantization_types)
         ]
         if self.extra_optimizers is not None:
+            self._log("Running extra-optimizers...")
             optimized_models += [
                 _optimize_with_optimizer(
                     op,
                     logger=self.logger,
-                    onnx_model=onnx_model,
+                    model=model,
                     output_library=output_library,
                     model_params=model_params,
                     input_tfms=input_tfms.copy()
@@ -243,7 +230,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers
-                for q_type in quantization_types
+                for q_type in tqdm(quantization_types)
             ]
         optimized_models.sort(key=lambda x: x[1], reverse=False)
         return optimized_models[0][0]
@@ -251,7 +238,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
     def optimize_on_custom_metric(
         self,
         metric_func: Callable,
-        onnx_model: str,
+        model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
@@ -270,7 +257,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 InferenceLearner and return a numerical value. Note that the
                 outputs will be sorted in an ascendant order, i.e. the compiled
                 model with the smallest value will be selected.
-            onnx_model (str): Path to the ONNX model.
+            model (str): Path to the ONNX model.
             output_library (DeepLearningFramework): Framework of the optimized
                 model (either torch on tensorflow).
             model_params (ModelParams): Model parameters.
@@ -311,7 +298,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 compiler,
                 metric_func=metric_func,
                 logger=self.logger,
-                onnx_model=onnx_model,
+                model=model,
                 output_library=output_library,
                 model_params=model_params,
                 input_tfms=input_tfms.copy()
@@ -324,14 +311,14 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 input_data=input_data,
             )
             for compiler in self.compilers
-            for q_type in quantization_types
+            for q_type in tqdm(quantization_types)
         ]
         if self.extra_optimizers is not None:
             optimized_models += [
                 _optimize_with_optimizer(
                     op,
                     logger=self.logger,
-                    onnx_model=onnx_model,
+                    model=model,
                     output_library=output_library,
                     model_params=model_params,
                     input_tfms=input_tfms.copy()
@@ -346,7 +333,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers
-                for q_type in quantization_types
+                for q_type in tqdm(quantization_types)
             ]
         if return_all:
             return optimized_models

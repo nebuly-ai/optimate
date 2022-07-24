@@ -13,6 +13,8 @@ def convert_to_numpy(tensor: Any):
         tensor = tensor.cpu().detach().numpy()
     elif isinstance(tensor, tf.Tensor):
         tensor = tensor.numpy()
+    elif isinstance(tensor, int):
+        tensor = np.array([tensor])
     else:
         if not isinstance(tensor, np.ndarray):
             raise TypeError(f"Unsupported data type: {type(tensor)}")
