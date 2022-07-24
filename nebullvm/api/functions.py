@@ -138,8 +138,20 @@ def optimize_model(
             accepted, i.e. all optimized model having a larger error respect to
             the original one will be discarded, without even considering their
             possible speed-up.
-        metric (Callable): Metric to be used for estimating the error
-            due to the optimization techniques.
+        metric (Union[Callable, str], optional): The metric to
+            be used for accepting or refusing a precision-reduction
+            optimization proposal. If none is given but a `metric_drop_ths` is
+            received, the `nebullvm.measure.compute_relative_difference`
+            metric will be used as default one. A user-defined metric can
+            be passed as function accepting as inputs two tuples of tensors
+            (produced by the baseline and the optimized model) and the related
+            original labels.
+            For more information see
+            `nebullvm.measure.compute_relative_difference` and
+            `nebullvm.measure.compute_accuracy_drop`. `metric`
+            accepts as value also a string containing the metric name. At the
+            current stage the supported metrics are `"precision"` and
+            `"accuracy"`.
         optimization_time (OptimizationTime): The optimization time mode.
             It can be either 'constrained' or 'unconstrained'. For
             'constrained' mode just compilers and precision reduction
