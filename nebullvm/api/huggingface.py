@@ -331,7 +331,7 @@ def convert_hf_model(
     batch_size: int = 1,
     **kwargs,
 ):
-    if isinstance(input_data[0], dict):
+    if is_dict_type(input_data[0]):
         # already tokenized data
         if "labels" in input_data[0]:
             labels = [data.pop("labels") for data in input_data]
@@ -386,3 +386,12 @@ def convert_hf_model(
         output_structure,
         output_type,
     )
+
+
+def is_dict_type(data_sample: Any):
+    try:
+        data_sample.items()
+    except AttributeError:
+        return False
+    else:
+        return True

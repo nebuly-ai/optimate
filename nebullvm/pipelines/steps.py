@@ -192,7 +192,10 @@ class NoCompressionStep(Step):
     def run(
         self, model: Any, metric_drop_ths: Optional[float], **kwargs
     ) -> Dict:
-        return {"models": {"": (model, metric_drop_ths)}, **kwargs}
+        return {
+            "models": {"no_compression": (model, metric_drop_ths)},
+            **kwargs,
+        }
 
     @property
     def name(self):

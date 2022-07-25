@@ -9,6 +9,7 @@ import torch.nn
 from nebullvm.api.frontend.onnx import extract_info_from_np_data
 from nebullvm.api.frontend.tf import extract_info_from_tf_data
 from nebullvm.api.frontend.torch import extract_info_from_torch_data
+from nebullvm.api.huggingface import convert_hf_model, is_dict_type
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
 from nebullvm.base import (
     DeepLearningFramework,
@@ -95,6 +96,16 @@ def _extract_info_from_data(
         dynamic_info=dynamic_info,
     )
     return model_params
+
+
+def _is_huggingface_data(data_sample: Any) -> bool:
+    if is_dict_type(data_sample):
+        return True
+    elif isinstance(data_sample, str):
+        return True
+    elif isinstance(data_sample[0], str):
+        return True
+    return False
 
 
 def optimize_model(
@@ -188,9 +199,7 @@ def optimize_model(
     if isinstance(metric, str):
         metric = QUANTIZATION_METRIC_MAP.get(metric)
     needs_conversion_to_hf = False
-    if isinstance(model, tuple):  # Huggingface model
-        from nebullvm.api.huggingface import convert_hf_model
-
+    if _is_huggingface_data(input_data[0]):
         (
             model,
             input_data,
