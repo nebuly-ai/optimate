@@ -11,6 +11,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
+from nebullvm.config import SAVE_DIR_NAME
 from nebullvm.base import ModelParams
 from nebullvm.config import LEARNER_METADATA_FILENAME
 from nebullvm.transformations.base import MultiStageTransformation
@@ -299,6 +300,19 @@ class LearnerMetadata:
                 and value is not None
             )
         }
+
+    @classmethod
+    def load(cls, path: Union[Path, str]):
+        """Read the metadata file and store it into a LearnerMetadata object.
+
+        Args:
+            path (Path): Path to the directory containing 'SAVE_DIR_NAME/the_metadata_file'.
+
+        Returns:
+            LearnerMetadata: Metadata associated with the model.
+        """
+        path = Path(path) / SAVE_DIR_NAME
+        return cls.read(path)
 
     @classmethod
     def read(cls, path: Union[Path, str]):
