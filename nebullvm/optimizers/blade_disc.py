@@ -56,9 +56,9 @@ class BladeDISCOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[BladeDISCInferenceLearner]:
         """Optimize the input model using pytorch built-in techniques.
@@ -73,12 +73,12 @@ class BladeDISCOptimizer(BaseOptimizer):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            perf_loss_ths (float, optional): Threshold for the accepted drop
+            metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
-            perf_metric (Callable, optional): If given it should
+            metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
@@ -94,8 +94,8 @@ class BladeDISCOptimizer(BaseOptimizer):
             "Other APIs than the Pytorch one are not supported "
             "for the Pytorch Backend yet."
         )
-        check_quantization(quantization_type, perf_loss_ths)
-        if perf_loss_ths is not None:
+        check_quantization(quantization_type, metric_drop_ths)
+        if metric_drop_ths is not None:
             if input_data is None:
                 input_data_torch = [
                     tuple(
@@ -144,13 +144,13 @@ class BladeDISCOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if perf_loss_ths is not None:
+        if metric_drop_ths is not None:
             is_valid = check_precision(
                 learner,
                 input_data_torch,
                 output_data_torch,
-                perf_loss_ths,
-                metric_func=perf_metric,
+                metric_drop_ths,
+                metric_func=metric,
                 ys=ys,
             )
             if not is_valid:
