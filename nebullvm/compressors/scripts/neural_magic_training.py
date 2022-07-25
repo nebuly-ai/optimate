@@ -1,15 +1,11 @@
 import json
+import logging
+import os.path
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Tuple, List, Any, Dict
 
 import torch
-from sparsify.blueprints.utils import (
-    default_epochs_distribution,
-    PruningModelEvaluator,
-    default_pruning_settings,
-)
-from sparsify.schemas import ProjectModelAnalysisSchema
 from sparseml.onnx.optim import ModelAnalyzer, pruning_loss_sens_magnitude
 from sparseml.pytorch.optim import (
     ScheduledModifierManager,
@@ -19,9 +15,28 @@ from sparseml.pytorch.sparsification import (
     GMPruningModifier,
 )
 from sparseml.pytorch.utils import ModuleExporter
-from torch.nn import CrossEntropyLoss
+from sparsify.blueprints.utils import (
+    default_epochs_distribution,
+    PruningModelEvaluator,
+    default_pruning_settings,
+)
+from sparsify.schemas import ProjectModelAnalysisSchema
+from torch.nn import CrossEntropyLoss, MSELoss
 from torch.optim import SGD
 from tqdm.auto import tqdm
+
+
+CRITERION_FNS = {
+    "CrossEntropy": CrossEntropyLoss(),
+    "MSE": MSELoss(),
+}
+
+
+logging.basicConfig(
+    format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"
+)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def _export_model_onnx(
@@ -31,7 +46,11 @@ def _export_model_onnx(
     input_batch: Tuple,
 ):
     exporter = ModuleExporter(model, output_dir=save_path)
-    exporter.export_onnx(input_batch, name=model_name)
+    with torch.no_grad():
+        example_outputs = model(*input_batch)
+    exporter.export_onnx(
+        input_batch, name=model_name, example_outputs=example_outputs
+    )
     onnx_path = save_path / model_name
 
     return onnx_path
@@ -107,8 +126,9 @@ class RecipeBuilder:
         else:
             # TODO: set custom parameters
             epochs = default_epochs_distribution(training_epochs)
-            for key, val in epochs_pruning_window.items():
-                setattr(epochs, key, val)
+            epochs_dict = epochs._asdict()
+            epochs_dict.update(epochs_pruning_window)
+            epochs = epochs.__class__(**epochs_dict)
 
         mods = [
             EpochRangeModifier(
@@ -162,10 +182,14 @@ class PruningTrainer:
         self.model = model
         self.batch_size = bs
 
-    def _setup_training(self, lr=1e-3, momentum=0.9):
+    def _setup_training(self, loss_fn=None, lr=1e-3, momentum=0.9):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.to(self.device)
-        self.criterion = CrossEntropyLoss()
+        if loss_fn is None:
+            loss_fn = CrossEntropyLoss()
+        else:
+            loss_fn = CRITERION_FNS.get(loss_fn, CrossEntropyLoss())
+        self.criterion = loss_fn
         self.optimizer = SGD(self.model.parameters(), lr=lr, momentum=momentum)
 
     def _run_model_one_epoch(self, train=False):
@@ -178,20 +202,22 @@ class PruningTrainer:
             data_loader = self.val_data_loader
 
         running_loss = 0.0
-        total_correct = 0
-        total_predictions = 0
 
         for step, (inputs, labels) in tqdm(
             enumerate(data_loader), total=len(data_loader)
         ):
-            inputs = inputs.to(self.device)
+            inputs = tuple(t.to(self.device) for t in inputs)
+            if not isinstance(labels, torch.Tensor):
+                labels = torch.tensor(labels)
+                if len(labels.shape) == 0:
+                    labels = labels.unsqueeze(0)
             labels = labels.to(self.device)
 
             if train:
                 self.optimizer.zero_grad()
 
-            outputs, _ = self.model(
-                inputs
+            outputs = self.model(
+                *inputs
             )  # model returns logits and softmax as a tuple
             loss = self.criterion(outputs, labels)
 
@@ -201,13 +227,8 @@ class PruningTrainer:
 
             running_loss += loss.item()
 
-            predictions = outputs.argmax(dim=1)
-            total_correct += torch.sum(predictions == labels).item()
-            total_predictions += inputs.size(0)
-
-        loss = running_loss / (step + 1.0)
-        accuracy = total_correct / total_predictions
-        return loss, accuracy
+        loss = running_loss / (len(data_loader) + 1e-5)
+        return loss
 
     def train(
         self, manager, train_data_loader, val_data_loader, **train_kwargs
@@ -226,21 +247,20 @@ class PruningTrainer:
         while epoch < manager.max_epochs:
             # run training loop
             epoch_name = "{}/{}".format(epoch + 1, manager.max_epochs)
-            print("Running Training Epoch {}".format(epoch_name))
-            train_loss, train_acc = self._run_model_one_epoch(train=True)
-            print(
-                (
-                    "Training Epoch: {}\nTraining Loss: {}\nTop 1 Acc: {}\n"
-                ).format(epoch_name, train_loss, train_acc)
+            logger.info("Running Training Epoch {}".format(epoch_name))
+            train_loss = self._run_model_one_epoch(train=True)
+            logger.info(
+                ("Training Epoch: {}\nTraining Loss: {}\n").format(
+                    epoch_name, train_loss
+                )
             )
 
             # run validation loop
-            # todo: move in logger
-            print("Running Validation Epoch {}".format(epoch_name))
-            val_loss, val_acc = self._run_model_one_epoch()
-            print(
-                "Validation Epoch: {}\nVal Loss: {}\nTop 1 Acc: {}\n".format(
-                    epoch_name, val_loss, val_acc
+            logger.info("Running Validation Epoch {}".format(epoch_name))
+            val_loss = self._run_model_one_epoch()
+            logger.info(
+                "Validation Epoch: {}\nVal Loss: {}\n".format(
+                    epoch_name, val_loss
                 )
             )
 
@@ -263,7 +283,17 @@ def _load_data(data_dir: str):
 
 
 def _load_model(model_file: str):
-    return torch.jit.load(model_file)
+    if os.path.isdir(model_file):
+        path = Path(model_file)
+        module_file = path / "module.py"
+        with open(module_file, "r") as f:
+            module_str = f.read()
+        exec(module_str)
+        model = eval("NebullvmFxModule")()
+        model.load_state_dict(torch.load(path / "state_dict.pt"))
+    else:
+        model = torch.load(model_file)
+    return model
 
 
 def _train_model(
@@ -295,6 +325,13 @@ def _train_model(
         return pruned_model
 
 
+def _save_model(model: torch.nn.Module, path: str):
+    if path.endswith(".pt"):
+        torch.save(model, path)
+    else:
+        torch.save(model.state_dict(), Path(path) / "pruned_state_dict.pt")
+
+
 def main(
     model_file: str,
     train_data_dir: str,
@@ -307,7 +344,7 @@ def main(
     train_data = _load_data(train_data_dir)
     eval_data = _load_data(eval_data_dir)
     pruned_model = _train_model(model, train_data, eval_data, **config)
-    pruned_model.save(out_file)
+    _save_model(pruned_model, out_file)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,8 @@ from tempfile import mkdtemp
 from typing import Dict, Any, Callable, Optional, Tuple
 
 import numpy as np
-import torch.nn
 import tensorflow as tf
+import torch.nn
 import yaml
 from torch.utils.data import DataLoader, Dataset
 
@@ -58,33 +58,10 @@ class IntelPruningCompressor(BaseCompressor, ABC):
                         "from_logits": False,
                     },
                 },
-                # "dataloader": {
-                #     "last_batch": "rollover",  # either rollover or discard
-                #     "batch_size": 64,
-                #     "dataset": {
-                #         "dummy_v2": {
-                #         },
-                #     },
-                #     "filter": {
-                #
-                #     },
-                #     "transform": {
-                #
-                #     },
-                #     "shuffle": False,
-                #     "distributed": False,
-                # },
                 "epoch": 10,
                 "start_epoch": 0,
                 "end_epoch": 10,
-                # "iteration": None,  # int
-                # "frequency": None,  # int
                 "execution_mode": "eager",  # either eager or graph
-                # "postprocess": {
-                #     "transform": {
-                #
-                #     },
-                # },
                 "hostfile": None,  # str for multinode training support
             },
             "approach": {

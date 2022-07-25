@@ -38,7 +38,8 @@ except ImportError:
 
 
 class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
-    """Model converted to ONNX and run with Microsoft's onnxruntime.
+    """Model optimized on CPU using DeepSparse. DeepSparse is an engine
+    accelerating sparse computations on CPUs.
 
     Attributes:
         network_parameters (ModelParams): The model parameters as batch
@@ -90,7 +91,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
 
         shutil.copy(
             self.onnx_path,
-            os.path.join(str(path), ONNX_FILENAMES["model_name"]),
+            Path(path) / ONNX_FILENAMES["model_name"],
         )
 
     @classmethod
@@ -104,7 +105,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
                 with other Learners.
 
         Returns:
-            ONNXInferenceLearner: The optimized model.
+            DeepSparseInferenceLearner: The optimized model.
         """
         if len(kwargs) > 0:
             warnings.warn(
@@ -135,7 +136,8 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
 class PytorchDeepSparseInferenceLearner(
     DeepSparseInferenceLearner, PytorchBaseInferenceLearner
 ):
-    """Model run with Microsoft's onnxruntime using a Pytorch interface.
+    """Model optimized on CPU using DeepSparse. DeepSparse is an engine
+    accelerating sparse computations on CPUs.
 
     Attributes:
         network_parameters (ModelParams): The model parameters as batch

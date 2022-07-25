@@ -82,7 +82,7 @@ def _optimize_with_optimizer(
         FEEDBACK_COLLECTOR.store_compiler_result(
             OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
             kwargs["quantization_type"],
-            kwargs["metric_drop_ths"],
+            kwargs.get("metric_drop_ths"),
             latency,
         )
     except Exception as ex:
@@ -99,7 +99,7 @@ def _optimize_with_optimizer(
         FEEDBACK_COLLECTOR.store_compiler_result(
             OPTIMIZER_TO_COMPILER_MAP[type(optimizer)],
             kwargs["quantization_type"],
-            kwargs["metric_drop_ths"],
+            kwargs.get("metric_drop_ths"),
             None,
         )
     if debug_file:
@@ -201,9 +201,11 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 if input_tfms is not None
                 else None,
                 debug_file=self.debug_file,
-                perf_loss_ths=metric_drop_ths if q_type is not None else None,
+                metric_drop_ths=metric_drop_ths
+                if q_type is not None
+                else None,
                 quantization_type=q_type,
-                perf_metric=metric,
+                metric=metric,
                 input_data=input_data,
             )
             for compiler in self.compilers
@@ -222,11 +224,11 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     if input_tfms is not None
                     else None,
                     debug_file=self.debug_file,
-                    perf_loss_ths=metric_drop_ths
+                    metric_drop_ths=metric_drop_ths
                     if q_type is not None
                     else None,
                     quantization_type=q_type,
-                    perf_metric=metric,
+                    metric=metric,
                     input_data=input_data,
                 )
                 for op in self.extra_optimizers

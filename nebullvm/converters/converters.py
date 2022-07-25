@@ -101,7 +101,7 @@ class ONNXConverter(BaseConverter):
 class CrossConverter(BaseConverter):
     ONNX_EXTENSION = ".onnx"
     TORCH_EXTENSION = ".pt"
-    TF_EXTENSION = ".h5"
+    TF_EXTENSION = ".pb"
 
     def convert(
         self,

@@ -3,8 +3,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Iterable, Sequence, Union, Dict, Callable, List
 
-import torch.nn
 import tensorflow as tf
+import torch.nn
 
 from nebullvm.api.frontend.onnx import extract_info_from_np_data
 from nebullvm.api.frontend.tf import extract_info_from_tf_data
@@ -224,7 +224,12 @@ def optimize_model(
         for model in models:
             input_tfms = MultiStageTransformation([])
             pipeline = build_pipeline_from_model(
-                model, optimization_time, metric_drop_ths, metric, config_file
+                model,
+                optimization_time,
+                metric_drop_ths,
+                metric,
+                config_file,
+                logger=logger,
             )
             output_dict = pipeline.run(
                 model=model,

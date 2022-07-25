@@ -69,6 +69,12 @@ class Step(ABC):
         else:
             self._logger.info(text)
 
+    def _log_warning(self, text: str):
+        if self._logger is None:
+            logging.warning(text)
+        else:
+            self._logger.warning(text)
+
 
 class CompressorStep(Step, ABC):
     """Object managing the Compressor step in the Pipeline. This step manages
@@ -160,7 +166,8 @@ class TorchCompressorStep(CompressorStep):
         compressors = {
             "sparseml": SparseMLCompressor(config_file=self._config_file)
         }
-        if "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
+        # TODO: Reactivate the intel-neural-compressor when properly tested
+        if False and "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
             compressors["intel_pruning"] = TorchIntelPruningCompressor(
                 config_file=self._config_file
             )
@@ -239,7 +246,8 @@ class OptimizerStep(Step, ABC):
         )
         optimized_models = []
 
-        for prev_tech, (model, metric_drop_ths) in models.items():
+        for prev_tech, (model, metric_drop_ths) in tqdm(models.items()):
+            self._log_info(f"Optimizing output of {prev_tech}")
             if model is None:
                 continue
             if metric_drop_ths is not None:
@@ -252,7 +260,7 @@ class OptimizerStep(Step, ABC):
                     q_types.append(QuantizationType.STATIC)
             else:
                 q_types = [None]
-            for compiler, optimizer in optimizers.items():
+            for compiler, optimizer in tqdm(optimizers.items()):
                 for q_type in q_types:
                     try:
                         optimized_model = self._run_optimizer(

@@ -4,19 +4,46 @@ from tempfile import TemporaryDirectory
 from typing import Any, Callable, Tuple, Optional, Dict
 
 import numpy as np
-import torch.nn
+import torch
+import torch.fx
 
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.venv import run_in_different_venv
 
+FX_MODULE_NAME = "NebullvmFxModule"
+
+
+def _save_with_torch_fx(model: torch.nn.Module, path: Path):
+    traced_model = torch.fx.symbolic_trace(model)
+    traced_model.to_folder(path, FX_MODULE_NAME)
+
+
+def _load_with_torch_fx(path: Path):
+    module_file = path / "module.py"
+    with open(module_file, "r") as f:
+        module_str = f.read()
+    exec(module_str)
+    model = eval(FX_MODULE_NAME)()
+    model.load_state_dict(torch.load(path / "pruned_state_dict.pt"))
+    return model
+
 
 def _save_model(model: torch.nn.Module, path: Path):
-    torch.jit.script(model).save(path)
+    try:
+        _save_with_torch_fx(model, path)
+    except Exception:
+        torch.save(model, path / "model.pt")
+        return path / "model.pt"
+    else:
+        return path
 
 
 def _load_model(path: Path):
-    return torch.jit.load(path)
+    if path.is_file():
+        return torch.load(path)
+    else:
+        return _load_with_torch_fx(path)
 
 
 def _save_dataset(input_data: DataManager, path: Path):
@@ -31,7 +58,7 @@ def _save_json(dictionary: Dict, path: Path):
 
 
 def _write_requirements_file(path: Path):
-    requirements = "torch<=1.9\nsparseml\nsparsify\ntqdm"
+    requirements = "torch<=1.9\ntorchvision<=0.10\nsparseml\nsparsify\ntqdm"
     with open(path, "w") as f:
         f.write(requirements)
 
@@ -48,17 +75,20 @@ class SparseMLCompressor(BaseCompressor):
         script_path = (
             Path(__file__).parent / "scripts/neural_magic_training.py"
         )
-        with TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory(dir=".") as tmp_dir:
             tmp_dir = Path(tmp_dir)
             requirements_file = tmp_dir / "requirements.txt"
-            model_path = tmp_dir / "model.pt"
+            model_path = _save_model(model, tmp_dir)
             training_data_dir = tmp_dir / "train"
             eval_data_dir = tmp_dir / "eval"
             config_file = tmp_dir / "config.json"
-            pruned_model_path = tmp_dir / "pruned_model.pt"
+            pruned_model_path = (
+                tmp_dir / "pruned_model.pt"
+                if model_path.is_file()
+                else tmp_dir
+            )
 
             _write_requirements_file(requirements_file)
-            _save_model(model, model_path)
             _save_dataset(train_input_data, training_data_dir)
             _save_dataset(eval_input_data, eval_data_dir)
             _save_json(self._config, config_file)
@@ -68,9 +98,9 @@ class SparseMLCompressor(BaseCompressor):
                 str(script_path),
                 "--model",
                 f"{model_path}",
-                "--train_data",
+                "--train_dir",
                 f"{training_data_dir}",
-                "--eval_data",
+                "--eval_dir",
                 f"{eval_data_dir}",
                 "--config",
                 f"{config_file}",
@@ -112,7 +142,8 @@ class SparseMLCompressor(BaseCompressor):
     def _get_default_config() -> Dict:
         return {
             "training_epochs": 10,
-            "epochs_pruning_window": {"start": 0, "end": 10},
+            "epochs_pruning_window": {"start_epoch": 0, "end_epoch": 10},
+            "loss_fn": "CrossEntropy",
             "lr": 1e-3,
             "momentum": 0.9,
         }
