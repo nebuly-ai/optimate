@@ -1,6 +1,5 @@
 import copy
 import logging
-import warnings
 from abc import ABC, abstractmethod
 from logging import Logger
 from typing import Dict, List, Any, Callable, Tuple, Optional
@@ -122,14 +121,22 @@ class CompressorStep(Step, ABC):
         models = {"no_compression": (copy.deepcopy(model), metric_drop_ths)}
         train_input_data, eval_input_data = input_data.split(0.8)
         for technique, compressor in tqdm(compressor_dict.items()):
-            compressed_model, ths = compressor.compress(
-                model,
-                train_input_data,
-                eval_input_data,
-                metric_drop_ths,
-                metric,
-            )
-            models[technique] = (compressed_model, ths)
+            try:
+                compressed_model, ths = compressor.compress(
+                    model,
+                    train_input_data,
+                    eval_input_data,
+                    metric_drop_ths,
+                    metric,
+                )
+                models[technique] = (compressed_model, ths)
+            except Exception as ex:
+                self._log_warning(
+                    f"Error during compression {technique}. Got error {ex}. "
+                    f"The compression technique will be skipped. "
+                    f"Please consult the documentation for further info or "
+                    f"open an issue on GitHub for receiving assistance."
+                )
         return {
             "models": models,
             "input_data": eval_input_data,
@@ -296,7 +303,7 @@ class OptimizerStep(Step, ABC):
                             compression=prev_tech,
                         )
                     except Exception as ex:
-                        warnings.warn(
+                        self._log_warning(
                             f"Compilation failed with {output_library.value} "
                             f"interface of {compiler}. Got error {ex}. "
                             f"If possible the compilation will be re-scheduled"
