@@ -1,3 +1,4 @@
+import warnings
 from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
@@ -81,3 +82,20 @@ class DataManager:
     @classmethod
     def from_iterable(cls, iterable: Iterable, max_length: int = 500):
         return cls([x for i, x in enumerate(iterable) if i < max_length])
+
+    def split(self, split_pct: float, shuffle: bool = False):
+        if shuffle:
+            idx = np.random.choice(len(self), len(self), replace=False)
+        else:
+            idx = np.arange(len(self))
+
+        n = int(round(len(idx) * split_pct))
+        if n == 0 or n == len(idx):
+            warnings.warn(
+                "Not enough data for splitting the DataManager. "
+                "An empty data-manager will be passed as result of the split."
+            )
+        return (
+            DataManager([self[i] for i in idx[:n]]),
+            DataManager([self[i] for i in idx[n:]]),
+        )

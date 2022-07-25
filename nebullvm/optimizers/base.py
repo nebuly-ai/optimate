@@ -22,9 +22,9 @@ class BaseOptimizer(ABC):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[BaseInferenceLearner]:
         raise NotImplementedError

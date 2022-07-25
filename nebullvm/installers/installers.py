@@ -116,3 +116,9 @@ def install_onnxruntime():
     # install requirements for onnxruntime.transformers
     cmd = ["pip3", "install", "coloredlogs", "sympy"]
     subprocess.run(cmd)
+
+
+def install_deepsparse():
+    """Helper function for installing DeepSparse."""
+    cmd = ["pip3", "install", "deepsparse"]
+    subprocess.run(cmd)

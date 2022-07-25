@@ -52,9 +52,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
         torch_model: torch.nn.Module,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         self._log(
@@ -65,7 +65,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         mod, params = self._build_tvm_model_from_torch(
             torch_model, model_params
         )
-        if perf_loss_ths is not None:
+        if metric_drop_ths is not None:
             if quantization_type is QuantizationType.HALF:
                 mod = tvm.relay.transform.ToMixedPrecision(
                     mixed_precision_type="float16"
@@ -122,8 +122,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 model,
                 inputs,
                 output_data,
-                perf_loss_ths,
-                metric_func=perf_metric,
+                metric_drop_ths,
+                metric_func=metric,
                 ys=ys,
             )
             if not is_valid:
@@ -136,9 +136,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         """Optimize the input model with Apache TVM.
@@ -151,12 +151,12 @@ class ApacheTVMOptimizer(BaseOptimizer):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            perf_loss_ths (float, optional): Threshold for the accepted drop
+            metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
-            perf_metric (Callable, optional): If given it should
+            metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
@@ -170,10 +170,10 @@ class ApacheTVMOptimizer(BaseOptimizer):
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        check_quantization(quantization_type, perf_loss_ths)
+        check_quantization(quantization_type, metric_drop_ths)
         target = self._get_target()
         mod, params = self._build_tvm_model_from_onnx(model, model_params)
-        if perf_loss_ths is not None:
+        if metric_drop_ths is not None:
             if quantization_type is QuantizationType.HALF:
                 mod = tvm.relay.transform.ToMixedPrecision(
                     mixed_precision_type="float16"
@@ -236,8 +236,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 model,
                 inputs,
                 output_data,
-                perf_loss_ths,
-                metric_func=perf_metric,
+                metric_drop_ths,
+                metric_func=metric,
                 ys=ys,
             )
             if not is_valid:

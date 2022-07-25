@@ -29,9 +29,9 @@ class OpenVinoOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[OpenVinoInferenceLearner]:
         """Optimize the onnx model with OpenVino.
@@ -44,12 +44,12 @@ class OpenVinoOptimizer(BaseOptimizer):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            perf_loss_ths (float, optional): Threshold for the accepted drop
+            metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
-            perf_metric (Callable, optional): If given it should
+            metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
@@ -80,12 +80,12 @@ class OpenVinoOptimizer(BaseOptimizer):
             ),
         ]
         if (
-            perf_loss_ths is not None
+            metric_drop_ths is not None
             and quantization_type is QuantizationType.HALF
         ):
             cmd = cmd + ["--data_type", "FP16"]
         elif (
-            perf_loss_ths is not None
+            metric_drop_ths is not None
             and quantization_type is QuantizationType.DYNAMIC
         ):
             return None
@@ -95,7 +95,7 @@ class OpenVinoOptimizer(BaseOptimizer):
         openvino_model_path = base_path / f"{Path(model).stem}.xml"
         openvino_model_weights = base_path / f"{Path(model).stem}.bin"
         if (
-            perf_loss_ths is not None
+            metric_drop_ths is not None
             and quantization_type is not QuantizationType.HALF
         ):
             if input_data is not None and quantization_type:
@@ -126,7 +126,7 @@ class OpenVinoOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if perf_loss_ths is not None:
+        if metric_drop_ths is not None:
             if input_data is None:
                 inputs = [learner.get_inputs_example()]
                 ys = None
@@ -147,8 +147,8 @@ class OpenVinoOptimizer(BaseOptimizer):
                 learner,
                 inputs,
                 output_data_onnx,
-                perf_loss_ths,
-                metric_func=perf_metric,
+                metric_drop_ths,
+                metric_func=metric,
                 ys=ys,
             )
             if not is_valid:

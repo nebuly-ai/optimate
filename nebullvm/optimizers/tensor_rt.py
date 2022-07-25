@@ -137,9 +137,9 @@ class TensorRTOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[NvidiaInferenceLearner]:
         """Optimize the input model with TensorRT.
@@ -152,12 +152,12 @@ class TensorRTOptimizer(BaseOptimizer):
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
-            perf_loss_ths (float, optional): Threshold for the accepted drop
+            metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
                 will be ignored.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used.
-            perf_metric (Callable, optional): If given it should
+            metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
@@ -176,10 +176,10 @@ class TensorRTOptimizer(BaseOptimizer):
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
             )
-        check_quantization(quantization_type, perf_loss_ths)
+        check_quantization(quantization_type, metric_drop_ths)
         engine_path = Path(model).parent / NVIDIA_FILENAMES["engine"]
         if (
-            perf_loss_ths is not None
+            metric_drop_ths is not None
             and quantization_type is QuantizationType.STATIC
         ):
             if input_data is None:
@@ -193,7 +193,7 @@ class TensorRTOptimizer(BaseOptimizer):
             else:
                 input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
         elif (
-            perf_loss_ths is not None
+            metric_drop_ths is not None
             and quantization_type is QuantizationType.DYNAMIC
         ):
             return None  # Dynamic quantization is not supported on tensorRT
@@ -239,8 +239,8 @@ class TensorRTOptimizer(BaseOptimizer):
                 learner,
                 inputs,
                 output_data,
-                perf_loss_ths,
-                metric_func=perf_metric,
+                metric_drop_ths,
+                metric_func=metric,
                 ys=ys,
             )
             if not is_valid:
