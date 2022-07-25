@@ -179,7 +179,7 @@ def optimize_huggingface_model(
             `nebullvm.measure.compute_relative_difference` and
             `nebullvm.measure.compute_accuracy_drop`. `metric`
             accepts as value also a string containing the metric name. At the
-            current stage the supported metrics are `"precision"` and
+            current stage the supported metrics are `"numeric_precision"` and
             `"accuracy"`.
         ys: List of target labels. For each input in `input_texts` there should
             be the corresponding label. Note that this feature is just used for

@@ -1,3 +1,4 @@
+import logging
 import warnings
 from abc import ABC, abstractmethod
 from logging import Logger
@@ -7,6 +8,7 @@ import cpuinfo
 import numpy as np
 import tensorflow as tf
 import torch.nn
+from tqdm import tqdm
 
 from nebullvm.base import (
     DeepLearningFramework,
@@ -27,6 +29,7 @@ from nebullvm.optimizers import (
     BaseOptimizer,
     ApacheTVMOptimizer,
     COMPILER_TO_OPTIMIZER_MAP,
+    DeepSparseOptimizer,
 )
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
@@ -34,6 +37,7 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.compilers import (
     tvm_is_available,
     select_compilers_from_hardware_onnx,
+    deepsparse_is_available,
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
@@ -53,6 +57,17 @@ class Step(ABC):
     def run(self, *args, **kwargs) -> Dict:
         """Run the pipeline step."""
         raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def name(self):
+        raise NotImplementedError()
+
+    def _log_info(self, text: str):
+        if self._logger is None:
+            logging.info(text)
+        else:
+            self._logger.info(text)
 
 
 class CompressorStep(Step, ABC):
@@ -96,9 +111,10 @@ class CompressorStep(Step, ABC):
             kwargs (Dict): Keyword arguments propagated to the next step.
         """
         compressor_dict = self._get_compressors()
+        self._log_info(f"Compressions: {tuple(compressor_dict.keys())}")
         models = {}
         train_input_data, eval_input_data = input_data.split(0.8)
-        for technique, compressor in compressor_dict.items():
+        for technique, compressor in tqdm(compressor_dict.items()):
             compressed_model, ths = compressor.compress(
                 model,
                 train_input_data,
@@ -117,6 +133,10 @@ class CompressorStep(Step, ABC):
     @abstractmethod
     def _get_compressors(self) -> Dict[str, BaseCompressor]:
         raise NotImplementedError()
+
+    @property
+    def name(self):
+        return "compression_step"
 
 
 class TorchCompressorStep(CompressorStep):
@@ -154,8 +174,14 @@ class NoCompressionStep(Step):
         logger (Logger, optional): Logger defined by the user.
     """
 
-    def run(self, model: Any, **kwargs) -> Dict:
-        return {"models": {"": model}, **kwargs}
+    def run(
+        self, model: Any, metric_drop_ths: Optional[float], **kwargs
+    ) -> Dict:
+        return {"models": {"": (model, metric_drop_ths)}, **kwargs}
+
+    @property
+    def name(self):
+        return "no_compression"
 
 
 class OptimizerStep(Step, ABC):
@@ -207,6 +233,10 @@ class OptimizerStep(Step, ABC):
         """
 
         optimizers = self._get_optimizers(ignore_compilers)
+        self._log_info(
+            f"Optimizations: "
+            f"{tuple(compiler.value for compiler in optimizers.keys())}"
+        )
         optimized_models = []
 
         for prev_tech, (model, metric_drop_ths) in models.items():
@@ -278,6 +308,10 @@ class OptimizerStep(Step, ABC):
             "ignore_compilers": ignore_compilers,
         }
 
+    @property
+    def name(self):
+        return "optimizer_step"
+
     @abstractmethod
     def _run_optimizer(
         self,
@@ -325,6 +359,11 @@ class TorchOptimizerStep(OptimizerStep):
             optimizers[ModelCompiler.APACHE_TVM] = ApacheTVMOptimizer(
                 logger=self._logger
             )
+        if (
+            deepsparse_is_available()
+            and ModelCompiler.DEEPSPARSE not in ignore_compilers
+        ):
+            optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer()
         return optimizers
 
     def _run_optimizer(
@@ -482,18 +521,28 @@ class Pipeline(Step):
     takes as input the output of the previous one.
 
     Attributes:
+        pipeline_name: str,
         steps (List): List of Steps composing the pipeline.
         logger (Logger): Logger defined by the user.
     """
 
-    def __init__(self, steps: List[Step], logger: Logger = None):
+    def __init__(
+        self, pipeline_name: str, steps: List[Step], logger: Logger = None
+    ):
         super().__init__(logger)
+        self._name = pipeline_name
         self._steps = steps
 
     def run(self, **kwargs) -> Dict:
+        self._log_info(f"Running pipeline: {self.name}")
         for step in self._steps:
+            self._log_info(f"Running step: {step.name}")
             kwargs = step.run(**kwargs)
         return kwargs
+
+    @property
+    def name(self):
+        return self._name
 
 
 def _get_compressor_step(
@@ -524,6 +573,15 @@ def _get_optimizer_step(
         return TFOptimizerStep(logger=logger)
     else:
         return OnnxOptimizerStep(logger=logger)
+
+
+def _get_pipeline_name(model: Any):
+    if isinstance(model, torch.nn.Module):
+        return "pytorch_pipeline"
+    elif isinstance(model, tf.Module):
+        return "tensorflow_pipeline"
+    else:
+        return "onnx_pipeline"
 
 
 def build_pipeline_from_model(
@@ -560,5 +618,9 @@ def build_pipeline_from_model(
         model, optimization_time, config_file, metric_drop_ths, metric, logger
     )
     optimizer_step = _get_optimizer_step(model, logger)
-    pipeline = Pipeline(logger=logger, steps=[compressor_step, optimizer_step])
+    pipeline = Pipeline(
+        pipeline_name=_get_pipeline_name(model),
+        logger=logger,
+        steps=[compressor_step, optimizer_step],
+    )
     return pipeline

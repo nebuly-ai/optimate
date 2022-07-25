@@ -150,7 +150,7 @@ def optimize_model(
             `nebullvm.measure.compute_relative_difference` and
             `nebullvm.measure.compute_accuracy_drop`. `metric`
             accepts as value also a string containing the metric name. At the
-            current stage the supported metrics are `"precision"` and
+            current stage the supported metrics are `"numeric_precision"` and
             `"accuracy"`.
         optimization_time (OptimizationTime): The optimization time mode.
             It can be either 'constrained' or 'unconstrained'. For
@@ -173,6 +173,14 @@ def optimize_model(
             parameters needed for defining the CompressionStep in the pipeline.
         ignore_compilers (List, optional): List containing the compilers to be
             ignored during the OptimizerStep.
+
+    Returns:
+        InferenceLearner: Optimized version of the input model having the same
+            interface, imported by its original framework. For instance a
+            Pytorch model, when optimized, will return an InferenceLearner
+            object that can be call exactly as a PyTorch model (either
+            with `model.forward(input)` and `model(input)`), i.e. it will
+            take as input and it will return `torch.Tensor`s.
     """
     dl_framework = _get_dl_framework(model)
     optimization_time = OptimizationTime(optimization_time)
@@ -203,7 +211,7 @@ def optimize_model(
     )
     converter = CrossConverter()
     optimized_models = []
-    with TemporaryDirectory as tmp_dir:
+    with TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
         models = converter.convert(model, model_params, tmp_dir, input_data)
 

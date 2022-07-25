@@ -235,6 +235,7 @@ class PruningTrainer:
             )
 
             # run validation loop
+            # todo: move in logger
             print("Running Validation Epoch {}".format(epoch_name))
             val_loss, val_acc = self._run_model_one_epoch()
             print(

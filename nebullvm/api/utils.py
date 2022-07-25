@@ -4,7 +4,7 @@ from nebullvm.measure import compute_relative_difference, compute_accuracy_drop
 
 QUANTIZATION_METRIC_MAP = {
     "accuracy": compute_accuracy_drop,
-    "precision": compute_relative_difference,
+    "numeric_precision": compute_relative_difference,
 }
 
 

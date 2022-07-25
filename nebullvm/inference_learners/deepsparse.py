@@ -15,15 +15,26 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
 )
+from nebullvm.installers.installers import install_deepsparse
 from nebullvm.transformations.base import MultiStageTransformation
 
 try:
     from deepsparse import compile_model, cpu
 except ImportError:
-    warnings.warn(
-        "No valid deepsparse installation found. "
-        "The compiler won't be used in the following."
-    )
+    import platform
+
+    os_ = platform.system()
+    if os_ != "Darwin":
+        warnings.warn(
+            "No deepsparse installation found. Trying to install it..."
+        )
+        install_deepsparse()
+        from deepsparse import compile_model, cpu
+    else:
+        warnings.warn(
+            "No valid deepsparse installation found. "
+            "The compiler won't be used in the following."
+        )
 
 
 class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):

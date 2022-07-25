@@ -150,7 +150,7 @@ def optimize_onnx_model(
             `nebullvm.measure.compute_relative_difference` and
             `nebullvm.measure.compute_accuracy_drop`. `metric`
             accepts as value also a string containing the metric name. At the
-            current stage the supported metrics are `"precision"` and
+            current stage the supported metrics are `"numeric_precision"` and
             `"accuracy"`.
         ignore_compilers (List[str], optional): List of DL compilers we want
             to ignore while running the optimization. Compiler name should be

@@ -13,6 +13,15 @@ def tvm_is_available() -> bool:
         return False
 
 
+def deepsparse_is_available() -> bool:
+    try:
+        import deepsarse  # noqa F401
+    except ImportError:
+        return False
+    else:
+        return True
+
+
 def select_compilers_from_hardware_onnx():
     compilers = [ModelCompiler.ONNX_RUNTIME]
     if tvm_is_available():
