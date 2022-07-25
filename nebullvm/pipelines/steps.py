@@ -1,3 +1,4 @@
+import copy
 import logging
 import warnings
 from abc import ABC, abstractmethod
@@ -118,7 +119,7 @@ class CompressorStep(Step, ABC):
         """
         compressor_dict = self._get_compressors()
         self._log_info(f"Compressions: {tuple(compressor_dict.keys())}")
-        models = {}
+        models = {"no_compression": (copy.deepcopy(model), metric_drop_ths)}
         train_input_data, eval_input_data = input_data.split(0.8)
         for technique, compressor in tqdm(compressor_dict.items()):
             compressed_model, ths = compressor.compress(
