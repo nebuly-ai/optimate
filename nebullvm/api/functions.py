@@ -196,6 +196,8 @@ def optimize_model(
     dl_framework = _get_dl_framework(model)
     optimization_time = OptimizationTime(optimization_time)
     FEEDBACK_COLLECTOR.start_collection(model, framework=dl_framework)
+    if metric_drop_ths <= 0:
+        metric_drop_ths = None
     if isinstance(metric, str):
         metric = QUANTIZATION_METRIC_MAP.get(metric)
     needs_conversion_to_hf = False
