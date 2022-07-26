@@ -1,10 +1,13 @@
+import warnings
+
 from collections import Callable
 from typing import Optional
 
 import torch.nn
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
-from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
+from nebullvm.config import NO_COMPILER_INSTALLATION
+from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.pytorch import quantize_torch
 from nebullvm.optimizers.quantization.utils import (
@@ -16,8 +19,28 @@ from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import convert_to_target_framework
 from nebullvm.utils.torch import create_model_inputs_torch, run_torch_model
 
+try:
+    import torch_blade
+except ImportError:
+    # TODO: Remove the False flag for allowing BladeDISC to be installed by
+    # the Auto-Installer.
+    if False and not NO_COMPILER_INSTALLATION:
+        warnings.warn(
+            "No valid BladeDISC installation has been found. "
+            "Trying to re-install it from source."
+        )
+        from nebullvm.installers.installers import install_bladedisc
 
-class PytorchBackendOptimizer(BaseOptimizer):
+        install_bladedisc()
+        import torch_blade
+    else:
+        warnings.warn(
+            "No BladeDISC library detected. "
+            "The BladeDISC Inference learner should not be used."
+        )
+
+
+class BladeDISCOptimizer(BaseOptimizer):
     """Optimizer working directly on the pytorch backend, with no need of a
     conversion to ONNX. The model will be finally compiled using torchscript.
     For avoiding un-wanted modification to the input model models are copied
@@ -38,7 +61,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
-    ) -> Optional[PytorchBackendInferenceLearner]:
+    ) -> Optional[BladeDISCInferenceLearner]:
         """Optimize the input model using pytorch built-in techniques.
 
         Args:
@@ -62,7 +85,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
             input_data (DataManager, optional): User defined data.
 
         Returns:
-            PytorchBackendInferenceLearner: Model optimized for inference.
+            BladeDISCInferenceLearner: Model optimized for inference.
         """
         self._log(
             f"Optimizing with {self.__class__.__name__} and "
@@ -101,7 +124,20 @@ class PytorchBackendOptimizer(BaseOptimizer):
                 model, quantization_type, input_tfms, input_data_torch
             )
 
-        learner = PytorchBackendInferenceLearner.from_torch_model(
+        with torch.no_grad():
+            model = torch_blade.optimize(
+                model,
+                allow_tracing=True,
+                model_inputs=tuple((input_data.get_list(1)[0]))
+                if input_data is not None
+                else tuple(
+                    create_model_inputs_torch(
+                        model_params.batch_size, model_params.input_infos
+                    )
+                ),
+            )
+
+        learner = BladeDISCInferenceLearner.from_torch_model(
             model,
             network_parameters=model_params,
             input_tfms=input_tfms,

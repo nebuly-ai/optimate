@@ -1,7 +1,7 @@
 import os
 
 
-VERSION = "0.3.2"
+VERSION = "0.4.0"
 LEARNER_METADATA_FILENAME = "metadata.json"
 NO_COMPILER_INSTALLATION = int(os.getenv("NO_COMPILER_INSTALLATION", "0")) > 0
 ONNX_OPSET_VERSION = 13
@@ -29,7 +29,6 @@ TVM_FILENAMES = {"engine": "compiled_lib.so"}
 
 ONNX_FILENAMES = {"model_name": "model.onnx"}
 CUDA_PROVIDERS = [
-    "TensorrtExecutionProvider",
     "CUDAExecutionProvider",
     "CPUExecutionProvider",
 ]

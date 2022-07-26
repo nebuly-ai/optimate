@@ -55,6 +55,16 @@ def install_tvm(working_dir: str = None):
     )
 
 
+def install_bladedisc():
+    has_cuda = False
+    if torch.cuda.is_available():
+        has_cuda = True
+
+    path = Path(__file__).parent
+    installation_file = str(path / "install_bladedisc.sh")
+    subprocess.Popen(["bash", installation_file, str(has_cuda).lower()])
+
+
 def install_tensor_rt():
     """Helper function for installing TensorRT.
 
@@ -105,4 +115,10 @@ def install_onnxruntime():
     subprocess.run(cmd)
     # install requirements for onnxruntime.transformers
     cmd = ["pip3", "install", "coloredlogs", "sympy"]
+    subprocess.run(cmd)
+
+
+def install_deepsparse():
+    """Helper function for installing DeepSparse."""
+    cmd = ["pip3", "install", "deepsparse"]
     subprocess.run(cmd)

@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from nebullvm.api.frontend.utils import (
+from nebullvm.api.utils import (
     check_inputs,
     ifnone,
     inspect_dynamic_size,
@@ -35,7 +35,10 @@ from nebullvm.utils.torch import (
 )
 from nebullvm.inference_learners.base import PytorchBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
-from nebullvm.optimizers import ApacheTVMOptimizer, BaseOptimizer
+from nebullvm.optimizers import (
+    ApacheTVMOptimizer,
+    BaseOptimizer,
+)
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
 logging.basicConfig(
@@ -74,7 +77,7 @@ def _extract_dynamic_axis(
     return None
 
 
-def _extract_info_from_data(
+def extract_info_from_torch_data(
     model: torch.nn.Module,
     dataloader: Union[DataLoader, Sequence],
     batch_size: int,
@@ -170,7 +173,7 @@ def optimize_torch_model(
             performed, since no data is given as input.
         perf_metric (Union[Callable, str], optional): The metric to
             be used for accepting or refusing a precision-reduction
-            optimization proposal. If none is given but a `perf_loss_ths` is
+            optimization proposal. If none is given but a `metric_drop_ths` is
             received, the `nebullvm.measure.compute_relative_difference`
             metric will be used as default one. A user-defined metric can
             be passed as function accepting as inputs two tuples of tensors
@@ -178,9 +181,9 @@ def optimize_torch_model(
             original labels.
             For more information see
             `nebullvm.measure.compute_relative_difference` and
-            `nebullvm.measure.compute_accuracy_drop`. `perf_metric`
+            `nebullvm.measure.compute_accuracy_drop`. `metric`
             accepts as value also a string containing the metric name. At the
-            current stage the supported metrics are `"precision"` and
+            current stage the supported metrics are `"numeric_precision"` and
             `"accuracy"`.
         ignore_compilers (List[str], optional): List of DL compilers we want
             to ignore while running the optimization. Compiler name should be
@@ -197,6 +200,11 @@ def optimize_torch_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor` s.
     """
+    warnings.warn(
+        "Deprecated: The usage of the torch api is deprecated. "
+        "`optimize_torch_model`will be removed from the next release. "
+        "Use `optimize_model` instead."
+    )
     check_inputs(
         input_data=dataloader, batch_size=batch_size, input_sizes=input_sizes
     )
@@ -208,7 +216,7 @@ def optimize_torch_model(
             input_sizes,
             input_types,
             dynamic_axis,
-        ) = _extract_info_from_data(
+        ) = extract_info_from_torch_data(
             model,
             dataloader,
             batch_size,
@@ -299,13 +307,14 @@ def optimize_torch_model(
             onnx_path = model_converter.convert(
                 model, model_params, Path(tmp_dir), input_data
             )
+
             model_optimized = model_optimizer.optimize(
                 model=str(onnx_path),
                 output_library=dl_library,
                 model_params=model_params,
                 input_tfms=input_tfms,
-                perf_loss_ths=perf_loss_ths,
-                perf_metric=perf_metric,
+                metric_drop_ths=perf_loss_ths,
+                metric=perf_metric,
                 input_data=input_data,
             )
         else:
@@ -330,7 +339,7 @@ def _get_optimizers_supporting_torch_api(
     use_extra_compilers: bool,
 ) -> List[Tuple[ModelCompiler, BaseOptimizer]]:
     optimizers = [
-        (ModelCompiler.TORCHVISION, PytorchBackendOptimizer(logger=logger)),
+        (ModelCompiler.TORCHSCRIPT, PytorchBackendOptimizer(logger=logger)),
     ]
     if use_extra_compilers:
         optimizers.append(
@@ -359,7 +368,7 @@ def _torch_api_optimization(
                 candidate_model = optimizer.optimize_from_torch(
                     torch_model=model,
                     model_params=model_params,
-                    perf_loss_ths=quantization_ths
+                    metric_drop_ths=quantization_ths
                     if quantization_type is not None
                     else None,
                     quantization_type=quantization_type,
@@ -371,7 +380,7 @@ def _torch_api_optimization(
                     model=model,
                     output_library=DeepLearningFramework.PYTORCH,
                     model_params=model_params,
-                    perf_loss_ths=quantization_ths
+                    metric_drop_ths=quantization_ths
                     if quantization_type is not None
                     else None,
                     quantization_type=quantization_type,

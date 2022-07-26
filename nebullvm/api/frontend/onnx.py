@@ -1,11 +1,12 @@
 import os
 import shutil
+import warnings
 from tempfile import TemporaryDirectory
 from typing import List, Tuple, Dict, Optional, Callable, Union
 
 import numpy as np
 
-from nebullvm.api.frontend.utils import (
+from nebullvm.api.utils import (
     inspect_dynamic_size,
     ifnone,
     QUANTIZATION_METRIC_MAP,
@@ -58,7 +59,7 @@ def _extract_dynamic_axis(
     return None
 
 
-def _extract_info_from_data(
+def extract_info_from_np_data(
     onnx_model: str,
     data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
     batch_size: int,
@@ -139,7 +140,7 @@ def optimize_onnx_model(
             performed, since no data is given as input.
         perf_metric (Union[Callable, str], optional): The metric to
             be used for accepting or refusing a precision-reduction
-            optimization proposal. If none is given but a `perf_loss_ths` is
+            optimization proposal. If none is given but a `metric_drop_ths` is
             received, the `nebullvm.measure.compute_relative_difference`
             metric will be used as default one. A user-defined metric can
             be passed as function accepting as inputs two tuples of tensors
@@ -147,9 +148,9 @@ def optimize_onnx_model(
             original labels.
             For more information see
             `nebullvm.measure.compute_relative_difference` and
-            `nebullvm.measure.compute_accuracy_drop`. `perf_metric`
+            `nebullvm.measure.compute_accuracy_drop`. `metric`
             accepts as value also a string containing the metric name. At the
-            current stage the supported metrics are `"precision"` and
+            current stage the supported metrics are `"numeric_precision"` and
             `"accuracy"`.
         ignore_compilers (List[str], optional): List of DL compilers we want
             to ignore while running the optimization. Compiler name should be
@@ -166,13 +167,18 @@ def optimize_onnx_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor`s.
     """
+    warnings.warn(
+        "Deprecated: The usage of the onnx api is deprecated. "
+        "`optimize_onnx_model`will be removed from the next release. "
+        "Use `optimize_model` instead."
+    )
     if data is not None:
         (
             batch_size,
             input_sizes,
             input_types,
             dynamic_axis,
-        ) = _extract_info_from_data(
+        ) = extract_info_from_np_data(
             model_path,
             data,
             batch_size,
@@ -231,8 +237,8 @@ def optimize_onnx_model(
                 output_library=dl_library,
                 model_params=model_params,
                 input_tfms=input_tfms,
-                perf_loss_ths=perf_loss_ths,
-                perf_metric=perf_metric,
+                metric_drop_ths=perf_loss_ths,
+                metric=perf_metric,
                 input_data=input_data,
             )
         else:

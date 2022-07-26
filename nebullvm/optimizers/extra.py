@@ -37,14 +37,14 @@ class HuggingFaceOptimizer(BaseOptimizer):
     def __init__(
         self,
         hugging_face_params: Dict,
-        perf_loss_ths: float = None,
-        perf_metric: Callable = None,
+        metric_drop_ths: float = None,
+        metric: Callable = None,
         logger: Logger = None,
     ):
         super(HuggingFaceOptimizer, self).__init__(logger)
         self.hf_params = hugging_face_params
-        self.perf_loss_ths = perf_loss_ths
-        self.perf_metric = perf_metric
+        self.perf_loss_ths = metric_drop_ths
+        self.perf_metric = metric
         self.q_type = QuantizationType.HALF
 
     def optimize(
@@ -53,9 +53,9 @@ class HuggingFaceOptimizer(BaseOptimizer):
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
-        perf_loss_ths: float = None,
+        metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
-        perf_metric: Callable = None,
+        metric: Callable = None,
         input_data: DataManager = None,
     ) -> Optional[ONNXInferenceLearner]:
         self._log(
@@ -63,7 +63,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
             f"q_type: {quantization_type}."
         )
         optimized_model = optimizer.optimize_model(model, **self.hf_params)
-        if perf_loss_ths is not None:
+        if metric_drop_ths is not None:
             if quantization_type is not QuantizationType.HALF:
                 return None
             optimized_model.convert_float_to_float16()
@@ -82,7 +82,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if perf_loss_ths is not None:
+        if metric_drop_ths is not None:
             # TODO: Add dataset and metric from user
             if input_data is None:
                 inputs = [learner.get_inputs_example()]
@@ -100,8 +100,8 @@ class HuggingFaceOptimizer(BaseOptimizer):
                 learner,
                 inputs,
                 base_outputs,
-                perf_loss_ths,
-                metric_func=perf_metric,
+                metric_drop_ths,
+                metric_func=metric,
                 ys=ys,
             )
             if not is_valid:

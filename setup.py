@@ -8,6 +8,7 @@ REQUIREMENTS = [
     "onnx>=1.10.0",
     "onnxmltools>=1.11.0",
     "py-cpuinfo>=8.0.0",
+    "PyYAML>=6.0",
     "psutil>=5.9.0",
     "requests>=2.28.1",
     "tensorflow>=2.7.0",
@@ -22,7 +23,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="nebullvm",
-    version="0.3.2",
+    version="0.4.0",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     long_description=long_description,

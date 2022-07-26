@@ -106,8 +106,10 @@ class ModelCompiler(Enum):
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
-    TORCHVISION = "torchvision"
+    DEEPSPARSE = "deepsparse"
+    TORCHSCRIPT = "torchscript"
     TFLITE = "tflite"
+    BLADEDISC = "bladedisc"
 
 
 class QuantizationType(Enum):
@@ -115,3 +117,8 @@ class QuantizationType(Enum):
     STATIC = "STATIC"
     QAT = "QAT"
     HALF = "HALF"
+
+
+class OptimizationTime(Enum):
+    CONSTRAINED = "constrained"
+    UNCONSTRAINED = "unconstrained"
