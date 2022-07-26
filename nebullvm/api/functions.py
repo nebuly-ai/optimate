@@ -148,7 +148,7 @@ def optimize_model(
             selected metric accepted. No model with an higher error will be
             accepted, i.e. all optimized model having a larger error respect to
             the original one will be discarded, without even considering their
-            possible speed-up.
+            possible speed-up. Default: None, i.e. no drop in metric accepted.
         metric (Union[Callable, str], optional): The metric to
             be used for accepting or refusing a precision-reduction
             optimization proposal. If none is given but a `metric_drop_ths` is
@@ -162,9 +162,9 @@ def optimize_model(
             `nebullvm.measure.compute_accuracy_drop`. `metric`
             accepts as value also a string containing the metric name. At the
             current stage the supported metrics are `"numeric_precision"` and
-            `"accuracy"`.
-        optimization_time (OptimizationTime): The optimization time mode.
-            It can be either 'constrained' or 'unconstrained'. For
+            `"accuracy"`. Default: `"numeric_precision"`
+        optimization_time (OptimizationTime, optional): The optimization time
+            mode. It can be either 'constrained' or 'unconstrained'. For
             'constrained' mode just compilers and precision reduction
             techniques are used (no compression). 'Unconstrained' optimization
             allows the usage of more time consuming techniques as pruning and
@@ -172,18 +172,19 @@ def optimize_model(
             techniques in the 'unconstrained' optimization, a small fine-tuning
             of the model will be needed. Thus we highly recommend to give as
             input_data at least 100 samples for when selecting 'unconstrained'
-            optimization.
+            optimization. Default: 'constrained'.
         dynamic_info (Dict, optional): Dictionary containing info about the
             dynamic axis. It should contain as keys both "inputs" and "outputs"
             and as values two lists of dictionaries where each dictionary
             represents the dynamic axis information for an input/output tensor.
             The inner dictionary should have as key an integer, i.e. the
             dynamic axis (considering also the batch size) and as value a
-            string giving a "tag" to it, e.g. "batch_size".
+            string giving a "tag" to it, e.g. "batch_size". Default: None
         config_file (str, optional): Configuration file containing the
             parameters needed for defining the CompressionStep in the pipeline.
+            Default: None.
         ignore_compilers (List, optional): List containing the compilers to be
-            ignored during the OptimizerStep.
+            ignored during the OptimizerStep. Default: None.
 
     Returns:
         InferenceLearner: Optimized version of the input model having the same
