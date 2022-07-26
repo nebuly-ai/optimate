@@ -13,6 +13,15 @@ def tvm_is_available() -> bool:
         return False
 
 
+def bladedisc_is_available() -> bool:
+    try:
+        import torch_blade  # noqa F401
+
+        return True
+    except ImportError:
+        return False
+
+
 def deepsparse_is_available() -> bool:
     try:
         import deepsarse  # noqa F401

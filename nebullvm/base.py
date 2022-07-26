@@ -109,6 +109,7 @@ class ModelCompiler(Enum):
     DEEPSPARSE = "deepsparse"
     TORCHSCRIPT = "torchscript"
     TFLITE = "tflite"
+    BLADEDISC = "bladedisc"
 
 
 class QuantizationType(Enum):
