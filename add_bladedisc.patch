@@ -1,0 +1,368 @@
+diff --git a/nebullvm/base.py b/nebullvm/base.py
+index 708a55e..ae45bb4 100644
+--- a/nebullvm/base.py
++++ b/nebullvm/base.py
+@@ -109,6 +109,7 @@ class ModelCompiler(Enum):
+     DEEPSPARSE = "deepsparse"
+     TORCHSCRIPT = "torchscript"
+     TFLITE = "tflite"
++    BLADEDISC = "bladedisc"
+ 
+ 
+ class QuantizationType(Enum):
+diff --git a/nebullvm/config.py b/nebullvm/config.py
+index 3df2df3..9198f29 100644
+--- a/nebullvm/config.py
++++ b/nebullvm/config.py
+@@ -29,7 +29,6 @@ TVM_FILENAMES = {"engine": "compiled_lib.so"}
+ 
+ ONNX_FILENAMES = {"model_name": "model.onnx"}
+ CUDA_PROVIDERS = [
+-    "TensorrtExecutionProvider",
+     "CUDAExecutionProvider",
+     "CPUExecutionProvider",
+ ]
+diff --git a/nebullvm/inference_learners/blade_disc.py b/nebullvm/inference_learners/blade_disc.py
+new file mode 100644
+index 0000000..4fc0f01
+--- /dev/null
++++ b/nebullvm/inference_learners/blade_disc.py
+@@ -0,0 +1,27 @@
++from typing import Optional
++
++from torch.jit import ScriptModule
++
++from nebullvm.base import ModelParams
++from nebullvm.inference_learners.pytorch import (
++    PytorchBackendInferenceLearner,
++)
++from nebullvm.transformations.base import MultiStageTransformation
++from nebullvm.utils.data import DataManager
++
++
++class BladeDISCInferenceLearner(PytorchBackendInferenceLearner):
++    @classmethod
++    def from_torch_model(
++        cls,
++        model: ScriptModule,
++        network_parameters: ModelParams,
++        input_tfms: Optional[MultiStageTransformation] = None,
++        input_data: DataManager = None,
++    ):
++        return cls(
++            torch_model=model,
++            network_parameters=network_parameters,
++            input_tfms=input_tfms,
++            input_data=input_data,
++        )
+diff --git a/nebullvm/installers/install_bladedisc.sh b/nebullvm/installers/install_bladedisc.sh
+new file mode 100644
+index 0000000..56c2a21
+--- /dev/null
++++ b/nebullvm/installers/install_bladedisc.sh
+@@ -0,0 +1,31 @@
++#!/bin/bash
++
++# Set non interactive mode for apt-get
++export DEBIAN_FRONTEND=noninteractive
++
++if [ ! -d "BladeDISC" ]
++then
++  git clone https://github.com/alibaba/BladeDISC.git
++fi
++
++cd BladeDISC && git submodule update --init --recursive
++
++apt update && sudo apt install bazel-5.1.1
++
++if [ $1 == "true" ]
++then
++cd pytorch_blade && bash ./scripts/build_pytorch_blade.sh
++else
++  if [[ $OSTYPE == "darwin"* ]]
++  then
++    export TORCH_BLADE_BUILD_WITH_CUDA_SUPPORT=OFF
++    export TORCH_BLADE_CI_BUILD_TORCH_VERSION=1.10.0+aarch64
++    cd pytorch_blade && bash ./scripts/build_pytorch_blade.sh
++  else
++    export TORCH_BLADE_BUILD_WITH_CUDA_SUPPORT=OFF
++    export TORCH_BLADE_CI_BUILD_TORCH_VERSION=1.8.1+cpu
++    cd pytorch_blade && bash ./scripts/build_pytorch_blade.sh
++  fi
++fi
++
++cd ../..
+diff --git a/nebullvm/installers/installers.py b/nebullvm/installers/installers.py
+index 21fa58b..d110d80 100644
+--- a/nebullvm/installers/installers.py
++++ b/nebullvm/installers/installers.py
+@@ -55,6 +55,16 @@ def install_tvm(working_dir: str = None):
+     )
+ 
+ 
++def install_bladedisc():
++    has_cuda = False
++    if torch.cuda.is_available():
++        has_cuda = True
++
++    path = Path(__file__).parent
++    installation_file = str(path / "install_bladedisc.sh")
++    subprocess.Popen(["bash", installation_file, str(has_cuda).lower()])
++
++
+ def install_tensor_rt():
+     """Helper function for installing TensorRT.
+ 
+diff --git a/nebullvm/measure.py b/nebullvm/measure.py
+index b42312d..2b17b9c 100644
+--- a/nebullvm/measure.py
++++ b/nebullvm/measure.py
+@@ -70,7 +70,7 @@ def compute_tf_latency(
+ 
+ 
+ def compute_optimized_running_time(
+-    optimized_model: BaseInferenceLearner, steps: int = 100
++    optimized_model: BaseInferenceLearner, steps: int = 100, min_steps=5
+ ) -> float:
+     """Compute the running time of the optimized model.
+ 
+@@ -86,11 +86,22 @@ def compute_optimized_running_time(
+     model_inputs = optimized_model.get_inputs_example()
+ 
+     latencies = []
++    last_median = None
+     for _ in range(steps):
+         starting_time = time.time()
+         _ = optimized_model.predict(*model_inputs)
+         latencies.append(time.time() - starting_time)
+-    return sum(latencies) / steps
++        if len(latencies) > min_steps:
++            median = np.median(latencies)
++            diff = (
++                np.abs(median - last_median) / last_median
++                if last_median is not None
++                else 1.0
++            )
++            if diff < 0.05:
++                return median
++            last_median = median
++    return np.median(latencies)
+ 
+ 
+ def compute_relative_difference(
+diff --git a/nebullvm/optimizers/blade_disc.py b/nebullvm/optimizers/blade_disc.py
+new file mode 100644
+index 0000000..5ac8648
+--- /dev/null
++++ b/nebullvm/optimizers/blade_disc.py
+@@ -0,0 +1,158 @@
++from collections import Callable
++from typing import Optional
++import warnings
++
++import torch.nn
++
++from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
++from nebullvm.config import NO_COMPILER_INSTALLATION
++from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
++from nebullvm.optimizers import BaseOptimizer
++from nebullvm.optimizers.quantization.pytorch import quantize_torch
++from nebullvm.optimizers.quantization.utils import (
++    check_quantization,
++    check_precision,
++)
++from nebullvm.transformations.base import MultiStageTransformation
++from nebullvm.utils.data import DataManager
++from nebullvm.utils.onnx import convert_to_target_framework
++from nebullvm.utils.torch import create_model_inputs_torch, run_torch_model
++
++try:
++    import torch_blade
++except ImportError:
++    # TODO: Remove the False flag for allowing BladeDISC to be installed by
++    # the Auto-Installer.
++    if False and not NO_COMPILER_INSTALLATION:
++        warnings.warn(
++            "No valid BladeDISC installation has been found. "
++            "Trying to re-install it from source."
++        )
++        from nebullvm.installers.installers import install_bladedisc
++
++        install_bladedisc()
++        import torch_blade
++    else:
++        warnings.warn(
++            "No BladeDISC library detected. "
++            "The BladeDISC Inference learner should not be used."
++        )
++
++
++class BladeDISCOptimizer(BaseOptimizer):
++    """Optimizer working directly on the pytorch backend, with no need of a
++    conversion to ONNX. The model will be finally compiled using torchscript.
++    For avoiding un-wanted modification to the input model models are copied
++    before being optimized.
++
++    Attributes:
++        logger (Logger, optional): Optional logger for logging optimization
++            information.
++    """
++
++    def optimize(
++        self,
++        model: torch.nn.Module,
++        output_library: DeepLearningFramework,
++        model_params: ModelParams,
++        input_tfms: MultiStageTransformation = None,
++        metric_drop_ths: float = None,
++        quantization_type: QuantizationType = None,
++        metric: Callable = None,
++        input_data: DataManager = None,
++    ) -> Optional[BladeDISCInferenceLearner]:
++        """Optimize the input model using pytorch built-in techniques.
++
++        Args:
++            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
++                modifications to the original model, it will be copied in the
++                method.
++            output_library (DeepLearningFramework): Output framework. At the
++                current stage just PYTORCH is supported.
++            model_params (ModelParams): Model parameters.
++            input_tfms (MultiStageTransformation, optional): Transformations
++                to be performed to the model's input tensors in order to
++                get the prediction.
++            metric_drop_ths (float, optional): Threshold for the accepted drop
++                in terms of precision. Any optimized model with an higher drop
++                will be ignored.
++            quantization_type (QuantizationType, optional): The desired
++                quantization algorithm to be used.
++            metric (Callable, optional): If given it should
++                compute the difference between the quantized and the normal
++                prediction.
++            input_data (DataManager, optional): User defined data.
++
++        Returns:
++            PytorchBackendInferenceLearner: Model optimized for inference.
++        """
++        self._log(
++            f"Optimizing with {self.__class__.__name__} and "
++            f"q_type: {quantization_type}."
++        )
++        assert output_library is DeepLearningFramework.PYTORCH, (
++            "Other APIs than the Pytorch one are not supported "
++            "for the Pytorch Backend yet."
++        )
++        check_quantization(quantization_type, metric_drop_ths)
++        if metric_drop_ths is not None:
++            if input_data is None:
++                input_data_torch = [
++                    tuple(
++                        create_model_inputs_torch(
++                            model_params.batch_size, model_params.input_infos
++                        )
++                    )
++                ]
++            else:
++                input_data_torch, ys = input_data.get_numpy_list(
++                    300, with_ys=True
++                )
++                input_data_torch = [
++                    tuple(
++                        convert_to_target_framework(t, output_library)
++                        for t in data_tuple
++                    )
++                    for data_tuple in input_data_torch
++                ]
++            output_data_torch = [
++                tuple(run_torch_model(model, list(input_tensors)))
++                for input_tensors in input_data_torch
++            ]
++            model, input_tfms = quantize_torch(
++                model, quantization_type, input_tfms, input_data_torch
++            )
++
++        with torch.no_grad():
++            model = torch_blade.optimize(
++                model,
++                allow_tracing=True,
++                model_inputs=tuple((input_data.get_list(1)[0]))
++                if input_data is not None
++                else tuple(
++                    create_model_inputs_torch(
++                        model_params.batch_size, model_params.input_infos
++                    )
++                ),
++            )
++
++        learner = BladeDISCInferenceLearner.from_torch_model(
++            model,
++            network_parameters=model_params,
++            input_tfms=input_tfms,
++            input_data=list(input_data.get_list(1)[0])
++            if input_data is not None
++            else None,
++        )
++        if metric_drop_ths is not None:
++            is_valid = check_precision(
++                learner,
++                input_data_torch,
++                output_data_torch,
++                metric_drop_ths,
++                metric_func=metric,
++                ys=ys,
++            )
++            if not is_valid:
++                return None
++        return learner
+diff --git a/nebullvm/pipelines/steps.py b/nebullvm/pipelines/steps.py
+index 72d77c2..da0d005 100644
+--- a/nebullvm/pipelines/steps.py
++++ b/nebullvm/pipelines/steps.py
+@@ -31,6 +31,7 @@ from nebullvm.optimizers import (
+     COMPILER_TO_OPTIMIZER_MAP,
+     DeepSparseOptimizer,
+ )
++from nebullvm.optimizers.blade_disc import BladeDISCOptimizer
+ from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
+ from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
+ from nebullvm.transformations.base import MultiStageTransformation
+@@ -38,6 +39,7 @@ from nebullvm.utils.compilers import (
+     tvm_is_available,
+     select_compilers_from_hardware_onnx,
+     deepsparse_is_available,
++    bladedisc_is_available,
+ )
+ from nebullvm.utils.data import DataManager
+ from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
+@@ -364,6 +366,11 @@ class TorchOptimizerStep(OptimizerStep):
+             and ModelCompiler.DEEPSPARSE not in ignore_compilers
+         ):
+             optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer()
++        if (
++            bladedisc_is_available()
++            and ModelCompiler.BLADEDISC not in ignore_compilers
++        ):
++            optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer()
+         return optimizers
+ 
+     def _run_optimizer(
+diff --git a/nebullvm/utils/compilers.py b/nebullvm/utils/compilers.py
+index cc99c16..6d0acbb 100644
+--- a/nebullvm/utils/compilers.py
++++ b/nebullvm/utils/compilers.py
+@@ -13,6 +13,15 @@ def tvm_is_available() -> bool:
+         return False
+ 
+ 
++def bladedisc_is_available() -> bool:
++    try:
++        import torch_blade  # noqa F401
++
++        return True
++    except ImportError:
++        return False
++
++
+ def deepsparse_is_available() -> bool:
+     try:
+         import deepsarse  # noqa F401
