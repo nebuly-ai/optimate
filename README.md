@@ -8,7 +8,7 @@
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
-![nebullvm latency optimization](https://user-images.githubusercontent.com/100476561/180969408-11c1c0d6-a92e-4fe2-a00f-396a6a2828d9.png)
+![nebullvm optimization](https://user-images.githubusercontent.com/100476561/180979303-4ef640f8-e795-40d2-ae79-6a9cccd72636.png)
 
 
 The core `nebullvm` workflow consists of 3 steps:
