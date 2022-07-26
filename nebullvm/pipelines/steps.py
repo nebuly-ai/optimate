@@ -31,6 +31,7 @@ from nebullvm.optimizers import (
     COMPILER_TO_OPTIMIZER_MAP,
     DeepSparseOptimizer,
 )
+from nebullvm.optimizers.blade_disc import BladeDISCOptimizer
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
@@ -38,6 +39,7 @@ from nebullvm.utils.compilers import (
     tvm_is_available,
     select_compilers_from_hardware_onnx,
     deepsparse_is_available,
+    bladedisc_is_available,
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
@@ -383,6 +385,11 @@ class TorchOptimizerStep(OptimizerStep):
             and ModelCompiler.DEEPSPARSE not in ignore_compilers
         ):
             optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer()
+        if (
+            bladedisc_is_available()
+            and ModelCompiler.BLADEDISC not in ignore_compilers
+        ):
+            optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer()
         return optimizers
 
     def _run_optimizer(
