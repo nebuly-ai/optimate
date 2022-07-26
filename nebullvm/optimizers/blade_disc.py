@@ -1,6 +1,7 @@
+import warnings
+
 from collections import Callable
 from typing import Optional
-import warnings
 
 import torch.nn
 
@@ -84,7 +85,7 @@ class BladeDISCOptimizer(BaseOptimizer):
             input_data (DataManager, optional): User defined data.
 
         Returns:
-            PytorchBackendInferenceLearner: Model optimized for inference.
+            BladeDISCInferenceLearner: Model optimized for inference.
         """
         self._log(
             f"Optimizing with {self.__class__.__name__} and "
