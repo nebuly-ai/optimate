@@ -1,4 +1,5 @@
-![nebullvm nebuly logo](https://user-images.githubusercontent.com/100476561/180966895-d25f2e2d-9e65-4973-9a83-cebcf2e74830.png)
+
+![nebullvm nebuly logo](https://user-images.githubusercontent.com/100476561/180968989-31bebd47-e789-42a5-9a40-71a19c025389.png)
 
 
 # **Nebullvm**
@@ -7,7 +8,7 @@
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
-![nebullvm](https://user-images.githubusercontent.com/83510798/180957708-edfa8c8f-1818-4270-ac02-781eec8db773.png)
+![nebullvm latency optimization](https://user-images.githubusercontent.com/100476561/180969408-11c1c0d6-a92e-4fe2-a00f-396a6a2828d9.png)
 
 
 The core `nebullvm` workflow consists of 3 steps:
