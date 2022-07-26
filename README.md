@@ -6,7 +6,8 @@
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
-![MicrosoftTeams-image (12)](https://user-images.githubusercontent.com/83510798/180888919-8a59206e-dc15-4f95-87d2-368299543d4c.png)
+![nebullvm](https://user-images.githubusercontent.com/83510798/180957708-edfa8c8f-1818-4270-ac02-781eec8db773.png)
+
 
 The core `nebullvm` workflow consists of 3 steps:
 
@@ -15,6 +16,33 @@ The core `nebullvm` workflow consists of 3 steps:
     - Optimization time: stellar accelerations can be time-consuming. Can you wait, or do you need an instant answer?
 - [x]  **Search**: `nebullvm` automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
 - [x]  **Serve**: finally, `nebullvm` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
+
+# API quick view
+
+Only a single line of code is needed to get your accelerated model:
+
+```python
+import torch
+import torchvision.models as models
+from nebullvm.api.functions import optimize_model
+
+# Load a resnet as example
+model = models.resnet50()
+
+# Provide an input data for the model
+input_data = [((torch.randn(1, 3, 256, 256), ), 0)]
+
+# Run nebullvm optimization in one line of code
+optimized_model = optimize_model(
+    model, input_data=input_data, optimization_time="constrained"
+)
+
+# Try the optimized model
+x = torch.randn(1, 3, 256, 256)
+res = optimized_model(x)
+```
+
+For more details, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation) and [Get started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started).
 
 # **How it works**
 
