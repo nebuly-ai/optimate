@@ -59,7 +59,7 @@ We are not here to reinvent the wheel, but to build an all-in-one open-source pr
 - [x]  **Optimizer:** converts the compressed models to the intermediate representation (IR) of the supported deep learning compilers. The compilers apply both post-training quantization techniques and graph optimizations, to produce compiled binary files.
 - [x]  **Inference Learner:** takes the best performing compiled model and converts it to the same interface as the original input model.
 
-![https://user-images.githubusercontent.com/42771598/180275153-f9e48569-221b-47c7-ab62-ed2ac1c635ca.png](https://user-images.githubusercontent.com/42771598/180275153-f9e48569-221b-47c7-ab62-ed2ac1c635ca.png)
+![nebullvm nebuly ai](https://user-images.githubusercontent.com/100476561/180975206-3a3a1f80-afc6-42b0-9953-4b8426c09b62.png)
 
 The **compressor** stage leverages the following open-source projects:
 
