@@ -134,13 +134,14 @@ def _restructure_output(
             output_dict[key] = output[idx]
             idx += 1
         else:
-            output_dict[key] = (
-                np.array(
-                    output[idx : int(np.prod(value)) + idx],  # noqa E203
-                    dtype=object,
+            tensor_shape = output[idx].shape[1:]
+            output_dict[key] = list(
+                torch.reshape(
+                    torch.stack(
+                        output[idx : int(np.prod(value)) + idx]  # noqa E203
+                    ),
+                    (*value, *tensor_shape),
                 )
-                .reshape(value)
-                .tolist()
             )
             idx += np.prod(value)
     if output_type is not None:
@@ -291,36 +292,27 @@ class _HFDictDataset(Sequence):
         input_data: List,
         ys: Optional[List],
         keywords: List[str],
-        batch_size: int,
     ):
         self._input_data = input_data
         self._ys = ys
-        self._bs = batch_size
         self._keys = keywords
 
     def __getitem__(self, item: int):
-        pointer = self._bs * item
+        pointer = item
         if pointer >= len(self._input_data):
             raise IndexError
-        mini_batch = self._input_data[
-            pointer : pointer + self._bs  # noqa E203
-        ]
+        mini_batch = self._input_data[pointer]
         if self._ys is not None:
-            mini_batch_y = self._ys[pointer : pointer + self._bs]  # noqa E203
+            mini_batch_y = self._ys[pointer]
         else:
             mini_batch_y = None
         return (
-            tuple(
-                torch.stack(
-                    [encoded_input[key] for encoded_input in mini_batch]
-                )
-                for key in self._keys
-            ),
+            tuple(torch.concat([mini_batch[key]]) for key in self._keys),
             mini_batch_y,
         )
 
     def __len__(self):
-        return len(self._input_data) // self._bs
+        return len(self._input_data)
 
 
 def convert_hf_model(
@@ -346,7 +338,6 @@ def convert_hf_model(
             input_data=input_data,
             ys=labels,
             keywords=list(input_example.keys()),
-            batch_size=batch_size,
         )
 
     else:
