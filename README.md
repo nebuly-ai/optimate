@@ -80,6 +80,7 @@ The **optimizer stage** leverages the following open-source projects:
 
 - [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation)
 - [Get started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started)
+- [Notebooks](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/notebooks-for-testing-nebullvm)
 - [Benchmarks](https://nebuly.gitbook.io/nebuly/nebullvm/benchmarks)
 - [Supported features and roadmap](https://nebuly.gitbook.io/nebuly/nebullvm/how-nebullvm-works/supported-features-and-roadmap)
 
@@ -118,5 +119,6 @@ Don't forget to leave a star ⭐ to support the project and happy acceleration �
 <p align="center">
 <a href="https://nebuly.gitbook.io/nebuly/nebullvm/installation">Installation</a> •
 <a href="https://nebuly.gitbook.io/nebuly/nebullvm/get-started">Get started</a> •
+<a href="https://nebuly.gitbook.io/nebuly/nebullvm/get-started/notebooks-for-testing-nebullvm">Notebooks</a> •
 <a href="https://nebuly.gitbook.io/nebuly/nebullvm/benchmarks">Benchmarks</a>
 </p>
