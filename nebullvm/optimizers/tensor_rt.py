@@ -287,7 +287,7 @@ class TensorRTOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
-    ) -> Optional[NvidiaInferenceLearner]:
+    ) -> Optional[PytorchTensorRTInferenceLearner]:
         self._log(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."

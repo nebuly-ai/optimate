@@ -10,9 +10,9 @@ import torch
 from nebullvm.api.functions import _check_input_data, _extract_info_from_data
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.torch import create_model_inputs_torch
-from nebullvm.utils.tf import create_model_inputs_tf
 from nebullvm.utils.onnx import create_model_inputs_onnx
+from nebullvm.utils.tf import create_model_inputs_tf
+from nebullvm.utils.torch import create_model_inputs_torch
 
 
 def _get_dl_framework(model: Any):
