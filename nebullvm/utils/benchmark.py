@@ -77,7 +77,7 @@ class PytorchBenchmark(BaseBenchmark):
         timings = []
         with torch.no_grad():
             for _ in tqdm(
-                range(self.n_runs),
+                range(1, self.n_runs + 1),
                 desc=f"Performing benchmark on {self.n_runs} iterations",
             ):
                 start_time = time.time()
