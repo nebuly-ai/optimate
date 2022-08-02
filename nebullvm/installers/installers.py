@@ -56,6 +56,7 @@ def install_tvm(working_dir: str = None):
 
 
 def install_bladedisc():
+    """Helper function for installing BladeDisc."""
     has_cuda = False
     if torch.cuda.is_available():
         has_cuda = True
@@ -63,6 +64,33 @@ def install_bladedisc():
     path = Path(__file__).parent
     installation_file = str(path / "install_bladedisc.sh")
     subprocess.Popen(["bash", installation_file, str(has_cuda).lower()])
+
+
+def install_torch_tensor_rt():
+    """Helper function for installing Torch-TensorRT.
+
+    The function will install the software only if a cuda driver is available.
+    """
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "Torch-TensorRT can run just on Nvidia machines. "
+            "No available cuda driver has been found."
+        )
+
+    # Verify that TensorRT is installed, otherwise install it
+    try:
+        import tensorrt  # noqa F401
+    except ImportError:
+        install_tensor_rt()
+
+    cmd = [
+        "pip3",
+        "install",
+        "torch-tensorrt",
+        "-f",
+        "https://github.com/pytorch/TensorRT/releases",
+    ]
+    subprocess.run(cmd)
 
 
 def install_tensor_rt():
