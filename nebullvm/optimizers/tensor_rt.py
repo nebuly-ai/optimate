@@ -53,9 +53,7 @@ if torch.cuda.is_available():
     try:
         import torch_tensorrt
     except ImportError:
-        # TODO: Remove the False flag for allowing Torch-TensorRT to
-        #  be installed by the Auto-Installer.
-        if False and not NO_COMPILER_INSTALLATION:
+        if not NO_COMPILER_INSTALLATION:
             from nebullvm.installers.installers import install_torch_tensor_rt
 
             warnings.warn(
