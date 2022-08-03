@@ -83,33 +83,33 @@ def install_torch_tensor_rt():
     except ImportError:
         install_tensor_rt()
 
-    # Uncomment when Torch-TensorRT v1.2 will be available
+    # Will work when Torch-TensorRT v1.2 will be available
+    cmd = [
+        "pip3",
+        "install",
+        "torch-tensorrt",
+        "-f",
+        "https://github.com/pytorch/TensorRT/releases",
+    ]
+    subprocess.run(cmd)
+
+    # # Install Torch-TensorRT from alpha wheel, works with python3.7
     # cmd = [
-    #     "pip3",
-    #     "install",
-    #     "torch-tensorrt",
-    #     "-f",
-    #     "https://github.com/pytorch/TensorRT/releases",
+    #     "wget",
+    #     "https://output.circle-artifacts.com/output/job/32d63a4c-0c"
+    #     "5d-42d0-a150-629ec1f3d376/artifacts/0/x86_64-release-pkgs/"
+    #     "torch_tensorrt-1.2.0a0-cp37-cp37m-linux_x86_64.whl",
     # ]
     # subprocess.run(cmd)
-
-    # Install Torch-TensorRT from alpha wheel
-    cmd = [
-        "wget",
-        "https://output.circle-artifacts.com/output/job/32d63a4c-0c"
-        "5d-42d0-a150-629ec1f3d376/artifacts/0/x86_64-release-pkgs/"
-        "torch_tensorrt-1.2.0a0-cp37-cp37m-linux_x86_64.whl",
-    ]
-    subprocess.run(cmd)
-
-    cmd = [
-        "pip",
-        "install",
-        "./torch_tensorrt-1.2.0a0-cp37-cp37m-linux_x86_64.whl",
-    ]
-    subprocess.run(cmd)
-
-    os.remove("./torch_tensorrt-1.2.0a0-cp37-cp37m-linux_x86_64.whl")
+    #
+    # cmd = [
+    #     "pip",
+    #     "install",
+    #     "./torch_tensorrt-1.2.0a0-cp37-cp37m-linux_x86_64.whl",
+    # ]
+    # subprocess.run(cmd)
+    #
+    # os.remove("./torch_tensorrt-1.2.0a0-cp37-cp37m-linux_x86_64.whl")
 
 
 def install_tensor_rt():
