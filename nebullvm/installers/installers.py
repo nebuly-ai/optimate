@@ -96,9 +96,11 @@ def install_torch_tensor_rt():
 
     # Install Torch-TensorRT from alpha wheel
     python_version = str(sys.version_info.major) + str(sys.version_info.minor)
-    tensor_rt_wheel = f"""torch_tensorrt-1.2.0a0-cp{python_version}-cp
-        {python_version + 'm' if python_version == '37' else python_version}
-        -linux_x86_64.whl"""
+    tensor_rt_wheel = (
+        f"torch_tensorrt-1.2.0a0-cp{python_version}-cp"
+        f"{python_version + 'm' if python_version == '37' else python_version}"
+        f"-linux_x86_64.whl"
+    )
 
     cmd = [
         "wget",
