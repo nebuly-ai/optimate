@@ -54,7 +54,7 @@ def _save_dataset(input_data: DataManager, path: Path):
 
 def _save_json(dictionary: Dict, path: Path):
     with open(path, "w") as f:
-        json.dump(dictionary, f)
+        json.dump(dictionary, f, indent=2)
 
 
 def _write_requirements_file(path: Path):

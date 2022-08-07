@@ -55,7 +55,7 @@ class FeedbackCollector:
             nebullvm_metadata = self._ask_permissions()
             NEBULLVM_METADATA_PATH.parent.mkdir(exist_ok=True)
             with open(NEBULLVM_METADATA_PATH, "w") as f:
-                json.dump(nebullvm_metadata, f)
+                json.dump(nebullvm_metadata, f, indent=2)
         self._is_active = nebullvm_metadata["allow_feedback_collection"]
         self._model_info = None
         self._model_id = None

@@ -216,7 +216,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             fout.write(serialized_engine)
         metadata = self._get_metadata(**kwargs)
         with open(path / NVIDIA_FILENAMES["metadata"], "w") as fout:
-            json.dump(metadata.to_dict(), fout)
+            json.dump(metadata.to_dict(), fout, indent=2)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):

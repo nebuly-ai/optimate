@@ -64,7 +64,7 @@ def _save_info(
         optimization_string += "_" + quantization_string
     old_dict[optimization_string] = f"{score}"
     with open(debug_file, "w") as f:
-        json.dump(old_dict, f)
+        json.dump(old_dict, f, indent=2)
 
 
 def _optimize_with_optimizer(

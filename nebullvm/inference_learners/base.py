@@ -325,7 +325,7 @@ class LearnerMetadata:
         path.mkdir(exist_ok=True)
         metadata_dict = self.to_dict()
         with open(path / self.NAME, "w") as fout:
-            json.dump(metadata_dict, fout)
+            json.dump(metadata_dict, fout, indent=2)
 
     def load_model(
         self, path: Union[Path, str], **kwargs

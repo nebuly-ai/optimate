@@ -216,7 +216,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         path.mkdir(exist_ok=True)
         metadata = self._get_metadata(**kwargs)
         with open(path / OPENVINO_FILENAMES["metadata"], "w") as fout:
-            json.dump(metadata.to_dict(), fout)
+            json.dump(metadata.to_dict(), fout, indent=2)
 
         shutil.copy(
             self.description_file,
