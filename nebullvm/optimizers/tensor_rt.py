@@ -298,30 +298,49 @@ class TensorRTOptimizer(BaseOptimizer):
                 "on a machine not connected to any GPU supporting CUDA."
             )
 
-        supported_q_types = [
-            None,
-            QuantizationType.HALF,
-        ]
-
-        if quantization_type not in supported_q_types:
-            return None
+        check_quantization(quantization_type, metric_drop_ths)
 
         dtype = torch.float32
 
-        if metric_drop_ths is not None:
-            if quantization_type is QuantizationType.HALF:
-                dtype = torch.half
+        if (
+            metric_drop_ths is not None
+            and quantization_type is QuantizationType.HALF
+        ):
+            dtype = torch.half
+        elif (
+            metric_drop_ths is not None
+            and quantization_type is QuantizationType.STATIC
+        ):
+            dtype = torch.int8
+            calibrator = TensorRTCalibrator(
+                batch_size=model_params.batch_size,
+                input_data=input_data.get_numpy_list(300, with_ys=False),
+            )
+        elif (
+            metric_drop_ths is not None
+            and quantization_type is QuantizationType.DYNAMIC
+        ):
+            return None  # Dynamic quantization is not supported on tensorRT
 
         trt_model = torch_tensorrt.compile(
             torch_model.eval(),
             inputs=[
                 torch_tensorrt.Input(
-                    (model_params.batch_size, *input_info.size), dtype=dtype
+                    (model_params.batch_size, *input_info.size),
+                    dtype=dtype if dtype != torch.int8 else torch.float,
                 )
                 for input_info in model_params.input_infos
             ],
             enabled_precisions=dtype,
+            calibrator=calibrator if dtype == torch.int8 else None,
             workspace_size=1 << 22,
+            device={
+                "device_type": torch_tensorrt.DeviceType.GPU,
+                "gpu_id": 0,
+                "dla_core": 0,
+                "allow_gpu_fallback": False,
+                "disable_tf32": False,
+            },
         )
 
         model = PytorchTensorRTInferenceLearner(
@@ -343,9 +362,7 @@ class TensorRTOptimizer(BaseOptimizer):
                     100, shuffle=True, with_ys=True
                 )
             output_data = [
-                tuple(
-                    run_torch_model(trt_model, list(tuple_), dtype=torch.half)
-                )
+                tuple(run_torch_model(trt_model, list(tuple_), dtype=dtype))
                 for tuple_ in inputs
             ]
             is_valid = check_precision(
