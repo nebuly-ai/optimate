@@ -8,7 +8,9 @@
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
-![nebullvm nebuly](https://user-images.githubusercontent.com/83510798/187256101-b557f9f8-3681-47b1-bac7-d70189c0e80a.png)
+
+![nebullvm 22 08 29-01](https://user-images.githubusercontent.com/83510798/187257757-b6faa90b-450a-4138-8536-67aa09c0fae3.png)
+
 
 
 The core `nebullvm` workflow consists of 3 steps:
