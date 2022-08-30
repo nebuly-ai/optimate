@@ -2,6 +2,7 @@ import warnings
 from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
+import torch
 
 from nebullvm.utils.onnx import convert_to_numpy
 
@@ -99,3 +100,26 @@ class DataManager:
             DataManager([self[i] for i in idx[:n]]),
             DataManager([self[i] for i in idx[n:]]),
         )
+
+
+class PytorchDataset(torch.utils.data.Dataset):
+    def __init__(self, input_data: DataManager):
+        self.data = input_data
+        self.batch_size = input_data[0][0][0].shape[0]
+        return
+
+    def __len__(self):
+        return sum(
+            [
+                d[0].shape[0]
+                for d in [
+                    [inputs for inputs in batch[0]] for batch in self.data
+                ]
+            ]
+        )
+
+    def __getitem__(self, idx):
+        batch_idx = int(idx / self.batch_size)
+        item_idx = idx % self.batch_size
+        data = tuple([data[item_idx] for data in self.data[batch_idx][0]])
+        return data

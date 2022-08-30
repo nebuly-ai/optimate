@@ -21,7 +21,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
 )
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.data import DataManager
+from nebullvm.utils.data import DataManager, PytorchDataset
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
@@ -312,9 +312,21 @@ class TensorRTOptimizer(BaseOptimizer):
             and quantization_type is QuantizationType.STATIC
         ):
             dtype = torch.int8
-            calibrator = TensorRTCalibrator(
-                batch_size=model_params.batch_size,
-                input_data=input_data.get_numpy_list(300, with_ys=False),
+
+            dataset = PytorchDataset(input_data)
+            dataloader = torch.utils.data.DataLoader(
+                dataset,
+                batch_size=dataset.batch_size,
+                shuffle=False,
+                num_workers=1,
+            )
+
+            calibrator = torch_tensorrt.ptq.DataLoaderCalibrator(
+                dataloader,
+                cache_file="./calibration.cache",
+                use_cache=False,
+                algo_type=torch_tensorrt.ptq.CalibrationAlgo.ENTROPY_CALIBRATION_2,  # noqa E501
+                device=torch.device("cuda:0"),
             )
         elif (
             metric_drop_ths is not None
