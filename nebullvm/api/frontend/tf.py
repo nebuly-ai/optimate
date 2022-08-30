@@ -362,7 +362,7 @@ def _tf_api_optimization(
                 quantization_type=quantization_type,
                 quantization_ths=quantization_ths,
                 candidate_latency=candidate_latency,
-                pipeline_name="tensorflow_pipeline",
+                pipeline_name="tensorflow",
             )
             used_compilers.append(compiler)
         except Exception as ex:
@@ -378,6 +378,6 @@ def _tf_api_optimization(
                 quantization_type=quantization_type,
                 quantization_ths=quantization_ths,
                 candidate_latency=None,
-                pipeline_name="tensorflow_pipeline",
+                pipeline_name="tensorflow",
             )
     return best_tf_opt_model, best_latency, used_compilers

@@ -578,7 +578,7 @@ class Pipeline(Step):
 
     def run(self, **kwargs) -> Dict:
         self._log_info(f"Running pipeline: {self.name}")
-        kwargs["pipeline_name"] = self.name
+        kwargs["pipeline_name"] = self.name.split("_")[0]
         for step in self._steps:
             self._log_info(f"Running step: {step.name}")
             kwargs = step.run(**kwargs)

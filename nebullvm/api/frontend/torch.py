@@ -396,7 +396,7 @@ def _torch_api_optimization(
                 quantization_type=quantization_type,
                 quantization_ths=quantization_ths,
                 candidate_latency=candidate_latency,
-                pipeline_name="pytorch_pipeline",
+                pipeline_name="pytorch",
             )
             used_compilers.append(compiler)
         except Exception as ex:
@@ -412,7 +412,7 @@ def _torch_api_optimization(
                 quantization_type=quantization_type,
                 quantization_ths=quantization_ths,
                 candidate_latency=None,
-                pipeline_name="pytorch_pipeline",
+                pipeline_name="pytorch",
             )
     return best_torch_opt_model, best_latency, used_compilers
 
