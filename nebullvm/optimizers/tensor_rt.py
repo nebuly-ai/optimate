@@ -1,6 +1,6 @@
+import warnings
 from pathlib import Path
 from typing import List, Tuple, Optional, Callable
-import warnings
 
 import numpy as np
 import torch
@@ -102,7 +102,6 @@ class TensorRTOptimizer(BaseOptimizer):
                 "Cannot call method set_memory_pool_limit for TensorRT."
                 "Please update TensorRT version."
             )
-            pass
         if quantization_type is QuantizationType.HALF:
             config.set_flag(trt.BuilderFlag.FP16)
         elif quantization_type is QuantizationType.STATIC:
@@ -323,7 +322,6 @@ class TensorRTOptimizer(BaseOptimizer):
 
             calibrator = torch_tensorrt.ptq.DataLoaderCalibrator(
                 dataloader,
-                cache_file="./calibration.cache",
                 use_cache=False,
                 algo_type=torch_tensorrt.ptq.CalibrationAlgo.ENTROPY_CALIBRATION_2,  # noqa E501
                 device=torch.device("cuda:0"),
