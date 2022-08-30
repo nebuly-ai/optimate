@@ -127,6 +127,7 @@ class FeedbackCollector:
         metric_drop_ths: Optional[float],
         latency: Optional[float],
         compression: str = None,
+        pipeline_name: str = "onnx_pipeline",
     ):
         if self._model_id is None:
             return
@@ -139,7 +140,10 @@ class FeedbackCollector:
             q_type_key = compression + "_" + q_type_key
         compiler_dict = self._latency_dict.get(compiler.value, {})
         compiler_dict[q_type_key] = latency if latency else -1.0
-        self._latency_dict[compiler.value] = compiler_dict
+        # TODO: aggiungere a compiler.value il tipo di interfaccia
+        self._latency_dict[
+            pipeline_name + "_" + compiler.value
+        ] = compiler_dict
 
     def send_feedback(self, timeout: int = 30):
         if self._model_id is None:

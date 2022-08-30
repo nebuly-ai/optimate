@@ -392,10 +392,11 @@ def _torch_api_optimization(
                 best_latency = candidate_latency
                 best_torch_opt_model = candidate_model
             FEEDBACK_COLLECTOR.store_compiler_result(
-                compiler,
-                quantization_type,
-                quantization_ths,
-                candidate_latency,
+                compiler=compiler,
+                quantization_type=quantization_type,
+                quantization_ths=quantization_ths,
+                candidate_latency=candidate_latency,
+                pipeline_name="pytorch_pipeline",
             )
             used_compilers.append(compiler)
         except Exception as ex:
@@ -407,7 +408,11 @@ def _torch_api_optimization(
                 f"for receiving assistance."
             )
             FEEDBACK_COLLECTOR.store_compiler_result(
-                compiler, quantization_type, quantization_ths, None
+                compiler=compiler,
+                quantization_type=quantization_type,
+                quantization_ths=quantization_ths,
+                candidate_latency=None,
+                pipeline_name="pytorch_pipeline",
             )
     return best_torch_opt_model, best_latency, used_compilers
 

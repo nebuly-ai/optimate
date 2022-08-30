@@ -1,3 +1,4 @@
+import os
 import warnings
 from pathlib import Path
 from typing import List, Tuple, Optional, Callable
@@ -352,6 +353,10 @@ class TensorRTOptimizer(BaseOptimizer):
                 "disable_tf32": False,
             },
         )
+
+        # Delete calibration cache
+        if os.path.exists("calibration.cache"):
+            os.remove("calibration.cache")
 
         model = PytorchTensorRTInferenceLearner(
             torch_model=trt_model,
