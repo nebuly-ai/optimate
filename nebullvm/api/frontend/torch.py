@@ -393,9 +393,9 @@ def _torch_api_optimization(
                 best_torch_opt_model = candidate_model
             FEEDBACK_COLLECTOR.store_compiler_result(
                 compiler=compiler,
-                quantization_type=quantization_type,
-                quantization_ths=quantization_ths,
-                candidate_latency=candidate_latency,
+                q_type=quantization_type,
+                metric_drop_ths=quantization_ths,
+                latency=candidate_latency,
                 pipeline_name="pytorch",
             )
             used_compilers.append(compiler)
@@ -409,9 +409,9 @@ def _torch_api_optimization(
             )
             FEEDBACK_COLLECTOR.store_compiler_result(
                 compiler=compiler,
-                quantization_type=quantization_type,
-                quantization_ths=quantization_ths,
-                candidate_latency=None,
+                q_type=quantization_type,
+                metric_drop_ths=quantization_ths,
+                latency=None,
                 pipeline_name="pytorch",
             )
     return best_torch_opt_model, best_latency, used_compilers
