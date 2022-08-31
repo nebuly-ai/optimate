@@ -95,6 +95,13 @@ def install_torch_tensor_rt():
     # subprocess.run(cmd)
 
     # Install Torch-TensorRT from alpha wheel
+    wheels_dict = {
+        "37": "1nTEk1gyOx87hapRuORik9OhjudXKvvnG",
+        "38": "1IYcMFf9eeESOsvOIZgE2E2NJ9tjRvfri",
+        "39": "15vMu3dzd3-hRUnIiIIbagvU-UJftM9i1",
+        "310": "1sVODbKNd66h0W86T9VQ6QXS1t2ZUQIdr",
+    }
+
     python_version = str(sys.version_info.major) + str(sys.version_info.minor)
     tensor_rt_wheel = (
         f"torch_tensorrt-1.2.0a0-cp{python_version}-cp"
@@ -102,13 +109,12 @@ def install_torch_tensor_rt():
         f"-linux_x86_64.whl"
     )
 
-    cmd = [
-        "wget",
-        "https://output.circle-artifacts.com/output/job/32d63a4c-0c"
-        "5d-42d0-a150-629ec1f3d376/artifacts/0/x86_64-release-pkgs/"
-        + tensor_rt_wheel,
-    ]
-    subprocess.run(cmd)
+    cmd = (
+        f"wget --no-check-certificate https://drive.google.com/uc?export="
+        f"download&id={wheels_dict[python_version]} -O {tensor_rt_wheel}"
+    )
+
+    subprocess.run(cmd.split())
 
     cmd = [
         "pip",
