@@ -47,9 +47,8 @@ def run_torch_model(
             input_tensors = (t.cuda() for t in input_tensors)
         else:
             input_tensors = (
-                t.cuda().half()
+                t.cuda().half() if t.dtype == torch.float32 else t.cuda()
                 for t in input_tensors
-                if t.dtype == torch.float32
             )
     with torch.no_grad():
         pred = torch_model(*input_tensors)
