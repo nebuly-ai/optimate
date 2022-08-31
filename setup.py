@@ -13,7 +13,7 @@ REQUIREMENTS = [
     "requests>=2.28.1",
     "tensorflow>=2.7.0",
     "tf2onnx>=1.8.4",
-    "torch>=1.10.0",
+    "torch>=1.10.0, <=1.12",
     "tqdm>=4.63.0",
 ]
 

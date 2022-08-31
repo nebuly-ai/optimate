@@ -109,21 +109,23 @@ def install_torch_tensor_rt():
         f"-linux_x86_64.whl"
     )
 
-    cmd = (
-        f"wget --no-check-certificate https://drive.google.com/uc?export="
-        f"download&id={wheels_dict[python_version]} -O {tensor_rt_wheel}"
-    )
+    wheel_id = wheels_dict.get(python_version)
+    if wheel_id is not None:
+        cmd = (
+            f"wget --no-check-certificate https://drive.google.com/uc?export="
+            f"download&id={wheel_id} -O {tensor_rt_wheel}"
+        )
 
-    subprocess.run(cmd.split())
+        subprocess.run(cmd.split())
 
-    cmd = [
-        "pip",
-        "install",
-        "./" + tensor_rt_wheel,
-    ]
-    subprocess.run(cmd)
+        cmd = [
+            "pip",
+            "install",
+            "./" + tensor_rt_wheel,
+        ]
+        subprocess.run(cmd)
 
-    os.remove("./" + tensor_rt_wheel)
+        os.remove("./" + tensor_rt_wheel)
 
 
 def install_tensor_rt():
