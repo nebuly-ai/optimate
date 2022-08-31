@@ -252,7 +252,7 @@ def optimize_tf_model(
         else:
             q_types = [None]
         torch_res = [
-            _torch_api_optimization(
+            _tf_api_optimization(
                 model,
                 model_params,
                 perf_loss_ths,
@@ -314,7 +314,7 @@ def _get_optimizers_supporting_tf_api(use_extra_compilers: bool):
     return [(ModelCompiler.TFLITE, TensorflowBackendOptimizer(logger=logger))]
 
 
-def _torch_api_optimization(
+def _tf_api_optimization(
     model: tf.Module,
     model_params: ModelParams,
     quantization_ths: float,
@@ -358,10 +358,11 @@ def _torch_api_optimization(
                 best_latency = candidate_latency
                 best_tf_opt_model = candidate_model
             FEEDBACK_COLLECTOR.store_compiler_result(
-                compiler,
-                quantization_type,
-                quantization_ths,
-                candidate_latency,
+                compiler=compiler,
+                q_type=quantization_type,
+                metric_drop_ths=quantization_ths,
+                latency=candidate_latency,
+                pipeline_name="tensorflow",
             )
             used_compilers.append(compiler)
         except Exception as ex:
@@ -373,6 +374,10 @@ def _torch_api_optimization(
                 f"for receiving assistance."
             )
             FEEDBACK_COLLECTOR.store_compiler_result(
-                compiler, quantization_type, quantization_ths, None
+                compiler=compiler,
+                q_type=quantization_type,
+                metric_drop_ths=quantization_ths,
+                latency=None,
+                pipeline_name="tensorflow",
             )
     return best_tf_opt_model, best_latency, used_compilers

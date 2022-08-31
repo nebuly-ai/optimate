@@ -127,6 +127,7 @@ class FeedbackCollector:
         metric_drop_ths: Optional[float],
         latency: Optional[float],
         compression: str = None,
+        pipeline_name: str = "onnx",
     ):
         if self._model_id is None:
             return
@@ -137,9 +138,10 @@ class FeedbackCollector:
         )
         if compression is not None and len(compression) > 0:
             q_type_key = compression + "_" + q_type_key
-        compiler_dict = self._latency_dict.get(compiler.value, {})
+        key = pipeline_name + "_" + compiler.value
+        compiler_dict = self._latency_dict.get(key, {})
         compiler_dict[q_type_key] = latency if latency else -1.0
-        self._latency_dict[compiler.value] = compiler_dict
+        self._latency_dict[key] = compiler_dict
 
     def send_feedback(self, timeout: int = 30):
         if self._model_id is None:

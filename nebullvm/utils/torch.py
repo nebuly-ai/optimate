@@ -37,11 +37,19 @@ def create_model_inputs_torch(
 
 
 def run_torch_model(
-    torch_model: torch.nn.Module, input_tensors: List[torch.Tensor]
+    torch_model: torch.nn.Module,
+    input_tensors: List[torch.Tensor],
+    dtype: torch.dtype = torch.float32,
 ) -> List[torch.Tensor]:
     if torch.cuda.is_available():
         torch_model.cuda()
-        input_tensors = (t.cuda() for t in input_tensors)
+        if dtype != torch.half:
+            input_tensors = (t.cuda() for t in input_tensors)
+        else:
+            input_tensors = (
+                t.cuda().half() if t.dtype == torch.float32 else t.cuda()
+                for t in input_tensors
+            )
     with torch.no_grad():
         pred = torch_model(*input_tensors)
     if isinstance(pred, torch.Tensor):

@@ -33,6 +33,7 @@ from nebullvm.optimizers import (
 )
 from nebullvm.optimizers.blade_disc import BladeDISCOptimizer
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
+from nebullvm.optimizers.tensor_rt import TensorRTOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.compilers import (
@@ -40,6 +41,7 @@ from nebullvm.utils.compilers import (
     select_compilers_from_hardware_onnx,
     deepsparse_is_available,
     bladedisc_is_available,
+    torch_tensorrt_is_available,
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
@@ -223,6 +225,7 @@ class OptimizerStep(Step, ABC):
         input_data: Optional[DataManager] = None,
         ignore_compilers: List[ModelCompiler] = None,
         optimization_time: OptimizationTime = None,
+        pipeline_name: str = None,
         **kwargs,
     ) -> Dict:
         """Run the OptimizerStep for all the available compilers.
@@ -249,6 +252,7 @@ class OptimizerStep(Step, ABC):
                 the different framework interfaces, even if the model has
                 already been compiled with the same compiler on another
                 framework interface.
+            pipeline_name (str): Name of the pipeline.
             kwargs (Dict): Extra keywords that will be ignored.
         """
 
@@ -306,6 +310,7 @@ class OptimizerStep(Step, ABC):
                             metric_drop_ths=metric_drop_ths,
                             latency=latency,
                             compression=prev_tech,
+                            pipeline_name=pipeline_name,
                         )
                     except Exception as ex:
                         self._log_warning(
@@ -322,6 +327,7 @@ class OptimizerStep(Step, ABC):
                             metric_drop_ths=metric_drop_ths,
                             latency=None,
                             compression=prev_tech,
+                            pipeline_name=pipeline_name,
                         )
 
         return {
@@ -384,12 +390,23 @@ class TorchOptimizerStep(OptimizerStep):
             deepsparse_is_available()
             and ModelCompiler.DEEPSPARSE not in ignore_compilers
         ):
-            optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer()
+            optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer(
+                logger=self._logger
+            )
         if (
             bladedisc_is_available()
             and ModelCompiler.BLADEDISC not in ignore_compilers
         ):
-            optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer()
+            optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer(
+                logger=self._logger
+            )
+        if (
+            torch_tensorrt_is_available()
+            and ModelCompiler.TENSOR_RT not in ignore_compilers
+        ):
+            optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer(
+                logger=self._logger
+            )
         return optimizers
 
     def _run_optimizer(
@@ -561,6 +578,7 @@ class Pipeline(Step):
 
     def run(self, **kwargs) -> Dict:
         self._log_info(f"Running pipeline: {self.name}")
+        kwargs["pipeline_name"] = self.name.split("_")[0]
         for step in self._steps:
             self._log_info(f"Running step: {step.name}")
             kwargs = step.run(**kwargs)
