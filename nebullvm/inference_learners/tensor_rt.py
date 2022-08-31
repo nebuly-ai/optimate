@@ -263,7 +263,11 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         device = input_tensors[0].device
         if torch.cuda.is_available():
             if self.dtype == torch.half:
-                input_tensors = (t.cuda().half() for t in input_tensors)
+                input_tensors = (
+                    t.cuda().half()
+                    for t in input_tensors
+                    if t.dtype == torch.float32
+                )
             else:
                 input_tensors = (t.cuda() for t in input_tensors)
 

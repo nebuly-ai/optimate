@@ -2,8 +2,8 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from nebullvm.base import DeepLearningFramework
 from nebullvm.api.huggingface import HuggingFaceInferenceLearner
+from nebullvm.base import DeepLearningFramework
 from nebullvm.optimizers.extra import HuggingFaceOptimizer
 from nebullvm.optimizers.tests.utils import get_huggingface_model
 

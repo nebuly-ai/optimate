@@ -2,13 +2,13 @@ import os
 from typing import Tuple
 
 import torch
+from transformers import AlbertModel, AlbertTokenizer
 
 from nebullvm.api.functions import _extract_info_from_data
 from nebullvm.api.huggingface import convert_hf_model
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.utils.data import DataManager
-from transformers import AlbertModel, AlbertTokenizer
 
 INPUT_SHAPE = (3, 256, 256)
 OUTPUT_SHAPE = (2,)

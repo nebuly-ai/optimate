@@ -22,11 +22,23 @@ class HalfPrecisionTransformation(BaseTransformation):
 
     def _transform(self, _input: Any, **kwargs) -> Any:
         if isinstance(_input, np.ndarray):
-            return self._transform_numpy(_input)
+            return (
+                self._transform_numpy(_input)
+                if _input.dtype == np.float32
+                else _input
+            )
         elif isinstance(_input, torch.Tensor):
-            return self._transform_torch(_input)
+            return (
+                self._transform_torch(_input)
+                if _input.dtype == torch.float32
+                else _input
+            )
         elif isinstance(_input, tf.Tensor):
-            return self._transform_tf(_input)
+            return (
+                self._transform_tf(_input)
+                if _input.dtype == tf.float32
+                else _input
+            )
         else:
             raise TypeError(
                 f"The given input type is not currently supported. "

@@ -54,17 +54,25 @@ if torch.cuda.is_available():
     try:
         import torch_tensorrt
     except ImportError:
-        # TODO: Remove the False flag for allowing Torch-TensorRT to
-        #  be installed by the Auto-Installer.
-        if False and not NO_COMPILER_INSTALLATION:
+        if not NO_COMPILER_INSTALLATION:
             from nebullvm.installers.installers import install_torch_tensor_rt
 
             warnings.warn(
                 "No Torch TensorRT valid installation has been found. "
                 "Trying to install it from source."
             )
+
             install_torch_tensor_rt()
-            import torch_tensorrt
+
+            # Wrap import inside try/except because installation
+            # may fail until wheel 1.2 will be officially out.
+            try:
+                import torch_tensorrt
+            except ImportError:
+                warnings.warn(
+                    "Unable to install Torch TensorRT on this platform. "
+                    "It won't be possible to use it in the following."
+                )
         else:
             warnings.warn(
                 "No Torch TensorRT valid installation has been found. "
