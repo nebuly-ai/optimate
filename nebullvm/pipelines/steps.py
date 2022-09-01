@@ -43,6 +43,7 @@ from nebullvm.utils.compilers import (
     bladedisc_is_available,
     torch_tensorrt_is_available,
 )
+from nebullvm.utils.compilers import selector as compiler_selector
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
@@ -379,29 +380,34 @@ class TorchOptimizerStep(OptimizerStep):
                 logger=self._logger
             ),
         }
+        compilers = compiler_selector()
         if (
-            tvm_is_available()
+            (compilers is None or ModelCompiler.APACHE_TVM.value in compilers)
+            and tvm_is_available()
             and ModelCompiler.APACHE_TVM not in ignore_compilers
         ):
             optimizers[ModelCompiler.APACHE_TVM] = ApacheTVMOptimizer(
                 logger=self._logger
             )
         if (
-            deepsparse_is_available()
+            (compilers is None or ModelCompiler.DEEPSPARSE.value in compilers)
+            and deepsparse_is_available()
             and ModelCompiler.DEEPSPARSE not in ignore_compilers
         ):
             optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer(
                 logger=self._logger
             )
         if (
-            bladedisc_is_available()
+            (compilers is None or ModelCompiler.BLADEDISC.value in compilers)
+            and bladedisc_is_available()
             and ModelCompiler.BLADEDISC not in ignore_compilers
         ):
             optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer(
                 logger=self._logger
             )
         if (
-            torch_tensorrt_is_available()
+            (compilers is None or ModelCompiler.TENSOR_RT.value in compilers)
+            and torch_tensorrt_is_available()
             and ModelCompiler.TENSOR_RT not in ignore_compilers
         ):
             optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer(

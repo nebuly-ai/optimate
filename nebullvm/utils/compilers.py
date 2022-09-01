@@ -1,7 +1,10 @@
+from typing import List
 import cpuinfo
 import torch
 
 from nebullvm.base import ModelCompiler
+
+from hyperparameter import auto_param
 
 
 def tvm_is_available() -> bool:
@@ -40,7 +43,14 @@ def deepsparse_is_available() -> bool:
         return True
 
 
+@auto_param("nebullvm.compilers")
+def selector(enabled: List[str] = None):
+    return enabled
+
+
 def select_compilers_from_hardware_onnx():
+    if selector() is not None:
+        return [x for x in ModelCompiler if x.value in selector()]
     compilers = [ModelCompiler.ONNX_RUNTIME]
     if tvm_is_available():
         compilers.append(ModelCompiler.APACHE_TVM)
