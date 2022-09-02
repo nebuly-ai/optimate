@@ -1,4 +1,3 @@
-import copy
 from abc import abstractmethod, ABC
 from pathlib import Path
 from typing import Any, List
@@ -114,7 +113,7 @@ class CrossConverter(BaseConverter):
         onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
         if isinstance(model, Module):
             convert_torch_to_onnx(
-                torch_model=copy.deepcopy(model),
+                torch_model=model,
                 model_params=model_params,
                 output_file_path=onnx_path,
                 input_data=input_data,
@@ -122,7 +121,7 @@ class CrossConverter(BaseConverter):
             return [model, str(onnx_path)]
         elif isinstance(model, tf.Module):
             convert_tf_to_onnx(
-                model=copy.deepcopy(model),
+                model=model,
                 output_file_path=onnx_path,
             )
             return [model, str(onnx_path)]

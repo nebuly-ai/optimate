@@ -7,6 +7,8 @@ import sys
 import cpuinfo
 import torch
 
+from nebullvm.utils.general import check_module_version
+
 
 def _get_cpu_arch():
     arch = cpuinfo.get_cpu_info()["arch"].lower()
@@ -76,6 +78,11 @@ def install_torch_tensor_rt():
         raise RuntimeError(
             "Torch-TensorRT can run just on Nvidia machines. "
             "No available cuda driver has been found."
+        )
+    elif not check_module_version(torch, min_version="1.12.0"):
+        raise RuntimeError(
+            "Torch-TensorRT can be installed only from Pytorch 1.12. "
+            "Please update your Pytorch version."
         )
 
     # Verify that TensorRT is installed, otherwise install it

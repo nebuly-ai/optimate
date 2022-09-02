@@ -23,6 +23,7 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager, PytorchDataset
+from nebullvm.utils.general import check_module_version
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
@@ -51,33 +52,41 @@ if torch.cuda.is_available():
                 "No TensorRT valid installation has been found. "
                 "It won't be possible to use it in the following."
             )
-    try:
-        import torch_tensorrt
-    except ImportError:
-        if not NO_COMPILER_INSTALLATION:
-            from nebullvm.installers.installers import install_torch_tensor_rt
+    if check_module_version(torch, min_version="1.12.0"):
+        try:
+            import torch_tensorrt
+        except ImportError:
+            if not NO_COMPILER_INSTALLATION:
+                from nebullvm.installers.installers import (
+                    install_torch_tensor_rt,
+                )
 
-            warnings.warn(
-                "No Torch TensorRT valid installation has been found. "
-                "Trying to install it from source."
-            )
-
-            install_torch_tensor_rt()
-
-            # Wrap import inside try/except because installation
-            # may fail until wheel 1.2 will be officially out.
-            try:
-                import torch_tensorrt
-            except ImportError:
                 warnings.warn(
-                    "Unable to install Torch TensorRT on this platform. "
+                    "No Torch TensorRT valid installation has been found. "
+                    "Trying to install it from source."
+                )
+
+                install_torch_tensor_rt()
+
+                # Wrap import inside try/except because installation
+                # may fail until wheel 1.2 will be officially out.
+                try:
+                    import torch_tensorrt
+                except ImportError:
+                    warnings.warn(
+                        "Unable to install Torch TensorRT on this platform. "
+                        "It won't be possible to use it in the following."
+                    )
+            else:
+                warnings.warn(
+                    "No Torch TensorRT valid installation has been found. "
                     "It won't be possible to use it in the following."
                 )
-        else:
-            warnings.warn(
-                "No Torch TensorRT valid installation has been found. "
-                "It won't be possible to use it in the following."
-            )
+    else:
+        warnings.warn(
+            "Torch-TensorRT can be installed only from Pytorch 1.12. "
+            "Please update your Pytorch version."
+        )
 
 
 class TensorRTOptimizer(BaseOptimizer):
