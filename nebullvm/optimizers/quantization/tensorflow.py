@@ -1,11 +1,10 @@
 import os.path
 from typing import List, Tuple
 
-import tensorflow as tf
-
 from nebullvm.base import QuantizationType
 from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 def _quantize_dynamic(model: tf.Module):

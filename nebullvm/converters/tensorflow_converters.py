@@ -3,11 +3,10 @@ import subprocess
 from tempfile import TemporaryDirectory
 from typing import Union
 
-import tensorflow as tf
-import tf2onnx
-
 from nebullvm.base import ModelParams, DataType
 from nebullvm.config import ONNX_OPSET_VERSION
+from nebullvm.utils.optional_modules import tensorflow as tf
+from nebullvm.utils.optional_modules import tf2onnx
 
 
 def convert_tf_to_onnx(

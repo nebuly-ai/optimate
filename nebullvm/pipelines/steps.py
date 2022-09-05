@@ -6,7 +6,6 @@ from typing import Dict, List, Any, Callable, Tuple, Optional
 
 import cpuinfo
 import numpy as np
-import tensorflow as tf
 import torch.nn
 from tqdm import tqdm
 
@@ -45,6 +44,7 @@ from nebullvm.utils.compilers import (
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 class Step(ABC):
@@ -374,11 +374,11 @@ class TorchOptimizerStep(OptimizerStep):
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler]
     ) -> Dict[ModelCompiler, BaseOptimizer]:
-        optimizers = {
-            ModelCompiler.TORCHSCRIPT: PytorchBackendOptimizer(
+        optimizers = dict()
+        if ModelCompiler.TORCHSCRIPT not in ignore_compilers:
+            optimizers[ModelCompiler.TORCHSCRIPT] = PytorchBackendOptimizer(
                 logger=self._logger
-            ),
-        }
+            )
         if (
             tvm_is_available()
             and ModelCompiler.APACHE_TVM not in ignore_compilers
@@ -462,11 +462,11 @@ class TFOptimizerStep(OptimizerStep):
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler]
     ) -> Dict[ModelCompiler, BaseOptimizer]:
-        optimizers = {
-            ModelCompiler.TFLITE: TensorflowBackendOptimizer(
+        optimizers = dict()
+        if ModelCompiler.TFLITE not in ignore_compilers:
+            optimizers[ModelCompiler.TFLITE] = TensorflowBackendOptimizer(
                 logger=self._logger
             )
-        }
         return optimizers
 
     def _run_optimizer(
@@ -613,7 +613,7 @@ def _get_optimizer_step(
 ) -> Step:
     if isinstance(model, torch.nn.Module):
         return TorchOptimizerStep(logger=logger)
-    elif isinstance(model, tf.Module):
+    elif isinstance(model, tf.Module) and tf.Module != object:
         return TFOptimizerStep(logger=logger)
     else:
         return OnnxOptimizerStep(logger=logger)
@@ -622,7 +622,7 @@ def _get_optimizer_step(
 def _get_pipeline_name(model: Any):
     if isinstance(model, torch.nn.Module):
         return "pytorch_pipeline"
-    elif isinstance(model, tf.Module):
+    elif isinstance(model, tf.Module) and tf.Module != object:
         return "tensorflow_pipeline"
     else:
         return "onnx_pipeline"

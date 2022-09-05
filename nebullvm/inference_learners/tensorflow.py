@@ -2,14 +2,13 @@ import shutil
 from pathlib import Path
 from typing import Tuple, Union, Dict, Type
 
-import tensorflow as tf
-
 from nebullvm.base import ModelParams
 from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
 from nebullvm.inference_learners import (
     TensorflowBaseInferenceLearner,
     LearnerMetadata,
 )
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):

@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
@@ -22,6 +21,7 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 try:
     import tvm

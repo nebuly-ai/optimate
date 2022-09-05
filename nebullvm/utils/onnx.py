@@ -2,16 +2,16 @@ from typing import List, Tuple, Any
 
 import numpy as np
 import onnx
-import tensorflow as tf
 import torch
 
 from nebullvm.base import InputInfo, DataType, DeepLearningFramework
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 def convert_to_numpy(tensor: Any):
     if isinstance(tensor, torch.Tensor):
         tensor = tensor.cpu().detach().numpy()
-    elif isinstance(tensor, tf.Tensor):
+    elif isinstance(tensor, tf.Tensor) and tf.Tensor != object:
         tensor = tensor.numpy()
     elif isinstance(tensor, int):
         tensor = np.array([tensor])

@@ -6,7 +6,6 @@ from tempfile import TemporaryDirectory
 from typing import List, Tuple, Union, Dict, Optional, Callable, Any
 
 import numpy as np
-import tensorflow as tf
 from tqdm import tqdm
 
 from nebullvm.api.utils import (
@@ -35,6 +34,7 @@ from nebullvm.utils.tf import (
     run_tf_model,
 )
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 logging.basicConfig(
     format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"

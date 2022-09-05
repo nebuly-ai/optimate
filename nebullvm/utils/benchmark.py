@@ -4,13 +4,13 @@ from tqdm import tqdm
 from typing import Any, Dict, Type
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from nebullvm.api.functions import _check_input_data, _extract_info_from_data
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import create_model_inputs_onnx
+from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import create_model_inputs_tf
 from nebullvm.utils.torch import create_model_inputs_torch
 
@@ -18,7 +18,9 @@ from nebullvm.utils.torch import create_model_inputs_torch
 def _get_dl_framework(model: Any):
     if isinstance(model, torch.nn.Module) or str(model).startswith("Pytorch"):
         return DeepLearningFramework.PYTORCH
-    elif isinstance(model, tf.Module) or str(model).startswith("Tensorflow"):
+    elif (isinstance(model, tf.Module) and tf.Module != object) or str(
+        model
+    ).startswith("Tensorflow"):
         return DeepLearningFramework.TENSORFLOW
     elif isinstance(model, str) or str(model).startswith("Numpy"):
         return DeepLearningFramework.NUMPY

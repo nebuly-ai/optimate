@@ -1,10 +1,10 @@
 from typing import Any
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from nebullvm.transformations.base import BaseTransformation
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 class HalfPrecisionTransformation(BaseTransformation):
@@ -33,7 +33,7 @@ class HalfPrecisionTransformation(BaseTransformation):
                 if _input.dtype == torch.float32
                 else _input
             )
-        elif isinstance(_input, tf.Tensor):
+        elif isinstance(_input, tf.Tensor) and tf.Tensor != object:
             return (
                 self._transform_tf(_input)
                 if _input.dtype == tf.float32

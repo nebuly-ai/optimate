@@ -2,7 +2,6 @@ from abc import abstractmethod, ABC
 from pathlib import Path
 from typing import Any, List
 
-import tensorflow as tf
 from torch.nn import Module
 
 from nebullvm.base import ModelParams
@@ -12,6 +11,7 @@ from nebullvm.converters.tensorflow_converters import (
 )
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 class BaseConverter(ABC):
@@ -77,13 +77,13 @@ class ONNXConverter(BaseConverter):
                 input_data=input_data,
             )
             return save_path / onnx_name
-        elif isinstance(model, tf.Module):
+        elif isinstance(model, tf.Module) and tf.Module != object:
             convert_tf_to_onnx(
                 model=model,
                 output_file_path=save_path / onnx_name,
             )
             return save_path / onnx_name
-        elif isinstance(model, tf.keras.Model):
+        elif isinstance(model, tf.keras.Model) and tf.keras.Model != object:
             convert_keras_to_onnx(
                 model=model,
                 model_params=model_params,
@@ -119,7 +119,7 @@ class CrossConverter(BaseConverter):
                 input_data=input_data,
             )
             return [model, str(onnx_path)]
-        elif isinstance(model, tf.Module):
+        elif isinstance(model, tf.Module) and tf.Module != object:
             convert_tf_to_onnx(
                 model=model,
                 output_file_path=onnx_path,

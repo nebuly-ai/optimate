@@ -135,6 +135,16 @@ def install_torch_tensor_rt():
         os.remove("./" + tensor_rt_wheel)
 
 
+def install_tf2onnx():
+    cmd = ["pip3", "install", "tf2onnx>=1.8.4"]
+    subprocess.run(cmd)
+
+
+def install_tensorflow():
+    cmd = ["pip3", "install", "tensorflow>=2.7.0"]
+    subprocess.run(cmd)
+
+
 def install_tensor_rt():
     """Helper function for installing TensorRT.
 
