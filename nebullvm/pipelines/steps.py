@@ -594,12 +594,11 @@ def _get_compressor_step(
     optimization_time: OptimizationTime,
     config_file: Optional[str],
     metric_drop_ths: Optional[float],
-    metric: Optional[Callable],
     logger: Optional[Logger],
 ) -> Step:
     if optimization_time is OptimizationTime.CONSTRAINED:
         return NoCompressionStep(logger=logger)
-    if metric_drop_ths is None or metric is None:
+    if metric_drop_ths is None:
         return NoCompressionStep(logger=logger)
     elif isinstance(model, torch.nn.Module):
         return TorchCompressorStep(config_file=config_file, logger=logger)
@@ -632,7 +631,6 @@ def build_pipeline_from_model(
     model: Any,
     optimization_time: OptimizationTime,
     metric_drop_ths: Optional[float],
-    metric: Optional[Callable],
     config_file: Optional[str],
     logger: Logger = None,
 ) -> Pipeline:
@@ -659,7 +657,7 @@ def build_pipeline_from_model(
         logger (Logger, optional): Logger defined by the user.
     """
     compressor_step = _get_compressor_step(
-        model, optimization_time, config_file, metric_drop_ths, metric, logger
+        model, optimization_time, config_file, metric_drop_ths, logger
     )
     optimizer_step = _get_optimizer_step(model, logger)
     pipeline = Pipeline(
