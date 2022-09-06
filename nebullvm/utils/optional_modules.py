@@ -5,12 +5,12 @@ from nebullvm.utils.general import check_module_version
 
 
 class Keras:
-    Model = object
+    Model = None
 
 
 class Tensorflow:
-    Module = object
-    Tensor = object
+    Module = None
+    Tensor = None
     keras = Keras()
 
     @staticmethod

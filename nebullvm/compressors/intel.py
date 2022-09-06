@@ -22,7 +22,7 @@ except ImportError:
 def _get_model_framework(model: Any) -> str:
     if isinstance(model, torch.nn.Module):
         return "torch"
-    elif isinstance(model, tf.Module) and tf.Module != object:
+    elif isinstance(model, tf.Module) and model is not None:
         return "tensorflow"
     else:
         return "numpy"

@@ -613,7 +613,7 @@ def _get_optimizer_step(
 ) -> Step:
     if isinstance(model, torch.nn.Module):
         return TorchOptimizerStep(logger=logger)
-    elif isinstance(model, tf.Module) and tf.Module != object:
+    elif isinstance(model, tf.Module) and model is not None:
         return TFOptimizerStep(logger=logger)
     else:
         return OnnxOptimizerStep(logger=logger)
@@ -622,7 +622,7 @@ def _get_optimizer_step(
 def _get_pipeline_name(model: Any):
     if isinstance(model, torch.nn.Module):
         return "pytorch_pipeline"
-    elif isinstance(model, tf.Module) and tf.Module != object:
+    elif isinstance(model, tf.Module) and model is not None:
         return "tensorflow_pipeline"
     else:
         return "onnx_pipeline"

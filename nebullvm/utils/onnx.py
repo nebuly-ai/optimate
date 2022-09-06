@@ -11,7 +11,7 @@ from nebullvm.utils.optional_modules import tensorflow as tf
 def convert_to_numpy(tensor: Any):
     if isinstance(tensor, torch.Tensor):
         tensor = tensor.cpu().detach().numpy()
-    elif isinstance(tensor, tf.Tensor) and tf.Tensor != object:
+    elif isinstance(tensor, tf.Tensor) and tensor is not None:
         tensor = tensor.numpy()
     elif isinstance(tensor, int):
         tensor = np.array([tensor])

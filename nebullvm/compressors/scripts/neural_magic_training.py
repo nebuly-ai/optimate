@@ -288,7 +288,7 @@ def _load_model(model_file: str):
         module_file = path / "module.py"
         with open(module_file, "r") as f:
             module_str = f.read()
-        exec(module_str)
+        exec(module_str, globals())
         model = eval("NebullvmFxModule")()
         model.load_state_dict(torch.load(path / "state_dict.pt"))
     else:
@@ -304,6 +304,7 @@ def _train_model(
     training_epochs: int = 10,
     lr: float = 1e-3,
     momentum: float = 0.9,
+    loss_fn: str = "CrossEntropy",
 ):
     batch_size = train_data[0][0][0].shape[0]
     with TemporaryDirectory() as tmp_dir:

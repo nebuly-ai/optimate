@@ -33,7 +33,7 @@ class HalfPrecisionTransformation(BaseTransformation):
                 if _input.dtype == torch.float32
                 else _input
             )
-        elif isinstance(_input, tf.Tensor) and tf.Tensor != object:
+        elif isinstance(_input, tf.Tensor) and _input is not None:
             return (
                 self._transform_tf(_input)
                 if _input.dtype == tf.float32

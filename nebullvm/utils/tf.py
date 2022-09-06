@@ -8,7 +8,7 @@ def get_outputs_sizes_tf(
     tf_model: Union[tf.Module, tf.keras.Model], input_tensors: List[tf.Tensor]
 ) -> List[Tuple[int, ...]]:
     outputs = tf_model(*input_tensors)
-    if isinstance(outputs, tf.Tensor) and tf.Tensor != object:
+    if isinstance(outputs, tf.Tensor) and outputs is not None:
         return [tuple(outputs.shape)]
     return [tuple(x.shape) for x in outputs]
 
@@ -33,6 +33,6 @@ def run_tf_model(
     model: tf.Module, input_tensors: Tuple[tf.Tensor]
 ) -> Tuple[tf.Tensor]:
     pred = model.predict(*input_tensors)
-    if isinstance(pred, tf.Module) and tf.Module != object:
+    if isinstance(pred, tf.Module) and pred is not None:
         pred = (pred,)
     return pred

@@ -37,7 +37,7 @@ logger.setLevel(logging.INFO)
 def _get_dl_framework(model: Any):
     if isinstance(model, torch.nn.Module):
         return DeepLearningFramework.PYTORCH
-    elif isinstance(model, tf.Module) and tf.Module != object:
+    elif isinstance(model, tf.Module) and model is not None:
         return DeepLearningFramework.TENSORFLOW
     elif isinstance(model, str):
         return DeepLearningFramework.NUMPY

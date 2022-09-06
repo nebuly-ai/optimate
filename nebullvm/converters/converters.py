@@ -77,13 +77,13 @@ class ONNXConverter(BaseConverter):
                 input_data=input_data,
             )
             return save_path / onnx_name
-        elif isinstance(model, tf.Module) and tf.Module != object:
+        elif isinstance(model, tf.Module) and model is not None:
             convert_tf_to_onnx(
                 model=model,
                 output_file_path=save_path / onnx_name,
             )
             return save_path / onnx_name
-        elif isinstance(model, tf.keras.Model) and tf.keras.Model != object:
+        elif isinstance(model, tf.keras.Model) and model is not None:
             convert_keras_to_onnx(
                 model=model,
                 model_params=model_params,
@@ -119,7 +119,7 @@ class CrossConverter(BaseConverter):
                 input_data=input_data,
             )
             return [model, str(onnx_path)]
-        elif isinstance(model, tf.Module) and tf.Module != object:
+        elif isinstance(model, tf.Module) and model is not None:
             convert_tf_to_onnx(
                 model=model,
                 output_file_path=onnx_path,
