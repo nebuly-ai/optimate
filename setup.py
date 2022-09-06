@@ -11,7 +11,7 @@ REQUIREMENTS = [
     "PyYAML>=6.0",
     "psutil>=5.9.0",
     "requests>=2.28.1",
-    "torch>=1.10.0, <=1.12",
+    "torch>=1.10.0",
     "tqdm>=4.63.0",
     "packaging>=21.3",
 ]
