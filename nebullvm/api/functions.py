@@ -199,7 +199,7 @@ def optimize_model(
     FEEDBACK_COLLECTOR.start_collection(model, framework=dl_framework)
     if metric_drop_ths is not None and metric_drop_ths <= 0:
         metric_drop_ths = None
-    elif metric_drop_ths is not None:
+    elif metric_drop_ths is not None and metric is None:
         metric = "numeric_precision"
     if isinstance(metric, str):
         metric = QUANTIZATION_METRIC_MAP.get(metric)
