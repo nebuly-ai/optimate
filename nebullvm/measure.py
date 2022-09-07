@@ -3,11 +3,11 @@ import time
 from typing import Tuple, List, Union, Any
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.utils.onnx import convert_to_numpy
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 def compute_torch_latency(

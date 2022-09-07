@@ -1,8 +1,6 @@
 from tempfile import TemporaryDirectory
 from typing import Callable, Optional
 
-import tensorflow as tf
-
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
@@ -17,6 +15,7 @@ from nebullvm.optimizers.quantization.utils import (
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import convert_to_target_framework
+from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import create_model_inputs_tf, run_tf_model
 
 

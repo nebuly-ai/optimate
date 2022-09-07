@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
@@ -23,6 +22,8 @@ from nebullvm.inference_learners.base import (
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.optional_modules import tensorflow as tf
+
 
 if torch.cuda.is_available():
     try:

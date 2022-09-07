@@ -6,7 +6,6 @@ from typing import Dict, List, Any, Callable, Tuple, Optional
 
 import cpuinfo
 import numpy as np
-import tensorflow as tf
 import torch.nn
 from tqdm import tqdm
 
@@ -45,6 +44,7 @@ from nebullvm.utils.compilers import (
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 class Step(ABC):
@@ -374,11 +374,11 @@ class TorchOptimizerStep(OptimizerStep):
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler]
     ) -> Dict[ModelCompiler, BaseOptimizer]:
-        optimizers = {
-            ModelCompiler.TORCHSCRIPT: PytorchBackendOptimizer(
+        optimizers = {}
+        if ModelCompiler.TORCHSCRIPT not in ignore_compilers:
+            optimizers[ModelCompiler.TORCHSCRIPT] = PytorchBackendOptimizer(
                 logger=self._logger
-            ),
-        }
+            )
         if (
             tvm_is_available()
             and ModelCompiler.APACHE_TVM not in ignore_compilers
@@ -462,11 +462,11 @@ class TFOptimizerStep(OptimizerStep):
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler]
     ) -> Dict[ModelCompiler, BaseOptimizer]:
-        optimizers = {
-            ModelCompiler.TFLITE: TensorflowBackendOptimizer(
+        optimizers = {}
+        if ModelCompiler.TFLITE not in ignore_compilers:
+            optimizers[ModelCompiler.TFLITE] = TensorflowBackendOptimizer(
                 logger=self._logger
             )
-        }
         return optimizers
 
     def _run_optimizer(
@@ -594,12 +594,11 @@ def _get_compressor_step(
     optimization_time: OptimizationTime,
     config_file: Optional[str],
     metric_drop_ths: Optional[float],
-    metric: Optional[Callable],
     logger: Optional[Logger],
 ) -> Step:
     if optimization_time is OptimizationTime.CONSTRAINED:
         return NoCompressionStep(logger=logger)
-    if metric_drop_ths is None or metric is None:
+    if metric_drop_ths is None:
         return NoCompressionStep(logger=logger)
     elif isinstance(model, torch.nn.Module):
         return TorchCompressorStep(config_file=config_file, logger=logger)
@@ -613,7 +612,7 @@ def _get_optimizer_step(
 ) -> Step:
     if isinstance(model, torch.nn.Module):
         return TorchOptimizerStep(logger=logger)
-    elif isinstance(model, tf.Module):
+    elif isinstance(model, tf.Module) and model is not None:
         return TFOptimizerStep(logger=logger)
     else:
         return OnnxOptimizerStep(logger=logger)
@@ -622,7 +621,7 @@ def _get_optimizer_step(
 def _get_pipeline_name(model: Any):
     if isinstance(model, torch.nn.Module):
         return "pytorch_pipeline"
-    elif isinstance(model, tf.Module):
+    elif isinstance(model, tf.Module) and model is not None:
         return "tensorflow_pipeline"
     else:
         return "onnx_pipeline"
@@ -632,7 +631,6 @@ def build_pipeline_from_model(
     model: Any,
     optimization_time: OptimizationTime,
     metric_drop_ths: Optional[float],
-    metric: Optional[Callable],
     config_file: Optional[str],
     logger: Logger = None,
 ) -> Pipeline:
@@ -659,7 +657,7 @@ def build_pipeline_from_model(
         logger (Logger, optional): Logger defined by the user.
     """
     compressor_step = _get_compressor_step(
-        model, optimization_time, config_file, metric_drop_ths, metric, logger
+        model, optimization_time, config_file, metric_drop_ths, logger
     )
     optimizer_step = _get_optimizer_step(model, logger)
     pipeline = Pipeline(

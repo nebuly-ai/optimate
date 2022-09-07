@@ -3,7 +3,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Iterable, Sequence, Union, Dict, Callable, List
 
-import tensorflow as tf
 import torch.nn
 
 from nebullvm.api.frontend.onnx import extract_info_from_np_data
@@ -23,6 +22,7 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.utils.onnx import get_output_sizes_onnx
+from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import get_outputs_sizes_tf
 from nebullvm.utils.torch import get_outputs_sizes_torch
 
@@ -37,7 +37,7 @@ logger.setLevel(logging.INFO)
 def _get_dl_framework(model: Any):
     if isinstance(model, torch.nn.Module):
         return DeepLearningFramework.PYTORCH
-    elif isinstance(model, tf.Module):
+    elif isinstance(model, tf.Module) and model is not None:
         return DeepLearningFramework.TENSORFLOW
     elif isinstance(model, str):
         return DeepLearningFramework.NUMPY
@@ -199,6 +199,8 @@ def optimize_model(
     FEEDBACK_COLLECTOR.start_collection(model, framework=dl_framework)
     if metric_drop_ths is not None and metric_drop_ths <= 0:
         metric_drop_ths = None
+    elif metric_drop_ths is not None and metric is None:
+        metric = "numeric_precision"
     if isinstance(metric, str):
         metric = QUANTIZATION_METRIC_MAP.get(metric)
     needs_conversion_to_hf = False
@@ -239,7 +241,6 @@ def optimize_model(
                 model,
                 optimization_time,
                 metric_drop_ths,
-                metric,
                 config_file,
                 logger=logger,
             )

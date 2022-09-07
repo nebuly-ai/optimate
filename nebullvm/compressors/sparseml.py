@@ -23,7 +23,7 @@ def _load_with_torch_fx(path: Path):
     module_file = path / "module.py"
     with open(module_file, "r") as f:
         module_str = f.read()
-    exec(module_str)
+    exec(module_str, globals())
     model = eval(FX_MODULE_NAME)()
     model.load_state_dict(torch.load(path / "pruned_state_dict.pt"))
     return model

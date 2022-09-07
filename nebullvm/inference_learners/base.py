@@ -8,13 +8,13 @@ from tempfile import mkdtemp
 from typing import Union, Dict, Any, List, Optional
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from nebullvm.base import ModelParams
 from nebullvm.config import LEARNER_METADATA_FILENAME
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import create_model_inputs_onnx
+from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import create_model_inputs_tf
 from nebullvm.utils.torch import create_model_inputs_torch
 
@@ -48,7 +48,7 @@ class BaseInferenceLearner(ABC):
                 shutil.rmtree(str(self._tmp_folder))
             return shutil.copytree(str(dir_path), str(self._tmp_folder))
 
-    def __del__(self):
+    def __del__(self, shutil=shutil):
         shutil.rmtree(self._tmp_folder, ignore_errors=True)
 
     def predict_from_files(

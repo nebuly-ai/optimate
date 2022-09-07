@@ -8,7 +8,6 @@ from typing import Union, List, Generator, Tuple, Dict, Type
 import cpuinfo
 import numpy as np
 import onnx
-import tensorflow as tf
 import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
@@ -25,6 +24,7 @@ from nebullvm.inference_learners.base import (
     NumpyBaseInferenceLearner,
 )
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 try:
     import onnxruntime as ort

@@ -5,13 +5,13 @@ from tempfile import mkdtemp
 from typing import Dict, Any, Callable, Optional, Tuple
 
 import numpy as np
-import tensorflow as tf
 import torch.nn
 import yaml
 from torch.utils.data import DataLoader, Dataset
 
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.optional_modules import tensorflow as tf
 
 try:
     from neural_compressor.experimental import Pruning
@@ -22,7 +22,7 @@ except ImportError:
 def _get_model_framework(model: Any) -> str:
     if isinstance(model, torch.nn.Module):
         return "torch"
-    elif isinstance(model, tf.Module):
+    elif isinstance(model, tf.Module) and model is not None:
         return "tensorflow"
     else:
         return "numpy"

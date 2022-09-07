@@ -127,7 +127,7 @@ def _convert_to_half_precision(
 ):
     model_path = Path(model_path)
     model_quant = model_path.parent / (model_path.stem + "_fp16.onnx")
-    new_onnx_model = convert_float_to_float16_model_path(model_path)
+    new_onnx_model = convert_float_to_float16_model_path(str(model_path))
     input_tfms.append(HalfPrecisionTransformation())
     onnx.save(new_onnx_model, str(model_quant))
     return str(model_quant), input_tfms

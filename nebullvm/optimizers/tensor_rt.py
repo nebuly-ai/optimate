@@ -271,7 +271,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 inputs = [learner.get_inputs_example()]
                 ys = None
             else:
-                inputs, ys = input_data.get_numpy_list(
+                inputs, ys = input_data.get_list(
                     100, shuffle=True, with_ys=True
                 )
             output_data = [
