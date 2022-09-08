@@ -3,14 +3,16 @@ import warnings
 from nebullvm.installers.installers import install_tf2onnx, install_tensorflow
 from nebullvm.utils.general import check_module_version
 
+NoneType = type(None)
+
 
 class Keras:
-    Model = None
+    Model = NoneType
 
 
 class Tensorflow:
-    Module = None
-    Tensor = None
+    Module = NoneType
+    Tensor = NoneType
     keras = Keras()
 
     @staticmethod
