@@ -335,7 +335,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 dataset,
                 batch_size=dataset.batch_size,
                 shuffle=False,
-                num_workers=1,
+                num_workers=0,
             )
 
             calibrator = torch_tensorrt.ptq.DataLoaderCalibrator(
