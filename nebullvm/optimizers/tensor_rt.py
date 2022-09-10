@@ -352,13 +352,12 @@ class TensorRTOptimizer(BaseOptimizer):
 
         try:
             torch.jit.script(torch_model.eval())
+            model = torch_model
         except Exception:
-            torch_model = torch.jit.trace(
-                torch_model, input_data.get_list(1)[0]
-            )
+            model = torch.jit.trace(torch_model, input_data.get_list(1)[0])
 
         trt_model = torch_tensorrt.compile(
-            torch_model.eval(),
+            model.eval(),
             inputs=[
                 torch_tensorrt.Input(
                     (model_params.batch_size, *input_info.size),
