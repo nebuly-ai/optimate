@@ -350,6 +350,13 @@ class TensorRTOptimizer(BaseOptimizer):
         ):
             return None  # Dynamic quantization is not supported on tensorRT
 
+        try:
+            torch.jit.script(torch_model.eval())
+        except Exception:
+            torch_model = torch.jit.trace(
+                torch_model, input_data.get_list(1)[0]
+            )
+
         trt_model = torch_tensorrt.compile(
             torch_model.eval(),
             inputs=[
