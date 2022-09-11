@@ -358,7 +358,7 @@ def convert_hf_model(
             tokenizer=tokenizer,
             tokenizer_args=tokenizer_args,
         )
-        input_example = tokenizer(input_data)
+        input_example = tokenizer(input_data, **tokenizer_args)
         input_data = _HFTextDataset(
             input_texts=input_data,
             ys=ys,

@@ -1,4 +1,6 @@
 import json
+import logging
+from logging import Logger
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Tuple, Optional, Dict
@@ -29,10 +31,19 @@ def _load_with_torch_fx(path: Path):
     return model
 
 
-def _save_model(model: torch.nn.Module, path: Path):
+def _save_model(model: torch.nn.Module, path: Path, logger: Logger = None):
     try:
         _save_with_torch_fx(model, path)
-    except Exception:
+    except Exception as ex:
+        message = (
+            f"Got an error while exporting with TorchFX. The model will be "
+            f"saved using the standard PyTorch save pickling method. Error "
+            f"got: {ex}"
+        )
+        if logger is None:
+            logging.warning(message)
+        else:
+            logger.warning(message)
         torch.save(model, path / "model.pt")
         return path / "model.pt"
     else:
