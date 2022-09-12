@@ -335,7 +335,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 dataset,
                 batch_size=dataset.batch_size,
                 shuffle=False,
-                num_workers=1,
+                num_workers=0,
             )
 
             calibrator = torch_tensorrt.ptq.DataLoaderCalibrator(
@@ -350,8 +350,14 @@ class TensorRTOptimizer(BaseOptimizer):
         ):
             return None  # Dynamic quantization is not supported on tensorRT
 
+        try:
+            torch.jit.script(torch_model.eval())
+            model = torch_model
+        except Exception:
+            model = torch.jit.trace(torch_model, input_data.get_list(1)[0])
+
         trt_model = torch_tensorrt.compile(
-            torch_model.eval(),
+            model.eval(),
             inputs=[
                 torch_tensorrt.Input(
                     (model_params.batch_size, *input_info.size),
