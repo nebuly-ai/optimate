@@ -96,7 +96,7 @@ def _get_quantization_type_for_static() -> Tuple[QuantType, QuantType]:
             activation_type = weight_type = QuantType.QUInt8
     else:
         activation_type = QuantType.QUInt8
-        weight_type = QuantType.QInt8
+        weight_type = QuantType.QUInt8
     return activation_type, weight_type
 
 

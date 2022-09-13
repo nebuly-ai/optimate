@@ -32,6 +32,9 @@ CUDA_PROVIDERS = [
     "CUDAExecutionProvider",
     "CPUExecutionProvider",
 ]
+CPU_PROVIDER = [
+    "CPUExecutionProvider",
+]
 
 OPENVINO_FILENAMES = {
     "metadata": LEARNER_METADATA_FILENAME,

@@ -104,6 +104,7 @@ class CompressorStep(Step, ABC):
         input_data: DataManager = None,
         metric_drop_ths: float = None,
         metric: Callable = None,
+        ignore_compilers: List[ModelCompiler] = None,
         **kwargs,
     ) -> Dict:
         """Run the CompressorStep.
@@ -120,7 +121,7 @@ class CompressorStep(Step, ABC):
                 due to the compression.
             kwargs (Dict): Keyword arguments propagated to the next step.
         """
-        compressor_dict = self._get_compressors()
+        compressor_dict = self._get_compressors(ignore_compilers)
         self._log_info(f"Compressions: {tuple(compressor_dict.keys())}")
         models = {"no_compression": (copy.deepcopy(model), metric_drop_ths)}
         train_input_data, eval_input_data = input_data.split(0.8)
@@ -145,11 +146,12 @@ class CompressorStep(Step, ABC):
             "models": models,
             "input_data": eval_input_data,
             "metric": metric,
+            "ignore_compilers": ignore_compilers,
             **kwargs,
         }
 
     @abstractmethod
-    def _get_compressors(self) -> Dict[str, BaseCompressor]:
+    def _get_compressors(self, ignore_compilers) -> Dict[str, BaseCompressor]:
         raise NotImplementedError()
 
     @property
@@ -174,10 +176,17 @@ class TorchCompressorStep(CompressorStep):
         logger (Logger, optional): Logger defined by the user.
     """
 
-    def _get_compressors(self) -> Dict[str, BaseCompressor]:
-        compressors = {
-            "sparseml": SparseMLCompressor(config_file=self._config_file)
-        }
+    def _get_compressors(self, ignore_compilers) -> Dict[str, BaseCompressor]:
+        compressors = {}
+
+        if (
+            deepsparse_is_available()
+            and ModelCompiler.DEEPSPARSE not in ignore_compilers
+        ):
+            compressors["sparseml"] = SparseMLCompressor(
+                config_file=self._config_file
+            )
+
         # TODO: Reactivate the intel-neural-compressor when properly tested
         if False and "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
             compressors["intel_pruning"] = TorchIntelPruningCompressor(
