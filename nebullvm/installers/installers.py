@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 from pathlib import Path
+import sys
 
 import cpuinfo
 import torch
@@ -90,14 +91,48 @@ def install_torch_tensor_rt():
     except ImportError:
         install_tensor_rt()
 
-    cmd = [
-        "pip3",
-        "install",
-        "torch-tensorrt",
-        "-f",
-        "https://github.com/pytorch/TensorRT/releases",
-    ]
-    subprocess.run(cmd)
+    # # Will work when Torch-TensorRT v1.2 will be available
+    # cmd = [
+    #     "pip3",
+    #     "install",
+    #     "torch-tensorrt",
+    #     "-f",
+    #     "https://github.com/pytorch/TensorRT/releases",
+    # ]
+    # subprocess.run(cmd)
+
+    # Install Torch-TensorRT from alpha wheel
+    wheels_dict = {
+        "37": "1k6UXwO4II8ZlyTjvcUaAgAoSzqinYeEn",
+        "38": "1yDjU2cevTIKXyxjNGDtX0CghKIA2ZZoD",
+        "39": "1wcGXKK1WoVNNKmicM_pt1gqMMf4pyzkZ",
+        "310": "1DuJkaJp0YnI04DovtqeXOa3L_PxNIbbc",
+    }
+
+    python_version = str(sys.version_info.major) + str(sys.version_info.minor)
+    tensor_rt_wheel = (
+        f"torch_tensorrt-1.2.0-cp{python_version}-cp"
+        f"{python_version + 'm' if python_version == '37' else python_version}"
+        f"-linux_x86_64.whl"
+    )
+
+    wheel_id = wheels_dict.get(python_version)
+    if wheel_id is not None:
+        cmd = (
+            f"wget --no-check-certificate https://drive.google.com/uc?export="
+            f"download&id={wheel_id} -O {tensor_rt_wheel}"
+        )
+
+        subprocess.run(cmd.split())
+
+        cmd = [
+            "pip",
+            "install",
+            "./" + tensor_rt_wheel,
+        ]
+        subprocess.run(cmd)
+
+        os.remove("./" + tensor_rt_wheel)
 
 
 def install_tf2onnx():
