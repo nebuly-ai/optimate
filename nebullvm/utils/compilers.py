@@ -33,7 +33,7 @@ def torch_tensorrt_is_available() -> bool:
 
 def deepsparse_is_available() -> bool:
     try:
-        import deepsarse  # noqa F401
+        import deepsparse  # noqa F401
     except ImportError:
         return False
     else:
