@@ -16,6 +16,7 @@ class EnvBuilder(venv.EnvBuilder):
 def run_in_different_venv(
     requirements_file: str,
     script_path: str,
+    use_gpu: bool,
     *args,
     logger: logging.Logger = None,
 ):
@@ -45,6 +46,29 @@ def run_in_different_venv(
 
         if logger is not None:
             logger.debug("Debug: Installing requirements...")
+
+        if use_gpu:
+            pip_install_command = [
+                venv_context.env_exe,
+                "-m",
+                "pip",
+                "install",
+                "torch==1.9.1+cu111",
+                "torchvision==0.10.1+cu111",
+                "-f",
+                "https://download.pytorch.org/whl/torch_stable.html",
+            ]
+        else:
+            pip_install_command = [
+                venv_context.env_exe,
+                "-m",
+                "pip",
+                "install",
+                "torch<=1.9.1",
+                "torchvision<=0.10.1",
+            ]
+        subprocess.check_call(pip_install_command)
+
         pip_install_command = [
             venv_context.env_exe,
             "-m",
