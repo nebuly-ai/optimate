@@ -200,5 +200,10 @@ def install_onnxruntime():
 
 def install_deepsparse():
     """Helper function for installing DeepSparse."""
+    python_minor_version = sys.version_info.minor
+
+    cmd = ["apt-get", "install", f"python3.{python_minor_version}-venv"]
+    subprocess.run(cmd)
+
     cmd = ["pip3", "install", "deepsparse"]
     subprocess.run(cmd)
