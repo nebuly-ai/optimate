@@ -10,3 +10,4 @@ requests>=2.28.1
 torch>=1.10.0
 tqdm>=4.63.0
 transformers
+xgboost
