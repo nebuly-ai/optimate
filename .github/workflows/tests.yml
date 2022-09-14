@@ -40,7 +40,7 @@ jobs:
         run: python -c "import nebullvm"
         # Install compilers except tvm
       - name: Install tvm
-        run: python -c "pip install apache-tvm"
+        run: pip install apache-tvm
         # Install pytest
       - name: Install pytest
         run: pip install pytest
