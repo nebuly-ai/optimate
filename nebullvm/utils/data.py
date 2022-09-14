@@ -62,6 +62,7 @@ class DataManager:
         else:
             idx = np.arange(0, min(n, len(self)))
             if n > len(self):
+                np.random.seed(0)
                 idx = np.concatenate(
                     [
                         idx,

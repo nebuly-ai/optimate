@@ -1,7 +1,7 @@
 import os
 import warnings
 from pathlib import Path
-from typing import List, Tuple, Optional, Callable
+from typing import List, Tuple, Optional, Callable, Any
 
 import numpy as np
 import torch
@@ -27,12 +27,7 @@ from nebullvm.utils.general import check_module_version
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
-    create_model_inputs_onnx,
-    run_onnx_model,
-    convert_to_numpy,
 )
-
-from nebullvm.utils.torch import run_torch_model
 
 if torch.cuda.is_available():
     try:
@@ -189,6 +184,7 @@ class TensorRTOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[NvidiaInferenceLearner]:
         """Optimize the input model with TensorRT.
 
@@ -209,6 +205,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
+            model_outputs (Any): Outputs computed by the original model.
 
         Returns:
             TensorRTInferenceLearner: Model optimized with TensorRT. The model
@@ -230,16 +227,7 @@ class TensorRTOptimizer(BaseOptimizer):
             metric_drop_ths is not None
             and quantization_type is QuantizationType.STATIC
         ):
-            if input_data is None:
-                input_data_onnx = [
-                    tuple(
-                        create_model_inputs_onnx(
-                            model_params.batch_size, model_params.input_infos
-                        )
-                    )
-                ]
-            else:
-                input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
+            input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
         elif (
             metric_drop_ths is not None
             and quantization_type is QuantizationType.DYNAMIC
@@ -267,22 +255,8 @@ class TensorRTOptimizer(BaseOptimizer):
             else None,
         )
         if quantization_type is not None:
-            if input_data is None:
-                inputs = [learner.get_inputs_example()]
-                ys = None
-            else:
-                inputs, ys = input_data.get_list(
-                    100, shuffle=True, with_ys=True
-                )
-            output_data = [
-                tuple(
-                    run_onnx_model(
-                        model,
-                        [convert_to_numpy(x) for x in tuple_],
-                    )
-                )
-                for tuple_ in inputs
-            ]
+            inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
+            output_data = model_outputs
             is_valid = check_precision(
                 learner,
                 inputs,
@@ -304,6 +278,7 @@ class TensorRTOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[PytorchTensorRTInferenceLearner]:
         self._log(
             f"Optimizing with {self.__class__.__name__} and "
@@ -392,17 +367,8 @@ class TensorRTOptimizer(BaseOptimizer):
         )
 
         if quantization_type is not None:
-            if input_data is None:
-                inputs = [model.get_inputs_example()]
-                ys = None
-            else:
-                inputs, ys = input_data.get_list(
-                    100, shuffle=True, with_ys=True
-                )
-            output_data = [
-                tuple(run_torch_model(trt_model, list(tuple_), dtype=dtype))
-                for tuple_ in inputs
-            ]
+            inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
+            output_data = model_outputs
             is_valid = check_precision(
                 model,
                 inputs,

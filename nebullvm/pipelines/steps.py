@@ -235,6 +235,7 @@ class OptimizerStep(Step, ABC):
         ignore_compilers: List[ModelCompiler] = None,
         optimization_time: OptimizationTime = None,
         pipeline_name: str = None,
+        model_outputs: Any = None,
         **kwargs,
     ) -> Dict:
         """Run the OptimizerStep for all the available compilers.
@@ -262,6 +263,7 @@ class OptimizerStep(Step, ABC):
                 already been compiled with the same compiler on another
                 framework interface.
             pipeline_name (str): Name of the pipeline.
+            model_outputs (Any): Outputs computed by the original model
             kwargs (Dict): Extra keywords that will be ignored.
         """
 
@@ -299,6 +301,7 @@ class OptimizerStep(Step, ABC):
                             q_type,
                             metric,
                             input_data,
+                            model_outputs,
                         )
                         if optimized_model is not None:
                             latency = compute_optimized_running_time(
@@ -360,6 +363,7 @@ class OptimizerStep(Step, ABC):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outpust: Any = None,
     ) -> BaseInferenceLearner:
         raise NotImplementedError()
 
@@ -429,6 +433,7 @@ class TorchOptimizerStep(OptimizerStep):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> PytorchBaseInferenceLearner:
         if hasattr(optimizer, "optimize_from_torch"):
             optimized_model = optimizer.optimize_from_torch(
@@ -441,6 +446,7 @@ class TorchOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
+                model_outputs=model_outputs,
             )
         else:
             optimized_model = optimizer.optimize(
@@ -454,6 +460,7 @@ class TorchOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
+                model_outputs=model_outputs,
             )
         return optimized_model
 
@@ -489,6 +496,7 @@ class TFOptimizerStep(OptimizerStep):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> PytorchBaseInferenceLearner:
         if hasattr(optimizer, "optimize_from_tf"):
             optimized_model = optimizer.optimize_from_tf(
@@ -501,6 +509,7 @@ class TFOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
+                model_outputs=None,
             )
         else:
             optimized_model = optimizer.optimize(
@@ -514,6 +523,7 @@ class TFOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
+                model_outputs=None,
             )
         return optimized_model
 
@@ -550,6 +560,7 @@ class OnnxOptimizerStep(OptimizerStep):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> PytorchBaseInferenceLearner:
         optimized_model = optimizer.optimize(
             model=model,
@@ -562,6 +573,7 @@ class OnnxOptimizerStep(OptimizerStep):
             quantization_type=quantization_type,
             input_tfms=input_tfms,
             input_data=input_data,
+            model_outputs=model_outputs,
         )
         return optimized_model
 

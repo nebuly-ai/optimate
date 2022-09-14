@@ -26,6 +26,7 @@ class BaseOptimizer(ABC):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[BaseInferenceLearner]:
         raise NotImplementedError
 

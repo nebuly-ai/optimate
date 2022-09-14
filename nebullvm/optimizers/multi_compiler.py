@@ -2,7 +2,7 @@ import json
 import warnings
 from logging import Logger
 from pathlib import Path
-from typing import Dict, Type, Tuple, Callable, List
+from typing import Dict, Type, Tuple, Callable, List, Any
 import uuid
 
 import numpy as np
@@ -156,6 +156,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> BaseInferenceLearner:
         """Optimize the ONNX model using the available compilers.
 
@@ -176,6 +177,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
+            model_outputs (Any): Outputs computed by the original model.
 
         Returns:
             BaseInferenceLearner: Model optimized for inference.
@@ -207,6 +209,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                 quantization_type=q_type,
                 metric=metric,
                 input_data=input_data,
+                model_outputs=model_outputs,
             )
             for compiler in self.compilers
             for q_type in tqdm(quantization_types)
@@ -230,6 +233,7 @@ class MultiCompilerOptimizer(BaseOptimizer):
                     quantization_type=q_type,
                     metric=metric,
                     input_data=input_data,
+                    model_outputs=model_outputs,
                 )
                 for op in self.extra_optimizers
                 for q_type in tqdm(quantization_types)

@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Any
 
 from onnxruntime.transformers.optimizer import MODEL_TYPES
 
@@ -15,8 +15,6 @@ from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
-    convert_to_numpy,
-    run_onnx_model,
 )
 
 try:
@@ -57,6 +55,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[ONNXInferenceLearner]:
         self._log(
             f"Optimizing with {self.__class__.__name__} and "
@@ -84,18 +83,8 @@ class HuggingFaceOptimizer(BaseOptimizer):
         )
         if metric_drop_ths is not None:
             # TODO: Add dataset and metric from user
-            if input_data is None:
-                inputs = [learner.get_inputs_example()]
-                ys = None
-            else:
-                inputs, ys = input_data.get_list(100, with_ys=True)
-            inputs_onnx = [
-                tuple(convert_to_numpy(x) for x in input_) for input_ in inputs
-            ]
-            base_outputs = [
-                tuple(run_onnx_model(model, list(input_onnx)))
-                for input_onnx in inputs_onnx
-            ]
+            inputs, ys = input_data.get_list(100, with_ys=True)
+            base_outputs = model_outputs
             is_valid = check_precision(
                 learner,
                 inputs,

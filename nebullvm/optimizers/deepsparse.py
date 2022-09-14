@@ -1,6 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 
 import torch
 
@@ -30,6 +30,7 @@ class DeepSparseOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[DeepSparseInferenceLearner]:
         if quantization_type is not None:
             return

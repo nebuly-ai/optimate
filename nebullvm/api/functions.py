@@ -21,10 +21,23 @@ from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
-from nebullvm.utils.onnx import get_output_sizes_onnx
+from nebullvm.utils.onnx import (
+    get_output_sizes_onnx,
+    run_onnx_model,
+    create_model_inputs_onnx,
+    convert_to_target_framework,
+)
 from nebullvm.utils.optional_modules import tensorflow as tf
-from nebullvm.utils.tf import get_outputs_sizes_tf
-from nebullvm.utils.torch import get_outputs_sizes_torch
+from nebullvm.utils.tf import (
+    get_outputs_sizes_tf,
+    run_tf_model,
+    create_model_inputs_tf,
+)
+from nebullvm.utils.torch import (
+    get_outputs_sizes_torch,
+    run_torch_model,
+    create_model_inputs_torch,
+)
 
 
 logging.basicConfig(
@@ -106,6 +119,76 @@ def _is_huggingface_data(data_sample: Any) -> bool:
     elif isinstance(data_sample[0], str):
         return True
     return False
+
+
+def _compute_model_outputs(
+    model: Any,
+    input_data: DataManager,
+    model_params: ModelParams,
+    dl_framework: DeepLearningFramework,
+):
+    if dl_framework == DeepLearningFramework.PYTORCH:
+        if input_data is None:
+            input_data_torch = [
+                tuple(
+                    create_model_inputs_torch(
+                        model_params.batch_size, model_params.input_infos
+                    )
+                )
+            ]
+        else:
+            input_data_torch, ys = input_data.get_numpy_list(300, with_ys=True)
+            input_data_torch = [
+                tuple(
+                    convert_to_target_framework(t, dl_framework)
+                    for t in data_tuple
+                )
+                for data_tuple in input_data_torch
+            ]
+        outputs = [
+            tuple(run_torch_model(model, list(input_tensors)))
+            for input_tensors in input_data_torch
+        ]
+    elif dl_framework == DeepLearningFramework.TENSORFLOW:
+        if input_data is None:
+            input_data_tf = [
+                tuple(
+                    create_model_inputs_tf(
+                        model_params.batch_size,
+                        model_params.input_infos,
+                    )
+                )
+            ]
+        else:
+            input_data_tf, ys = input_data.get_numpy_list(300, with_ys=True)
+            input_data_tf = [
+                tuple(
+                    convert_to_target_framework(t, dl_framework)
+                    for t in data_tuple
+                )
+                for data_tuple in input_data_tf
+            ]
+        outputs = [
+            tuple(run_tf_model(model, input_tensors))
+            for input_tensors in input_data_tf
+        ]
+    else:
+        if input_data is None:
+            input_data_onnx = [
+                tuple(
+                    create_model_inputs_onnx(
+                        model_params.batch_size, model_params.input_infos
+                    )
+                )
+            ]
+        else:
+            input_data_onnx, ys = input_data.get_numpy_list(300, with_ys=True)
+        outputs = [
+            tuple(run_onnx_model(model, list(input_tensors)))
+            for input_tensors in input_data_onnx
+        ]
+
+    return outputs
 
 
 def optimize_model(
@@ -235,6 +318,13 @@ def optimize_model(
             ignore_compilers = [
                 ModelCompiler(compiler) for compiler in ignore_compilers
             ]
+        # Compute original model outputs
+        if metric_drop_ths is not None:
+            model_outputs = _compute_model_outputs(
+                model, input_data, model_params, dl_framework
+            )
+        else:
+            model_outputs = None
         for model in models:
             input_tfms = MultiStageTransformation([])
             pipeline = build_pipeline_from_model(
@@ -254,6 +344,7 @@ def optimize_model(
                 input_tfms=input_tfms,
                 ignore_compilers=ignore_compilers,
                 optimization_time=optimization_time,
+                model_outputs=model_outputs,
             )
             ignore_compilers = output_dict["ignore_compilers"]
             optimized_models.extend(output_dict["optimized_models"])

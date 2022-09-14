@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "main"
+      - "dev"
   pull_request:
     branches:
       - "main"
@@ -37,9 +38,12 @@ jobs:
         # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -c "import nebullvm"
+        # Install compilers except tvm
+      - name: Install tvm
+        run: python -c "pip install apache-tvm"
         # Install pytest
       - name: Install pytest
         run: pip install pytest
         # Run the tests ignoring tvm
       - name: Run tests
-        run: pytest --ignore=nebullvm/optimizers/tests/test_tvm.py --ignore=nebullvm/optimizers/tests/test_bladedisc.py
+        run: pytest --ignore=nebullvm/optimizers/tests/test_bladedisc.py

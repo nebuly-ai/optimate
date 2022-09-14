@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.openvino import (
@@ -14,9 +14,6 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
-    create_model_inputs_onnx,
-    run_onnx_model,
-    convert_to_numpy,
 )
 
 
@@ -33,6 +30,7 @@ class OpenVinoOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[OpenVinoInferenceLearner]:
         """Optimize the onnx model with OpenVino.
 
@@ -53,6 +51,7 @@ class OpenVinoOptimizer(BaseOptimizer):
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
+            model_outputs (Any): Outputs computed by the original model.
 
         Returns:
             OpenVinoInferenceLearner: Model optimized with OpenVino. The model
@@ -98,17 +97,8 @@ class OpenVinoOptimizer(BaseOptimizer):
             metric_drop_ths is not None
             and quantization_type is not QuantizationType.HALF
         ):
-            if input_data is not None and quantization_type:
-                input_data_onnx = input_data.get_numpy_list(300, with_ys=True)
-            else:
-                input_data_onnx = [
-                    (
-                        create_model_inputs_onnx(
-                            model_params.batch_size, model_params.input_infos
-                        ),
-                        0,
-                    )
-                ]
+            input_data_onnx = input_data.get_numpy_list(300, with_ys=True)
+
             # Add post training optimization
             openvino_model_path, openvino_model_weights = quantize_openvino(
                 model_topology=str(openvino_model_path),
@@ -134,15 +124,7 @@ class OpenVinoOptimizer(BaseOptimizer):
                 inputs, ys = input_data.get_list(
                     100, with_ys=True, shuffle=True
                 )
-            output_data_onnx = [
-                tuple(
-                    run_onnx_model(
-                        model,
-                        [convert_to_numpy(x) for x in tuple_],
-                    )
-                )
-                for tuple_ in inputs
-            ]
+            output_data_onnx = model_outputs
             is_valid = check_precision(
                 learner,
                 inputs,

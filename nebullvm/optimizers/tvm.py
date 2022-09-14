@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Tuple, Dict, Optional, Callable
+from typing import Tuple, Dict, Optional, Callable, Any
 
 import onnx
 import torch.cuda
@@ -24,11 +24,8 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
-    create_model_inputs_onnx,
-    run_onnx_model,
-    convert_to_numpy,
 )
-from nebullvm.utils.torch import create_model_inputs_torch, run_torch_model
+from nebullvm.utils.torch import create_model_inputs_torch
 
 try:
     import tvm
@@ -56,6 +53,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         self._log(
             f"Optimizing with {self.__class__.__name__} and "
@@ -74,17 +72,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    if input_data is None:
-                        inputs = [
-                            tuple(
-                                create_model_inputs_onnx(
-                                    model_params.batch_size,
-                                    model_params.input_infos,
-                                )
-                            )
-                        ]
-                    else:
-                        inputs = input_data.get_numpy_list(300, with_ys=False)
+                    inputs = input_data.get_numpy_list(300, with_ys=False)
                 else:
                     return
                 mod = self._quantize(mod, params, input_data=inputs)
@@ -107,17 +95,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
             else None,
         )
         if quantization_type is not None:
-            if input_data is None:
-                inputs = [model.get_inputs_example()]
-                ys = None
-            else:
-                inputs, ys = input_data.get_list(
-                    100, shuffle=True, with_ys=True
-                )
-            output_data = [
-                tuple(run_torch_model(torch_model, list(tuple_)))
-                for tuple_ in inputs
-            ]
+            inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
+            output_data = model_outputs
             is_valid = check_precision(
                 model,
                 inputs,
@@ -140,6 +119,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         """Optimize the input model with Apache TVM.
 
@@ -160,6 +140,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
+            model_outputs (Any): Outputs computed by the original model.
 
         Returns:
             ApacheTVMInferenceLearner: Model optimized with TVM. The model
@@ -182,17 +163,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    if input_data is None:
-                        inputs = [
-                            tuple(
-                                create_model_inputs_onnx(
-                                    model_params.batch_size,
-                                    model_params.input_infos,
-                                )
-                            )
-                        ]
-                    else:
-                        inputs = input_data.get_numpy_list(300, with_ys=False)
+                    inputs = input_data.get_numpy_list(300, with_ys=False)
                     inputs = TVMCalibrator(inputs, get_input_names(model))
                 else:
                     return
@@ -216,22 +187,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
             else None,
         )
         if quantization_type is not None:
-            if input_data is None:
-                inputs = [model.get_inputs_example()]
-                ys = None
-            else:
-                inputs, ys = input_data.get_list(
-                    100, shuffle=True, with_ys=True
-                )
-            output_data = [
-                tuple(
-                    run_onnx_model(
-                        model,
-                        [convert_to_numpy(x) for x in tuple_],
-                    )
-                )
-                for tuple_ in inputs
-            ]
+            inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
+            output_data = model_outputs
             is_valid = check_precision(
                 model,
                 inputs,

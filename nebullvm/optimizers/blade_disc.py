@@ -1,7 +1,7 @@
 import warnings
 
 from collections import Callable
-from typing import Optional
+from typing import Optional, Any
 
 import torch.nn
 
@@ -17,7 +17,7 @@ from nebullvm.optimizers.quantization.utils import (
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import convert_to_target_framework
-from nebullvm.utils.torch import create_model_inputs_torch, run_torch_model
+from nebullvm.utils.torch import create_model_inputs_torch
 
 try:
     import torch_blade
@@ -61,6 +61,7 @@ class BladeDISCOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[BladeDISCInferenceLearner]:
         """Optimize the input model using pytorch built-in techniques.
 
@@ -83,6 +84,7 @@ class BladeDISCOptimizer(BaseOptimizer):
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
+            model_outputs (Any): Outputs computed by the original model.
 
         Returns:
             BladeDISCInferenceLearner: Model optimized for inference.
@@ -97,29 +99,15 @@ class BladeDISCOptimizer(BaseOptimizer):
         )
         check_quantization(quantization_type, metric_drop_ths)
         if metric_drop_ths is not None:
-            if input_data is None:
-                input_data_torch = [
-                    tuple(
-                        create_model_inputs_torch(
-                            model_params.batch_size, model_params.input_infos
-                        )
-                    )
-                ]
-            else:
-                input_data_torch, ys = input_data.get_numpy_list(
-                    300, with_ys=True
+            input_data_torch, ys = input_data.get_numpy_list(300, with_ys=True)
+            input_data_torch = [
+                tuple(
+                    convert_to_target_framework(t, output_library)
+                    for t in data_tuple
                 )
-                input_data_torch = [
-                    tuple(
-                        convert_to_target_framework(t, output_library)
-                        for t in data_tuple
-                    )
-                    for data_tuple in input_data_torch
-                ]
-            output_data_torch = [
-                tuple(run_torch_model(model, list(input_tensors)))
-                for input_tensors in input_data_torch
+                for data_tuple in input_data_torch
             ]
+            output_data_torch = model_outputs
             model, input_tfms = quantize_torch(
                 model, quantization_type, input_tfms, input_data_torch
             )

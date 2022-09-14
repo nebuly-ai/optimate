@@ -1,5 +1,5 @@
 from tempfile import TemporaryDirectory
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.tensorflow import (
@@ -16,7 +16,6 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import convert_to_target_framework
 from nebullvm.utils.optional_modules import tensorflow as tf
-from nebullvm.utils.tf import create_model_inputs_tf, run_tf_model
 
 
 class TensorflowBackendOptimizer(BaseOptimizer):
@@ -40,6 +39,7 @@ class TensorflowBackendOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[TensorflowBackendInferenceLearner]:
         """Optimize the input model using pytorch built-in techniques.
 
@@ -62,6 +62,8 @@ class TensorflowBackendOptimizer(BaseOptimizer):
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
+            model_outputs (Any): Outputs computed by the original model.
+
 
         Returns:
             TensorflowBackendInferenceLearner or TFLiteBackendInferenceLearner:
@@ -79,31 +81,17 @@ class TensorflowBackendOptimizer(BaseOptimizer):
         check_quantization(quantization_type, metric_drop_ths)
         with TemporaryDirectory() as tmp_dir:
             if metric_drop_ths is not None:
-                if input_data is None:
-                    input_data_tf = [
-                        tuple(
-                            create_model_inputs_tf(
-                                model_params.batch_size,
-                                model_params.input_infos,
-                            )
-                        )
-                    ]
-                    ys = None
-                else:
-                    input_data_tf, ys = input_data.get_numpy_list(
-                        300, with_ys=True
+                input_data_tf, ys = input_data.get_numpy_list(
+                    300, with_ys=True
+                )
+                input_data_tf = [
+                    tuple(
+                        convert_to_target_framework(t, output_library)
+                        for t in data_tuple
                     )
-                    input_data_tf = [
-                        tuple(
-                            convert_to_target_framework(t, output_library)
-                            for t in data_tuple
-                        )
-                        for data_tuple in input_data_tf
-                    ]
-                output_data_tf = [
-                    tuple(run_tf_model(model, input_tensors))
-                    for input_tensors in input_data_tf
+                    for data_tuple in input_data_tf
                 ]
+                output_data_tf = model_outputs
                 model, input_tfms = quantize_tf(
                     model=model,
                     quantization_type=quantization_type,

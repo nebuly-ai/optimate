@@ -1,4 +1,4 @@
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.inference_learners.onnx import (
@@ -16,8 +16,6 @@ from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
-    create_model_inputs_onnx,
-    run_onnx_model,
     convert_to_target_framework,
 )
 
@@ -35,6 +33,7 @@ class ONNXOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[ONNXInferenceLearner]:
         """Build the ONNX runtime learner from the onnx model.
 
@@ -55,6 +54,7 @@ class ONNXOptimizer(BaseOptimizer):
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
+            model_outputs (Any): Outputs computed by the original model.
 
         Returns:
             ONNXInferenceLearner: Model running on onnxruntime. The model
@@ -68,22 +68,8 @@ class ONNXOptimizer(BaseOptimizer):
         input_data_onnx, output_data_onnx, ys = [], [], None
         check_quantization(quantization_type, metric_drop_ths)
         if metric_drop_ths is not None:
-            if input_data is None:
-                input_data_onnx = [
-                    tuple(
-                        create_model_inputs_onnx(
-                            model_params.batch_size, model_params.input_infos
-                        )
-                    )
-                ]
-            else:
-                input_data_onnx, ys = input_data.get_numpy_list(
-                    300, with_ys=True
-                )
-            output_data_onnx = [
-                tuple(run_onnx_model(model, list(input_tensors)))
-                for input_tensors in input_data_onnx
-            ]
+            input_data_onnx, ys = input_data.get_numpy_list(300, with_ys=True)
+            output_data_onnx = model_outputs
             model, input_tfms = quantize_onnx(
                 model, quantization_type, input_tfms, input_data_onnx
             )
