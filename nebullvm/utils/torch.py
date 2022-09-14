@@ -41,7 +41,6 @@ def run_torch_model(
     input_tensors: List[torch.Tensor],
     dtype: torch.dtype = torch.float32,
 ) -> List[torch.Tensor]:
-    torch_model.eval()
     if torch.cuda.is_available():
         torch_model.cuda()
         if dtype != torch.half:
