@@ -14,7 +14,6 @@ from nebullvm.transformations.base import MultiStageTransformation
 
 class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_scripted.pt"
-    FX_MODULE_NAME = "NebullvmFxModule"
 
     def __init__(self, torch_model: torch.jit.ScriptModule, **kwargs):
         super().__init__(**kwargs)
@@ -39,27 +38,12 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
 
-        if isinstance(self.model, torch.fx.GraphModule):
-            # Torch fx format
-            self.model.to_folder(path, self.FX_MODULE_NAME)
-        else:
-            # Torchscript format
-            self.model.save(path / self.MODEL_NAME)
+        torch.jit.save(self.model, path / self.MODEL_NAME)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
         path = Path(path)
-        try:
-            # Torchscript format
-            model = torch.jit.load(path / cls.MODEL_NAME)
-        except RuntimeError:
-            # Torch fx format
-            module_file = path / "module.py"
-            with open(module_file, "r") as f:
-                module_str = f.read()
-            exec(module_str, globals())
-            model = eval(cls.FX_MODULE_NAME)()
-            model.load_state_dict(torch.load(path / "state_dict.pt"))
+        model = torch.jit.load(path / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
         return cls(
             torch_model=model,
@@ -72,20 +56,25 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     @classmethod
     def from_torch_model(
         cls,
-        model: torch.nn.Module,
+        model: Union[torch.nn.Module, torch.fx.GraphModule],
         network_parameters: ModelParams,
         input_tfms: Optional[MultiStageTransformation] = None,
         input_data: List[torch.tensor] = None,
     ):
-        model.eval()
 
-        try:
-            model_scripted = symbolic_trace(model)
-        except Exception:
+        if not isinstance(model, torch.fx.GraphModule):
+            model.eval()
             try:
-                model_scripted = torch.jit.script(model)
+                model_scripted = symbolic_trace(model)
+                model_scripted = torch.jit.script(model_scripted)
             except Exception:
-                model_scripted = torch.jit.trace(model, tuple(input_data))
+                try:
+                    model_scripted = torch.jit.script(model)
+                except Exception:
+                    model_scripted = torch.jit.trace(model, tuple(input_data))
+        else:
+            model_scripted = torch.jit.script(model)
+
         return cls(
             torch_model=model_scripted,
             network_parameters=network_parameters,
