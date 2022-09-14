@@ -52,7 +52,7 @@ def _quantize_static_torch(
     model = _QuantWrapper(model)
     model.qconfig = torch.quantization.get_default_qconfig(backend)
     # TODO: change line below, it's wrong
-    model = torch.quantization.fuse_modules(model, [["conv", "relu"]])
+    # model = torch.quantization.fuse_modules(model, [["conv", "relu"]])
     model = torch.quantization.prepare(model)
     with torch.no_grad():
         for tensors in input_data:
