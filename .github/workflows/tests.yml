@@ -41,9 +41,9 @@ jobs:
         # Install compilers except tvm
       - name: Install tvm
         run: pip install apache-tvm
-        # Install pytest
-      - name: Install pytest
-        run: pip install pytest
+        # Install requirements for testing
+      - name: Install requirements for testing
+        run: pip install -r "requirements-dev.txt"
         # Run the tests ignoring tvm
       - name: Run tests
         run: pytest --ignore=nebullvm/optimizers/tests/test_bladedisc.py
