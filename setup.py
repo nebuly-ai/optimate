@@ -14,7 +14,6 @@ REQUIREMENTS = [
     "torch>=1.10.0",
     "tqdm>=4.63.0",
     "packaging>=21.3",
-    "xgboost",
 ]
 
 

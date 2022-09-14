@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         # Run in all these versions of Python
-        python-version: [3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, 3.10]
 
     steps:
         # Checkout the latest code from the repo
@@ -40,7 +40,9 @@ jobs:
         run: python -c "import nebullvm"
         # Install compilers except tvm
       - name: Install tvm
-        run: pip install apache-tvm
+        run: |
+          pip install apache-tvm
+          pip install xgboost
         # Install requirements for testing
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
