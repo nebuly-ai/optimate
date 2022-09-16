@@ -4,11 +4,16 @@ from typing import Tuple
 import torch
 from transformers import AlbertModel, AlbertTokenizer
 
-from nebullvm.api.functions import _extract_info_from_data
+from nebullvm.api.functions import (
+    _extract_info_from_data,
+    _compute_model_outputs,
+)
 from nebullvm.api.huggingface import convert_hf_model
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
+from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.measure import compute_relative_difference
 
 INPUT_SHAPE = (3, 256, 256)
 OUTPUT_SHAPE = (2,)
@@ -122,3 +127,54 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
         output_type,
         input_data,
     )
+
+
+def initialize_model(
+    dynamic: bool,
+    metric_drop_ths: float,
+    metric: str,
+    output_library: DeepLearningFramework,
+):
+    if output_library == DeepLearningFramework.PYTORCH:
+        model, model_params = get_torch_model(dynamic)
+
+    if dynamic:
+        input_data = DataManager(
+            [
+                (
+                    (
+                        torch.randn(DYNAMIC_BATCH_SIZE, *INPUT_SHAPE),
+                        torch.randn(DYNAMIC_BATCH_SIZE, *INPUT_SHAPE),
+                    ),
+                    0,
+                )
+            ]
+        )
+    else:
+        input_data = DataManager(
+            [
+                (
+                    (
+                        torch.randn(STATIC_BATCH_SIZE, *INPUT_SHAPE),
+                        torch.randn(STATIC_BATCH_SIZE, *INPUT_SHAPE),
+                    ),
+                    0,
+                )
+            ]
+        )
+
+    input_tfms = MultiStageTransformation([])
+
+    if metric_drop_ths is not None:
+        model_outputs = _compute_model_outputs(
+            model,
+            input_data,
+            output_library,
+        )
+    else:
+        model_outputs = None
+
+    if metric is not None:
+        metric = compute_relative_difference
+
+    return model, input_data, model_params, input_tfms, model_outputs, metric

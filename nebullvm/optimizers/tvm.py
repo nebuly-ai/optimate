@@ -34,6 +34,7 @@ try:
     from tvm.autotvm.tuner import XGBTuner
     from tvm import autotvm
     import tvm.relay as relay
+    from tvm.relay.transform import ToMixedPrecision
 except ImportError:
     # TVM is installed in the inference_learner package.
     # TVM objects needed for avoiding errors:
@@ -65,14 +66,14 @@ class ApacheTVMOptimizer(BaseOptimizer):
         )
         if metric_drop_ths is not None:
             if quantization_type is QuantizationType.HALF:
-                mod = tvm.relay.transform.ToMixedPrecision(
-                    mixed_precision_type="float16"
-                )(mod)
+                mod = ToMixedPrecision(mixed_precision_type="float16")(mod)
             else:
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
                     inputs = input_data.get_numpy_list(300, with_ys=False)
+                    input_names = [f"input_{n}" for n in range(len(inputs[0]))]
+                    inputs = TVMCalibrator(inputs, input_names)
                 else:
                     return
                 mod = self._quantize(mod, params, input_data=inputs)
@@ -156,9 +157,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         mod, params = self._build_tvm_model_from_onnx(model, model_params)
         if metric_drop_ths is not None:
             if quantization_type is QuantizationType.HALF:
-                mod = tvm.relay.transform.ToMixedPrecision(
-                    mixed_precision_type="float16"
-                )(mod)
+                mod = ToMixedPrecision(mixed_precision_type="float16")(mod)
             else:
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
