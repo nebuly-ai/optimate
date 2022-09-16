@@ -15,7 +15,7 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
 )
-from nebullvm.installers.installers import install_deepsparse
+from nebullvm.installers.installers import install_deepsparse, _get_cpu_arch
 from nebullvm.transformations.base import MultiStageTransformation
 
 try:
@@ -24,7 +24,7 @@ except ImportError:
     import platform
 
     os_ = platform.system()
-    if os_ != "Darwin":
+    if os_ != "Darwin" and _get_cpu_arch() != "arm":
         warnings.warn(
             "No deepsparse installation found. Trying to install it..."
         )
