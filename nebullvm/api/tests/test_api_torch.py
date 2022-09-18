@@ -74,7 +74,7 @@ def test_torch_onnx_quant():
     res_optimized = optimized_model(x)[0]
 
     assert isinstance(optimized_model, PytorchONNXInferenceLearner)
-    assert torch.max(abs((res_original - res_optimized))) < 1e-2
+    assert torch.max(abs((res_original - res_optimized))) < 0.2
 
 
 def test_torch_torchscript():
