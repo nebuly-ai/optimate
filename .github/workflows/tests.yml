@@ -38,14 +38,14 @@ jobs:
         # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -c "import nebullvm"
-        # Install compilers except tvm
-      - name: Install tvm
-        run: |
-          pip install apache-tvm
-          pip install xgboost
+#        # Install tvm
+#      - name: Install tvm
+#        run: |
+#          pip install apache-tvm
+#          pip install xgboost
         # Install requirements for testing
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
         # Run the tests ignoring tvm
       - name: Run tests
-        run: pytest --ignore=nebullvm/optimizers/tests/test_bladedisc.py
+        run: pytest --ignore=nebullvm/optimizers/tests/test_tvm.py --ignore=nebullvm/optimizers/tests/test_bladedisc.py
