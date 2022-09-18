@@ -46,7 +46,8 @@ def test_onnx_onnx():
         )
 
         # Try the optimized model
-        x = torch.randn(1, 3, 256, 256, requires_grad=False)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
         res_original = model(x)
         res_optimized = optimized_model(x.numpy())[0]
 
@@ -87,7 +88,8 @@ def test_onnx_tensorrt():
         )
 
         # Try the optimized model
-        x = torch.randn(1, 3, 256, 256, requires_grad=False)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
         res_original = model(x)
         res_optimized = optimized_model(x.numpy())[0]
 
@@ -127,7 +129,8 @@ def test_onnx_openvino():
         )
 
         # Try the optimized model
-        x = torch.randn(1, 3, 256, 256, requires_grad=False)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
         res_original = model(x)
         res_optimized = optimized_model(x.numpy())[0]
 
@@ -166,7 +169,8 @@ def test_onnx_tvm():
         )
 
         # Try the optimized model
-        x = torch.randn(1, 3, 256, 256, requires_grad=False)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
         res_original = model(x)
         res_optimized = optimized_model(x.numpy())[0]
 

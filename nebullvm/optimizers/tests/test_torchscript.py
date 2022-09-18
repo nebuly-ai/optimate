@@ -65,6 +65,12 @@ def test_torchscript(
     ):
         # Half quantization fails on CPU
         return
+    elif not torch.cuda.is_available() and quantization_type in [
+        QuantizationType.STATIC,
+        QuantizationType.DYNAMIC,
+    ]:
+        # Quantization is not supported on GPU
+        return
 
     with TemporaryDirectory() as tmp_dir:
         (

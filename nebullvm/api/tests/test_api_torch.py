@@ -39,7 +39,8 @@ def test_torch_onnx():
     )
 
     # Try the optimized model
-    x = torch.randn(1, 3, 256, 256)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
@@ -67,7 +68,8 @@ def test_torch_onnx_quant():
     )
 
     # Try the optimized model
-    x = torch.randn(1, 3, 256, 256)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
@@ -94,7 +96,8 @@ def test_torch_torchscript():
     )
 
     # Try the optimized model
-    x = torch.randn(1, 3, 256, 256)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
@@ -126,7 +129,7 @@ def test_torch_tensorrt():
     )
 
     # Try the optimized model
-    x = torch.randn(1, 3, 256, 256)
+    x = torch.randn(1, 3, 256, 256).cuda()
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
@@ -159,8 +162,9 @@ def test_torch_openvino():
     )
 
     # Try the optimized model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     x = torch.randn(1, 3, 256, 256)
-    res_original = model(x)
+    res_original = model(x.to(device))
     res_optimized = optimized_model(x)[0]
 
     assert isinstance(optimized_model, PytorchOpenVinoInferenceLearner)
@@ -189,7 +193,8 @@ def test_torch_tvm():
     )
 
     # Try the optimized model
-    x = torch.randn(1, 3, 256, 256)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
@@ -219,7 +224,8 @@ def test_torch_bladedisc():
     )
 
     # Try the optimized model
-    x = torch.randn(1, 3, 256, 256)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
