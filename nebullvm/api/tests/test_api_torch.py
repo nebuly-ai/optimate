@@ -168,7 +168,7 @@ def test_torch_openvino():
     res_optimized = optimized_model(x)[0]
 
     assert isinstance(optimized_model, PytorchOpenVinoInferenceLearner)
-    assert torch.max(abs((res_original - res_optimized))) < 1e-5
+    assert torch.max(abs((res_original.cpu() - res_optimized))) < 1e-5
 
 
 def test_torch_tvm():

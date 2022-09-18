@@ -65,7 +65,7 @@ def test_torchscript(
     ):
         # Half quantization fails on CPU
         return
-    elif not torch.cuda.is_available() and quantization_type in [
+    elif torch.cuda.is_available() and quantization_type in [
         QuantizationType.STATIC,
         QuantizationType.DYNAMIC,
     ]:

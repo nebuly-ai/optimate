@@ -91,6 +91,7 @@ def test_onnx_tensorrt():
         # Try the optimized model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         x = torch.randn(1, 3, 256, 256, requires_grad=False)
+        model.eval()
         res_original = model(x.to(device))
         res_optimized = optimized_model(x.numpy())[0]
 
