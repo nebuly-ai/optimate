@@ -289,7 +289,7 @@ def optimize_model(
         # Compute original model outputs
         if metric_drop_ths is not None:
             model_outputs = _compute_model_outputs(
-                model, input_data, model_params, dl_framework
+                model, input_data, dl_framework
             )
         else:
             model_outputs = None

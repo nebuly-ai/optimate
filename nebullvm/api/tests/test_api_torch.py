@@ -47,6 +47,34 @@ def test_torch_onnx():
     assert torch.max(abs((res_original - res_optimized))) < 1e-5
 
 
+def test_torch_onnx_quant():
+    model = models.resnet18().eval()
+    input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
+
+    # Run nebullvm optimization in one line of code
+    optimized_model = optimize_model(
+        model,
+        input_data=input_data,
+        ignore_compilers=[
+            "deepsparse",
+            "tvm",
+            "torchscript",
+            "tensor RT",
+            "openvino",
+            "bladedisc",
+        ],
+        metric_drop_ths=2,
+    )
+
+    # Try the optimized model
+    x = torch.randn(1, 3, 256, 256)
+    res_original = model(x)
+    res_optimized = optimized_model(x)[0]
+
+    assert isinstance(optimized_model, PytorchONNXInferenceLearner)
+    assert torch.max(abs((res_original - res_optimized))) < 1e-2
+
+
 def test_torch_torchscript():
     model = models.resnet18().eval()
     input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
