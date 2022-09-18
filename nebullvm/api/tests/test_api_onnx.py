@@ -53,7 +53,8 @@ def test_onnx_onnx():
 
         assert isinstance(optimized_model, NumpyONNXInferenceLearner)
         assert (
-            abs((res_original.detach().numpy() - res_optimized)).max() < 1e-5
+            abs((res_original.detach().cpu().numpy() - res_optimized)).max()
+            < 1e-5
         )
 
 
@@ -95,7 +96,8 @@ def test_onnx_tensorrt():
 
         assert isinstance(optimized_model, NumpyNvidiaInferenceLearner)
         assert (
-            abs((res_original.detach().numpy() - res_optimized)).max() < 1e-5
+            abs((res_original.detach().cpu().numpy() - res_optimized)).max()
+            < 1e-5
         )
 
 
@@ -136,7 +138,8 @@ def test_onnx_openvino():
 
         assert isinstance(optimized_model, NumpyOpenVinoInferenceLearner)
         assert (
-            abs((res_original.detach().numpy() - res_optimized)).max() < 1e-5
+            abs((res_original.detach().cpu().numpy() - res_optimized)).max()
+            < 1e-5
         )
 
 
@@ -176,5 +179,6 @@ def test_onnx_tvm():
 
         assert isinstance(optimized_model, NumpyApacheTVMInferenceLearner)
         assert (
-            abs((res_original.detach().numpy() - res_optimized)).max() < 1e-5
+            abs((res_original.detach().cpu().numpy() - res_optimized)).max()
+            < 1e-5
         )
