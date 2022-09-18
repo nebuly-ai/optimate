@@ -65,7 +65,7 @@ def test_onnx_tensorrt():
         return
 
     with TemporaryDirectory() as tmp_dir:
-        model = models.resnet18().eval()
+        model = models.resnet18()
         input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
         model_path = torch_to_onnx(model, input_data, tmp_dir)
 
