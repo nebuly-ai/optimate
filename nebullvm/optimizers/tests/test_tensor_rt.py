@@ -59,6 +59,9 @@ def test_tensorrt_onnx(
         # no need of testing the tensor rt optimizer on devices not
         # supporting CUDA.
         return
+    elif quantization_type == QuantizationType.DYNAMIC:
+        # Dynamic quantization is not supported
+        return None
     with TemporaryDirectory() as tmp_dir:
         (
             model,
@@ -149,6 +152,9 @@ def test_tensorrt_torch(
         # no need of testing the tensor rt optimizer on devices not
         # supporting CUDA.
         return
+    elif quantization_type == QuantizationType.DYNAMIC:
+        # Dynamic quantization is not supported
+        return None
     with TemporaryDirectory() as tmp_dir:
         (
             model,

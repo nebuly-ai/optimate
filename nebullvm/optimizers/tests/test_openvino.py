@@ -57,6 +57,9 @@ def test_openvino(
     if "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower():
         # No intel cpu detected
         return
+    elif quantization_type == QuantizationType.DYNAMIC:
+        # Dynamic quantization is not supported
+        return None
     with TemporaryDirectory() as tmp_dir:
         (
             model,
