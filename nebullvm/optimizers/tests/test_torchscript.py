@@ -1,5 +1,7 @@
 from tempfile import TemporaryDirectory
 
+import torch
+
 import pytest
 
 from nebullvm.base import DeepLearningFramework, QuantizationType
@@ -56,6 +58,12 @@ def test_torchscript(
         and quantization_type is not None
     ):
         # Quantization doesn't work on M1 chips
+        return
+    elif (
+        not torch.cuda.is_available()
+        and quantization_type == QuantizationType.HALF
+    ):
+        # Half quantization fails on CPU
         return
 
     with TemporaryDirectory() as tmp_dir:
