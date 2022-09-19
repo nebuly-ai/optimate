@@ -20,7 +20,6 @@ if torch.cuda.is_available():
                 "Trying to install it from source."
             )
             install_tensor_rt()
-            import polygraphy
             from tensorrt import IInt8EntropyCalibrator2
         else:
             warnings.warn(
@@ -38,24 +37,27 @@ class TensorRTCalibrator(IInt8EntropyCalibrator2):
     ):
         super(TensorRTCalibrator, self).__init__()
         self._bs = batch_size
-        self._input_data = (x for x in input_data)
-
-    def read_calibration_cache(self):
-        return None
-
-    def write_calibration_cache(self, cache):
-        return None
+        self.batches = (x for x in input_data)
 
     def get_batch(self, names):
-        cuda_stream = polygraphy.Stream()
+        cuda_stream = polygraphy.cuda.Stream()
         try:
-            data = next(self._input_data)
+            data = next(self.batches)
             cuda_data = [
-                polygraphy.DeviceArray.copy_from(
-                    input_tensor, stream=cuda_stream
+                polygraphy.cuda.DeviceArray().copy_from(
+                    host_buffer=input_tensor, stream=cuda_stream
                 )
                 for input_tensor in data
             ]
             return [input_tensor.ptr for input_tensor in cuda_data]
         except StopIteration:
             return None
+
+    def get_batch_size(self):
+        return self._bs
+
+    def read_calibration_cache(self):
+        return None
+
+    def write_calibration_cache(self, cache):
+        return None
