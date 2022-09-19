@@ -20,6 +20,7 @@ if torch.cuda.is_available():
                 "Trying to install it from source."
             )
             install_tensor_rt()
+            import polygraphy
             from tensorrt import IInt8EntropyCalibrator2
         else:
             warnings.warn(
