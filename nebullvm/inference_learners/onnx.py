@@ -101,6 +101,8 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = str(onnx_path)
         filename = "/".join(onnx_path.split("/")[-1:])
         dir_path = "/".join(onnx_path.split("/")[:-1])
+        if dir_path == "":
+            dir_path = "./"
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
         sess_options = _get_ort_session_options()
 

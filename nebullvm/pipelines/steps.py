@@ -325,6 +325,7 @@ class OptimizerStep(Step, ABC):
                             pipeline_name=pipeline_name,
                         )
                     except Exception as ex:
+                        raise ex
                         self._log_warning(
                             f"Compilation failed with {output_library.value} "
                             f"interface of {compiler}. Got error {ex}. "

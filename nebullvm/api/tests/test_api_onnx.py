@@ -43,6 +43,46 @@ def test_onnx_onnx():
                 "openvino",
                 "bladedisc",
             ],
+            # metric_drop_ths=2,
+        )
+
+        # Try the optimized model
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        x = torch.randn(1, 3, 256, 256, requires_grad=False)
+        res_original = model(x.to(device))
+        res_optimized = optimized_model(x.numpy())[0]
+
+        assert isinstance(optimized_model, NumpyONNXInferenceLearner)
+        assert (
+            abs((res_original.detach().cpu().numpy() - res_optimized)).max()
+            < 1e-5
+        )
+
+
+def test_onnx_onnx_quant():
+    with TemporaryDirectory() as tmp_dir:
+        model = models.resnet18().eval()
+        input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
+        model_path = torch_to_onnx(model, input_data, tmp_dir)
+
+        input_data = [
+            ((np.random.randn(1, 3, 256, 256).astype(np.float32),), 0)
+            for i in range(100)
+        ]
+
+        # Run nebullvm optimization in one line of code
+        optimized_model = optimize_model(
+            model_path,
+            input_data=input_data,
+            ignore_compilers=[
+                "deepsparse",
+                "tvm",
+                "torchscript",
+                "tensor RT",
+                "openvino",
+                "bladedisc",
+            ],
+            metric_drop_ths=2,
         )
 
         # Try the optimized model
