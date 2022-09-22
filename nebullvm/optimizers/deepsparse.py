@@ -37,10 +37,12 @@ class DeepSparseOptimizer(BaseOptimizer):
 
         with TemporaryDirectory() as tmp_dir:
             converter = ONNXConverter()
-            onnx_pruned_path = Path(tmp_dir) / "model_pruned.onnx"
+            converter.model_name = "model_pruned"
+            onnx_pruned_path = Path(tmp_dir)
             converter.convert(
                 model, model_params, onnx_pruned_path, input_data
             )
+            onnx_pruned_path = str(onnx_pruned_path / "model_pruned.onnx")
 
             learner = DEEPSPARSE_INFERENCE_LEARNERS[output_library](
                 input_tfms=input_tfms,
