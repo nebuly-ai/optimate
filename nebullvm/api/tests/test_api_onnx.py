@@ -94,7 +94,7 @@ def test_onnx_onnx_quant():
         assert isinstance(optimized_model, NumpyONNXInferenceLearner)
         assert (
             abs((res_original.detach().cpu().numpy() - res_optimized)).max()
-            < 1e-5
+            < 1
         )
 
 
