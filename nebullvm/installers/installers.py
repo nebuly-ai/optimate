@@ -107,7 +107,9 @@ def install_tf2onnx():
 
 
 def install_tensorflow():
-    cmd = ["pip3", "install", "tensorflow>=2.7.0,<1.10"]
+    # Tensorflow 2.10 for now it's not supported
+    # Will be supported when tf2onnx library will support flatbuffers >= 2.x
+    cmd = ["pip3", "install", "tensorflow>=2.7.0,<2.10"]
     subprocess.run(cmd)
 
 
