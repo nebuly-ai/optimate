@@ -144,6 +144,10 @@ def install_openvino(with_optimization: bool = True):
             f"Openvino can run just on Intel machines. "
             f"You are trying to install it on {processor}"
         )
+
+    cmd = ["pip3", "install", "scipy==1.5.4"]
+    subprocess.run(cmd)
+
     openvino_version = "openvino-dev" if with_optimization else "openvino"
     cmd = ["pip3", "install", f"{openvino_version}[onnx]"]
     subprocess.run(cmd)
