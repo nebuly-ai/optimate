@@ -107,7 +107,7 @@ def install_tf2onnx():
 
 
 def install_tensorflow():
-    cmd = ["pip3", "install", "tensorflow>=2.7.0"]
+    cmd = ["pip3", "install", "tensorflow>=2.7.0,<1.10"]
     subprocess.run(cmd)
 
 
