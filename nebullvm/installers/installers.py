@@ -91,13 +91,13 @@ def install_torch_tensor_rt():
     except ImportError:
         install_tensor_rt()
 
-    cmd = [
-        "pip3",
-        "install",
-        "torch-tensorrt>=1.2.0",
-        "-f",
-        "https://github.com/pytorch/TensorRT/releases",
-    ]
+    # cmd = [
+    #     "pip3",
+    #     "install",
+    #     "torch-tensorrt>=1.2.0",
+    #     "-f",
+    #     "https://github.com/pytorch/TensorRT/releases",
+    # ]
 
     cmd = [
         "pip3",
