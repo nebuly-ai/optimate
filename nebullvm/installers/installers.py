@@ -98,6 +98,14 @@ def install_torch_tensor_rt():
         "-f",
         "https://github.com/pytorch/TensorRT/releases",
     ]
+
+    cmd = [
+        "pip3",
+        "install",
+        "torch-tensorrt",
+        "--find-links",
+        "https://github.com/pytorch/TensorRT/releases/expanded_assets/v1.2.0",
+    ]
     subprocess.run(cmd)
 
 
