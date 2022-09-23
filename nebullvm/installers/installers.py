@@ -153,6 +153,9 @@ def install_openvino(with_optimization: bool = True):
     cmd = ["pip3", "install", "onnx>=1.12"]
     subprocess.run(cmd)
 
+    cmd = ["pip3", "install", "scipy>=1.7.3"]
+    subprocess.run(cmd)
+
 
 def install_onnxruntime():
     """Helper function for installing the right version of onnxruntime."""

@@ -1,4 +1,4 @@
-import platform
+# import platform
 from pathlib import Path
 from setuptools import setup, find_packages
 
@@ -15,9 +15,9 @@ REQUIREMENTS = [
     "tqdm>=4.63.0",
     "packaging>=21.3",
 ]
-
-if platform.system() != "Darwin":
-    REQUIREMENTS.append("scipy==1.5.4")
+#
+# if platform.system() != "Darwin":
+#     REQUIREMENTS.append("scipy==1.5.4")
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
