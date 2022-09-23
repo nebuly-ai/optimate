@@ -91,13 +91,14 @@ def install_torch_tensor_rt():
     except ImportError:
         install_tensor_rt()
 
-    cmd = [
-        "pip3",
-        "install",
-        "https://github.com/pytorch/TensorRT/releases"
-        "/download/v1.2.0/torch_tensorrt-1.2.0-cp39-cp39-linux_x86_64.whl",
-    ]
-    subprocess.run(cmd)
+    # cmd = [
+    #     "pip3",
+    #     "install",
+    #     "torch-tensorrt>=1.2.0",
+    #     "-f",
+    #     "https://github.com/pytorch/TensorRT/releases",
+    # ]
+    # subprocess.run(cmd)
 
 
 def install_tf2onnx():
