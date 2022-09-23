@@ -16,9 +16,8 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         super(TensorflowBackendInferenceLearner, self).__init__(**kwargs)
         self.model = tf_model
 
-    @tf.function(jit_compile=True)
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
-        res = self.model.predict(*input_tensors)
+        res = self.model.predict(input_tensors)
         if not isinstance(res, tuple):
             return (res,)
         return res

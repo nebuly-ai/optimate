@@ -96,14 +96,14 @@ def test_tensorrt_onnx(
         )
 
         inputs_example = list(model.get_inputs_example())
-        res = model.predict(*inputs_example)
+        res = model(*inputs_example)
         assert res is not None
 
         if dynamic:
             inputs_example = [
                 input_[: len(input_) // 2] for input_ in inputs_example
             ]
-            res = model.predict(*inputs_example)
+            res = model(*inputs_example)
             assert res is not None
 
 
@@ -183,12 +183,12 @@ def test_tensorrt_torch(
         assert isinstance(loaded_model, PytorchTensorRTInferenceLearner)
 
         inputs_example = list(model.get_inputs_example())
-        res = model.predict(*inputs_example)
+        res = model(*inputs_example)
         assert res is not None
 
         if dynamic:  # Check also with a smaller bath_size
             inputs_example = [
                 input_[: len(input_) // 2] for input_ in inputs_example
             ]
-            res = model.predict(*inputs_example)
+            res = model(*inputs_example)
             assert res is not None

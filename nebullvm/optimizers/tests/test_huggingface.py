@@ -43,5 +43,5 @@ def test_huggingface(output_library: DeepLearningFramework):
         assert isinstance(loaded_model, HuggingFaceInferenceLearner)
 
         inputs_example = list(model.get_inputs_example())
-        res = model.predict(*inputs_example)
+        res = model(*inputs_example)
         assert res is not None

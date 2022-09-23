@@ -42,7 +42,7 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
         )
 
         inputs_example = model.get_inputs_example()
-        res = model.predict(*inputs_example)
+        res = model(*inputs_example)
         assert res is not None
 
         # Dynamic batch size is currently not supported from deepsparse
@@ -50,5 +50,5 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
         #     inputs_example = [
         #         input_[: len(input_) // 2] for input_ in inputs_example
         #     ]
-        #     res = model.predict(*inputs_example)
+        #     res = model(*inputs_example)
         #     assert res is not None

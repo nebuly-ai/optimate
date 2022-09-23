@@ -83,14 +83,14 @@ def test_tvm_onnx(
         assert isinstance(loaded_model, TVM_INFERENCE_LEARNERS[output_library])
 
         inputs_example = model.get_inputs_example()
-        res = model.predict(*inputs_example)
+        res = model(*inputs_example)
         assert res is not None
 
         if dynamic:
             inputs_example = [
                 input_[: len(input_) // 2] for input_ in inputs_example
             ]
-            res = model.predict(*inputs_example)
+            res = model(*inputs_example)
             assert res is not None
 
 
@@ -163,12 +163,12 @@ def test_tvm_torch(
         assert isinstance(loaded_model, TVM_INFERENCE_LEARNERS[output_library])
 
         inputs_example = model.get_inputs_example()
-        res = model.predict(*inputs_example)
+        res = model(*inputs_example)
         assert res is not None
 
         if dynamic:
             inputs_example = [
                 input_[: len(input_) // 2] for input_ in inputs_example
             ]
-            res = model.predict(*inputs_example)
+            res = model(*inputs_example)
             assert res is not None

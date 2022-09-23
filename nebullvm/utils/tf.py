@@ -17,10 +17,12 @@ def create_model_inputs_tf(
     batch_size: int, input_infos: List[InputInfo]
 ) -> List[tf.Tensor]:
     return [
-        tf.random_normal_initializer()(shape=(batch_size, *input_info.size))
+        tf.random_normal_initializer()(
+            shape=(batch_size, *input_info.size[1:], input_info.size[0])
+        )
         if input_info.dtype is DataType.FLOAT
         else tf.random.uniform(
-            shape=(batch_size, *input_info.size),
+            shape=(batch_size, *input_info.size[1:], input_info.size[0]),
             minval=input_info.min_value or 0,
             maxval=input_info.max_value or 100,
             dtype=tf.int32,
@@ -32,7 +34,7 @@ def create_model_inputs_tf(
 def run_tf_model(
     model: tf.Module, input_tensors: Tuple[tf.Tensor]
 ) -> Tuple[tf.Tensor]:
-    pred = model.predict(*input_tensors)
+    pred = model.predict(input_tensors)
     if isinstance(pred, tf.Module) and pred is not None:
         pred = (pred,)
     return pred

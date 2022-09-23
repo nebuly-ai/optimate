@@ -89,7 +89,7 @@ def compute_optimized_running_time(
     last_median = None
     for _ in range(steps):
         starting_time = time.time()
-        _ = optimized_model.predict(*model_inputs)
+        _ = optimized_model(*model_inputs)
         latencies.append(time.time() - starting_time)
         if len(latencies) > min_steps:
             median = np.median(latencies)
