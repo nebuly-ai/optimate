@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-          pip install tensorflow<2.10
+          pip install "tensorflow<2.10"
         # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -c "import nebullvm"
