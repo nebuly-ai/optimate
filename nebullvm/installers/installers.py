@@ -149,8 +149,6 @@ def install_openvino(with_optimization: bool = True):
     subprocess.run(cmd)
 
     # Reinstall updated versions of libraries that were downgraded by openvino
-    cmd = ["pip3", "install", "numpy>=1.20,<1.23"]
-    subprocess.run(cmd)
     cmd = ["pip3", "install", "onnx>=1.12"]
     subprocess.run(cmd)
 
