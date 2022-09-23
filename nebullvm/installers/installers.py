@@ -145,13 +145,6 @@ def install_openvino(with_optimization: bool = True):
             f"You are trying to install it on {processor}"
         )
 
-    # Openvino requires scipy 1.5.4, otherwise the tests will wail
-    cmd = ["pip3", "uninstall", "-y", "scipy"]
-    subprocess.run(cmd)
-
-    cmd = ["pip3", "install", "scipy==1.5.4"]
-    subprocess.run(cmd)
-
     openvino_version = "openvino-dev" if with_optimization else "openvino"
     cmd = ["pip3", "install", f"{openvino_version}[onnx]"]
     subprocess.run(cmd)
