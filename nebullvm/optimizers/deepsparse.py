@@ -32,6 +32,11 @@ class DeepSparseOptimizer(BaseOptimizer):
         input_data: DataManager = None,
         model_outputs: Any = None,
     ) -> Optional[DeepSparseInferenceLearner]:
+        self._log(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
+
         if quantization_type is not None:
             return
 
