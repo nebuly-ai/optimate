@@ -11,7 +11,7 @@ on:
 
 jobs:
   test_on_ubuntu:
-    runs-on: [self-hosted, ubuntu-latest]
+    runs-on: self-hosted
 
     strategy:
       matrix:
