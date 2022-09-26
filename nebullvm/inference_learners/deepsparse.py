@@ -24,7 +24,7 @@ except ImportError:
     import platform
 
     os_ = platform.system()
-    if False and os_ != "Darwin" and _get_cpu_arch() != "arm":
+    if os_ != "Darwin" and _get_cpu_arch() != "arm":
         warnings.warn(
             "No deepsparse installation found. Trying to install it..."
         )

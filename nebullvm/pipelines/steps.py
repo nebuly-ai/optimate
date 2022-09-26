@@ -388,6 +388,7 @@ class TorchOptimizerStep(OptimizerStep):
         self, ignore_compilers: List[ModelCompiler]
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         optimizers = {}
+        return optimizers
         if ModelCompiler.TORCHSCRIPT not in ignore_compilers:
             optimizers[ModelCompiler.TORCHSCRIPT] = PytorchBackendOptimizer(
                 logger=self._logger
