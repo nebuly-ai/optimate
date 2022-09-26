@@ -44,7 +44,7 @@ def test_tensorflow_onnx():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowONNXInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-5
+    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
 
 def test_tensorflow_tensorrt():
@@ -78,7 +78,7 @@ def test_tensorflow_tensorrt():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowNvidiaInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-5
+    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
 
 def test_tensorflow_openvino():
@@ -111,7 +111,7 @@ def test_tensorflow_openvino():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowOpenVinoInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-5
+    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
 
 def test_tensorflow_tvm():
@@ -143,4 +143,4 @@ def test_tensorflow_tvm():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowApacheTVMInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-5
+    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
