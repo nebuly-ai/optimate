@@ -1,5 +1,6 @@
 import copy
 import logging
+import sys
 from abc import ABC, abstractmethod
 from logging import Logger
 from typing import Dict, List, Any, Callable, Tuple, Optional
@@ -181,6 +182,9 @@ class TorchCompressorStep(CompressorStep):
 
         if (
             deepsparse_is_available()
+            and (
+                str(sys.version_info.major) + "." + str(sys.version_info.minor)
+            )
             and ModelCompiler.DEEPSPARSE not in ignore_compilers
         ):
             compressors["sparseml"] = SparseMLCompressor(
