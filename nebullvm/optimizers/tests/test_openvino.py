@@ -49,7 +49,12 @@ from nebullvm.utils.general import is_python_version_3_10
     ],
 )
 @pytest.mark.skipif(
-    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
+    is_python_version_3_10(),
+    reason="Openvino doesn't support python 3.10 yet.",
+)
+@pytest.mark.skipif(
+    "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
+    reason="Openvino is only available for intel processors.",
 )
 def test_openvino(
     output_library: DeepLearningFramework,
@@ -58,10 +63,7 @@ def test_openvino(
     metric_drop_ths: int,
     metric: str,
 ):
-    if "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower():
-        # No intel cpu detected
-        return
-    elif quantization_type == QuantizationType.DYNAMIC:
+    if quantization_type == QuantizationType.DYNAMIC:
         # Dynamic quantization is not supported
         return None
     with TemporaryDirectory() as tmp_dir:

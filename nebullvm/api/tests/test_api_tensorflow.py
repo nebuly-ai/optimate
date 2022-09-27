@@ -11,6 +11,9 @@ from nebullvm.inference_learners.onnx import TensorflowONNXInferenceLearner
 from nebullvm.inference_learners.tensor_rt import (
     TensorflowNvidiaInferenceLearner,
 )
+from nebullvm.inference_learners.tensorflow import (
+    TensorflowBackendInferenceLearner,
+)
 from nebullvm.inference_learners.openvino import (
     TensorflowOpenVinoInferenceLearner,
 )
@@ -50,7 +53,7 @@ def test_tensorflow_onnx():
         ignore_compilers=[
             "deepsparse",
             "tvm",
-            "torchscript",
+            "tflite",
             "tensor RT",
             "openvino",
             "bladedisc",
@@ -64,6 +67,35 @@ def test_tensorflow_onnx():
 
     assert isinstance(optimized_model, TensorflowONNXInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+
+
+def test_tensorflow_tflite():
+    model = ResNet50()
+    input_data = [
+        ((tf.random.normal([1, 224, 224, 3]),), 0) for i in range(100)
+    ]
+
+    # Run nebullvm optimization in one line of code
+    optimized_model = optimize_model(
+        model,
+        input_data=input_data,
+        ignore_compilers=[
+            "deepsparse",
+            "tvm",
+            "onnxruntime",
+            "tensor RT",
+            "openvino",
+            "bladedisc",
+        ],
+    )
+
+    # Try the optimized model
+    x = tf.random.normal([1, 224, 224, 3])
+    res_original = model.predict(x)
+    res_optimized = optimized_model.predict(x)[0]
+
+    assert isinstance(optimized_model, TensorflowBackendInferenceLearner)
+    assert abs((res_original - res_optimized)).max() < 1e-2
 
 
 @pytest.mark.skipif(
@@ -83,7 +115,7 @@ def test_tensorflow_tensorrt():
         ignore_compilers=[
             "deepsparse",
             "tvm",
-            "torchscript",
+            "tflite",
             "onnxruntime",
             "openvino",
             "bladedisc",
@@ -119,7 +151,7 @@ def test_tensorflow_openvino():
         ignore_compilers=[
             "deepsparse",
             "tvm",
-            "torchscript",
+            "tflite",
             "onnxruntime",
             "tensor RT",
             "bladedisc",
@@ -154,7 +186,7 @@ def test_tensorflow_tvm():
         ignore_compilers=[
             "deepsparse",
             "openvino",
-            "torchscript",
+            "tflite",
             "onnxruntime",
             "tensor RT",
             "bladedisc",

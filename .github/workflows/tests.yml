@@ -16,10 +16,10 @@ jobs:
     strategy:
       matrix:
         # Run in all these versions of Python
-        python-version: [3.9]
+        python-version: [ 3.9 ]
 
     steps:
-        # Checkout the latest code from the repo
+      # Checkout the latest code from the repo
       - name: Checkout repo
         uses: actions/checkout@v2
         # Setup which version of Python to use
@@ -35,34 +35,33 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-          pip install "tensorflow<2.10"
-        # Install compilers except tvm
-      - name: Install deep learning compilers
-        run: python -c "import nebullvm"
-#        # Install tvm
-#      - name: Install tvm
-#        run: |
-#          pip install apache-tvm
-#          pip install xgboost
         # Install requirements for testing
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
+        # Install compilers except tvm
+      - name: Install deep learning compilers
+        run: python -c "import nebullvm"
+        #        # Install tvm
+        #      - name: Install tvm
+        #        run: |
+        #          pip install apache-tvm
+        #          pip install xgboost
         # Run the tests ignoring tvm
       - name: Run tests
         run: |
           cd nebullvm
           pytest compressors
-          pytest --ignore compressors --ignore=optimizers/tests/test_tvm.py --ignore=optimizers/tests/test_bladedisc.py
+          pytest
   test_on_ubuntu_cpu:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         # Run in all these versions of Python
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [ 3.7, 3.8, 3.9, "3.10" ]
 
     steps:
-        # Checkout the latest code from the repo
+      # Checkout the latest code from the repo
       - name: Checkout repo
         uses: actions/checkout@v2
         # Setup which version of Python to use
@@ -78,15 +77,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-          pip install "tensorflow<2.10"
+          # Install requirements for testing
+          - name: Install requirements for testing
+            run: pip install -r "requirements-dev.txt"
         # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -c "import nebullvm"
-#        # Install tvm
-#      - name: Install tvm
-#        run: |
-#          pip install apache-tvm
-#          pip install xgboost
+        #        # Install tvm
+        #      - name: Install tvm
+        #        run: |
+        #          pip install apache-tvm
+        #          pip install xgboost
         # Install requirements for testing
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
@@ -95,4 +96,4 @@ jobs:
         run: |
           cd nebullvm
           pytest compressors
-          pytest --ignore compressors --ignore=optimizers/tests/test_tvm.py --ignore=optimizers/tests/test_bladedisc.py
+          pytest --ignore compressors
