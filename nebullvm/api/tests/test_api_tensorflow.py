@@ -62,8 +62,6 @@ def test_tensorflow_onnx():
     res_original = model.predict(x)
     res_optimized = optimized_model.predict(x)[0]
 
-    tf.keras.clear_session()
-
     assert isinstance(optimized_model, TensorflowONNXInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
@@ -96,8 +94,6 @@ def test_tensorflow_tensorrt():
     x = tf.random.normal([1, 224, 224, 3])
     res_original = model.predict(x)
     res_optimized = optimized_model.predict(x)[0]
-
-    tf.keras.clear_session()
 
     assert isinstance(optimized_model, TensorflowNvidiaInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
@@ -135,8 +131,6 @@ def test_tensorflow_openvino():
     res_original = model.predict(x)
     res_optimized = optimized_model.predict(x)[0]
 
-    tf.keras.clear_session()
-
     assert isinstance(optimized_model, TensorflowOpenVinoInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
@@ -171,8 +165,6 @@ def test_tensorflow_tvm():
     x = tf.random.normal([1, 224, 224, 3])
     res_original = model.predict(x)
     res_optimized = optimized_model.predict(x)[0]
-
-    tf.keras.clear_session()
 
     assert isinstance(optimized_model, TensorflowApacheTVMInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
