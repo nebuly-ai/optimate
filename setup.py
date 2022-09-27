@@ -13,6 +13,7 @@ REQUIREMENTS = [
     "torch>=1.10.0",
     "tqdm>=4.63.0",
     "packaging>=21.3",
+    "transformers",
 ]
 
 this_directory = Path(__file__).parent
