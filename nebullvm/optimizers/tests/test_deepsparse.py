@@ -8,6 +8,7 @@ from nebullvm.inference_learners.deepsparse import (
 )
 from nebullvm.optimizers.deepsparse import DeepSparseOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.compilers import deepsparse_is_available
 
 
 @pytest.mark.parametrize(
@@ -16,6 +17,10 @@ from nebullvm.optimizers.tests.utils import initialize_model
         # (DeepLearningFramework.PYTORCH, True),
         (DeepLearningFramework.PYTORCH, False),
     ],
+)
+@pytest.mark.skipif(
+    not deepsparse_is_available(),
+    reason="Can't test deepsparse if it's not installed.",
 )
 def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
     with TemporaryDirectory() as tmp_dir:

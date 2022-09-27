@@ -8,6 +8,7 @@ from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.tvm import TVM_INFERENCE_LEARNERS
 from nebullvm.optimizers import ApacheTVMOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.compilers import tvm_is_available
 
 
 @pytest.mark.parametrize(
@@ -43,6 +44,9 @@ from nebullvm.optimizers.tests.utils import initialize_model
             "numeric_precision",
         ),
     ],
+)
+@pytest.mark.skipif(
+    not tvm_is_available(), reason="Can't test tvm if it's not installed."
 )
 def test_tvm_onnx(
     output_library: DeepLearningFramework,
@@ -127,6 +131,9 @@ def test_tvm_onnx(
             "numeric_precision",
         ),
     ],
+)
+@pytest.mark.skipif(
+    not tvm_is_available(), reason="Can't test tvm if it's not installed."
 )
 def test_tvm_torch(
     output_library: DeepLearningFramework,

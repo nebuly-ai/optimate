@@ -6,6 +6,7 @@ from nebullvm.base import DeepLearningFramework
 from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
 from nebullvm.optimizers import BladeDISCOptimizer
 from nebullvm.optimizers.tests.utils import get_torch_model
+from nebullvm.utils.compilers import bladedisc_is_available
 
 
 @pytest.mark.parametrize(
@@ -14,6 +15,10 @@ from nebullvm.optimizers.tests.utils import get_torch_model
         (DeepLearningFramework.PYTORCH, True),
         (DeepLearningFramework.PYTORCH, False),
     ],
+)
+@pytest.mark.skipif(
+    not bladedisc_is_available(),
+    reason="Can't test bladedisc if it's not installed.",
 )
 def test_bladedisc(output_library: DeepLearningFramework, dynamic: bool):
     with TemporaryDirectory() as tmp_dir:
