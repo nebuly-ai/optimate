@@ -17,6 +17,22 @@ from nebullvm.utils.compilers import (
     tvm_is_available,
 )
 
+# Limit tensorflow gpu memory usage
+gpus = tf.config.list_physical_devices("GPU")
+if gpus:
+    try:
+        # Currently, memory growth needs to be the same across GPUs
+        for gpu in gpus:
+            tf.config.set_visible_devices(gpus[0], "GPU")
+            tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.list_logical_devices("GPU")
+            print(
+                len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs"
+            )
+    except RuntimeError as e:
+        # Memory growth must be set before GPUs have been initialized
+        print(e)
+
 
 def test_tensorflow_onnx():
     model = ResNet50()
@@ -42,6 +58,8 @@ def test_tensorflow_onnx():
     x = tf.random.normal([1, 224, 224, 3])
     res_original = model.predict(x)
     res_optimized = optimized_model.predict(x)[0]
+
+    tf.keras.clear_session()
 
     assert isinstance(optimized_model, TensorflowONNXInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
@@ -77,6 +95,8 @@ def test_tensorflow_tensorrt():
     res_original = model.predict(x)
     res_optimized = optimized_model.predict(x)[0]
 
+    tf.keras.clear_session()
+
     assert isinstance(optimized_model, TensorflowNvidiaInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
@@ -110,6 +130,8 @@ def test_tensorflow_openvino():
     res_original = model.predict(x)
     res_optimized = optimized_model.predict(x)[0]
 
+    tf.keras.clear_session()
+
     assert isinstance(optimized_model, TensorflowOpenVinoInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
@@ -141,6 +163,8 @@ def test_tensorflow_tvm():
     x = tf.random.normal([1, 224, 224, 3])
     res_original = model.predict(x)
     res_optimized = optimized_model.predict(x)[0]
+
+    tf.keras.clear_session()
 
     assert isinstance(optimized_model, TensorflowApacheTVMInferenceLearner)
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
