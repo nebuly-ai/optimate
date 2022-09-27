@@ -49,4 +49,6 @@ jobs:
         run: pip install -r "requirements-dev.txt"
         # Run the tests ignoring tvm
       - name: Run tests
-        run: pytest --ignore=nebullvm/optimizers/tests/test_tvm.py --ignore=nebullvm/optimizers/tests/test_bladedisc.py
+        run: |
+          cd nebullvm
+          pytest --ignore=optimizers/tests/test_tvm.py --ignore=optimizers/tests/test_bladedisc.py
