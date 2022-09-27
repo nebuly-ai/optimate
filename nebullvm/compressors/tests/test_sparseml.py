@@ -1,3 +1,5 @@
+import sys
+
 import torch
 
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
@@ -20,6 +22,12 @@ def test_sparseml():
         metric=None,
         output_library=DeepLearningFramework.PYTORCH,
     )
+
+    if (
+        str(sys.version_info.major) + "." + str(sys.version_info.minor)
+    ) != "3.10":
+        # Python 3.10 is not supported
+        return
 
     compressor = SparseMLCompressor()
 

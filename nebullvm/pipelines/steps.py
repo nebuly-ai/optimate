@@ -185,6 +185,7 @@ class TorchCompressorStep(CompressorStep):
             and (
                 str(sys.version_info.major) + "." + str(sys.version_info.minor)
             )
+            != "3.10"
             and ModelCompiler.DEEPSPARSE not in ignore_compilers
         ):
             compressors["sparseml"] = SparseMLCompressor(
