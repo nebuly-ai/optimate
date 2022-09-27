@@ -1,6 +1,5 @@
 import json
 import shutil
-import sys
 import warnings
 from abc import ABC
 from pathlib import Path
@@ -29,10 +28,11 @@ from nebullvm.utils.optional_modules import tensorflow as tf
 try:
     from openvino.runtime import Core, Model, CompiledModel, InferRequest
 except ImportError:
+    from nebullvm.utils.general import is_python_version_3_10
+
     if (
         "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
-        and (str(sys.version_info.major) + "." + str(sys.version_info.minor))
-        != "3.10"
+        and not is_python_version_3_10()
         and not NO_COMPILER_INSTALLATION
     ):
         warnings.warn(

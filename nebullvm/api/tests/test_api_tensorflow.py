@@ -4,6 +4,8 @@ import tensorflow as tf
 import torch
 from tensorflow.keras.applications.resnet50 import ResNet50
 
+import pytest
+
 from nebullvm.api.functions import optimize_model
 from nebullvm.inference_learners.onnx import TensorflowONNXInferenceLearner
 from nebullvm.inference_learners.tensor_rt import (
@@ -16,6 +18,7 @@ from nebullvm.inference_learners.tvm import TensorflowApacheTVMInferenceLearner
 from nebullvm.utils.compilers import (
     tvm_is_available,
 )
+from nebullvm.utils.general import is_python_version_3_10
 
 # Limit tensorflow gpu memory usage
 gpus = tf.config.list_physical_devices("GPU")
@@ -65,12 +68,11 @@ def test_tensorflow_onnx():
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
 
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="Skip because cuda is not available.",
+)
 def test_tensorflow_tensorrt():
-    if not torch.cuda.is_available():
-        # no need of testing the tensor rt optimizer on devices not
-        # supporting CUDA.
-        return
-
     model = ResNet50()
     input_data = [
         ((tf.random.normal([1, 224, 224, 3]),), 0) for i in range(100)
@@ -101,6 +103,9 @@ def test_tensorflow_tensorrt():
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
 
+@pytest.mark.skipif(
+    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
+)
 def test_tensorflow_openvino():
     processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
     if "intel" not in processor:
@@ -136,6 +141,9 @@ def test_tensorflow_openvino():
     assert abs((res_original - res_optimized)).numpy().max() < 1e-2
 
 
+@pytest.mark.skipif(
+    tvm_is_available(), reason="Can't test tvm if it's not installed."
+)
 def test_tensorflow_tvm():
     if not tvm_is_available():
         return None

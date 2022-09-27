@@ -11,6 +11,7 @@ from nebullvm.inference_learners.openvino import (
 )
 from nebullvm.optimizers.openvino import OpenVinoOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.general import is_python_version_3_10
 
 
 @pytest.mark.parametrize(
@@ -46,6 +47,9 @@ from nebullvm.optimizers.tests.utils import initialize_model
             "numeric_precision",
         ),
     ],
+)
+@pytest.mark.skipif(
+    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
 )
 def test_openvino(
     output_library: DeepLearningFramework,

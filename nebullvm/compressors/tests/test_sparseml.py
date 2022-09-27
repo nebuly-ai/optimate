@@ -1,13 +1,18 @@
-import sys
-
 import torch
+
+import pytest
 
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
 from nebullvm.base import DeepLearningFramework
 from nebullvm.compressors.sparseml import SparseMLCompressor
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.general import is_python_version_3_10
 
 
+@pytest.mark.skipif(
+    is_python_version_3_10(),
+    reason="Torch 1.9.1 is not available in python 1.10",
+)
 def test_sparseml():
     (
         model,
@@ -22,12 +27,6 @@ def test_sparseml():
         metric=None,
         output_library=DeepLearningFramework.PYTORCH,
     )
-
-    if (
-        str(sys.version_info.major) + "." + str(sys.version_info.minor)
-    ) == "3.10":
-        # Python 3.10 is not supported
-        return
 
     compressor = SparseMLCompressor()
 

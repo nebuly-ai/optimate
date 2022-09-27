@@ -1,3 +1,4 @@
+import sys
 from packaging import version
 from types import ModuleType
 
@@ -16,3 +17,10 @@ def check_module_version(
             return False
 
     return True
+
+
+def is_python_version_3_10():
+    return (
+        str(sys.version_info.major) + "." + str(sys.version_info.minor)
+        == "3.10"
+    )

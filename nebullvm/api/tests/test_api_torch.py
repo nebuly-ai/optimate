@@ -3,6 +3,8 @@ import cpuinfo
 import torch
 import torchvision.models as models
 
+import pytest
+
 from nebullvm.api.functions import optimize_model
 from nebullvm.inference_learners.onnx import PytorchONNXInferenceLearner
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
@@ -18,6 +20,7 @@ from nebullvm.utils.compilers import (
     tvm_is_available,
     bladedisc_is_available,
 )
+from nebullvm.utils.general import is_python_version_3_10
 
 
 def test_torch_onnx():
@@ -108,12 +111,11 @@ def test_torch_torchscript():
     assert torch.max(abs((res_original - res_optimized))) < 1e-2
 
 
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="Skip because cuda is not available.",
+)
 def test_torch_tensorrt():
-    if not torch.cuda.is_available():
-        # no need of testing the tensor rt optimizer on devices not
-        # supporting CUDA.
-        return
-
     model = models.resnet18()
     input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
 
@@ -143,6 +145,9 @@ def test_torch_tensorrt():
     assert torch.max(abs((res_original - res_optimized))) < 1e-2
 
 
+@pytest.mark.skipif(
+    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
+)
 def test_torch_openvino():
     processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
     if "intel" not in processor:
@@ -176,10 +181,10 @@ def test_torch_openvino():
     assert torch.max(abs((res_original.cpu() - res_optimized))) < 1e-2
 
 
+@pytest.mark.skipif(
+    tvm_is_available(), reason="Can't test tvm if it's not installed."
+)
 def test_torch_tvm():
-    if not tvm_is_available():
-        return None
-
     model = models.resnet18()
     input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
 
@@ -208,10 +213,11 @@ def test_torch_tvm():
     assert torch.max(abs((res_original - res_optimized))) < 1e-2
 
 
+@pytest.mark.skipif(
+    bladedisc_is_available(),
+    reason="Can't test bladedisc if it's not installed.",
+)
 def test_torch_bladedisc():
-    if not bladedisc_is_available():
-        return None
-
     model = models.resnet18()
     input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
 

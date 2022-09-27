@@ -48,6 +48,10 @@ from nebullvm.optimizers.tests.utils import initialize_model
         ),
     ],
 )
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="Skip because cuda is not available.",
+)
 def test_tensorrt_onnx(
     output_library: DeepLearningFramework,
     dynamic: bool,
@@ -55,11 +59,7 @@ def test_tensorrt_onnx(
     metric_drop_ths: int,
     metric: str,
 ):
-    if not torch.cuda.is_available():
-        # no need of testing the tensor rt optimizer on devices not
-        # supporting CUDA.
-        return
-    elif quantization_type == QuantizationType.DYNAMIC:
+    if quantization_type == QuantizationType.DYNAMIC:
         # Dynamic quantization is not supported
         return None
     with TemporaryDirectory() as tmp_dir:
@@ -141,6 +141,10 @@ def test_tensorrt_onnx(
         ),
     ],
 )
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="Skip because cuda is not available.",
+)
 def test_tensorrt_torch(
     output_library: DeepLearningFramework,
     dynamic: bool,
@@ -148,11 +152,7 @@ def test_tensorrt_torch(
     metric_drop_ths: int,
     metric: str,
 ):
-    if not torch.cuda.is_available():
-        # no need of testing the tensor rt optimizer on devices not
-        # supporting CUDA.
-        return
-    elif quantization_type == QuantizationType.DYNAMIC:
+    if quantization_type == QuantizationType.DYNAMIC:
         # Dynamic quantization is not supported
         return None
     with TemporaryDirectory() as tmp_dir:

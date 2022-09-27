@@ -5,6 +5,8 @@ import numpy as np
 import torch
 from torchvision import models
 
+import pytest
+
 from nebullvm.api.functions import optimize_model
 from nebullvm.api.tests.utils import torch_to_onnx
 from nebullvm.inference_learners.onnx import NumpyONNXInferenceLearner
@@ -18,6 +20,7 @@ from nebullvm.inference_learners.tvm import NumpyApacheTVMInferenceLearner
 from nebullvm.utils.compilers import (
     tvm_is_available,
 )
+from nebullvm.utils.general import is_python_version_3_10
 
 
 def test_onnx_onnx():
@@ -100,12 +103,11 @@ def test_onnx_onnx_quant():
         )
 
 
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="Skip because cuda is not available.",
+)
 def test_onnx_tensorrt():
-    if not torch.cuda.is_available():
-        # no need of testing the tensor rt optimizer on devices not
-        # supporting CUDA.
-        return
-
     with TemporaryDirectory() as tmp_dir:
         model = models.resnet18()
         input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
@@ -144,6 +146,9 @@ def test_onnx_tensorrt():
         )
 
 
+@pytest.mark.skipif(
+    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
+)
 def test_onnx_openvino():
     processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
     if "intel" not in processor:
@@ -187,10 +192,10 @@ def test_onnx_openvino():
         )
 
 
+@pytest.mark.skipif(
+    tvm_is_available(), reason="Can't test tvm if it's not installed."
+)
 def test_onnx_tvm():
-    if not tvm_is_available():
-        return None
-
     with TemporaryDirectory() as tmp_dir:
         model = models.resnet18()
         input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]

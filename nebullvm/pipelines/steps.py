@@ -1,6 +1,5 @@
 import copy
 import logging
-import sys
 from abc import ABC, abstractmethod
 from logging import Logger
 from typing import Dict, List, Any, Callable, Tuple, Optional
@@ -45,6 +44,7 @@ from nebullvm.utils.compilers import (
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
+from nebullvm.utils.general import is_python_version_3_10
 from nebullvm.utils.optional_modules import tensorflow as tf
 
 
@@ -182,10 +182,7 @@ class TorchCompressorStep(CompressorStep):
 
         if (
             deepsparse_is_available()
-            and (
-                str(sys.version_info.major) + "." + str(sys.version_info.minor)
-            )
-            != "3.10"
+            and not is_python_version_3_10()
             and ModelCompiler.DEEPSPARSE not in ignore_compilers
         ):
             compressors["sparseml"] = SparseMLCompressor(

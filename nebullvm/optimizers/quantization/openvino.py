@@ -1,4 +1,3 @@
-import sys
 from typing import List, Tuple, Any
 
 import numpy as np
@@ -13,11 +12,11 @@ try:
     from openvino.tools.pot import create_pipeline
 except ImportError:
     import cpuinfo
+    from nebullvm.utils.general import is_python_version_3_10
 
     if (
         "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
-        and (str(sys.version_info.major) + "." + str(sys.version_info.minor))
-        != "3.10"
+        and not is_python_version_3_10()
         and not NO_COMPILER_INSTALLATION
     ):
         from nebullvm.installers.installers import install_openvino
