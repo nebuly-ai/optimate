@@ -1,3 +1,4 @@
+import sys
 from typing import List, Tuple, Any
 
 import numpy as np
@@ -15,6 +16,8 @@ except ImportError:
 
     if (
         "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+        and (str(sys.version_info.major) + "." + str(sys.version_info.minor))
+        != "3.10"
         and not NO_COMPILER_INSTALLATION
     ):
         from nebullvm.installers.installers import install_openvino
