@@ -142,7 +142,7 @@ def test_tensorflow_openvino():
 
 
 @pytest.mark.skipif(
-    tvm_is_available(), reason="Can't test tvm if it's not installed."
+    not tvm_is_available(), reason="Can't test tvm if it's not installed."
 )
 def test_tensorflow_tvm():
     if not tvm_is_available():

@@ -182,7 +182,7 @@ def test_torch_openvino():
 
 
 @pytest.mark.skipif(
-    tvm_is_available(), reason="Can't test tvm if it's not installed."
+    not tvm_is_available(), reason="Can't test tvm if it's not installed."
 )
 def test_torch_tvm():
     model = models.resnet18()
@@ -214,7 +214,7 @@ def test_torch_tvm():
 
 
 @pytest.mark.skipif(
-    bladedisc_is_available(),
+    not bladedisc_is_available(),
     reason="Can't test bladedisc if it's not installed.",
 )
 def test_torch_bladedisc():

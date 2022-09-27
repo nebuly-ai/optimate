@@ -193,7 +193,7 @@ def test_onnx_openvino():
 
 
 @pytest.mark.skipif(
-    tvm_is_available(), reason="Can't test tvm if it's not installed."
+    not tvm_is_available(), reason="Can't test tvm if it's not installed."
 )
 def test_onnx_tvm():
     with TemporaryDirectory() as tmp_dir:
