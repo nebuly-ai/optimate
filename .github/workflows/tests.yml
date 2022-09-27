@@ -48,10 +48,8 @@ jobs:
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
         # Run the tests ignoring tvm
-      - name: Run tests compressors
+      - name: Run tests
         run: |
           cd nebullvm
           pytest compressors
-        # Run other tests
-      - name: Run other tests
-        run: pytest --ignore compressors --ignore=optimizers/tests/test_tvm.py --ignore=optimizers/tests/test_bladedisc.py
+          pytest --ignore compressors --ignore=optimizers/tests/test_tvm.py --ignore=optimizers/tests/test_bladedisc.py
