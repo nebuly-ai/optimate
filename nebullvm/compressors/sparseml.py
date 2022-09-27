@@ -148,6 +148,7 @@ class SparseMLCompressor(BaseCompressor):
             if torch.cuda.is_available():
                 inputs = tuple(i.cuda() for i in inputs)
                 pruned_model.cuda()
+                model.cuda()
             model_pred = model(*inputs)
             pruned_pred = pruned_model(*inputs)
             metric_val += metric(model_pred, pruned_pred, y)
