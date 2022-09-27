@@ -25,7 +25,7 @@ def test_sparseml():
 
     if (
         str(sys.version_info.major) + "." + str(sys.version_info.minor)
-    ) != "3.10":
+    ) == "3.10":
         # Python 3.10 is not supported
         return
 
