@@ -51,4 +51,5 @@ jobs:
       - name: Run tests
         run: |
           cd nebullvm
-          pytest --ignore=optimizers/tests/test_tvm.py --ignore=optimizers/tests/test_bladedisc.py
+          pytest compressors
+#          pytest --ignore compressors --ignore=optimizers/tests/test_tvm.py --ignore=optimizers/tests/test_bladedisc.py
