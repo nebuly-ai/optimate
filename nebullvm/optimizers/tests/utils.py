@@ -9,7 +9,7 @@ from transformers import AlbertModel, AlbertTokenizer
 
 from nebullvm.api.functions import (
     _extract_info_from_data,
-    _compute_model_outputs,
+    _benchmark_original_model,
 )
 from nebullvm.api.huggingface import convert_hf_model
 from nebullvm.base import ModelParams, DeepLearningFramework
@@ -225,10 +225,11 @@ def initialize_model(
     input_tfms = MultiStageTransformation([])
 
     if metric_drop_ths is not None:
-        model_outputs = _compute_model_outputs(
+        model_outputs, _ = _benchmark_original_model(
             model,
             input_data,
             output_library,
+            compute_output=True,
         )
     else:
         model_outputs = None
