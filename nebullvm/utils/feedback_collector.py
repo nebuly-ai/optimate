@@ -168,6 +168,9 @@ class FeedbackCollector:
                 headers=headers,
                 timeout=timeout,
             )
+        else:
+            response = None
+
         self._model_id = None
         self._latency_dict = None
         self._model_info = None
