@@ -152,9 +152,8 @@ class FeedbackCollector:
             "nebullvm_version": VERSION,
         }
 
-        model_name = self._model_info["model_name"]
-
         if store_latencies:
+            model_name = self._model_info["model_name"]
             with open(
                 f"latencies_{model_name}_{self._model_id}.json",
                 "w",
