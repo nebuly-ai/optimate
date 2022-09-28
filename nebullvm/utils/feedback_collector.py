@@ -105,8 +105,6 @@ class FeedbackCollector:
         return f"{str(uuid.uuid4())}_{hash(model_name)}"
 
     def start_collection(self, model: Any, framework: DeepLearningFramework):
-        if not self.is_active:
-            return
         if isinstance(model, str) or isinstance(model, Path):
             model_name = str(model)
         else:
@@ -143,7 +141,7 @@ class FeedbackCollector:
         compiler_dict[q_type_key] = latency if latency else -1.0
         self._latency_dict[key] = compiler_dict
 
-    def send_feedback(self, timeout: int = 30):
+    def send_feedback(self, store_latencies, timeout: int = 30):
         if self._model_id is None:
             return {}
         request_body = {
@@ -153,17 +151,23 @@ class FeedbackCollector:
             "model_metadata": self._model_info,
             "nebullvm_version": VERSION,
         }
-        headers = {
-            "accept": "application/json",
-            "Content-Type": "application/json",
-        }
-        url = "https://nebuly.cloud/v1/store_nebullvm_results"
-        response = requests.post(
-            url,
-            data=json.dumps(request_body),
-            headers=headers,
-            timeout=timeout,
-        )
+
+        if store_latencies:
+            with open("latencies.json", "w") as fp:
+                json.dump(request_body, fp)
+
+        if self.is_active:
+            headers = {
+                "accept": "application/json",
+                "Content-Type": "application/json",
+            }
+            url = "https://nebuly.cloud/v1/store_nebullvm_results"
+            response = requests.post(
+                url,
+                data=json.dumps(request_body),
+                headers=headers,
+                timeout=timeout,
+            )
         self._model_id = None
         self._latency_dict = None
         self._model_info = None

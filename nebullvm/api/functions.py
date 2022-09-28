@@ -17,6 +17,11 @@ from nebullvm.base import (
     OptimizationTime,
 )
 from nebullvm.converters.converters import CrossConverter
+from nebullvm.measure import (
+    compute_torch_latency,
+    compute_tf_latency,
+    compute_onnx_latency,
+)
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
@@ -118,11 +123,15 @@ def _is_huggingface_data(data_sample: Any) -> bool:
     return False
 
 
-def _compute_model_outputs(
+def _benchmark_original_model(
     model: Any,
     input_data: DataManager,
     dl_framework: DeepLearningFramework,
+    compute_output: bool = False,
 ):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    outputs = None
+
     if dl_framework == DeepLearningFramework.PYTORCH:
         input_data_torch, ys = input_data.get_numpy_list(300, with_ys=True)
         input_data_torch = [
@@ -132,10 +141,14 @@ def _compute_model_outputs(
             )
             for data_tuple in input_data_torch
         ]
-        outputs = [
-            tuple(run_torch_model(model, list(input_tensors)))
-            for input_tensors in input_data_torch
-        ]
+        if compute_output:
+            outputs = [
+                tuple(run_torch_model(model, list(input_tensors)))
+                for input_tensors in input_data_torch
+            ]
+        latency, _ = compute_torch_latency(
+            list(input_data_torch[0]), model, device
+        )
     elif dl_framework == DeepLearningFramework.TENSORFLOW:
         input_data_tf, ys = input_data.get_numpy_list(300, with_ys=True)
         input_data_tf = [
@@ -145,18 +158,24 @@ def _compute_model_outputs(
             )
             for data_tuple in input_data_tf
         ]
-        outputs = [
-            tuple(run_tf_model(model, input_tensors))
-            for input_tensors in input_data_tf
-        ]
+        if compute_output:
+            outputs = [
+                tuple(run_tf_model(model, input_tensors))
+                for input_tensors in input_data_tf
+            ]
+        latency, _ = compute_tf_latency(list(input_data_tf[0]), model, device)
     else:
         input_data_onnx, ys = input_data.get_numpy_list(300, with_ys=True)
-        outputs = [
-            tuple(run_onnx_model(model, list(input_tensors)))
-            for input_tensors in input_data_onnx
-        ]
+        if compute_output:
+            outputs = [
+                tuple(run_onnx_model(model, list(input_tensors)))
+                for input_tensors in input_data_onnx
+            ]
+        latency, _ = compute_onnx_latency(
+            list(input_data_onnx[0]), model, device
+        )
 
-    return outputs
+    return outputs, latency
 
 
 def optimize_model(
@@ -168,6 +187,7 @@ def optimize_model(
     dynamic_info: Dict = None,
     config_file: str = None,
     ignore_compilers: List[str] = None,
+    store_latencies: bool = False,
     **kwargs,
 ):
     """Optimize the input model regardless of the framework it was used for
@@ -236,6 +256,8 @@ def optimize_model(
             Default: None.
         ignore_compilers (List, optional): List containing the compilers to be
             ignored during the OptimizerStep. Default: None.
+        store_latencies (bool, optional): Parameter that allows to save the
+            latency for each compiler used by nebullvm.
 
     Returns:
         InferenceLearner: Optimized version of the input model having the same
@@ -286,13 +308,24 @@ def optimize_model(
             ignore_compilers = [
                 ModelCompiler(compiler) for compiler in ignore_compilers
             ]
-        # Compute original model outputs
-        if metric_drop_ths is not None:
-            model_outputs = _compute_model_outputs(
-                model, input_data, dl_framework
-            )
-        else:
-            model_outputs = None
+
+        # Benchmark original model
+        model_outputs, orig_latency = _benchmark_original_model(
+            model=model,
+            input_data=input_data,
+            dl_framework=dl_framework,
+            compute_output=True if metric_drop_ths is not None else False,
+        )
+
+        # Store original model result
+        FEEDBACK_COLLECTOR.store_compiler_result(
+            compiler=dl_framework,
+            q_type=None,
+            metric_drop_ths=metric_drop_ths,
+            latency=orig_latency,
+            pipeline_name="original",
+        )
+
         for model in models:
             input_tfms = MultiStageTransformation([])
             pipeline = build_pipeline_from_model(
@@ -319,7 +352,7 @@ def optimize_model(
 
     optimized_models.sort(key=lambda x: x[1], reverse=False)
     optimal_model = optimized_models[0][0]
-    FEEDBACK_COLLECTOR.send_feedback()
+    FEEDBACK_COLLECTOR.send_feedback(store_latencies)
     if optimal_model is None:
         logger.warning(
             "No optimized model has been created. This is likely due to a "
