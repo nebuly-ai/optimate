@@ -153,7 +153,7 @@ class FeedbackCollector:
         }
 
         if store_latencies:
-            with open("latencies.json", "w") as fp:
+            with open(f"latencies_{self._model_id}.json", "w") as fp:
                 json.dump(request_body, fp)
 
         if self.is_active:
