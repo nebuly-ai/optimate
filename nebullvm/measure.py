@@ -74,10 +74,10 @@ def compute_tf_latency(
     latencies = []
     with tf.device(device):
         for _ in range(warmup_steps):
-            _ = model(*xs)
+            _ = model(xs)
         for _ in range(steps):
             starting_time = time.time()
-            _ = model(*xs)
+            _ = model(xs)
             latencies.append(time.time() - starting_time)
         latency = np.mean(latencies)
         return latency, latencies
