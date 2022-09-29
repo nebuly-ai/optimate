@@ -52,7 +52,7 @@ TENSORFLOW_BACKEND_FILENAMES = {
 }
 
 TORCH_TENSORRT_PRECISIONS = {
-    "torch.float": {torch.float},
-    "torch.half": {torch.float, torch.half},
+    "torch.float32": {torch.float},
+    "torch.float16": {torch.float, torch.half},
     "torch.int8": {torch.float, torch.half, torch.int8},
 }

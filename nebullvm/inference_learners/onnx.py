@@ -49,7 +49,7 @@ except ImportError:
         import onnxruntime as ort
 
 
-def _is_intel_cpu():
+def _running_on_intel_cpu():
     if torch.cuda.is_available():
         return False  # running on GPU
     cpu_info = cpuinfo.get_cpu_info()["brand_raw"].lower()
@@ -105,18 +105,18 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
         sess_options = _get_ort_session_options()
 
-        if _is_intel_cpu():
+        if _running_on_intel_cpu():
             sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
-        else:
-            ort_session = ort.InferenceSession(
-                onnx_path,
-                sess_options=sess_options,
-                providers=ONNX_PROVIDERS["gpu"]
-                if torch.cuda.is_available()
-                else ONNX_PROVIDERS["cpu"],
-            )
+
+        ort_session = ort.InferenceSession(
+            onnx_path,
+            sess_options=sess_options,
+            providers=ONNX_PROVIDERS["cuda"]
+            if torch.cuda.is_available()
+            else ONNX_PROVIDERS["cpu"],
+        )
         self._session = ort_session
         self.input_names = input_names
         self.output_names = output_names

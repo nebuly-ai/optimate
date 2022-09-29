@@ -112,7 +112,7 @@ def compute_onnx_latency(
 
     model = ort.InferenceSession(
         model,
-        providers=ONNX_PROVIDERS["gpu"]
+        providers=ONNX_PROVIDERS["cuda"]
         if device == "cuda"
         else ONNX_PROVIDERS["cpu"],
     )
