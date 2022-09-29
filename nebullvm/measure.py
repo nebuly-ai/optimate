@@ -94,7 +94,7 @@ def compute_onnx_latency(
     """Compute the latency associated with the ONNX model.
 
     Args:
-        xs (List[np.array]): List of inputs (a single batch for the model)
+        xs (List[np.array]): List of inputs (a single batch for the model).
         model (str): ONNX model path.
         device (str): Device where computing the latency.
         steps (int): Number of times the experiment needs to be performed for
