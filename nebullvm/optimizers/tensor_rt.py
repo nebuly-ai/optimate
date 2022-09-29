@@ -7,7 +7,11 @@ import numpy as np
 import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
-from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.config import (
+    NVIDIA_FILENAMES,
+    NO_COMPILER_INSTALLATION,
+    TORCH_TENSORRT_PRECISIONS,
+)
 from nebullvm.inference_learners.tensor_rt import (
     NVIDIA_INFERENCE_LEARNERS,
     NvidiaInferenceLearner,
@@ -340,7 +344,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 )
                 for input_info in model_params.input_infos
             ],
-            enabled_precisions=dtype,
+            enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
             calibrator=calibrator if dtype == torch.int8 else None,
             workspace_size=1 << 22,
             device={

@@ -8,14 +8,14 @@ import pytest
 
 from nebullvm.api.functions import optimize_model
 from nebullvm.inference_learners.onnx import TensorflowONNXInferenceLearner
+from nebullvm.inference_learners.openvino import (
+    TensorflowOpenVinoInferenceLearner,
+)
 from nebullvm.inference_learners.tensor_rt import (
     TensorflowNvidiaInferenceLearner,
 )
 from nebullvm.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
-)
-from nebullvm.inference_learners.openvino import (
-    TensorflowOpenVinoInferenceLearner,
 )
 from nebullvm.inference_learners.tvm import TensorflowApacheTVMInferenceLearner
 from nebullvm.utils.compilers import (

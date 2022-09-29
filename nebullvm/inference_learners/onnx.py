@@ -13,8 +13,7 @@ import torch
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.config import (
     ONNX_FILENAMES,
-    CUDA_PROVIDERS,
-    CPU_PROVIDER,
+    ONNX_PROVIDERS,
     NO_COMPILER_INSTALLATION,
 )
 from nebullvm.inference_learners.base import (
@@ -110,16 +109,13 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
-            ort_session = ort.InferenceSession(
-                onnx_path, sess_options, CPU_PROVIDER
-            )
         else:
             ort_session = ort.InferenceSession(
                 onnx_path,
                 sess_options=sess_options,
-                providers=CUDA_PROVIDERS
+                providers=ONNX_PROVIDERS["gpu"]
                 if torch.cuda.is_available()
-                else CPU_PROVIDER,
+                else ONNX_PROVIDERS["cpu"],
             )
         self._session = ort_session
         self.input_names = input_names

@@ -5,7 +5,7 @@ from typing import Tuple, List, Union, Any
 import numpy as np
 import torch
 
-from nebullvm.config import CUDA_PROVIDERS, CPU_PROVIDER
+from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.utils.onnx import (
     convert_to_numpy,
@@ -72,6 +72,7 @@ def compute_tf_latency(
         List[Float]: List of latencies obtained.
     """
     latencies = []
+    device = "gpu" if device == "cuda" else "cpu"
     with tf.device(device):
         for _ in range(warmup_steps):
             _ = model(xs)
@@ -90,10 +91,10 @@ def compute_onnx_latency(
     steps: int = 100,
     warmup_steps: int = 10,
 ) -> Tuple[float, List[float]]:
-    """Compute the latency associated with the tensorflow model.
+    """Compute the latency associated with the ONNX model.
 
     Args:
-        xs (List[Tensor]): List of input arrays (a single batch for the model)
+        xs (List[np.array]): List of inputs (a single batch for the model)
         model (str): ONNX model path.
         device (str): Device where computing the latency.
         steps (int): Number of times the experiment needs to be performed for
@@ -111,7 +112,9 @@ def compute_onnx_latency(
 
     model = ort.InferenceSession(
         model,
-        providers=CUDA_PROVIDERS if device == "cuda" else CPU_PROVIDER,
+        providers=ONNX_PROVIDERS["gpu"]
+        if device == "cuda"
+        else ONNX_PROVIDERS["cpu"],
     )
     inputs = {name: array for name, array in zip(input_names, xs)}
 

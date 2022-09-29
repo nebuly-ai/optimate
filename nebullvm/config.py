@@ -1,5 +1,7 @@
 import os
 
+import torch
+
 
 VERSION = "0.4.3"
 LEARNER_METADATA_FILENAME = "metadata.json"
@@ -28,13 +30,15 @@ NVIDIA_FILENAMES = {
 TVM_FILENAMES = {"engine": "compiled_lib.so"}
 
 ONNX_FILENAMES = {"model_name": "model.onnx"}
-CUDA_PROVIDERS = [
-    "CUDAExecutionProvider",
-    "CPUExecutionProvider",
-]
-CPU_PROVIDER = [
-    "CPUExecutionProvider",
-]
+ONNX_PROVIDERS = {
+    "cuda": [
+        "CUDAExecutionProvider",
+        "CPUExecutionProvider",
+    ],
+    "cpu": [
+        "CPUExecutionProvider",
+    ],
+}
 
 OPENVINO_FILENAMES = {
     "metadata": LEARNER_METADATA_FILENAME,
@@ -45,4 +49,10 @@ OPENVINO_FILENAMES = {
 TENSORFLOW_BACKEND_FILENAMES = {
     "tflite_model": "tf_model.tflite",
     "tf_model": "tf_model.h5",
+}
+
+TORCH_TENSORRT_PRECISIONS = {
+    "torch.float": {torch.float},
+    "torch.half": {torch.float, torch.half},
+    "torch.int8": {torch.float, torch.half, torch.int8},
 }

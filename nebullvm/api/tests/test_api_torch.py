@@ -7,13 +7,13 @@ import pytest
 
 from nebullvm.api.functions import optimize_model
 from nebullvm.inference_learners.onnx import PytorchONNXInferenceLearner
+from nebullvm.inference_learners.openvino import (
+    PytorchOpenVinoInferenceLearner,
+)
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
 from nebullvm.inference_learners.tensor_rt import (
     PytorchTensorRTInferenceLearner,
     PytorchNvidiaInferenceLearner,
-)
-from nebullvm.inference_learners.openvino import (
-    PytorchOpenVinoInferenceLearner,
 )
 from nebullvm.inference_learners.tvm import PytorchApacheTVMInferenceLearner
 from nebullvm.utils.compilers import (

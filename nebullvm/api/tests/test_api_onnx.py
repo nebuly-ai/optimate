@@ -10,11 +10,11 @@ import pytest
 from nebullvm.api.functions import optimize_model
 from nebullvm.api.tests.utils import torch_to_onnx
 from nebullvm.inference_learners.onnx import NumpyONNXInferenceLearner
-from nebullvm.inference_learners.tensor_rt import (
-    NumpyNvidiaInferenceLearner,
-)
 from nebullvm.inference_learners.openvino import (
     NumpyOpenVinoInferenceLearner,
+)
+from nebullvm.inference_learners.tensor_rt import (
+    NumpyNvidiaInferenceLearner,
 )
 from nebullvm.inference_learners.tvm import NumpyApacheTVMInferenceLearner
 from nebullvm.utils.compilers import (

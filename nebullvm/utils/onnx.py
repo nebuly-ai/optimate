@@ -6,7 +6,7 @@ import torch
 
 from nebullvm.base import InputInfo, DataType, DeepLearningFramework
 from nebullvm.utils.optional_modules import tensorflow as tf
-from nebullvm.config import CUDA_PROVIDERS, CPU_PROVIDER
+from nebullvm.config import ONNX_PROVIDERS
 
 
 def convert_to_numpy(tensor: Any):
@@ -52,9 +52,9 @@ def run_onnx_model(
 
     model = ort.InferenceSession(
         onnx_model,
-        providers=CUDA_PROVIDERS
+        providers=ONNX_PROVIDERS["cuda"]
         if torch.cuda.is_available()
-        else CPU_PROVIDER,
+        else ONNX_PROVIDERS["cpu"],
     )
     inputs = {
         name: array
