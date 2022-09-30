@@ -67,7 +67,8 @@ class _TransformerWrapper(torch.nn.Module):
             key: value for key, value in zip(self.inputs_types.keys(), args)
         }
         outputs = self.core_model(**inputs)
-        return tuple(_flatten_outputs(outputs.values()))
+        outputs = outputs.values() if isinstance(outputs, dict) else outputs
+        return tuple(_flatten_outputs(outputs))
 
 
 def _get_size_recursively(
@@ -110,12 +111,20 @@ def _get_output_structure_from_dict(
     """
     output = model(**input_example)
     structure = OrderedDict()
-    for key, value in output.items():
-        if isinstance(value, torch.Tensor):
-            structure[key] = None
-        else:
-            size = _get_size_recursively(value)
-            structure[key] = size
+    if isinstance(output, tuple):
+        for i, value in enumerate(output):
+            if isinstance(value, torch.Tensor):
+                structure[f"output_{i}"] = None
+            else:
+                size = _get_size_recursively(value)
+                structure[f"output_{i}"] = size
+    else:
+        for key, value in output.items():
+            if isinstance(value, torch.Tensor):
+                structure[key] = None
+            else:
+                size = _get_size_recursively(value)
+                structure[key] = size
     return structure, type(output)
 
 

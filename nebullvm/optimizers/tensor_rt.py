@@ -329,24 +329,39 @@ class TensorRTOptimizer(BaseOptimizer):
         ):
             return None  # Dynamic quantization is not supported on tensorRT
 
+        # Convert int64 to int32 for transformers inputs
+        input_tensors = [
+            tensor.cuda()
+            if tensor.dtype != torch.int64
+            else tensor.to(torch.int32).cuda()
+            for tensor in input_data.get_list(1)[0]
+        ]
+
+        torch_model.cuda().eval()
+
         try:
-            torch.jit.script(torch_model.eval())
+            torch.jit.script(torch_model)
             model = torch_model
         except Exception:
-            model = torch.jit.trace(torch_model, input_data.get_list(1)[0])
+            model = torch.jit.trace(torch_model, input_tensors)
 
         trt_model = torch_tensorrt.compile(
-            model.eval(),
+            model,
             inputs=[
                 torch_tensorrt.Input(
-                    (model_params.batch_size, *input_info.size),
-                    dtype=dtype if dtype != torch.int8 else torch.float,
+                    tensor.shape,
+                    dtype=torch.half
+                    if (
+                        dtype == torch.half
+                        and tensor.dtype not in [torch.int8, torch.int32]
+                    )
+                    else tensor.dtype,
                 )
-                for input_info in model_params.input_infos
+                for tensor in input_tensors
             ],
             enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
             calibrator=calibrator if dtype == torch.int8 else None,
-            workspace_size=1 << 22,
+            workspace_size=1 << 30,
             device={
                 "device_type": torch_tensorrt.DeviceType.GPU,
                 "gpu_id": 0,
@@ -354,24 +369,39 @@ class TensorRTOptimizer(BaseOptimizer):
                 "allow_gpu_fallback": False,
                 "disable_tf32": False,
             },
+            truncate_long_and_double=True,
         )
 
         # Delete calibration cache
         if os.path.exists("calibration.cache"):
             os.remove("calibration.cache")
 
+        input_tensors = [
+            tensor.cuda()
+            if tensor.dtype != torch.int64
+            else tensor.to(torch.int32).cuda()
+            for tensor in input_data.get_list(1)[0]
+        ]
+
         model = PytorchTensorRTInferenceLearner(
             torch_model=trt_model,
             network_parameters=model_params,
             input_tfms=input_tfms,
-            input_data=list(input_data.get_list(1)[0])
-            if input_data is not None
-            else None,
+            input_data=input_tensors if input_data is not None else None,
             dtype=dtype,
         )
 
         if quantization_type is not None:
             inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
+            inputs = [
+                [
+                    tensor.cuda()
+                    if tensor.dtype != torch.int64
+                    else tensor.to(torch.int32).cuda()
+                    for tensor in tensors
+                ]
+                for tensors in inputs
+            ]
             output_data = model_outputs
             is_valid = check_precision(
                 model,

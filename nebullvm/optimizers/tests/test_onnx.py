@@ -1,6 +1,8 @@
 import os
 from tempfile import TemporaryDirectory
 
+import onnx
+
 import pytest
 
 from nebullvm.base import DeepLearningFramework, QuantizationType
@@ -17,16 +19,19 @@ from nebullvm.optimizers.tests.utils import initialize_model
         "quantization_type",
         "metric_drop_ths",
         "metric",
+        "external_data",
     ),
     [
-        (DeepLearningFramework.PYTORCH, True, None, None, None),
-        (DeepLearningFramework.PYTORCH, False, None, None, None),
+        (DeepLearningFramework.PYTORCH, True, None, None, None, True),
+        (DeepLearningFramework.PYTORCH, True, None, None, None, False),
+        (DeepLearningFramework.PYTORCH, False, None, None, None, False),
         (
             DeepLearningFramework.PYTORCH,
             False,
             QuantizationType.DYNAMIC,
             2,
             "numeric_precision",
+            False,
         ),
         (
             DeepLearningFramework.PYTORCH,
@@ -34,6 +39,15 @@ from nebullvm.optimizers.tests.utils import initialize_model
             QuantizationType.HALF,
             2,
             "numeric_precision",
+            False,
+        ),
+        (
+            DeepLearningFramework.PYTORCH,
+            False,
+            QuantizationType.HALF,
+            2,
+            "numeric_precision",
+            True,
         ),
         (
             DeepLearningFramework.PYTORCH,
@@ -41,6 +55,7 @@ from nebullvm.optimizers.tests.utils import initialize_model
             QuantizationType.STATIC,
             2,
             "numeric_precision",
+            False,
         ),
     ],
 )
@@ -50,6 +65,7 @@ def test_onnxruntime(
     quantization_type: QuantizationType,
     metric_drop_ths: int,
     metric: str,
+    external_data: bool,
 ):
     with TemporaryDirectory() as tmp_dir:
         (
@@ -63,6 +79,16 @@ def test_onnxruntime(
 
         model_path = os.path.join(tmp_dir, "test_model.onnx")
         convert_torch_to_onnx(model, model_params, model_path)
+
+        # Test onnx external data format (large models)
+        if external_data:
+            onnx_model = onnx.load(model_path)
+            onnx.save_model(
+                onnx_model,
+                model_path,
+                save_as_external_data=True,
+                all_tensors_to_one_file=False,
+            )
 
         optimizer = ONNXOptimizer()
         model = optimizer.optimize(
