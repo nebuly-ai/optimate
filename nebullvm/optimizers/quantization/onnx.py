@@ -70,7 +70,9 @@ class _IterableCalibrationDataReader(CalibrationDataReader):
 
 def _quantize_dynamic(model_path: str):
     model_path = Path(model_path)
-    model_quant = model_path.parent / (model_path.stem + ".quant.onnx")
+    model_quant = model_path.parent.parent / "int8_dynamic"
+    model_quant.mkdir(parents=True)
+    model_quant = model_quant / (model_path.stem + ".quant.onnx")
     quantize_dynamic(
         model_path,
         model_quant,
@@ -104,7 +106,9 @@ def _quantize_static(
     model_path: str, input_data: List[Tuple[np.ndarray, ...]]
 ):
     model_path = Path(model_path)
-    model_quant = model_path.parent / (model_path.stem + ".quant.onnx")
+    model_quant = model_path.parent.parent / "int8_static"
+    model_quant.mkdir(parents=True)
+    model_quant = model_quant / (model_path.stem + ".quant.onnx")
     inputs = input_data
     input_names = get_input_names(str(model_path))
     cdr = _IterableCalibrationDataReader(
@@ -126,7 +130,9 @@ def _convert_to_half_precision(
     model_path: str, input_tfms: MultiStageTransformation
 ):
     model_path = Path(model_path)
-    model_quant = model_path.parent / (model_path.stem + "_fp16.onnx")
+    model_quant = model_path.parent.parent / "fp16"
+    model_quant.mkdir(parents=True)
+    model_quant = model_quant / (model_path.stem + "_fp16.onnx")
     new_onnx_model = convert_float_to_float16_model_path(str(model_path))
     input_tfms.append(HalfPrecisionTransformation())
     onnx.save(new_onnx_model, str(model_quant))

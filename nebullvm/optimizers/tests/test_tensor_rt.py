@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
@@ -72,7 +72,9 @@ def test_tensorrt_onnx(
             metric,
         ) = initialize_model(dynamic, metric_drop_ths, metric, output_library)
 
-        model_path = os.path.join(tmp_dir, "test_model.onnx")
+        model_path = Path(tmp_dir) / "fp32"
+        model_path.mkdir(parents=True)
+        model_path = str(model_path / "test_model.onnx")
         convert_torch_to_onnx(model, model_params, model_path)
         optimizer = TensorRTOptimizer()
         model = optimizer.optimize(

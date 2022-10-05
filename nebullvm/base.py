@@ -107,6 +107,7 @@ class ModelCompiler(Enum):
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
     DEEPSPARSE = "deepsparse"
+    NEURALCOMPRESSOR = "neuralcompressor"
     TORCHSCRIPT = "torchscript"
     TFLITE = "tflite"
     BLADEDISC = "bladedisc"

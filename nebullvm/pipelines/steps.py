@@ -189,8 +189,11 @@ class TorchCompressorStep(CompressorStep):
                 config_file=self._config_file
             )
 
-        # TODO: Reactivate the intel-neural-compressor when properly tested
-        if False and "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
+        if (
+            False
+            and "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+            and ModelCompiler.NEURALCOMPRESSOR not in ignore_compilers
+        ):
             compressors["intel_pruning"] = TorchIntelPruningCompressor(
                 config_file=self._config_file
             )

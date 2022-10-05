@@ -299,7 +299,8 @@ def optimize_model(
     converter = CrossConverter()
     optimized_models = []
     with TemporaryDirectory() as tmp_dir:
-        tmp_dir = Path(tmp_dir)
+        tmp_dir = Path(tmp_dir) / "fp32"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
         models = converter.convert(model, model_params, tmp_dir, input_data)
 
         if ignore_compilers is None:

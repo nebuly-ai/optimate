@@ -1,3 +1,4 @@
+import shutil
 from abc import abstractmethod, ABC
 from pathlib import Path
 from typing import Any, List
@@ -127,4 +128,6 @@ class CrossConverter(BaseConverter):
             return [model, str(onnx_path)]
 
         else:
-            return [model]
+            # Copy onnx provided path into the tmp dir
+            shutil.copy(model, str(onnx_path))
+            return [str(onnx_path)]

@@ -17,6 +17,9 @@ try:
     from neural_compressor.experimental import Pruning
 except ImportError:
     pass
+except ValueError:
+    # MacOS
+    pass
 
 
 def _get_model_framework(model: Any) -> str:
@@ -62,7 +65,7 @@ class IntelPruningCompressor(BaseCompressor, ABC):
                 "start_epoch": 0,
                 "end_epoch": 10,
                 "execution_mode": "eager",  # either eager or graph
-                "hostfile": None,  # str for multinode training support
+                # "hostfile": None,  # str for multinode training support
             },
             "approach": {
                 "weight_compression": {
@@ -70,17 +73,25 @@ class IntelPruningCompressor(BaseCompressor, ABC):
                     "target_sparsity": 0.97,
                     "start_epoch": 0,
                     "end_epoch": 10,
-                },
+                    "pruners": [
+                        {
+                            "start_epoch": 0,
+                            "end_epoch": 10,
+                            "prune_type": "basic_magnitude",
+                        },
+                    ],
+                }
             },
         }
         return config
 
     def _prepare_config(self, model: Any):
         pruning_config = copy.deepcopy(self._config)
+        framework = _get_model_framework(model)
         config = {
             "model": {
-                "name": model.__class__.name,
-                "framework": _get_model_framework(model),
+                "name": model.__class__.__name__,
+                "framework": framework if framework != "torch" else "pytorch",
             },
             "device": "cpu",
             "tuning": {
@@ -104,7 +115,7 @@ class IntelPruningCompressor(BaseCompressor, ABC):
         metric: Callable,
     ) -> Tuple[Any, Optional[float]]:
         config_file = self._prepare_config(model)
-        prune = Pruning(config_file)
+        prune = Pruning(str(config_file))
         prune.model = model
         prune.train_dataloader = self._get_dataloader(train_input_data)
         compressed_model = prune.fit()
