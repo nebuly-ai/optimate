@@ -37,6 +37,7 @@ from nebullvm.utils.onnx import (
 if torch.cuda.is_available():
     try:
         import tensorrt as trt
+        import onnxsim  # noqa F401
     except ImportError:
         from nebullvm.installers.installers import install_tensor_rt
 
