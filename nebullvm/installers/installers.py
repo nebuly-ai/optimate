@@ -135,6 +135,10 @@ def install_tensor_rt():
     installation_file = str(path / "install_tensor_rt.sh")
     subprocess.run(["bash", installation_file])
 
+    # Install onnx simplifier
+    cmd = ["pip3", "install", "onnxsim"]
+    subprocess.run(cmd)
+
 
 def install_openvino(with_optimization: bool = True):
     """Helper function for installing the OpenVino compiler.

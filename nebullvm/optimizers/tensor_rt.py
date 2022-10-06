@@ -1,4 +1,5 @@
 import os
+import subprocess
 import warnings
 from pathlib import Path
 from typing import List, Tuple, Optional, Callable, Any
@@ -225,8 +226,22 @@ class TensorRTOptimizer(BaseOptimizer):
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
             )
+
+        # Simplify model, otherwise tensor RT won't work on gpt2 and some
+        # other models.
+        simplified_model = model + "_simplified"
+        if not Path(simplified_model).is_file():
+            cmd = [
+                "onnxsim",
+                model,
+                model + "_simplified",
+            ]
+            subprocess.run(cmd)
+
         check_quantization(quantization_type, metric_drop_ths)
-        engine_path = Path(model).parent / NVIDIA_FILENAMES["engine"]
+        engine_path = (
+            Path(simplified_model).parent / NVIDIA_FILENAMES["engine"]
+        )
         if (
             metric_drop_ths is not None
             and quantization_type is QuantizationType.STATIC
@@ -241,7 +256,7 @@ class TensorRTOptimizer(BaseOptimizer):
             input_data_onnx = None
         self._build_and_save_the_engine(
             engine_path=engine_path,
-            onnx_model_path=model,
+            onnx_model_path=simplified_model,
             model_params=model_params,
             input_tfms=input_tfms,
             quantization_type=quantization_type,
@@ -252,8 +267,8 @@ class TensorRTOptimizer(BaseOptimizer):
             input_tfms=input_tfms,
             network_parameters=model_params,
             engine_path=engine_path,
-            input_names=get_input_names(model),
-            output_names=get_output_names(model),
+            input_names=get_input_names(simplified_model),
+            output_names=get_output_names(simplified_model),
             input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
