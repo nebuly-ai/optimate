@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
-from nebullvm.config import ONNX_FILENAMES
+from nebullvm.config import ONNX_FILENAMES, NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -24,7 +24,11 @@ except ImportError:
     import platform
 
     os_ = platform.system()
-    if os_ != "Darwin" and _get_cpu_arch() != "arm":
+    if (
+        os_ != "Darwin"
+        and _get_cpu_arch() != "arm"
+        and not NO_COMPILER_INSTALLATION
+    ):
         warnings.warn(
             "No deepsparse installation found. Trying to install it..."
         )
