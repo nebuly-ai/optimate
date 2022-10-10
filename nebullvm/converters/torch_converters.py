@@ -1,3 +1,4 @@
+from logging import Logger
 from pathlib import Path
 from typing import Union
 
@@ -18,6 +19,7 @@ def convert_torch_to_onnx(
     model_params: ModelParams,
     output_file_path: Union[str, Path],
     input_data: DataManager = None,
+    logger: Logger = None,
 ):
     """Function importing a custom model in pytorch and converting it in ONNX
 
@@ -29,6 +31,7 @@ def convert_torch_to_onnx(
             ONNX file.
         input_data (DataManager, optional): Custom data provided by user to be
         used as input for the converter.
+        logger (Logger, optional): logger object.
     """
 
     if input_data is not None:
@@ -39,9 +42,7 @@ def convert_torch_to_onnx(
         )
 
     output_sizes = get_outputs_sizes_torch(torch_model, input_tensors)
-    if torch.cuda.is_available():  # move tensors to gpu if cuda is available
-        input_tensors = [x.cuda() for x in input_tensors]
-        torch_model.cuda()
+
     input_names = [f"input_{i}" for i in range(len(input_tensors))]
     output_names = [f"output_{i}" for i in range(len(output_sizes))]
     dynamic_info = model_params.dynamic_info
@@ -53,20 +54,76 @@ def convert_torch_to_onnx(
                 dynamic_info.inputs + dynamic_info.outputs,
             )
         }
-    torch.onnx.export(
-        torch_model,  # model being run
-        tuple(input_tensors),  # model input (or a tuple for multiple inputs)
-        str(output_file_path),
-        # where to save the model (can be a file or file-like object)
-        export_params=True,
-        # store the trained parameter weights inside the model file
-        opset_version=ONNX_OPSET_VERSION,
-        # the ONNX version to export the model to
-        do_constant_folding=True,
-        # whether to execute constant folding for optimization
-        input_names=input_names,
-        # the model's input names
-        output_names=output_names,
-        # the model's output names
-        dynamic_axes=dynamic_info,
-    )
+
+    try:
+        # try conversion with model on gpu
+        if torch.cuda.is_available():
+            input_tensors = [x.cpu() for x in input_tensors]
+            torch_model.cpu()
+
+        torch.onnx.export(
+            torch_model,  # model being run
+            tuple(
+                input_tensors
+            ),  # model input (or a tuple for multiple inputs)
+            str(output_file_path),
+            # where to save the model (can be a file or file-like object)
+            export_params=True,
+            # store the trained parameter weights inside the model file
+            opset_version=ONNX_OPSET_VERSION,
+            # the ONNX version to export the model to
+            do_constant_folding=True,
+            # whether to execute constant folding for optimization
+            input_names=input_names,
+            # the model's input names
+            output_names=output_names,
+            # the model's output names
+            dynamic_axes=dynamic_info,
+        )
+
+        # Put again model on gpu
+        if torch.cuda.is_available():
+            torch_model.cuda()
+
+        return output_file_path
+    except Exception:
+        # try conversion with model on gpu
+        if torch.cuda.is_available():
+            input_tensors = [x.cuda() for x in input_tensors]
+            torch_model.cuda()
+
+            try:
+                torch.onnx.export(
+                    torch_model,  # model being run
+                    tuple(
+                        input_tensors
+                    ),  # model input (or a tuple for multiple inputs)
+                    str(output_file_path),
+                    # where to save the model
+                    # (can be a file or file-like object)
+                    export_params=True,
+                    # store the trained parameter weights inside the model file
+                    opset_version=ONNX_OPSET_VERSION,
+                    # the ONNX version to export the model to
+                    do_constant_folding=True,
+                    # whether to execute constant folding for optimization
+                    input_names=input_names,
+                    # the model's input names
+                    output_names=output_names,
+                    # the model's output names
+                    dynamic_axes=dynamic_info,
+                )
+
+                return output_file_path
+            except Exception:
+                logger.warning(
+                    "Exception raised during conversion from torch"
+                    " to onnx model. ONNX pipeline will be unavailable."
+                )
+                return None
+        else:
+            logger.warning(
+                "Exception raised during conversion from torch"
+                " to onnx model. ONNX pipeline will be unavailable."
+            )
+            return None

@@ -1,8 +1,9 @@
-import shutil
 from abc import abstractmethod, ABC
+from logging import Logger
 from pathlib import Path
 from typing import Any, List
 
+import onnx
 from torch.nn import Module
 
 from nebullvm.base import ModelParams
@@ -109,25 +110,43 @@ class CrossConverter(BaseConverter):
         model_params: ModelParams,
         save_path: Path,
         input_data: DataManager = None,
+        logger: Logger = None,
     ) -> List[Any]:
         # TODO: Add cross conversion torch-tf
         onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
         if isinstance(model, Module):
-            convert_torch_to_onnx(
+            onnx_path = convert_torch_to_onnx(
                 torch_model=model,
                 model_params=model_params,
                 output_file_path=onnx_path,
                 input_data=input_data,
+                logger=logger,
             )
-            return [model, str(onnx_path)]
+
+            return (
+                [model, str(onnx_path)] if onnx_path is not None else [model]
+            )
         elif isinstance(model, tf.Module) and model is not None:
-            convert_tf_to_onnx(
+            onnx_path = convert_tf_to_onnx(
                 model=model,
                 output_file_path=onnx_path,
             )
-            return [model, str(onnx_path)]
+            return (
+                [model, str(onnx_path)] if onnx_path is not None else [model]
+            )
 
         else:
-            # Copy onnx provided path into the tmp dir
-            shutil.copy(model, str(onnx_path))
+            # Copy onnx provided model into the tmp dir
+            # Loading and saving the model to the new directory
+            # enables support also for onnx external data format
+            try:
+                model = onnx.load(str(onnx_path))
+                onnx.save(model, str(onnx_path))
+            except Exception:
+                logger.error(
+                    "The provided onnx model path is invalid. Please provide"
+                    "a valid path to a model in order to use Nebullvm."
+                )
+                return []
+
             return [str(onnx_path)]

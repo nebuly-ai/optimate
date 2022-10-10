@@ -1,7 +1,10 @@
-from pathlib import Path
 import subprocess
+from logging import Logger
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Union
+
+import onnx
 
 from nebullvm.base import ModelParams, DataType
 from nebullvm.config import ONNX_OPSET_VERSION
@@ -10,8 +13,7 @@ from nebullvm.utils.optional_modules import tf2onnx
 
 
 def convert_tf_to_onnx(
-    model: tf.Module,
-    output_file_path: Union[str, Path],
+    model: tf.Module, output_file_path: Union[str, Path], logger: Logger = None
 ):
     """Convert TF models into ONNX.
 
@@ -33,6 +35,17 @@ def convert_tf_to_onnx(
             f"{ONNX_OPSET_VERSION}",
         ]
         subprocess.run(onnx_cmd)
+
+        try:
+            onnx.load(output_file_path)
+        except Exception:
+            logger.warning(
+                "Something went wrong during conversion from tensorflow"
+                " to onnx model. ONNX pipeline will be unavailable."
+            )
+            return None
+
+        return output_file_path
 
 
 def convert_keras_to_onnx(

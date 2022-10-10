@@ -240,9 +240,7 @@ class TensorRTOptimizer(BaseOptimizer):
             subprocess.run(cmd)
 
         check_quantization(quantization_type, metric_drop_ths)
-        engine_path = (
-            Path(simplified_model).parent / NVIDIA_FILENAMES["engine"]
-        )
+
         if (
             metric_drop_ths is not None
             and quantization_type is QuantizationType.STATIC
@@ -255,21 +253,40 @@ class TensorRTOptimizer(BaseOptimizer):
             return None  # Dynamic quantization is not supported on tensorRT
         else:
             input_data_onnx = None
-        self._build_and_save_the_engine(
-            engine_path=engine_path,
-            onnx_model_path=simplified_model,
-            model_params=model_params,
-            input_tfms=input_tfms,
-            quantization_type=quantization_type,
-            input_data=input_data_onnx,
-        )
+
+        try:
+            # First try with simplified model
+            engine_path = (
+                Path(simplified_model).parent / NVIDIA_FILENAMES["engine"]
+            )
+            onnx_model_path = simplified_model
+            self._build_and_save_the_engine(
+                engine_path=engine_path,
+                onnx_model_path=onnx_model_path,
+                model_params=model_params,
+                input_tfms=input_tfms,
+                quantization_type=quantization_type,
+                input_data=input_data_onnx,
+            )
+        except Exception:
+            # Try again with original model
+            engine_path = Path(model).parent / NVIDIA_FILENAMES["engine"]
+            onnx_model_path = model
+            self._build_and_save_the_engine(
+                engine_path=engine_path,
+                onnx_model_path=onnx_model_path,
+                model_params=model_params,
+                input_tfms=input_tfms,
+                quantization_type=quantization_type,
+                input_data=input_data_onnx,
+            )
 
         learner = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
             input_tfms=input_tfms,
             network_parameters=model_params,
             engine_path=engine_path,
-            input_names=get_input_names(simplified_model),
-            output_names=get_output_names(simplified_model),
+            input_names=get_input_names(onnx_model_path),
+            output_names=get_output_names(onnx_model_path),
             input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
