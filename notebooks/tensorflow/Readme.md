@@ -4,7 +4,7 @@ This section contains all the available notebooks that show how to leverage nebu
 
 ## Tensorflow API quick view:
 
-```
+``` python
 import tensorflow as tf
 from tensorflow.keras.applications.resnet50 import ResNet50
 from nebullvm.api.functions import optimize_model

@@ -4,7 +4,7 @@ This section contains all the available notebooks that show how to leverage nebu
 
 ## ONNX API quick view:
 
-```
+```python
 import numpy as np
 from nebullvm.api.functions import optimize_model
 

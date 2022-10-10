@@ -4,7 +4,7 @@ This section contains all the available notebooks that show how to leverage nebu
 
 ## PyTorch API quick view:
 
-```
+``` python
 import torch
 import torchvision.models as models
 from nebullvm.api.functions import optimize_model
