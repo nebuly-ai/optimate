@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Nebuly"
+- family-names: "Fiori"
+  given-names: "Diego"
+  orcid: "https://orcid.org/0000-0003-1910-0565"
+title: "nebullvm"
+version: 0.4.3
+date-released: 2022-10-10
+url: "https://github.com/nebuly-ai/nebullvm"
