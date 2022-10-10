@@ -140,12 +140,12 @@ class CrossConverter(BaseConverter):
             # Loading and saving the model to the new directory
             # enables support also for onnx external data format
             try:
-                model = onnx.load(str(onnx_path))
-                onnx.save(model, str(onnx_path))
+                model_onnx = onnx.load(str(model))
+                onnx.save(model_onnx, str(onnx_path))
             except Exception:
                 logger.error(
                     "The provided onnx model path is invalid. Please provide"
-                    "a valid path to a model in order to use Nebullvm."
+                    " a valid path to a model in order to use Nebullvm."
                 )
                 return []
 
