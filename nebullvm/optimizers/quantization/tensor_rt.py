@@ -44,12 +44,16 @@ class TensorRTCalibrator(IInt8EntropyCalibrator2):
         cuda_stream = polygraphy.cuda.Stream()
         try:
             data = next(self.batches)
-            cuda_data = [
-                polygraphy.cuda.DeviceArray().copy_from(
+
+            cuda_data = []
+            for input_tensor in data:
+                device_array = polygraphy.cuda.DeviceArray()
+                device_array.resize(input_tensor.shape)
+                device_array.copy_from(
                     host_buffer=input_tensor, stream=cuda_stream
                 )
-                for input_tensor in data
-            ]
+                cuda_data.append(device_array)
+
             return [input_tensor.ptr for input_tensor in cuda_data]
         except StopIteration:
             return None

@@ -26,7 +26,7 @@ res = optimized_model(x)
 ```
 
 ## Notebooks:
-- Resnet50 from torchvision [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1aO8_5HiicAcOWbl-JI45RZZureJfMNJ-?usp=sharing)
+- Resnet50 from torchvision [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1dC1d2GtQMmPBfeKkvESaFlw4Pad2ON8R?usp=sharing)
 - Resnet34 from fast ai [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/18vh5tVm91hGMTea-924Lbk8YJ-Np45Qb?usp=sharing)
 - YOLOv5 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1whd9kIT26EIbvBAJytlU8OsM__uD7RfF?usp=sharing)
 - HuggingFace GPT2 and BERT [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1z_dbFIfaeED5XcpGcYJkXhE1vxQS4SsO?usp=sharing)
