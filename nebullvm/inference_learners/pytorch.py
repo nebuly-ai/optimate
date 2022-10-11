@@ -61,6 +61,8 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         input_tfms: Optional[MultiStageTransformation] = None,
         input_data: List[torch.tensor] = None,
     ):
+        if torch.cuda.is_available():
+            input_data = [t.cuda() for t in input_data]
 
         if not isinstance(model, torch.fx.GraphModule):
             model.eval()

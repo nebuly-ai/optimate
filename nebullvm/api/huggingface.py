@@ -90,15 +90,28 @@ def _get_output_structure_from_text(
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
+
     encoded_input = tokenizer([text], **tokenizer_args)
+
+    if torch.cuda.is_available():
+        encoded_input = {k: v.cuda() for (k, v) in encoded_input.items()}
+
     output = model(**encoded_input)
     structure = OrderedDict()
-    for key, value in output.items():
-        if isinstance(value, torch.Tensor):
-            structure[key] = None
-        else:
-            size = _get_size_recursively(value)
-            structure[key] = size
+    if isinstance(output, tuple):
+        for i, value in enumerate(output):
+            if isinstance(value, torch.Tensor):
+                structure[f"output_{i}"] = None
+            else:
+                size = _get_size_recursively(value)
+                structure[f"output_{i}"] = size
+    else:
+        for key, value in output.items():
+            if isinstance(value, torch.Tensor):
+                structure[key] = None
+            else:
+                size = _get_size_recursively(value)
+                structure[key] = size
     return structure, type(output)
 
 
