@@ -145,7 +145,7 @@ class CompressorStep(Step, ABC):
                 )
         return {
             "models": models,
-            "input_data": eval_input_data,
+            "input_data": input_data,
             "metric": metric,
             "ignore_compilers": ignore_compilers,
             **kwargs,
@@ -514,7 +514,7 @@ class TFOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
-                model_outputs=None,
+                model_outputs=model_outputs,
             )
         else:
             optimized_model = optimizer.optimize(
@@ -528,7 +528,7 @@ class TFOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
-                model_outputs=None,
+                model_outputs=model_outputs,
             )
         return optimized_model
 
