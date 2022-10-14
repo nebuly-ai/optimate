@@ -192,7 +192,7 @@ def initialize_model(
                         torch.randn(batch_size, *INPUT_SHAPE),
                         torch.randn(batch_size, *INPUT_SHAPE),
                     ),
-                    0,
+                    [0],
                 )
             ]
         )
@@ -217,7 +217,7 @@ def initialize_model(
                             )
                         ),
                     ),
-                    0,
+                    [0],
                 )
             ]
         )

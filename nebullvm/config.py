@@ -64,6 +64,7 @@ COMPILER_LIST = [
     "deepsparse",
     "tensor RT",
     "torchscript",
+    "onnxruntime",
     "tflite",
     "tvm",
     "openvino",
