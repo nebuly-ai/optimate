@@ -69,6 +69,7 @@ COMPILER_LIST = [
     "tvm",
     "openvino",
     "bladedisc",
+    "intel_neural_compressor",
 ]
 
 COMPRESSOR_LIST = [

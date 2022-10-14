@@ -13,7 +13,7 @@ from nebullvm.api.functions import optimize_model
 model = models.resnet50()
 
 # Provide an input data for the model    
-input_data = [((torch.randn(1, 3, 256, 256), ), 0)]
+input_data = [((torch.randn(1, 3, 256, 256), ), torch.tensor([0]))]
 
 # Run nebullvm optimization
 optimized_model = optimize_model(

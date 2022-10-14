@@ -40,6 +40,15 @@ def deepsparse_is_available() -> bool:
         return True
 
 
+def intel_neural_compressor_is_available() -> bool:
+    try:
+        import neural_compressor  # noqa F401
+    except ImportError:
+        return False
+    else:
+        return True
+
+
 def select_compilers_from_hardware_onnx():
     compilers = [ModelCompiler.ONNX_RUNTIME]
     if tvm_is_available():

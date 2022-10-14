@@ -14,7 +14,7 @@ from nebullvm.api.functions import optimize_model
 model = "resnet50-v1-12.onnx"
 
 # Provide an input data for the model    
-input_data = [((np.random.randn(1, 3, 224, 224).astype(np.float32), ), 0)]
+input_data = [((np.random.randn(1, 3, 224, 224).astype(np.float32), ), np.array([0]))]
 
 # Run nebullvm optimization
 optimized_model = optimize_model(

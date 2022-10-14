@@ -78,7 +78,7 @@ def _quantize_static(
     input_data: List[Tuple[torch.Tensor, ...]],
 ):
     assert (
-        torch.cuda.is_available()
+        not torch.cuda.is_available()
     ), "Quantization for torch is only available on CPU"
 
     backend = (
@@ -95,7 +95,7 @@ def _quantize_static(
 
 def _quantize_dynamic(model: Union[torch.nn.Module, torch.fx.GraphModule]):
     assert (
-        torch.cuda.is_available()
+        not torch.cuda.is_available()
     ), "Quantization for torch is only available on CPU"
 
     if isinstance(model, torch.fx.GraphModule):

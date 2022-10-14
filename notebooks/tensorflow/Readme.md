@@ -13,7 +13,7 @@ from nebullvm.api.functions import optimize_model
 model = ResNet50()
 
 # Provide an input data for the model    
-input_data = [((tf.random.normal([1, 224, 224, 3]),), 0)]
+input_data = [((tf.random.normal([1, 224, 224, 3]),), tf.constant([0]))]
 
 # Run nebullvm optimization
 optimized_model = optimize_model(

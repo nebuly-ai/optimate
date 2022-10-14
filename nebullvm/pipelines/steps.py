@@ -33,6 +33,7 @@ from nebullvm.optimizers import (
     DeepSparseOptimizer,
 )
 from nebullvm.optimizers.blade_disc import BladeDISCOptimizer
+from nebullvm.optimizers.neural_compressor import NeuralCompressorOptimizer
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tensor_rt import TensorRTOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
@@ -43,6 +44,7 @@ from nebullvm.utils.compilers import (
     deepsparse_is_available,
     bladedisc_is_available,
     torch_tensorrt_is_available,
+    intel_neural_compressor_is_available,
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
@@ -457,6 +459,13 @@ class TorchOptimizerStep(OptimizerStep):
             optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer(
                 logger=self._logger
             )
+        if (
+            intel_neural_compressor_is_available()
+            and ModelCompiler.INTEL_NEURAL_COMPRESSOR not in ignore_compilers
+        ):
+            optimizers[
+                ModelCompiler.INTEL_NEURAL_COMPRESSOR
+            ] = NeuralCompressorOptimizer(logger=self._logger)
         return optimizers
 
     def _run_optimizer(

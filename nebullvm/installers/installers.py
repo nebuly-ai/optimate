@@ -193,3 +193,10 @@ def install_deepsparse():
 
     cmd = ["pip3", "install", "deepsparse"]
     subprocess.run(cmd)
+
+
+def install_intel_neural_compressor():
+    """Helper function for installing Intel Neural Compressor."""
+
+    cmd = ["pip3", "install", "neural-compressor"]
+    subprocess.run(cmd)

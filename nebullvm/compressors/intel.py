@@ -15,10 +15,7 @@ from nebullvm.utils.data import DataManager
 from nebullvm.utils.optional_modules import tensorflow as tf
 
 try:
-    from neural_compressor.experimental import (
-        Pruning,
-        # Quantization,
-    )
+    from neural_compressor.experimental import Pruning
 except ImportError:
     Pruning = object
 except ValueError:
@@ -115,24 +112,6 @@ class IntelPruningCompressor(BaseCompressor, ABC):
             f.write(file_str)
         return path_file
 
-    def _prepare_quantization_config(self, model: Any):
-        config = {
-            "model": {
-                "name": model.__class__.__name__,
-                "framework": "pytorch_fx",
-            },
-            "evaluation": {"accuracy": {"metric": {"topk": 1}}},
-            "tuning": {
-                "accuracy_criterion": {"relative": 0.01},
-            },
-        }
-
-        path_file = Path(self._temp_dir) / "temp_qt.yaml"
-        with open(path_file, "w") as f:
-            yaml.dump(config, f)
-
-        return path_file
-
     def compress(
         self,
         model: Any,
@@ -147,13 +126,6 @@ class IntelPruningCompressor(BaseCompressor, ABC):
         prune.train_dataloader = self._get_dataloader(train_input_data)
         prune.eval_dataloader = self._get_dataloader(eval_input_data)
         compressed_model = prune.fit()
-
-        # config_file_qt = self._prepare_quantization_config(model)
-        # quantizer = Quantization(str(config_file_qt))
-        # quantizer.model = model
-        # quantizer.calib_dataloader = self._get_dataloader(train_input_data)
-        # quantizer.eval_dataloader = self._get_dataloader(train_input_data)
-        # compressed_model = quantizer().model
 
         if compressed_model is None:
             return compressed_model, None
@@ -181,7 +153,7 @@ class IntelPruningCompressor(BaseCompressor, ABC):
         raise NotImplementedError
 
 
-class _IPCDataset(Dataset):
+class IPCDataset(Dataset):
     def __init__(self, input_data: DataManager):
         self.data = input_data
         self.batch_size = input_data[0][0][0].shape[0]
@@ -200,7 +172,7 @@ class TorchIntelPruningCompressor(IntelPruningCompressor):
     @staticmethod
     def _get_dataloader(input_data: DataManager):
         bs = input_data[0][0][0].shape[0]
-        ds = _IPCDataset(input_data)
+        ds = IPCDataset(input_data)
         dl = DataLoader(ds, bs)
         return dl
 
