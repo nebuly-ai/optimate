@@ -74,17 +74,19 @@ class BladeDISCOptimizer(BaseOptimizer):
             model_params (ModelParams): Model parameters.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
-                get the prediction.
+                get the prediction. Default: None.
             metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
-                will be ignored.
+                will be ignored. Default: None.
             quantization_type (QuantizationType, optional): The desired
-                quantization algorithm to be used.
+                quantization algorithm to be used. Default: None.
             metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
-                prediction.
+                prediction. Default: None.
             input_data (DataManager, optional): User defined data.
-            model_outputs (Any): Outputs computed by the original model.
+                Default: None.
+            model_outputs (Any, optional): Outputs computed by the original
+                model. Default: None.
 
         Returns:
             BladeDISCInferenceLearner: Model optimized for inference.

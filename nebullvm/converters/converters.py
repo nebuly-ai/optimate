@@ -24,8 +24,9 @@ class BaseConverter(ABC):
             be used as model name.
     """
 
-    def __init__(self, model_name: str = None):
+    def __init__(self, model_name: str = None, logger: Logger = None):
         self.model_name = model_name or "temp"
+        self.logger = logger
 
     @abstractmethod
     def convert(
@@ -110,7 +111,6 @@ class CrossConverter(BaseConverter):
         model_params: ModelParams,
         save_path: Path,
         input_data: DataManager = None,
-        logger: Logger = None,
     ) -> List[Any]:
         # TODO: Add cross conversion torch-tf
         onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
@@ -120,7 +120,7 @@ class CrossConverter(BaseConverter):
                 model_params=model_params,
                 output_file_path=onnx_path,
                 input_data=input_data,
-                logger=logger,
+                logger=self.logger,
             )
 
             return (
@@ -130,6 +130,7 @@ class CrossConverter(BaseConverter):
             onnx_path = convert_tf_to_onnx(
                 model=model,
                 output_file_path=onnx_path,
+                logger=self.logger,
             )
             return (
                 [model, str(onnx_path)] if onnx_path is not None else [model]
@@ -143,7 +144,7 @@ class CrossConverter(BaseConverter):
                 model_onnx = onnx.load(str(model))
                 onnx.save(model_onnx, str(onnx_path))
             except Exception:
-                logger.error(
+                self.logger.error(
                     "The provided onnx model path is invalid. Please provide"
                     " a valid path to a model in order to use Nebullvm."
                 )

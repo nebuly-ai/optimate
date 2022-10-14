@@ -1,6 +1,5 @@
-import torch
-
 import pytest
+import torch
 
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
 from nebullvm.base import DeepLearningFramework

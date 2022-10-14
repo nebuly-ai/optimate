@@ -10,7 +10,7 @@ import torch
 from nebullvm.utils.general import check_module_version
 
 
-def _get_cpu_arch():
+def get_cpu_arch():
     arch = cpuinfo.get_cpu_info()["arch"].lower()
     if "x86" in arch:
         return "x86"
@@ -42,7 +42,7 @@ def install_tvm(working_dir: str = None):
         cwd=working_dir or Path.home(),
     )
     installation_file = str(path / "install_tvm.sh")
-    hardware_config = _get_cpu_arch()
+    hardware_config = get_cpu_arch()
     if torch.cuda.is_available():
         hardware_config = f"{hardware_config}_cuda"
     env_dict = {
@@ -174,7 +174,7 @@ def install_onnxruntime():
     distribution_name = "onnxruntime"
     if torch.cuda.is_available():
         distribution_name = f"{distribution_name}-gpu"
-    if _get_os() == "Darwin" and _get_cpu_arch() == "arm":
+    if _get_os() == "Darwin" and get_cpu_arch() == "arm":
         cmd = ["conda", "install", "-y", distribution_name]
     else:
         cmd = ["pip3", "install", distribution_name]

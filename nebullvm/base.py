@@ -107,10 +107,14 @@ class ModelCompiler(Enum):
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"
     DEEPSPARSE = "deepsparse"
-    NEURALCOMPRESSOR = "neuralcompressor"
     TORCHSCRIPT = "torchscript"
     TFLITE = "tflite"
     BLADEDISC = "bladedisc"
+
+
+class ModelCompressor(Enum):
+    SPARSEML = "sparseml"
+    NEURAL_COMPRESSOR_PRUNING = "intel_pruning"
 
 
 class QuantizationType(Enum):

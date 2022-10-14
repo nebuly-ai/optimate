@@ -56,3 +56,21 @@ TORCH_TENSORRT_PRECISIONS = {
     "torch.float16": {torch.float, torch.half},
     "torch.int8": {torch.float, torch.half, torch.int8},
 }
+
+MIN_DIM_INPUT_DATA = 100
+QUANTIZATION_DATA_NUM = 300
+
+COMPILER_LIST = [
+    "deepsparse",
+    "tensor RT",
+    "torchscript",
+    "tflite",
+    "tvm",
+    "openvino",
+    "bladedisc",
+]
+
+COMPRESSOR_LIST = [
+    "sparseml",
+    "intel_pruning",
+]

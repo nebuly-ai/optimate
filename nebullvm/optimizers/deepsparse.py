@@ -41,8 +41,7 @@ class DeepSparseOptimizer(BaseOptimizer):
             return
 
         with TemporaryDirectory() as tmp_dir:
-            converter = ONNXConverter()
-            converter.model_name = "model_pruned"
+            converter = ONNXConverter(model_name="model_pruned")
             onnx_pruned_path = Path(tmp_dir)
             converter.convert(
                 model, model_params, onnx_pruned_path, input_data

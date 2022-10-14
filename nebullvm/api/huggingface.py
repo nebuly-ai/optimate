@@ -90,12 +90,8 @@ def _get_output_structure_from_text(
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-
-    encoded_input = tokenizer([text], **tokenizer_args)
-
-    if torch.cuda.is_available():
-        encoded_input = {k: v.cuda() for (k, v) in encoded_input.items()}
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    encoded_input = tokenizer([text], **tokenizer_args).to(device)
     output = model(**encoded_input)
     structure = OrderedDict()
     if isinstance(output, tuple):
@@ -229,9 +225,13 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
             return self.core_inference_learner(*args)
         inputs = (kwargs.pop(name) for name in self.input_names)
         outputs = self.core_inference_learner(*inputs)
-        return _restructure_output(
-            outputs, self.output_structure, self.output_type
-        )
+
+        if self.output_type is tuple:
+            return outputs
+        else:
+            return _restructure_output(
+                outputs, self.output_structure, self.output_type
+            )
 
     def _get_extra_metadata_kwargs(self) -> Dict:
         metadata_kwargs = {

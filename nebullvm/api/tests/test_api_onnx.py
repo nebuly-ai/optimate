@@ -2,13 +2,13 @@ import cpuinfo
 from tempfile import TemporaryDirectory
 
 import numpy as np
+import pytest
 import torch
 from torchvision import models
 
-import pytest
-
 from nebullvm.api.functions import optimize_model
 from nebullvm.api.tests.utils import torch_to_onnx
+from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.inference_learners.onnx import NumpyONNXInferenceLearner
 from nebullvm.inference_learners.openvino import (
     NumpyOpenVinoInferenceLearner,
@@ -23,7 +23,7 @@ from nebullvm.utils.compilers import (
 from nebullvm.utils.general import is_python_version_3_10
 
 
-def test_onnx_onnx():
+def test_onnx_ort():
     with TemporaryDirectory() as tmp_dir:
         model = models.resnet18()
         input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
@@ -39,13 +39,11 @@ def test_onnx_onnx():
             model_path,
             input_data=input_data,
             ignore_compilers=[
-                "deepsparse",
-                "tvm",
-                "torchscript",
-                "tensor RT",
-                "openvino",
-                "bladedisc",
+                compiler
+                for compiler in COMPILER_LIST
+                if compiler != "onnxruntime"
             ],
+            ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
             # metric_drop_ths=2,
         )
 
@@ -63,7 +61,7 @@ def test_onnx_onnx():
         )
 
 
-def test_onnx_onnx_quant():
+def test_onnx_ort_quant():
     with TemporaryDirectory() as tmp_dir:
         model = models.resnet18()
         input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
@@ -79,13 +77,11 @@ def test_onnx_onnx_quant():
             model_path,
             input_data=input_data,
             ignore_compilers=[
-                "deepsparse",
-                "tvm",
-                "torchscript",
-                "tensor RT",
-                "openvino",
-                "bladedisc",
+                compiler
+                for compiler in COMPILER_LIST
+                if compiler != "onnxruntime"
             ],
+            ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
             metric_drop_ths=2,
         )
 
@@ -123,13 +119,11 @@ def test_onnx_tensorrt():
             model_path,
             input_data=input_data,
             ignore_compilers=[
-                "deepsparse",
-                "tvm",
-                "torchscript",
-                "onnxruntime",
-                "openvino",
-                "bladedisc",
+                compiler
+                for compiler in COMPILER_LIST
+                if compiler != "tensor RT"
             ],
+            ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
         )
 
         # Try the optimized model
@@ -169,13 +163,11 @@ def test_onnx_openvino():
             model_path,
             input_data=input_data,
             ignore_compilers=[
-                "deepsparse",
-                "tvm",
-                "torchscript",
-                "onnxruntime",
-                "tensor RT",
-                "bladedisc",
+                compiler
+                for compiler in COMPILER_LIST
+                if compiler != "openvino"
             ],
+            ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
         )
 
         # Try the optimized model
@@ -211,13 +203,9 @@ def test_onnx_tvm():
             model_path,
             input_data=input_data,
             ignore_compilers=[
-                "deepsparse",
-                "tensor RT",
-                "torchscript",
-                "onnxruntime",
-                "openvino",
-                "bladedisc",
+                compiler for compiler in COMPILER_LIST if compiler != "tvm"
             ],
+            ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
         )
 
         # Try the optimized model

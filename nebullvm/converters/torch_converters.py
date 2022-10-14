@@ -1,3 +1,4 @@
+import logging
 from logging import Logger
 from pathlib import Path
 from typing import Union
@@ -116,14 +117,22 @@ def convert_torch_to_onnx(
 
                 return output_file_path
             except Exception:
-                logger.warning(
+                warning_msg = (
                     "Exception raised during conversion from torch"
                     " to onnx model. ONNX pipeline will be unavailable."
                 )
+                if logger is not None:
+                    logger.warning(warning_msg)
+                else:
+                    logging.warning(warning_msg)
                 return None
         else:
-            logger.warning(
+            warning_msg = (
                 "Exception raised during conversion from torch"
                 " to onnx model. ONNX pipeline will be unavailable."
             )
+            if logger is not None:
+                logger.warning(warning_msg)
+            else:
+                logging.warning(warning_msg)
             return None

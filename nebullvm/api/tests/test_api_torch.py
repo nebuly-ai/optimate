@@ -1,11 +1,11 @@
 import cpuinfo
 
+import pytest
 import torch
 import torchvision.models as models
 
-import pytest
-
 from nebullvm.api.functions import optimize_model
+from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.inference_learners.onnx import PytorchONNXInferenceLearner
 from nebullvm.inference_learners.openvino import (
     PytorchOpenVinoInferenceLearner,
@@ -23,7 +23,7 @@ from nebullvm.utils.compilers import (
 from nebullvm.utils.general import is_python_version_3_10
 
 
-def test_torch_onnx():
+def test_torch_ort():
     model = models.resnet18()
     input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
 
@@ -32,13 +32,9 @@ def test_torch_onnx():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "torchscript",
-            "tensor RT",
-            "openvino",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "onnxruntime"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -52,7 +48,7 @@ def test_torch_onnx():
     assert torch.max(abs((res_original - res_optimized))) < 1e-2
 
 
-def test_torch_onnx_quant():
+def test_torch_ort_quant():
     model = models.resnet18()
     input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
 
@@ -61,13 +57,9 @@ def test_torch_onnx_quant():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "torchscript",
-            "tensor RT",
-            "openvino",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "onnxruntime"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
         metric_drop_ths=2,
     )
 
@@ -91,13 +83,9 @@ def test_torch_torchscript():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "onnxruntime",
-            "tensor RT",
-            "openvino",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "torchscript"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -124,13 +112,9 @@ def test_torch_tensorrt():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "torchscript",
-            "onnxruntime",
-            "openvino",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "tensor RT"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -161,13 +145,9 @@ def test_torch_openvino():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "torchscript",
-            "onnxruntime",
-            "tensor RT",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "openvino"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -193,13 +173,9 @@ def test_torch_tvm():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "openvino",
-            "torchscript",
-            "onnxruntime",
-            "tensor RT",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "tvm"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -226,13 +202,9 @@ def test_torch_bladedisc():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "openvino",
-            "torchscript",
-            "onnxruntime",
-            "tensor RT",
-            "tvm",
+            compiler for compiler in COMPILER_LIST if compiler != "bladedisc"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model

@@ -71,7 +71,7 @@ class _IterableCalibrationDataReader(CalibrationDataReader):
 def _quantize_dynamic(model_path: str):
     model_path = Path(model_path)
     model_quant = model_path.parent.parent / "int8_dynamic"
-    model_quant.mkdir(parents=True)
+    model_quant.mkdir(parents=True, exist_ok=True)
     model_quant = model_quant / (model_path.stem + ".quant.onnx")
     quantize_dynamic(
         model_path,
@@ -107,7 +107,7 @@ def _quantize_static(
 ):
     model_path = Path(model_path)
     model_quant = model_path.parent.parent / "int8_static"
-    model_quant.mkdir(parents=True)
+    model_quant.mkdir(parents=True, exist_ok=True)
     model_quant = model_quant / (model_path.stem + ".quant.onnx")
     inputs = input_data
     input_names = get_input_names(str(model_path))

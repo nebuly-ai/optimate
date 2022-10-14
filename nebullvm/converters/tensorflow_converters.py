@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from logging import Logger
 from pathlib import Path
@@ -20,6 +21,7 @@ def convert_tf_to_onnx(
     Args:
         model (tf.Module): TF model.
         output_file_path (Path): Path where storing the output file.
+        logger (Logger, optional): Logger object.
     """
     with TemporaryDirectory() as temp_dir:
         tf.saved_model.save(model, export_dir=temp_dir)
@@ -39,10 +41,14 @@ def convert_tf_to_onnx(
         try:
             onnx.load(output_file_path)
         except Exception:
-            logger.warning(
+            warning_msg = (
                 "Something went wrong during conversion from tensorflow"
                 " to onnx model. ONNX pipeline will be unavailable."
             )
+            if logger is not None:
+                logger.warning(warning_msg)
+            else:
+                logging.warning(warning_msg)
             return None
 
         return output_file_path

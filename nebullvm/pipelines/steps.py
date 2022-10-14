@@ -14,11 +14,13 @@ from nebullvm.base import (
     ModelParams,
     QuantizationType,
     ModelCompiler,
+    ModelCompressor,
     OptimizationTime,
 )
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.compressors.intel import TorchIntelPruningCompressor
 from nebullvm.compressors.sparseml import SparseMLCompressor
+from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.inference_learners import (
     BaseInferenceLearner,
     PytorchBaseInferenceLearner,
@@ -105,7 +107,7 @@ class CompressorStep(Step, ABC):
         input_data: DataManager = None,
         metric_drop_ths: float = None,
         metric: Callable = None,
-        ignore_compilers: List[ModelCompiler] = None,
+        ignore_compressors: List[ModelCompressor] = None,
         **kwargs,
     ) -> Dict:
         """Run the CompressorStep.
@@ -115,44 +117,72 @@ class CompressorStep(Step, ABC):
             input_data (DataManager): Data to be used for compressing the
                 model.
             metric_drop_ths: Maximum reduction in the selected metric accepted.
-                No model with an higher error will be accepted. Note that the
+                No model with a higher error will be accepted. Note that the
                 maximum error is modified and then propagated to the next
                 steps.
             metric (Callable): Metric to be used for estimating the error
                 due to the compression.
+            ignore_compressors (List, optional): List of compressors
+                to be ignored.
             kwargs (Dict): Keyword arguments propagated to the next step.
         """
-        compressor_dict = self._get_compressors(ignore_compilers)
+        compressor_dict = self._get_compressors(ignore_compressors)
         self._log_info(f"Compressions: {tuple(compressor_dict.keys())}")
         models = {"no_compression": (copy.deepcopy(model), metric_drop_ths)}
-        train_input_data, eval_input_data = input_data.split(0.8)
-        for technique, compressor in tqdm(compressor_dict.items()):
-            try:
-                compressed_model, ths = compressor.compress(
-                    model,
-                    train_input_data,
-                    eval_input_data,
-                    metric_drop_ths,
-                    metric,
-                )
-                models[technique] = (compressed_model, ths)
-            except Exception as ex:
+
+        # input_data[0][0][0].shape[0] is the batch size
+        if (
+            len(input_data) < 1
+            or (len(input_data) * input_data[0][0][0].shape[0])
+            < MIN_DIM_INPUT_DATA
+        ):
+            self._log_warning(
+                f"Compression step needs at least {MIN_DIM_INPUT_DATA} "
+                f"input data to be activated. Please provide more inputs. "
+                f"Compression step will be skipped."
+            )
+            eval_input_data = input_data
+        else:
+            train_input_data, eval_input_data = input_data.split(0.8)
+            if len(eval_input_data) > 0:
+                for technique, compressor in tqdm(compressor_dict.items()):
+                    try:
+                        compressed_model, ths = compressor.compress(
+                            model,
+                            train_input_data,
+                            eval_input_data,
+                            metric_drop_ths,
+                            metric,
+                        )
+                        models[technique] = (compressed_model, ths)
+                    except Exception as ex:
+                        self._log_warning(
+                            f"Error during compression {technique}. Got error "
+                            f"{ex}. The compression technique will be skipped."
+                            f" Please consult the documentation for further "
+                            f"info or open an issue on GitHub for receiving "
+                            f"assistance."
+                        )
+            else:
                 self._log_warning(
-                    f"Error during compression {technique}. Got error {ex}. "
-                    f"The compression technique will be skipped. "
-                    f"Please consult the documentation for further info or "
-                    f"open an issue on GitHub for receiving assistance."
+                    "Please note that DIM_DATASET / BATCH_SIZE >= 5, "
+                    "otherwise the data cannot be split in training and "
+                    "evaluation set properly. Compression step will be "
+                    "skipped."
                 )
+                eval_input_data = input_data
         return {
             "models": models,
-            "input_data": input_data,
+            "input_data": eval_input_data,
             "metric": metric,
-            "ignore_compilers": ignore_compilers,
+            "ignore_compressors": ignore_compressors,
             **kwargs,
         }
 
     @abstractmethod
-    def _get_compressors(self, ignore_compilers) -> Dict[str, BaseCompressor]:
+    def _get_compressors(
+        self, ignore_compressors
+    ) -> Dict[str, BaseCompressor]:
         raise NotImplementedError()
 
     @property
@@ -177,22 +207,24 @@ class TorchCompressorStep(CompressorStep):
         logger (Logger, optional): Logger defined by the user.
     """
 
-    def _get_compressors(self, ignore_compilers) -> Dict[str, BaseCompressor]:
+    def _get_compressors(
+        self, ignore_compressors
+    ) -> Dict[str, BaseCompressor]:
         compressors = {}
 
         if (
             deepsparse_is_available()
             and not is_python_version_3_10()
-            and ModelCompiler.DEEPSPARSE not in ignore_compilers
+            and ModelCompressor.SPARSEML not in ignore_compressors
         ):
             compressors["sparseml"] = SparseMLCompressor(
                 config_file=self._config_file
             )
 
         if (
-            False
-            and "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
-            and ModelCompiler.NEURALCOMPRESSOR not in ignore_compilers
+            "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+            and ModelCompressor.NEURAL_COMPRESSOR_PRUNING
+            not in ignore_compressors
         ):
             compressors["intel_pruning"] = TorchIntelPruningCompressor(
                 config_file=self._config_file
@@ -676,8 +708,6 @@ def build_pipeline_from_model(
             accepted, i.e. all optimized model having a larger error respect to
             the original one will be discarded, without even considering their
             possible speed-up.
-        metric (Callable): Metric to be used for estimating the error
-            due to the optimization techniques.
         config_file (str, optional): Configuration file containing the
             parameters needed for defining the CompressionStep in the pipeline.
         logger (Logger, optional): Logger defined by the user.

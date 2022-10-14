@@ -15,7 +15,7 @@ from nebullvm.inference_learners.base import (
     LearnerMetadata,
     PytorchBaseInferenceLearner,
 )
-from nebullvm.installers.installers import install_deepsparse, _get_cpu_arch
+from nebullvm.installers.installers import install_deepsparse, get_cpu_arch
 from nebullvm.transformations.base import MultiStageTransformation
 
 try:
@@ -26,7 +26,7 @@ except ImportError:
     os_ = platform.system()
     if (
         os_ != "Darwin"
-        and _get_cpu_arch() != "arm"
+        and get_cpu_arch() != "arm"
         and not NO_COMPILER_INSTALLATION
     ):
         warnings.warn(

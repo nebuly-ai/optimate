@@ -77,8 +77,9 @@ def _quantize_static(
     model: Union[torch.nn.Module, torch.fx.GraphModule],
     input_data: List[Tuple[torch.Tensor, ...]],
 ):
-    if torch.cuda.is_available():
-        raise AssertionError("Quantization for torch is only available on CPU")
+    assert (
+        torch.cuda.is_available()
+    ), "Quantization for torch is only available on CPU"
 
     backend = (
         "fbgemm"
@@ -93,11 +94,12 @@ def _quantize_static(
 
 
 def _quantize_dynamic(model: Union[torch.nn.Module, torch.fx.GraphModule]):
-    if torch.cuda.is_available():
-        raise AssertionError("Quantization for torch is only available on CPU")
+    assert (
+        torch.cuda.is_available()
+    ), "Quantization for torch is only available on CPU"
 
     if isinstance(model, torch.fx.GraphModule):
-        return _quantize_dynamic_torch(model)
+        return _quantize_dynamic_torch_fx(model)
     else:
         return _quantize_dynamic_torch(model)
 

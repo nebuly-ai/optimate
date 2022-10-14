@@ -28,9 +28,9 @@ def compute_torch_latency(
         xs (List[Tensor]): List of input tensors (a single batch for the model)
         model (Module): Torch model.
         device (str): Device where computing the latency.
-        steps (int): Number of times the experiment needs to be performed for
-            computing the statistics.
-        warmup_steps (int): Number of warmup steps.
+        steps (int, optional): Number of times the experiment needs to be
+            performed for computing the statistics. Default: 100.
+        warmup_steps (int, optional): Number of warmup steps. Default: 10.
 
     Returns:
         Float: Average latency.
@@ -63,9 +63,9 @@ def compute_tf_latency(
         xs (List[Tensor]): List of input tensors (a single batch for the model)
         model (Module or keras.Model): TF model.
         device (str): Device where computing the latency.
-        steps (int): Number of times the experiment needs to be performed for
-            computing the statistics.
-        warmup_steps (int): Number of warmup steps.
+        steps (int, optional): Number of times the experiment needs to be
+            performed for computing the statistics. Default: 100.
+        warmup_steps (int, optional): Number of warmup steps. Default: 10.
 
     Returns:
         Float: Average latency.
@@ -97,9 +97,9 @@ def compute_onnx_latency(
         xs (List[np.array]): List of inputs (a single batch for the model).
         model (str): ONNX model path.
         device (str): Device where computing the latency.
-        steps (int): Number of times the experiment needs to be performed for
-            computing the statistics.
-        warmup_steps (int): Number of warmup steps.
+        steps (int, optional): Number of times the experiment needs
+            to be performed for computing the statistics. Default: 100.
+        warmup_steps (int, optional): Number of warmup steps. Default: 10.
 
     Returns:
         Float: Average latency.
@@ -132,15 +132,19 @@ def compute_onnx_latency(
 def compute_optimized_running_time(
     optimized_model: BaseInferenceLearner,
     steps: int = 100,
-    min_steps=5,
-    warmup_steps=10,
+    min_steps: int = 5,
+    warmup_steps: int = 10,
 ) -> float:
     """Compute the running time of the optimized model.
 
     Args:
         optimized_model (BaseInferenceLearner): Optimized model.
-        steps (int): Number of times the experiment needs to be performed for
-            computing the statistics.
+        steps (int, optional): Number of times the experiment needs to
+            be performed for computing the statistics. Default: 100.
+        min_steps (int, optional): Minimum number of iterations to
+            be performed. Default: 5.
+        warmup_steps (int, optional): Number of warmup iterations.
+            Default: 10.
 
     Returns:
         Float: Average latency.

@@ -6,7 +6,7 @@ import pytest
 
 from nebullvm.base import DeepLearningFramework, QuantizationType
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
-from nebullvm.installers.installers import _get_cpu_arch, _get_os
+from nebullvm.installers.installers import get_cpu_arch, _get_os
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
 
@@ -54,7 +54,7 @@ def test_torchscript(
 ):
     if (
         _get_os() == "Darwin"
-        and _get_cpu_arch() == "arm"
+        and get_cpu_arch() == "arm"
         and quantization_type is not None
     ):
         # Quantization doesn't work on M1 chips

@@ -14,8 +14,10 @@ from nebullvm.base import (
     DeepLearningFramework,
     ModelParams,
     ModelCompiler,
+    ModelCompressor,
     OptimizationTime,
 )
+from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.converters.converters import CrossConverter
 from nebullvm.measure import (
     compute_torch_latency,
@@ -75,11 +77,22 @@ INFO_EXTRACTION_DICT: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.NUMPY: extract_info_from_np_data,
 }
 
-
 OUTPUT_SIZE_COMPUTATION_DICT: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.PYTORCH: get_outputs_sizes_torch,
     DeepLearningFramework.TENSORFLOW: get_outputs_sizes_tf,
     DeepLearningFramework.NUMPY: get_output_sizes_onnx,
+}
+
+COMPUTE_OUTPUT_FRAMEWORK: Dict[DeepLearningFramework, Callable] = {
+    DeepLearningFramework.PYTORCH: run_torch_model,
+    DeepLearningFramework.TENSORFLOW: run_tf_model,
+    DeepLearningFramework.NUMPY: run_onnx_model,
+}
+
+COMPUTE_LATENCY_FRAMEWORK: Dict[DeepLearningFramework, Callable] = {
+    DeepLearningFramework.PYTORCH: compute_torch_latency,
+    DeepLearningFramework.TENSORFLOW: compute_tf_latency,
+    DeepLearningFramework.NUMPY: compute_onnx_latency,
 }
 
 
@@ -132,50 +145,33 @@ def _benchmark_original_model(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     outputs = None
 
-    if dl_framework == DeepLearningFramework.PYTORCH:
-        input_data_torch, ys = input_data.get_numpy_list(300, with_ys=True)
-        input_data_torch = [
+    input_data = input_data.get_numpy_list(QUANTIZATION_DATA_NUM)
+    input_data = [
+        tuple(convert_to_target_framework(t, dl_framework) for t in data_tuple)
+        for data_tuple in input_data
+    ]
+    if compute_output:
+        outputs = [
             tuple(
-                convert_to_target_framework(t, dl_framework)
-                for t in data_tuple
+                COMPUTE_OUTPUT_FRAMEWORK[dl_framework](
+                    model, list(input_tensors)
+                )
             )
-            for data_tuple in input_data_torch
+            for input_tensors in input_data
         ]
-        if compute_output:
-            outputs = [
-                tuple(run_torch_model(model, list(input_tensors)))
-                for input_tensors in input_data_torch
-            ]
-        latency, _ = compute_torch_latency(
-            list(input_data_torch[0]), model, device
-        )
-    elif dl_framework == DeepLearningFramework.TENSORFLOW:
-        input_data_tf, ys = input_data.get_numpy_list(300, with_ys=True)
-        input_data_tf = [
-            tuple(
-                convert_to_target_framework(t, dl_framework)
-                for t in data_tuple
-            )
-            for data_tuple in input_data_tf
-        ]
-        if compute_output:
-            outputs = [
-                tuple(run_tf_model(model, input_tensors))
-                for input_tensors in input_data_tf
-            ]
-        latency, _ = compute_tf_latency(list(input_data_tf[0]), model, device)
-    else:
-        input_data_onnx, ys = input_data.get_numpy_list(300, with_ys=True)
-        if compute_output:
-            outputs = [
-                tuple(run_onnx_model(model, list(input_tensors)))
-                for input_tensors in input_data_onnx
-            ]
-        latency, _ = compute_onnx_latency(
-            list(input_data_onnx[0]), model, device
-        )
+    latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](
+        list(input_data[0]), model, device
+    )
 
     return outputs, latency
+
+
+def _map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
+    if ignore_list is None:
+        ignore_list = []
+    else:
+        ignore_list = [enum_class(element) for element in ignore_list]
+    return ignore_list
 
 
 def optimize_model(
@@ -187,6 +183,7 @@ def optimize_model(
     dynamic_info: Dict = None,
     config_file: str = None,
     ignore_compilers: List[str] = None,
+    ignore_compressors: List[str] = None,
     store_latencies: bool = False,
     **kwargs,
 ):
@@ -256,8 +253,10 @@ def optimize_model(
             Default: None.
         ignore_compilers (List, optional): List containing the compilers to be
             ignored during the OptimizerStep. Default: None.
+        ignore_compressors (List, optional): List containing the compressors
+            to be ignored during the CompressionStep. Default: None.
         store_latencies (bool, optional): Parameter that allows to save the
-            latency for each compiler used by nebullvm.
+            latency for each compiler used by nebullvm. Default: False.
 
     Returns:
         InferenceLearner: Optimized version of the input model having the same
@@ -296,21 +295,19 @@ def optimize_model(
         dl_framework,
         dynamic_info,
     )
-    converter = CrossConverter()
+    converter = CrossConverter(logger=logger)
     optimized_models = []
     with TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir) / "fp32"
         tmp_dir.mkdir(parents=True, exist_ok=True)
-        models = converter.convert(
-            model, model_params, tmp_dir, input_data, logger
-        )
+        models = converter.convert(model, model_params, tmp_dir, input_data)
 
-        if ignore_compilers is None:
-            ignore_compilers = []
-        else:
-            ignore_compilers = [
-                ModelCompiler(compiler) for compiler in ignore_compilers
-            ]
+        ignore_compilers = _map_compilers_and_compressors(
+            ignore_compilers, ModelCompiler
+        )
+        ignore_compressors = _map_compilers_and_compressors(
+            ignore_compressors, ModelCompressor
+        )
 
         # Benchmark original model
         model_outputs, orig_latency = _benchmark_original_model(
@@ -347,6 +344,7 @@ def optimize_model(
                 model_params=model_params,
                 input_tfms=input_tfms,
                 ignore_compilers=ignore_compilers,
+                ignore_compressors=ignore_compressors,
                 optimization_time=optimization_time,
                 model_outputs=model_outputs,
             )

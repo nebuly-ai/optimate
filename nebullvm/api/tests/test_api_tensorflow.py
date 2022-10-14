@@ -1,12 +1,12 @@
 import cpuinfo
 
+import pytest
 import tensorflow as tf
 import torch
 from tensorflow.keras.applications.resnet50 import ResNet50
 
-import pytest
-
 from nebullvm.api.functions import optimize_model
+from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.inference_learners.onnx import TensorflowONNXInferenceLearner
 from nebullvm.inference_learners.openvino import (
     TensorflowOpenVinoInferenceLearner,
@@ -40,7 +40,7 @@ if gpus:
         print(e)
 
 
-def test_tensorflow_onnx():
+def test_tensorflow_ort():
     model = ResNet50()
     input_data = [
         ((tf.random.normal([1, 224, 224, 3]),), 0) for i in range(100)
@@ -51,13 +51,9 @@ def test_tensorflow_onnx():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "tflite",
-            "tensor RT",
-            "openvino",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "onnxruntime"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -80,13 +76,9 @@ def test_tensorflow_tflite():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "onnxruntime",
-            "tensor RT",
-            "openvino",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "tflite"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -113,13 +105,9 @@ def test_tensorflow_tensorrt():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "tflite",
-            "onnxruntime",
-            "openvino",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "tensor RT"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -149,13 +137,9 @@ def test_tensorflow_openvino():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "tvm",
-            "tflite",
-            "onnxruntime",
-            "tensor RT",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "openvino"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
@@ -184,13 +168,9 @@ def test_tensorflow_tvm():
         model,
         input_data=input_data,
         ignore_compilers=[
-            "deepsparse",
-            "openvino",
-            "tflite",
-            "onnxruntime",
-            "tensor RT",
-            "bladedisc",
+            compiler for compiler in COMPILER_LIST if compiler != "tvm"
         ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
 
     # Try the optimized model
