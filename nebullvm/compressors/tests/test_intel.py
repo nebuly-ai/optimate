@@ -10,7 +10,7 @@ from nebullvm.optimizers.tests.utils import initialize_model
 
 
 @pytest.mark.skipif(
-    "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower(),
+    "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
     reason="Tested only on intel cpus.",
 )
 def test_intel_pruning():
