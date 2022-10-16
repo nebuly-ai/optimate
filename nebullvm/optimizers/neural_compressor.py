@@ -35,6 +35,34 @@ class NeuralCompressorOptimizer(BaseOptimizer):
         input_data: DataManager = None,
         model_outputs: Any = None,
     ) -> Optional[NeuralCompressorInferenceLearner]:
+        """Optimize the input model using Intel Neural Compressor Quantization.
+
+        Args:
+            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
+                modifications to the original model, it will be copied in the
+                method.
+            output_library (DeepLearningFramework): Output framework. At the
+                current stage just PYTORCH is supported.
+            model_params (ModelParams): Model parameters.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction. Default: None.
+            metric_drop_ths (float, optional): Threshold for the accepted drop
+                in terms of precision. Any optimized model with an higher drop
+                will be ignored. Default: None.
+            quantization_type (QuantizationType, optional): The desired
+                quantization algorithm to be used. Default: None.
+            metric (Callable, optional): If given it should
+                compute the difference between the quantized and the normal
+                prediction. Default: None.
+            input_data (DataManager, optional): User defined data.
+                Default: None.
+            model_outputs (Any, optional): Outputs computed by the original
+                model. Default: None.
+
+        Returns:
+            NeuralCompressorInferenceLearner: Model optimized for inference.
+        """
         self._log(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."

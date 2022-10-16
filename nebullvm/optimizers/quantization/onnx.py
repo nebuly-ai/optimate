@@ -38,6 +38,11 @@ except ImportError:
             CalibrationDataReader,
         )
 
+except FileNotFoundError:
+    # Solves a colab issue
+    QuantType = quantize_static = quantize_dynamic = None
+    CalibrationDataReader = object
+
 
 class _IterableCalibrationDataReader(CalibrationDataReader):
     def __init__(

@@ -2,7 +2,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import onnx
-
 import pytest
 
 from nebullvm.base import DeepLearningFramework, QuantizationType

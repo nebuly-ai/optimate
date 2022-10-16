@@ -21,7 +21,7 @@ from nebullvm.utils.onnx import (
 
 
 class ONNXOptimizer(BaseOptimizer):
-    """Class for creating the inference learner running on onnxruntime."""
+    """Class for compiling the AI models using ONNX runtime."""
 
     def optimize(
         self,

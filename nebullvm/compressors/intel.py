@@ -165,7 +165,7 @@ class IPCDataset(Dataset):
         batch_idx = int(idx / self.batch_size)
         item_idx = idx % self.batch_size
         data = tuple([data[item_idx] for data in self.data[batch_idx][0]])
-        return data[0], self.data[batch_idx][1][item_idx]
+        return data, self.data[batch_idx][1][item_idx]
 
 
 class TorchIntelPruningCompressor(IntelPruningCompressor):

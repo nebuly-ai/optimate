@@ -1,8 +1,7 @@
 from tempfile import TemporaryDirectory
 
-import torch
-
 import pytest
+import torch
 
 from nebullvm.base import DeepLearningFramework, QuantizationType
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner

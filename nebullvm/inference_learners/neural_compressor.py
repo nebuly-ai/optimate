@@ -31,7 +31,11 @@ except ImportError:
             "Trying to install it..."
         )
         install_intel_neural_compressor()
-        from neural_compressor.utils.pytorch import load
+        try:
+            from neural_compressor.utils.pytorch import load
+        except ImportError:
+            # Solves a problem in colab
+            pass
     else:
         warnings.warn(
             "No valid intel neural compressor installation found. "
