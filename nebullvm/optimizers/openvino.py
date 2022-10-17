@@ -98,20 +98,21 @@ class OpenVinoOptimizer(BaseOptimizer):
         openvino_model_weights = base_path / f"{Path(model).stem}.bin"
 
         input_data_onnx, output_data_onnx, ys = [], [], None
-        if (
-            metric_drop_ths is not None
-            and quantization_type is not QuantizationType.HALF
-        ):
+        if metric_drop_ths is not None:
             input_data_onnx = input_data.get_numpy_list(300, with_ys=True)
             output_data_onnx = model_outputs
 
-            # Add post training optimization
-            openvino_model_path, openvino_model_weights = quantize_openvino(
-                model_topology=str(openvino_model_path),
-                model_weights=str(openvino_model_weights),
-                input_names=get_input_names(model),
-                input_data=input_data_onnx,
-            )
+            if quantization_type is not QuantizationType.HALF:
+                # Add post training optimization
+                (
+                    openvino_model_path,
+                    openvino_model_weights,
+                ) = quantize_openvino(
+                    model_topology=str(openvino_model_path),
+                    model_weights=str(openvino_model_weights),
+                    input_names=get_input_names(model),
+                    input_data=input_data_onnx,
+                )
 
         learner = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
             model_name=str(openvino_model_path),
