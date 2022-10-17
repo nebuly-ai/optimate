@@ -14,6 +14,7 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
+    convert_to_target_framework,
 )
 
 
@@ -95,11 +96,14 @@ class OpenVinoOptimizer(BaseOptimizer):
         base_path = Path(model).parent
         openvino_model_path = base_path / f"{Path(model).stem}.xml"
         openvino_model_weights = base_path / f"{Path(model).stem}.bin"
+
+        input_data_onnx, output_data_onnx, ys = [], [], None
         if (
             metric_drop_ths is not None
             and quantization_type is not QuantizationType.HALF
         ):
             input_data_onnx = input_data.get_numpy_list(300, with_ys=True)
+            output_data_onnx = model_outputs
 
             # Add post training optimization
             openvino_model_path, openvino_model_weights = quantize_openvino(
@@ -119,14 +123,13 @@ class OpenVinoOptimizer(BaseOptimizer):
             else None,
         )
         if metric_drop_ths is not None:
-            if input_data is None:
-                inputs = [learner.get_inputs_example()]
-                ys = None
-            else:
-                inputs, ys = input_data.get_list(
-                    100, with_ys=True, shuffle=True
+            inputs = [
+                tuple(
+                    convert_to_target_framework(t, output_library)
+                    for t in data_tuple
                 )
-            output_data_onnx = model_outputs
+                for data_tuple in input_data_onnx
+            ]
             is_valid = check_precision(
                 learner,
                 inputs,

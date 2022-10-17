@@ -3,7 +3,7 @@ import shutil
 import warnings
 from abc import ABC
 from pathlib import Path
-from typing import Dict, Union, Type, Generator, Tuple, List
+from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
 import cpuinfo
 import numpy as np
@@ -179,7 +179,9 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     @staticmethod
-    def _get_dynamic_shape(model, network_parameters):
+    def _get_dynamic_shape(
+        model: Model, network_parameters: ModelParams
+    ) -> Optional[Dict[str, Tuple[int]]]:
         if network_parameters.dynamic_info is None:
             return None
         else:
@@ -191,6 +193,15 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
                 for input_info in network_parameters.input_infos
             ]
             dynamic_shapes = []
+
+            assert len(input_shapes) == len(
+                network_parameters.dynamic_info.inputs
+            ), (
+                f"Number of inputs defined in dynamic info "
+                f"({len(input_shapes)}) is different from the one "
+                f"expected from the model "
+                f"({len(network_parameters.dynamic_info.inputs)})."
+            )
 
             for input_shape, dynamic_shape_dict in zip(
                 input_shapes, network_parameters.dynamic_info.inputs

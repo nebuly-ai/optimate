@@ -39,7 +39,7 @@ def test_neural_compressor(
     ) = initialize_model(dynamic, metric_drop_ths, None, output_library)
 
     optimizer = NeuralCompressorOptimizer()
-    model = model = optimizer.optimize(
+    model = optimizer.optimize(
         model=model,
         output_library=output_library,
         model_params=model_params,

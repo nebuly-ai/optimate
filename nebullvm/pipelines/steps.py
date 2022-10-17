@@ -344,7 +344,7 @@ class OptimizerStep(Step, ABC):
                         )
                         if optimized_model is not None:
                             latency = compute_optimized_running_time(
-                                optimized_model
+                                optimized_model, input_data
                             )
                         else:
                             latency = np.inf

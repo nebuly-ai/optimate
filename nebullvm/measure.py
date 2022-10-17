@@ -7,6 +7,7 @@ import torch
 
 from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.inference_learners.base import BaseInferenceLearner
+from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     convert_to_numpy,
     get_input_names,
@@ -131,6 +132,7 @@ def compute_onnx_latency(
 
 def compute_optimized_running_time(
     optimized_model: BaseInferenceLearner,
+    input_data: DataManager,
     steps: int = 100,
     min_steps: int = 5,
     warmup_steps: int = 10,
@@ -139,6 +141,7 @@ def compute_optimized_running_time(
 
     Args:
         optimized_model (BaseInferenceLearner): Optimized model.
+        input_data: (DataManager): Dataset used to compute latency.
         steps (int, optional): Number of times the experiment needs to
             be performed for computing the statistics. Default: 100.
         min_steps (int, optional): Minimum number of iterations to
@@ -150,17 +153,17 @@ def compute_optimized_running_time(
         Float: Average latency.
     """
 
-    model_inputs = optimized_model.get_inputs_example()
-
     latencies = []
     last_median = None
 
     # Warmup
-    for _ in range(warmup_steps):
+    inputs_list = input_data.get_list(warmup_steps)
+    for model_inputs in inputs_list:
         _ = optimized_model(*model_inputs)
 
     # Compute latency
-    for _ in range(steps):
+    inputs_list = input_data.get_list(steps)
+    for model_inputs in inputs_list:
         starting_time = time.time()
         _ = optimized_model(*model_inputs)
         latencies.append(time.time() - starting_time)
