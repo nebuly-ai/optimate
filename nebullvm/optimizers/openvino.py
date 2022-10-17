@@ -128,7 +128,7 @@ class OpenVinoOptimizer(BaseOptimizer):
                     convert_to_target_framework(t, output_library)
                     for t in data_tuple
                 )
-                for data_tuple in input_data_onnx
+                for data_tuple in input_data_onnx[0]
             ]
             is_valid = check_precision(
                 learner,
