@@ -171,7 +171,8 @@ class PytorchNeuralCompressorInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        outputs = self.model_quant(*input_tensors)
+        inputs = (t.cpu() for t in input_tensors)
+        outputs = self.model_quant(*inputs)
         return outputs
 
 

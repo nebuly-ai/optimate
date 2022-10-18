@@ -14,6 +14,10 @@ from nebullvm.utils.compilers import intel_neural_compressor_is_available
 @pytest.mark.parametrize(
     ("output_library", "dynamic", "metric_drop_ths", "quantization_type"),
     [
+        (DeepLearningFramework.PYTORCH, True, 2, QuantizationType.DYNAMIC),
+        (DeepLearningFramework.PYTORCH, False, 2, QuantizationType.DYNAMIC),
+        (DeepLearningFramework.PYTORCH, True, 2, QuantizationType.HALF),
+        (DeepLearningFramework.PYTORCH, False, 2, QuantizationType.HALF),
         (DeepLearningFramework.PYTORCH, True, 2, QuantizationType.STATIC),
         (DeepLearningFramework.PYTORCH, False, 2, QuantizationType.STATIC),
     ],

@@ -76,8 +76,7 @@ class NeuralCompressorOptimizer(BaseOptimizer):
         )
         check_quantization(quantization_type, metric_drop_ths)
 
-        # At the moment only static quantization is supported
-        if quantization_type is not QuantizationType.STATIC:
+        if quantization_type is None:
             return None
 
         if metric_drop_ths is not None:
