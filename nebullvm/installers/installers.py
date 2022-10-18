@@ -201,6 +201,7 @@ def install_intel_neural_compressor():
 def install_onnx_simplifier():
     """Helper function for installing ONNX simplifier."""
 
-    # Install onnx simplifier
-    cmd = ["pip3", "install", "onnxsim"]
-    subprocess.run(cmd)
+    if get_cpu_arch() != "arm":
+        # Install onnx simplifier
+        cmd = ["pip3", "install", "onnxsim"]
+        subprocess.run(cmd)
