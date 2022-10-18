@@ -2,6 +2,7 @@ from tempfile import TemporaryDirectory
 from typing import Callable, Optional, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TF_BACKEND_LEARNERS_DICT,
@@ -84,7 +85,7 @@ class TensorflowBackendOptimizer(BaseOptimizer):
         with TemporaryDirectory() as tmp_dir:
             if metric_drop_ths is not None:
                 input_data_tf, ys = input_data.get_numpy_list(
-                    300, with_ys=True
+                    QUANTIZATION_DATA_NUM, with_ys=True
                 )
                 input_data_tf = [
                     tuple(

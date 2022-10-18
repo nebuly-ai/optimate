@@ -1,6 +1,7 @@
 from typing import Optional, Callable, Any
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.inference_learners.onnx import (
     ONNXInferenceLearner,
     ONNX_INFERENCE_LEARNERS,
@@ -70,7 +71,9 @@ class ONNXOptimizer(BaseOptimizer):
         input_data_onnx, output_data_onnx, ys = [], [], None
         check_quantization(quantization_type, metric_drop_ths)
         if metric_drop_ths is not None:
-            input_data_onnx, ys = input_data.get_numpy_list(300, with_ys=True)
+            input_data_onnx, ys = input_data.get_numpy_list(
+                QUANTIZATION_DATA_NUM, with_ys=True
+            )
             output_data_onnx = model_outputs
             model, input_tfms = quantize_onnx(
                 model, quantization_type, input_tfms, input_data_onnx

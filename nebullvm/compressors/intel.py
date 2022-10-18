@@ -153,7 +153,7 @@ class IntelPruningCompressor(BaseCompressor, ABC):
         raise NotImplementedError
 
 
-class IPCDataset(Dataset):
+class INCDataset(Dataset):
     def __init__(self, input_data: DataManager):
         self.data = input_data
         self.batch_size = input_data[0][0][0].shape[0]
@@ -172,7 +172,7 @@ class TorchIntelPruningCompressor(IntelPruningCompressor):
     @staticmethod
     def _get_dataloader(input_data: DataManager):
         bs = input_data[0][0][0].shape[0]
-        ds = IPCDataset(input_data)
+        ds = INCDataset(input_data)
         dl = DataLoader(ds, bs)
         return dl
 

@@ -1,8 +1,10 @@
+from copy import deepcopy
 from typing import Optional, Callable, Any
 
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
     NeuralCompressorInferenceLearner,
@@ -79,7 +81,9 @@ class NeuralCompressorOptimizer(BaseOptimizer):
             return None
 
         if metric_drop_ths is not None:
-            input_data_torch, ys = input_data.get_numpy_list(300, with_ys=True)
+            input_data_torch, ys = input_data.get_numpy_list(
+                QUANTIZATION_DATA_NUM, with_ys=True
+            )
             input_data_torch = [
                 tuple(
                     convert_to_target_framework(t, output_library)
@@ -89,13 +93,14 @@ class NeuralCompressorOptimizer(BaseOptimizer):
             ]
             output_data_torch = model_outputs
             model_quant = quantize_neural_compressor(
-                model, quantization_type, input_data
+                deepcopy(model), quantization_type, input_data
             )
 
             learner = NEURAL_COMPRESSOR_INFERENCE_LEARNERS[output_library](
                 input_tfms=input_tfms,
                 network_parameters=model_params,
-                model=model_quant,
+                model=model,
+                model_quant=model_quant,
             )
 
             if metric_drop_ths is not None:

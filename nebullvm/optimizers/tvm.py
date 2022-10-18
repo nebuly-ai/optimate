@@ -9,6 +9,7 @@ from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.config import (
     AUTO_TVM_TUNING_OPTION,
     AUTO_TVM_PARAMS,
+    QUANTIZATION_DATA_NUM,
 )
 from nebullvm.inference_learners.tvm import (
     TVM_INFERENCE_LEARNERS,
@@ -71,7 +72,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    inputs = input_data.get_numpy_list(300, with_ys=False)
+                    inputs = input_data.get_numpy_list(
+                        QUANTIZATION_DATA_NUM, with_ys=False
+                    )
                     input_names = [f"input_{n}" for n in range(len(inputs[0]))]
                     inputs = TVMCalibrator(inputs, input_names)
                 else:
@@ -162,7 +165,9 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    inputs = input_data.get_numpy_list(300, with_ys=False)
+                    inputs = input_data.get_numpy_list(
+                        QUANTIZATION_DATA_NUM, with_ys=False
+                    )
                     inputs = TVMCalibrator(inputs, get_input_names(model))
                 else:
                     return

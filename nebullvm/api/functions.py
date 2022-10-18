@@ -31,7 +31,6 @@ from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.utils.onnx import (
     get_output_sizes_onnx,
     run_onnx_model,
-    convert_to_target_framework,
 )
 from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import (
@@ -145,23 +144,18 @@ def _benchmark_original_model(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     outputs = None
 
-    input_data = input_data.get_numpy_list(QUANTIZATION_DATA_NUM)
-    input_data = [
-        tuple(convert_to_target_framework(t, dl_framework) for t in data_tuple)
-        for data_tuple in input_data
-    ]
+    inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
+
     if compute_output:
         outputs = [
             tuple(
                 COMPUTE_OUTPUT_FRAMEWORK[dl_framework](
-                    model, list(input_tensors)
+                    model, list(input_tensors[0])
                 )
             )
             for input_tensors in input_data
         ]
-    latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](
-        list(input_data[0]), model, device
-    )
+    latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](inputs, model, device)
 
     return outputs, latency
 

@@ -12,6 +12,7 @@ from nebullvm.config import (
     NVIDIA_FILENAMES,
     NO_COMPILER_INSTALLATION,
     TORCH_TENSORRT_PRECISIONS,
+    QUANTIZATION_DATA_NUM,
 )
 from nebullvm.inference_learners.tensor_rt import (
     NVIDIA_INFERENCE_LEARNERS,
@@ -270,7 +271,9 @@ class TensorRTOptimizer(BaseOptimizer):
             metric_drop_ths is not None
             and quantization_type is QuantizationType.STATIC
         ):
-            input_data_onnx = input_data.get_numpy_list(300, with_ys=False)
+            input_data_onnx = input_data.get_numpy_list(
+                QUANTIZATION_DATA_NUM, with_ys=False
+            )
         elif (
             metric_drop_ths is not None
             and quantization_type is QuantizationType.DYNAMIC

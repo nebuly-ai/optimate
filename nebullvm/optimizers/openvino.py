@@ -3,6 +3,7 @@ import subprocess
 from typing import Optional, Callable, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
     OpenVinoInferenceLearner,
@@ -99,7 +100,9 @@ class OpenVinoOptimizer(BaseOptimizer):
 
         input_data_onnx, output_data_onnx, ys = [], [], None
         if metric_drop_ths is not None:
-            input_data_onnx = input_data.get_numpy_list(300, with_ys=True)
+            input_data_onnx = input_data.get_numpy_list(
+                QUANTIZATION_DATA_NUM, with_ys=True
+            )
             output_data_onnx = model_outputs
 
             if quantization_type is not QuantizationType.HALF:

@@ -4,6 +4,7 @@ from typing import Optional, Any
 import torch.nn
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.pytorch import quantize_torch
@@ -77,7 +78,9 @@ class PytorchBackendOptimizer(BaseOptimizer):
         )
         check_quantization(quantization_type, metric_drop_ths)
         if metric_drop_ths is not None:
-            input_data_torch, ys = input_data.get_numpy_list(300, with_ys=True)
+            input_data_torch, ys = input_data.get_numpy_list(
+                QUANTIZATION_DATA_NUM, with_ys=True
+            )
             input_data_torch = [
                 tuple(
                     convert_to_target_framework(t, output_library)

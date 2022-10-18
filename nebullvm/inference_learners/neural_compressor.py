@@ -5,8 +5,13 @@ from pathlib import Path
 from typing import Union, Tuple, Dict, Type
 
 import torch.fx
+from torch.quantization.quantize_fx import prepare_fx, convert_fx
 
 from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.compressors.sparseml import (
+    save_with_torch_fx,
+    load_with_torch_fx,
+)
 from nebullvm.config import NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -17,7 +22,10 @@ from nebullvm.installers.installers import install_intel_neural_compressor
 from nebullvm.transformations.base import MultiStageTransformation
 
 try:
-    from neural_compressor.utils.pytorch import load
+    from neural_compressor.adaptor.pytorch import (
+        _cfg_to_qconfig,
+        _cfgs_to_fx_cfgs,
+    )
 except ImportError:
     import platform
 
@@ -31,11 +39,6 @@ except ImportError:
             "Trying to install it..."
         )
         install_intel_neural_compressor()
-        try:
-            from neural_compressor.utils.pytorch import load
-        except ImportError:
-            # Solves a problem in colab
-            pass
     else:
         warnings.warn(
             "No valid intel neural compressor installation found. "
@@ -54,11 +57,13 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
 
     def __init__(
         self,
-        model: torch.fx.GraphModule,
+        model: Union[torch.nn.Module, torch.fx.GraphModule],
+        model_quant: torch.fx.GraphModule,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.model = model
+        self.model_quant = model_quant
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
@@ -72,7 +77,11 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
 
-        self.model.save(str(path))
+        path_orig_model = Path(path) / Path("model_orig")
+        path_quant_model = Path(path) / Path("model_quant")
+
+        save_with_torch_fx(self.model, path_orig_model)
+        self.model_quant.save(str(path_quant_model))
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -92,7 +101,33 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )
-        model = load("./output")
+
+        path_orig_model = Path(path) / Path("model_orig")
+        path_quant_model = Path(path) / Path("model_quant") / "best_model.pt"
+
+        model = load_with_torch_fx(
+            Path(path_orig_model), "state_dict.pt"
+        ).eval()
+        state_dict = torch.load(path_quant_model)
+
+        tune_cfg = state_dict.pop("best_configure")
+        op_cfgs = _cfg_to_qconfig(tune_cfg, tune_cfg["approach"])
+        fx_op_cfgs = _cfgs_to_fx_cfgs(op_cfgs, tune_cfg["approach"])
+        prepare_custom_config_dict = None
+        convert_custom_config_dict = None
+
+        q_model = prepare_fx(
+            model,
+            fx_op_cfgs,
+            prepare_custom_config_dict=prepare_custom_config_dict,
+        )
+
+        q_model = convert_fx(
+            q_model, convert_custom_config_dict=convert_custom_config_dict
+        )
+
+        q_model.load_state_dict(state_dict)
+
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
         if input_tfms is not None:
@@ -103,6 +138,7 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms=input_tfms,
             network_parameters=ModelParams(**metadata.network_parameters),
             model=model,
+            model_quant=q_model,
         )
 
 
@@ -135,7 +171,7 @@ class PytorchNeuralCompressorInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        outputs = self.model(*input_tensors)
+        outputs = self.model_quant(*input_tensors)
         return outputs
 
 

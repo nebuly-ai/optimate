@@ -9,7 +9,7 @@ import yaml
 from torch.utils.data import DataLoader
 
 from nebullvm.base import QuantizationType
-from nebullvm.compressors.intel import IPCDataset
+from nebullvm.compressors.intel import INCDataset
 from nebullvm.utils.data import DataManager
 
 try:
@@ -44,7 +44,7 @@ def _prepare_quantization_config(model: Any, tmp_dir: str):
 
 def _get_dataloader(input_data: DataManager):
     bs = input_data[0][0][0].shape[0]
-    ds = IPCDataset(input_data)
+    ds = INCDataset(input_data)
     dl = DataLoader(ds, bs)
     return dl
 

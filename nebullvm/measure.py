@@ -37,15 +37,15 @@ def compute_torch_latency(
         Float: Average latency.
         List[Float]: List of latencies obtained.
     """
-    xs = [x.to(device) for x in xs]
+    xs = [tuple(t.to(device) for t in tensors) for tensors in xs]
     model = model.to(device).eval()
     latencies = []
     with torch.no_grad():
-        for _ in range(warmup_steps):
-            _ = model.forward(*xs)
-        for _ in range(steps):
+        for i in range(warmup_steps):
+            _ = model.forward(*xs[i])
+        for i in range(steps):
             starting_time = time.time()
-            _ = model.forward(*xs)
+            _ = model.forward(*xs[i])
             latencies.append(time.time() - starting_time)
         latency = np.mean(latencies)
     return latency, latencies
@@ -75,11 +75,11 @@ def compute_tf_latency(
     latencies = []
     device = "gpu" if device == "cuda" else "cpu"
     with tf.device(device):
-        for _ in range(warmup_steps):
-            _ = model(xs)
-        for _ in range(steps):
+        for i in range(warmup_steps):
+            _ = model(xs[i])
+        for i in range(steps):
             starting_time = time.time()
-            _ = model(xs)
+            _ = model(xs[i])
             latencies.append(time.time() - starting_time)
         latency = np.mean(latencies)
         return latency, latencies
@@ -117,12 +117,13 @@ def compute_onnx_latency(
         if device == "cuda"
         else ONNX_PROVIDERS["cpu"],
     )
-    inputs = {name: array for name, array in zip(input_names, xs)}
 
     latencies = []
-    for _ in range(warmup_steps):
+    for i in range(warmup_steps):
+        inputs = {name: array for name, array in zip(input_names, xs[i])}
         _ = model.run(output_names=output_names, input_feed=inputs)
-    for _ in range(steps):
+    for i in range(steps):
+        inputs = {name: array for name, array in zip(input_names, xs[i])}
         starting_time = time.time()
         _ = model.run(output_names=output_names, input_feed=inputs)
         latencies.append(time.time() - starting_time)

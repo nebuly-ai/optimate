@@ -16,24 +16,26 @@ from nebullvm.utils.venv import run_in_different_venv
 FX_MODULE_NAME = "NebullvmFxModule"
 
 
-def _save_with_torch_fx(model: torch.nn.Module, path: Path):
+def save_with_torch_fx(model: torch.nn.Module, path: Path):
     traced_model = torch.fx.symbolic_trace(model)
     traced_model.to_folder(path, FX_MODULE_NAME)
 
 
-def _load_with_torch_fx(path: Path):
+def load_with_torch_fx(
+    path: Path, state_dict_name: str = "pruned_state_dict.pt"
+):
     module_file = path / "module.py"
     with open(module_file, "r") as f:
         module_str = f.read()
     exec(module_str, globals())
     model = eval(FX_MODULE_NAME)()
-    model.load_state_dict(torch.load(path / "pruned_state_dict.pt"))
+    model.load_state_dict(torch.load(path / state_dict_name))
     return model
 
 
 def _save_model(model: torch.nn.Module, path: Path, logger: Logger = None):
     try:
-        _save_with_torch_fx(model, path)
+        save_with_torch_fx(model, path)
     except Exception as ex:
         message = (
             f"Got an error while exporting with TorchFX. The model will be "
@@ -54,7 +56,7 @@ def _load_model(path: Path):
     if path.is_file():
         return torch.load(path)
     else:
-        return _load_with_torch_fx(path)
+        return load_with_torch_fx(path)
 
 
 def _save_dataset(input_data: DataManager, path: Path):
