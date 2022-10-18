@@ -36,8 +36,31 @@ from nebullvm.utils.onnx import (
 
 if torch.cuda.is_available():
     try:
-        import tensorrt as trt
         import onnxsim  # noqa F401
+    except ImportError:
+        from nebullvm.installers.installers import install_onnx_simplifier
+
+        if not NO_COMPILER_INSTALLATION:
+            warnings.warn(
+                "No ONNX simplifier valid installation has been found. "
+                "Trying to install it from source."
+            )
+            install_onnx_simplifier()
+            try:
+                import onnxsim  # noqa F401
+            except ImportError:
+                warnings.warn(
+                    "No ONNX simplifier valid installation has been found. "
+                    "It won't be possible to use it in the following."
+                )
+        else:
+            warnings.warn(
+                "No ONNX simplifier valid installation has been found. "
+                "It won't be possible to use it in the following."
+            )
+
+    try:
+        import tensorrt as trt
     except ImportError:
         from nebullvm.installers.installers import install_tensor_rt
 
