@@ -308,7 +308,7 @@ def optimize_model(
             model=model,
             input_data=input_data,
             dl_framework=dl_framework,
-            compute_output=True if metric_drop_ths is not None else False,
+            compute_output=True,
         )
 
         # Store original model result

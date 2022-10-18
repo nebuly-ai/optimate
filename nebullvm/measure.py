@@ -17,7 +17,7 @@ from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 def compute_torch_latency(
-    xs: List[torch.Tensor],
+    xs: List[Tuple[torch.Tensor]],
     model: torch.nn.Module,
     device: str,
     steps: int = 100,
@@ -26,12 +26,14 @@ def compute_torch_latency(
     """Compute the latency associated with the torch model.
 
     Args:
-        xs (List[Tensor]): List of input tensors (a single batch for the model)
+        xs (List[Tuple[torch.Tensor]]): List of tuples containing the
+            input tensors (a single batch for the model).
         model (Module): Torch model.
         device (str): Device where computing the latency.
-        steps (int, optional): Number of times the experiment needs to be
-            performed for computing the statistics. Default: 100.
-        warmup_steps (int, optional): Number of warmup steps. Default: 10.
+        steps (int, optional): Number of input data to be used to compute the
+            latency of the model. It must be a number <= len(xs). Default: 100.
+        warmup_steps (int, optional): Number of input data to be used to warm
+            up the model. It must be a number <= len(xs). Default: 10.
 
     Returns:
         Float: Average latency.
@@ -52,7 +54,7 @@ def compute_torch_latency(
 
 
 def compute_tf_latency(
-    xs: List[tf.Tensor],
+    xs: List[Tuple[tf.Tensor]],
     model: Union[tf.Module, tf.keras.Model],
     device: str,
     steps: int = 100,
@@ -61,12 +63,14 @@ def compute_tf_latency(
     """Compute the latency associated with the tensorflow model.
 
     Args:
-        xs (List[Tensor]): List of input tensors (a single batch for the model)
+        xs (List[Tuple[tf.Tensor]]): List of tuples containing the
+            input tensors (a single batch for the model).
         model (Module or keras.Model): TF model.
         device (str): Device where computing the latency.
-        steps (int, optional): Number of times the experiment needs to be
-            performed for computing the statistics. Default: 100.
-        warmup_steps (int, optional): Number of warmup steps. Default: 10.
+        steps (int, optional): Number of input data to be used to compute the
+            latency of the model. It must be a number <= len(xs). Default: 100.
+        warmup_steps (int, optional): Number of input data to be used to warm
+            up the model. It must be a number <= len(xs). Default: 10.
 
     Returns:
         Float: Average latency.
@@ -86,7 +90,7 @@ def compute_tf_latency(
 
 
 def compute_onnx_latency(
-    xs: List[np.array],
+    xs: List[Tuple[np.array]],
     model: str,
     device: str,
     steps: int = 100,
@@ -95,12 +99,14 @@ def compute_onnx_latency(
     """Compute the latency associated with the ONNX model.
 
     Args:
-        xs (List[np.array]): List of inputs (a single batch for the model).
+        xs (List[Tuple[np.array]]): List of tuples containing the
+            inputs (a single batch for the model).
         model (str): ONNX model path.
         device (str): Device where computing the latency.
-        steps (int, optional): Number of times the experiment needs
-            to be performed for computing the statistics. Default: 100.
-        warmup_steps (int, optional): Number of warmup steps. Default: 10.
+        steps (int, optional): Number of input data to be used to compute the
+            latency of the model. It must be a number <= len(xs). Default: 100.
+        warmup_steps (int, optional): Number of input data to be used to warm
+            up the model. It must be a number <= len(xs). Default: 10.
 
     Returns:
         Float: Average latency.
@@ -143,12 +149,12 @@ def compute_optimized_running_time(
     Args:
         optimized_model (BaseInferenceLearner): Optimized model.
         input_data: (DataManager): Dataset used to compute latency.
-        steps (int, optional): Number of times the experiment needs to
-            be performed for computing the statistics. Default: 100.
+        steps (int, optional): Number of input data to be used to
+            compute the latency of the model. Default: 100.
         min_steps (int, optional): Minimum number of iterations to
             be performed. Default: 5.
-        warmup_steps (int, optional): Number of warmup iterations.
-            Default: 10.
+        warmup_steps (int, optional): Number of input data to be used
+            to warm up the model. Default: 10.
 
     Returns:
         Float: Average latency.

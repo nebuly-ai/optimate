@@ -8,10 +8,6 @@ import torch.fx
 from torch.quantization.quantize_fx import prepare_fx, convert_fx
 
 from nebullvm.base import DeepLearningFramework, ModelParams
-from nebullvm.compressors.sparseml import (
-    save_with_torch_fx,
-    load_with_torch_fx,
-)
 from nebullvm.config import NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -20,6 +16,7 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.installers.installers import install_intel_neural_compressor
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
 
 try:
     from neural_compressor.adaptor.pytorch import (

@@ -1,3 +1,4 @@
+import logging
 import warnings
 
 from collections.abc import Callable
@@ -6,8 +7,13 @@ from typing import Optional, Any
 import torch.nn
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
-from nebullvm.config import NO_COMPILER_INSTALLATION, QUANTIZATION_DATA_NUM
+from nebullvm.config import (
+    NO_COMPILER_INSTALLATION,
+    QUANTIZATION_DATA_NUM,
+    CONSTRAINED_METRIC_DROP_THS,
+)
 from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.pytorch import quantize_torch
 from nebullvm.optimizers.quantization.utils import (
@@ -16,7 +22,6 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.onnx import convert_to_target_framework
 from nebullvm.utils.torch import create_model_inputs_torch
 
 try:
@@ -100,18 +105,12 @@ class BladeDISCOptimizer(BaseOptimizer):
             "for the Pytorch Backend yet."
         )
         check_quantization(quantization_type, metric_drop_ths)
-        if metric_drop_ths is not None:
-            input_data_torch, ys = input_data.get_numpy_list(
-                QUANTIZATION_DATA_NUM, with_ys=True
-            )
-            input_data_torch = [
-                tuple(
-                    convert_to_target_framework(t, output_library)
-                    for t in data_tuple
-                )
-                for data_tuple in input_data_torch
-            ]
-            output_data_torch = model_outputs
+
+        input_data_torch, ys = input_data.get_list(
+            QUANTIZATION_DATA_NUM, with_ys=True
+        )
+
+        if quantization_type is not None:
             model, input_tfms = quantize_torch(
                 model, quantization_type, input_tfms, input_data_torch
             )
@@ -137,15 +136,26 @@ class BladeDISCOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if metric_drop_ths is not None:
-            is_valid = check_precision(
-                learner,
-                input_data_torch,
-                output_data_torch,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
-            )
-            if not is_valid:
-                return None
+
+        is_valid = check_precision(
+            learner,
+            input_data_torch,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with blade_disc gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
+                )
+            return None
         return learner

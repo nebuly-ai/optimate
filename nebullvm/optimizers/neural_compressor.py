@@ -1,14 +1,16 @@
+import logging
 from copy import deepcopy
 from typing import Optional, Callable, Any
 
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
-from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
     NeuralCompressorInferenceLearner,
 )
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.neural_compressor import (
     quantize_neural_compressor,
@@ -79,40 +81,47 @@ class NeuralCompressorOptimizer(BaseOptimizer):
         if quantization_type is None:
             return None
 
-        if metric_drop_ths is not None:
-            input_data_torch, ys = input_data.get_numpy_list(
-                QUANTIZATION_DATA_NUM, with_ys=True
+        input_data_torch, ys = input_data.get_numpy_list(
+            QUANTIZATION_DATA_NUM, with_ys=True
+        )
+        input_data_torch = [
+            tuple(
+                convert_to_target_framework(t, output_library)
+                for t in data_tuple
             )
-            input_data_torch = [
-                tuple(
-                    convert_to_target_framework(t, output_library)
-                    for t in data_tuple
-                )
-                for data_tuple in input_data_torch
-            ]
-            output_data_torch = model_outputs
-            model_quant = quantize_neural_compressor(
-                deepcopy(model), quantization_type, input_data
-            )
+            for data_tuple in input_data_torch
+        ]
 
-            learner = NEURAL_COMPRESSOR_INFERENCE_LEARNERS[output_library](
-                input_tfms=input_tfms,
-                network_parameters=model_params,
-                model=model,
-                model_quant=model_quant,
-            )
+        model_quant = quantize_neural_compressor(
+            deepcopy(model), quantization_type, input_data
+        )
 
-            if metric_drop_ths is not None:
-                is_valid = check_precision(
-                    learner,
-                    input_data_torch,
-                    output_data_torch,
-                    metric_drop_ths,
-                    metric_func=metric,
-                    ys=ys,
+        learner = NEURAL_COMPRESSOR_INFERENCE_LEARNERS[output_library](
+            input_tfms=input_tfms,
+            network_parameters=model_params,
+            model=model,
+            model_quant=model_quant,
+        )
+
+        is_valid = check_precision(
+            learner,
+            input_data_torch,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with neural compressor gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
                 )
-                if not is_valid:
-                    return None
-            return learner
-        else:
             return None
+        return learner

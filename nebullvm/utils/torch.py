@@ -1,9 +1,29 @@
+from pathlib import Path
 from typing import List, Tuple
 
 import torch
 from torch.nn import Module
 
 from nebullvm.base import DataType, InputInfo
+
+FX_MODULE_NAME = "NebullvmFxModule"
+
+
+def save_with_torch_fx(model: torch.nn.Module, path: Path):
+    traced_model = torch.fx.symbolic_trace(model)
+    traced_model.to_folder(path, FX_MODULE_NAME)
+
+
+def load_with_torch_fx(
+    path: Path, state_dict_name: str = "pruned_state_dict.pt"
+):
+    module_file = path / "module.py"
+    with open(module_file, "r") as f:
+        module_str = f.read()
+    exec(module_str, globals())
+    model = eval(FX_MODULE_NAME)()
+    model.load_state_dict(torch.load(path / state_dict_name))
+    return model
 
 
 def get_outputs_sizes_torch(

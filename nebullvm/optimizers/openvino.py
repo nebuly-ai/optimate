@@ -1,13 +1,15 @@
+import logging
 from pathlib import Path
 import subprocess
 from typing import Optional, Callable, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
-from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
     OpenVinoInferenceLearner,
 )
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers.base import BaseOptimizer
 from nebullvm.optimizers.quantization.openvino import quantize_openvino
 from nebullvm.optimizers.quantization.utils import check_precision
@@ -77,45 +79,36 @@ class OpenVinoOptimizer(BaseOptimizer):
             "--input_shape",
             ",".join(
                 [
-                    f"{list((model_params.batch_size,)+shape)}"
+                    f"{list((model_params.batch_size,) + shape)}"
                     for shape in model_params.input_sizes
                 ]
             ),
         ]
-        if (
-            metric_drop_ths is not None
-            and quantization_type is QuantizationType.HALF
-        ):
-            cmd = cmd + ["--data_type", "FP16"]
-        elif (
-            metric_drop_ths is not None
-            and quantization_type is QuantizationType.DYNAMIC
-        ):
+
+        if quantization_type is QuantizationType.DYNAMIC:
             return None
+
+        if quantization_type is QuantizationType.HALF:
+            cmd = cmd + ["--data_type", "FP16"]
+
         process = subprocess.Popen(cmd)
         process.wait()
         base_path = Path(model).parent
         openvino_model_path = base_path / f"{Path(model).stem}.xml"
         openvino_model_weights = base_path / f"{Path(model).stem}.bin"
 
-        input_data_onnx, output_data_onnx, ys = [], [], None
-        if metric_drop_ths is not None:
-            input_data_onnx = input_data.get_numpy_list(
-                QUANTIZATION_DATA_NUM, with_ys=True
-            )
-            output_data_onnx = model_outputs
+        input_data_onnx, ys = input_data.get_numpy_list(
+            QUANTIZATION_DATA_NUM, with_ys=True
+        )
 
-            if quantization_type is not QuantizationType.HALF:
-                # Add post training optimization
-                (
-                    openvino_model_path,
-                    openvino_model_weights,
-                ) = quantize_openvino(
-                    model_topology=str(openvino_model_path),
-                    model_weights=str(openvino_model_weights),
-                    input_names=get_input_names(model),
-                    input_data=input_data_onnx,
-                )
+        if quantization_type not in [QuantizationType.HALF, None]:
+            # Add post training optimization
+            (openvino_model_path, openvino_model_weights,) = quantize_openvino(
+                model_topology=str(openvino_model_path),
+                model_weights=str(openvino_model_weights),
+                input_names=get_input_names(model),
+                input_data=input_data_onnx,
+            )
 
         learner = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
             model_name=str(openvino_model_path),
@@ -126,22 +119,32 @@ class OpenVinoOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if metric_drop_ths is not None:
-            inputs = [
-                tuple(
-                    convert_to_target_framework(t, output_library)
-                    for t in data_tuple
-                )
-                for data_tuple in input_data_onnx[0]
-            ]
-            is_valid = check_precision(
-                learner,
-                inputs,
-                output_data_onnx,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
+        inputs = [
+            tuple(
+                convert_to_target_framework(t, output_library)
+                for t in data_tuple
             )
-            if not is_valid:
-                return None
+            for data_tuple in input_data_onnx
+        ]
+        is_valid = check_precision(
+            learner,
+            inputs,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with openvino gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
+                )
+            return None
         return learner

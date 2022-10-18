@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import warnings
@@ -13,12 +14,14 @@ from nebullvm.config import (
     NO_COMPILER_INSTALLATION,
     TORCH_TENSORRT_PRECISIONS,
     QUANTIZATION_DATA_NUM,
+    CONSTRAINED_METRIC_DROP_THS,
 )
 from nebullvm.inference_learners.tensor_rt import (
     NVIDIA_INFERENCE_LEARNERS,
     NvidiaInferenceLearner,
     PytorchTensorRTInferenceLearner,
 )
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers.base import (
     BaseOptimizer,
 )
@@ -254,6 +257,11 @@ class TensorRTOptimizer(BaseOptimizer):
                 "on a machine not connected to any GPU supporting CUDA."
             )
 
+        check_quantization(quantization_type, metric_drop_ths)
+
+        if quantization_type is QuantizationType.DYNAMIC:
+            return None  # Dynamic quantization is not supported on tensorRT
+
         # Simplify model, otherwise tensor RT won't work on gpt2 and some
         # other models.
         simplified_model = model + "_simplified"
@@ -265,22 +273,9 @@ class TensorRTOptimizer(BaseOptimizer):
             ]
             subprocess.run(cmd)
 
-        check_quantization(quantization_type, metric_drop_ths)
-
-        if (
-            metric_drop_ths is not None
-            and quantization_type is QuantizationType.STATIC
-        ):
-            input_data_onnx = input_data.get_numpy_list(
-                QUANTIZATION_DATA_NUM, with_ys=False
-            )
-        elif (
-            metric_drop_ths is not None
-            and quantization_type is QuantizationType.DYNAMIC
-        ):
-            return None  # Dynamic quantization is not supported on tensorRT
-        else:
-            input_data_onnx = None
+        input_data_onnx = input_data.get_numpy_list(
+            QUANTIZATION_DATA_NUM, with_ys=False
+        )
 
         try:
             # First try with simplified model
@@ -319,19 +314,29 @@ class TensorRTOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if quantization_type is not None:
-            inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
-            output_data = model_outputs
-            is_valid = check_precision(
-                learner,
-                inputs,
-                output_data,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
-            )
-            if not is_valid:
-                return None
+
+        inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
+        is_valid = check_precision(
+            learner,
+            inputs,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with ONNX tensor RT gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
+                )
+            return None
         return learner
 
     def optimize_from_torch(
@@ -357,17 +362,12 @@ class TensorRTOptimizer(BaseOptimizer):
 
         check_quantization(quantization_type, metric_drop_ths)
 
-        dtype = torch.float32
+        if quantization_type is QuantizationType.DYNAMIC:
+            return None  # Dynamic quantization is not supported on tensorRT
 
-        if (
-            metric_drop_ths is not None
-            and quantization_type is QuantizationType.HALF
-        ):
+        if quantization_type is QuantizationType.HALF:
             dtype = torch.half
-        elif (
-            metric_drop_ths is not None
-            and quantization_type is QuantizationType.STATIC
-        ):
+        elif quantization_type is QuantizationType.STATIC:
             dtype = torch.int8
 
             dataset = PytorchDataset(input_data)
@@ -384,11 +384,8 @@ class TensorRTOptimizer(BaseOptimizer):
                 algo_type=torch_tensorrt.ptq.CalibrationAlgo.ENTROPY_CALIBRATION_2,  # noqa E501
                 device=torch.device("cuda:0"),
             )
-        elif (
-            metric_drop_ths is not None
-            and quantization_type is QuantizationType.DYNAMIC
-        ):
-            return None  # Dynamic quantization is not supported on tensorRT
+        else:
+            dtype = torch.float32
 
         # Convert int64 to int32 for transformers inputs
         input_tensors = [
@@ -421,7 +418,9 @@ class TensorRTOptimizer(BaseOptimizer):
                 for tensor in input_tensors
             ],
             enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
-            calibrator=calibrator if dtype == torch.int8 else None,
+            calibrator=calibrator
+            if quantization_type is QuantizationType.STATIC
+            else None,
             workspace_size=1 << 30,
             device={
                 "device_type": torch_tensorrt.DeviceType.GPU,
@@ -444,7 +443,7 @@ class TensorRTOptimizer(BaseOptimizer):
             for tensor in input_data.get_list(1)[0]
         ]
 
-        model = PytorchTensorRTInferenceLearner(
+        learner = PytorchTensorRTInferenceLearner(
             torch_model=trt_model,
             network_parameters=model_params,
             input_tfms=input_tfms,
@@ -452,26 +451,36 @@ class TensorRTOptimizer(BaseOptimizer):
             dtype=dtype,
         )
 
-        if quantization_type is not None:
-            inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
-            inputs = [
-                [
-                    tensor.cuda()
-                    if tensor.dtype != torch.int64
-                    else tensor.to(torch.int32).cuda()
-                    for tensor in tensors
-                ]
-                for tensors in inputs
-            ]
-            output_data = model_outputs
-            is_valid = check_precision(
-                model,
-                inputs,
-                output_data,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
+        inputs, ys = input_data.get_list(QUANTIZATION_DATA_NUM, with_ys=True)
+        inputs = [
+            tuple(
+                tensor.cuda()
+                if tensor.dtype != torch.int64
+                else tensor.to(torch.int32).cuda()
+                for tensor in tensors
             )
-            if not is_valid:
-                return None
-        return model
+            for tensors in inputs
+        ]
+
+        is_valid = check_precision(
+            learner,
+            inputs,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with Torch-TensorRT gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
+                )
+            return None
+        return learner

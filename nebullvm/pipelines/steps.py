@@ -175,7 +175,7 @@ class CompressorStep(Step, ABC):
                 eval_input_data = input_data
         return {
             "models": models,
-            "input_data": eval_input_data,
+            "input_data": input_data,
             "metric": metric,
             "ignore_compressors": ignore_compressors,
             **kwargs,

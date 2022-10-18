@@ -1,13 +1,16 @@
+import logging
 from logging import Logger
 from typing import Dict, List, Optional, Callable, Any
 
 from onnxruntime.transformers.optimizer import MODEL_TYPES
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.onnx import (
     ONNXInferenceLearner,
     ONNX_INFERENCE_LEARNERS,
 )
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.utils import check_precision
 from nebullvm.transformations.base import MultiStageTransformation
@@ -62,7 +65,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
             f"q_type: {quantization_type}."
         )
         optimized_model = optimizer.optimize_model(model, **self.hf_params)
-        if metric_drop_ths is not None:
+        if quantization_type is not None:
             if quantization_type is not QuantizationType.HALF:
                 return None
             optimized_model.convert_float_to_float16()
@@ -81,20 +84,29 @@ class HuggingFaceOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if metric_drop_ths is not None:
-            # TODO: Add dataset and metric from user
-            inputs, ys = input_data.get_list(100, with_ys=True)
-            base_outputs = model_outputs
-            is_valid = check_precision(
-                learner,
-                inputs,
-                base_outputs,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
-            )
-            if not is_valid:
-                return None
+
+        inputs, ys = input_data.get_list(QUANTIZATION_DATA_NUM, with_ys=True)
+        is_valid = check_precision(
+            learner,
+            inputs,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with huggingface gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
+                )
+            return None
         return learner
 
     @staticmethod

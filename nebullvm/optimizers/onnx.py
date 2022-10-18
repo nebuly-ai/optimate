@@ -1,11 +1,13 @@
+import logging
 from typing import Optional, Callable, Any
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
-from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.onnx import (
     ONNXInferenceLearner,
     ONNX_INFERENCE_LEARNERS,
 )
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.onnx import quantize_onnx
 from nebullvm.optimizers.quantization.utils import (
@@ -68,13 +70,13 @@ class ONNXOptimizer(BaseOptimizer):
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        input_data_onnx, output_data_onnx, ys = [], [], None
         check_quantization(quantization_type, metric_drop_ths)
-        if metric_drop_ths is not None:
-            input_data_onnx, ys = input_data.get_numpy_list(
-                QUANTIZATION_DATA_NUM, with_ys=True
-            )
-            output_data_onnx = model_outputs
+
+        input_data_onnx, ys = input_data.get_numpy_list(
+            QUANTIZATION_DATA_NUM, with_ys=True
+        )
+
+        if quantization_type is not None:
             model, input_tfms = quantize_onnx(
                 model, quantization_type, input_tfms, input_data_onnx
             )
@@ -89,22 +91,32 @@ class ONNXOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if metric_drop_ths is not None:
-            inputs = [
-                tuple(
-                    convert_to_target_framework(t, output_library)
-                    for t in data_tuple
-                )
-                for data_tuple in input_data_onnx
-            ]
-            is_valid = check_precision(
-                learner,
-                inputs,
-                output_data_onnx,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
+        inputs = [
+            tuple(
+                convert_to_target_framework(t, output_library)
+                for t in data_tuple
             )
-            if not is_valid:
-                return None
+            for data_tuple in input_data_onnx
+        ]
+        is_valid = check_precision(
+            learner,
+            inputs,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with onnxruntime gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
+                )
+            return None
         return learner

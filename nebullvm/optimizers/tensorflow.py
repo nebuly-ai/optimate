@@ -1,12 +1,14 @@
+import logging
 from tempfile import TemporaryDirectory
 from typing import Callable, Optional, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
-from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TF_BACKEND_LEARNERS_DICT,
 )
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.tensorflow import quantize_tf
 from nebullvm.optimizers.quantization.utils import (
@@ -83,18 +85,18 @@ class TensorflowBackendOptimizer(BaseOptimizer):
 
         check_quantization(quantization_type, metric_drop_ths)
         with TemporaryDirectory() as tmp_dir:
-            if metric_drop_ths is not None:
-                input_data_tf, ys = input_data.get_numpy_list(
-                    QUANTIZATION_DATA_NUM, with_ys=True
+            input_data_tf, ys = input_data.get_numpy_list(
+                QUANTIZATION_DATA_NUM, with_ys=True
+            )
+            input_data_tf = [
+                tuple(
+                    convert_to_target_framework(t, output_library)
+                    for t in data_tuple
                 )
-                input_data_tf = [
-                    tuple(
-                        convert_to_target_framework(t, output_library)
-                        for t in data_tuple
-                    )
-                    for data_tuple in input_data_tf
-                ]
-                output_data_tf = model_outputs
+                for data_tuple in input_data_tf
+            ]
+
+            if quantization_type is not None:
                 model, input_tfms = quantize_tf(
                     model=model,
                     quantization_type=quantization_type,
@@ -113,15 +115,26 @@ class TensorflowBackendOptimizer(BaseOptimizer):
                 if input_data is not None
                 else None,
             )
-            if metric_drop_ths is not None:
-                is_valid = check_precision(
-                    learner,
-                    input_data_tf,
-                    output_data_tf,
-                    metric_drop_ths,
-                    metric_func=metric,
-                    ys=ys,
-                )
-                if not is_valid:
-                    return None
+
+            is_valid = check_precision(
+                learner,
+                input_data_tf,
+                model_outputs,
+                metric_drop_ths
+                if quantization_type is not None
+                else CONSTRAINED_METRIC_DROP_THS,
+                metric_func=metric
+                if quantization_type is not None
+                else compute_relative_difference,
+                ys=ys,
+            )
+            if not is_valid:
+                if quantization_type is None:
+                    self._log(
+                        "The model optimized with Tensorflow backend gives a "
+                        "different result compared with the original model. "
+                        "This compiler will be skipped.",
+                        level=logging.WARNING,
+                    )
+                return None
         return learner
