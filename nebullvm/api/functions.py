@@ -347,15 +347,18 @@ def optimize_model(
             optimized_models.extend(output_dict["optimized_models"])
 
     optimized_models.sort(key=lambda x: x[1], reverse=False)
-    optimal_model = optimized_models[0][0]
     FEEDBACK_COLLECTOR.send_feedback(store_latencies)
-    if optimal_model is None:
+
+    if len(optimized_models) < 1 or optimized_models[0][0] is None:
         logger.warning(
             "No optimized model has been created. This is likely due to a "
             "bug in Nebullvm. Please open an issue and report in details "
             "your use case."
         )
-        return optimal_model
+        return None
+
+    optimal_model = optimized_models[0][0]
+
     if needs_conversion_to_hf:
         from nebullvm.api.huggingface import HuggingFaceInferenceLearner
 

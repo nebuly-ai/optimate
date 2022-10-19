@@ -3,7 +3,7 @@ import os
 import torch
 
 
-VERSION = "0.4.3"
+VERSION = "0.4.4"
 LEARNER_METADATA_FILENAME = "metadata.json"
 NO_COMPILER_INSTALLATION = int(os.getenv("NO_COMPILER_INSTALLATION", "0")) > 0
 ONNX_OPSET_VERSION = 13
