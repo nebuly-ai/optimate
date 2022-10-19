@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Callable, Any
 from onnxruntime.transformers.optimizer import MODEL_TYPES
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
-from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
+from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.onnx import (
     ONNXInferenceLearner,
     ONNX_INFERENCE_LEARNERS,
@@ -85,10 +85,12 @@ class HuggingFaceOptimizer(BaseOptimizer):
             else None,
         )
 
-        inputs, ys = input_data.get_list(QUANTIZATION_DATA_NUM, with_ys=True)
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
         is_valid = check_precision(
             learner,
-            inputs,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None

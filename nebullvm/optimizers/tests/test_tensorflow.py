@@ -61,7 +61,7 @@ def test_tensorflow(
             input_tfms,
             model_outputs,
             metric,
-        ) = initialize_model(dynamic, metric_drop_ths, metric, output_library)
+        ) = initialize_model(dynamic, metric, output_library)
 
         optimizer = TensorflowBackendOptimizer()
         model = optimizer.optimize(

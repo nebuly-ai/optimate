@@ -143,9 +143,9 @@ class CompressorStep(Step, ABC):
                 f"input data to be activated. Please provide more inputs. "
                 f"Compression step will be skipped."
             )
-            eval_input_data = input_data
         else:
-            train_input_data, eval_input_data = input_data.split(0.8)
+            train_input_data = input_data.get_split("train")
+            eval_input_data = input_data.get_split("eval")
             if len(eval_input_data) > 0:
                 for technique, compressor in tqdm(compressor_dict.items()):
                     try:
@@ -172,7 +172,6 @@ class CompressorStep(Step, ABC):
                     "evaluation set properly. Compression step will be "
                     "skipped."
                 )
-                eval_input_data = input_data
         return {
             "models": models,
             "input_data": input_data,

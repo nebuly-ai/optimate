@@ -23,7 +23,6 @@ def test_intel_pruning():
         metric,
     ) = initialize_model(
         dynamic=False,
-        metric_drop_ths=None,
         metric=None,
         output_library=DeepLearningFramework.PYTORCH,
     )

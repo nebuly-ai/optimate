@@ -17,7 +17,7 @@ from nebullvm.base import (
     ModelCompressor,
     OptimizationTime,
 )
-from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.config import QUANTIZATION_DATA_NUM, TRAIN_TEST_SPLIT_RATIO
 from nebullvm.converters.converters import CrossConverter
 from nebullvm.measure import (
     compute_torch_latency,
@@ -144,8 +144,6 @@ def _benchmark_original_model(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     outputs = None
 
-    inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
-
     if compute_output:
         outputs = [
             tuple(
@@ -155,6 +153,8 @@ def _benchmark_original_model(
             )
             for input_tensors in input_data
         ]
+
+    inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
     latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](inputs, model, device)
 
     return outputs, latency
@@ -283,6 +283,7 @@ def optimize_model(
         input_data = DataManager(input_data)
     else:
         input_data = DataManager.from_iterable(input_data)
+    input_data.split(TRAIN_TEST_SPLIT_RATIO)
     model_params = _extract_info_from_data(
         model,
         input_data,
@@ -306,7 +307,7 @@ def optimize_model(
         # Benchmark original model
         model_outputs, orig_latency = _benchmark_original_model(
             model=model,
-            input_data=input_data,
+            input_data=input_data.get_split("test"),
             dl_framework=dl_framework,
             compute_output=True,
         )

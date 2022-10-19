@@ -17,7 +17,6 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
-    convert_to_target_framework,
 )
 
 
@@ -97,8 +96,8 @@ class OpenVinoOptimizer(BaseOptimizer):
         openvino_model_path = base_path / f"{Path(model).stem}.xml"
         openvino_model_weights = base_path / f"{Path(model).stem}.bin"
 
-        input_data_onnx, ys = input_data.get_numpy_list(
-            QUANTIZATION_DATA_NUM, with_ys=True
+        train_input_data = input_data.get_split("train").get_numpy_list(
+            QUANTIZATION_DATA_NUM
         )
 
         if quantization_type not in [QuantizationType.HALF, None]:
@@ -107,7 +106,7 @@ class OpenVinoOptimizer(BaseOptimizer):
                 model_topology=str(openvino_model_path),
                 model_weights=str(openvino_model_weights),
                 input_names=get_input_names(model),
-                input_data=input_data_onnx,
+                input_data=train_input_data,
             )
 
         learner = OPENVINO_INFERENCE_LEARNERS[output_library].from_model_name(
@@ -119,16 +118,14 @@ class OpenVinoOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        inputs = [
-            tuple(
-                convert_to_target_framework(t, output_library)
-                for t in data_tuple
-            )
-            for data_tuple in input_data_onnx
-        ]
+
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
+
         is_valid = check_precision(
             learner,
-            inputs,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None

@@ -164,12 +164,12 @@ def compute_optimized_running_time(
     last_median = None
 
     # Warmup
-    inputs_list = input_data.get_list(warmup_steps)
+    inputs_list = input_data.get_split("test").get_list(warmup_steps)
     for model_inputs in inputs_list:
         _ = optimized_model(*model_inputs)
 
     # Compute latency
-    inputs_list = input_data.get_list(steps)
+    inputs_list = input_data.get_split("test").get_list(steps)
     for model_inputs in inputs_list:
         starting_time = time.time()
         _ = optimized_model(*model_inputs)
@@ -202,7 +202,7 @@ def compute_relative_difference(
     diff = np.abs(tensor_1 - tensor_2) / (
         np.maximum(np.abs(tensor_1), np.abs(tensor_2)) + eps
     )
-    return np.max(diff)
+    return float(np.mean(diff))
 
 
 def compute_accuracy_drop(tensor_1: Any, tensor_2: Any, y: Any) -> float:

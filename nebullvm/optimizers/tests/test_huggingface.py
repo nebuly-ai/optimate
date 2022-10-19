@@ -21,11 +21,16 @@ def test_huggingface(output_library: DeepLearningFramework):
             input_names,
             output_type,
             input_data,
+            model_outputs,
         ) = get_huggingface_model(tmp_dir, output_library)
 
         optimizer = HuggingFaceOptimizer({})
         model = optimizer.optimize(
-            model, output_library, model_params, input_data=input_data
+            model,
+            output_library,
+            model_params,
+            input_data=input_data,
+            model_outputs=model_outputs,
         )
 
         model = HuggingFaceInferenceLearner(

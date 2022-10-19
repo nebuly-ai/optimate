@@ -31,10 +31,16 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
             input_tfms,
             model_outputs,
             metric,
-        ) = initialize_model(dynamic, None, None, output_library)
+        ) = initialize_model(dynamic, None, output_library)
 
         optimizer = DeepSparseOptimizer()
-        model = optimizer.optimize(model, output_library, model_params)
+        model = optimizer.optimize(
+            model=model,
+            output_library=output_library,
+            model_params=model_params,
+            input_data=input_data,
+            model_outputs=model_outputs,
+        )
         assert isinstance(model, DEEPSPARSE_INFERENCE_LEARNERS[output_library])
 
         # Test save and load functions

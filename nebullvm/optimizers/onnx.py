@@ -19,7 +19,6 @@ from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
-    convert_to_target_framework,
 )
 
 
@@ -72,8 +71,8 @@ class ONNXOptimizer(BaseOptimizer):
         )
         check_quantization(quantization_type, metric_drop_ths)
 
-        input_data_onnx, ys = input_data.get_numpy_list(
-            QUANTIZATION_DATA_NUM, with_ys=True
+        input_data_onnx = input_data.get_split("train").get_numpy_list(
+            QUANTIZATION_DATA_NUM
         )
 
         if quantization_type is not None:
@@ -91,16 +90,13 @@ class ONNXOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        inputs = [
-            tuple(
-                convert_to_target_framework(t, output_library)
-                for t in data_tuple
-            )
-            for data_tuple in input_data_onnx
-        ]
+
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
         is_valid = check_precision(
             learner,
-            inputs,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None

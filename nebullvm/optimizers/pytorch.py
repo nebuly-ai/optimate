@@ -78,13 +78,13 @@ class PytorchBackendOptimizer(BaseOptimizer):
             "for the Pytorch Backend yet."
         )
         check_quantization(quantization_type, metric_drop_ths)
-        input_data_torch, ys = input_data.get_list(
-            QUANTIZATION_DATA_NUM, with_ys=True
+        train_input_data = input_data.get_split("train").get_list(
+            QUANTIZATION_DATA_NUM
         )
 
         if quantization_type is not None:
             model, input_tfms = quantize_torch(
-                model, quantization_type, input_tfms, input_data_torch
+                model, quantization_type, input_tfms, train_input_data
             )
 
         learner = PytorchBackendInferenceLearner.from_torch_model(
@@ -96,9 +96,13 @@ class PytorchBackendOptimizer(BaseOptimizer):
             else None,
         )
 
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
+
         is_valid = check_precision(
             learner,
-            input_data_torch,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None

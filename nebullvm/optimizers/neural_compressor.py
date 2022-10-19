@@ -5,7 +5,7 @@ from typing import Optional, Callable, Any
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
-from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
+from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
     NeuralCompressorInferenceLearner,
@@ -21,9 +21,6 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.onnx import (
-    convert_to_target_framework,
-)
 
 
 class NeuralCompressorOptimizer(BaseOptimizer):
@@ -81,19 +78,10 @@ class NeuralCompressorOptimizer(BaseOptimizer):
         if quantization_type is None:
             return None
 
-        input_data_torch, ys = input_data.get_numpy_list(
-            QUANTIZATION_DATA_NUM, with_ys=True
-        )
-        input_data_torch = [
-            tuple(
-                convert_to_target_framework(t, output_library)
-                for t in data_tuple
-            )
-            for data_tuple in input_data_torch
-        ]
+        train_input_data = input_data.get_split("train")
 
         model_quant = quantize_neural_compressor(
-            deepcopy(model), quantization_type, input_data
+            deepcopy(model), quantization_type, train_input_data
         )
 
         learner = NEURAL_COMPRESSOR_INFERENCE_LEARNERS[output_library](
@@ -103,9 +91,13 @@ class NeuralCompressorOptimizer(BaseOptimizer):
             model_quant=model_quant,
         )
 
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
+
         is_valid = check_precision(
             learner,
-            input_data_torch,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None

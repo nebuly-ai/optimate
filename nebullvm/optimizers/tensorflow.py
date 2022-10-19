@@ -17,7 +17,6 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.onnx import convert_to_target_framework
 from nebullvm.utils.optional_modules import tensorflow as tf
 
 
@@ -85,23 +84,16 @@ class TensorflowBackendOptimizer(BaseOptimizer):
 
         check_quantization(quantization_type, metric_drop_ths)
         with TemporaryDirectory() as tmp_dir:
-            input_data_tf, ys = input_data.get_numpy_list(
-                QUANTIZATION_DATA_NUM, with_ys=True
+            train_input_data = input_data.get_split("train").get_list(
+                QUANTIZATION_DATA_NUM
             )
-            input_data_tf = [
-                tuple(
-                    convert_to_target_framework(t, output_library)
-                    for t in data_tuple
-                )
-                for data_tuple in input_data_tf
-            ]
 
             if quantization_type is not None:
                 model, input_tfms = quantize_tf(
                     model=model,
                     quantization_type=quantization_type,
                     input_tfms=input_tfms,
-                    input_data=input_data_tf,
+                    input_data=train_input_data,
                     tmp_dir=tmp_dir,
                 )
 
@@ -116,9 +108,12 @@ class TensorflowBackendOptimizer(BaseOptimizer):
                 else None,
             )
 
+            test_input_data, ys = input_data.get_split("test").get_list(
+                with_ys=True
+            )
             is_valid = check_precision(
                 learner,
-                input_data_tf,
+                test_input_data,
                 model_outputs,
                 metric_drop_ths
                 if quantization_type is not None

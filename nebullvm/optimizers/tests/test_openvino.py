@@ -74,7 +74,7 @@ def test_openvino(
             input_tfms,
             model_outputs,
             metric,
-        ) = initialize_model(dynamic, metric_drop_ths, metric, output_library)
+        ) = initialize_model(dynamic, metric, output_library)
 
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)

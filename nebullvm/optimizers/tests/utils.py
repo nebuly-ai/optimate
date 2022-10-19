@@ -13,6 +13,7 @@ from nebullvm.api.functions import (
 )
 from nebullvm.api.huggingface import convert_hf_model
 from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.measure import compute_relative_difference
 from nebullvm.transformations.base import MultiStageTransformation
@@ -152,6 +153,14 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
     ) = convert_hf_model(model, [encoded_input])
 
     input_data = DataManager(input_data)
+    input_data.split(TRAIN_TEST_SPLIT_RATIO)
+
+    model_outputs, _ = _benchmark_original_model(
+        model,
+        input_data.get_split("test"),
+        dl_framework,
+        compute_output=True,
+    )
 
     model_path = os.path.join(temp_dir, "test_model.onnx")
 
@@ -171,12 +180,12 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
         input_names,
         output_type,
         input_data,
+        model_outputs,
     )
 
 
 def initialize_model(
     dynamic: bool,
-    metric_drop_ths: float,
     metric: str,
     output_library: DeepLearningFramework,
 ):
@@ -222,17 +231,15 @@ def initialize_model(
             ]
         )
 
+    input_data.split(TRAIN_TEST_SPLIT_RATIO)
     input_tfms = MultiStageTransformation([])
 
-    if metric_drop_ths is not None:
-        model_outputs, _ = _benchmark_original_model(
-            model,
-            input_data,
-            output_library,
-            compute_output=True,
-        )
-    else:
-        model_outputs = None
+    model_outputs, _ = _benchmark_original_model(
+        model,
+        input_data.get_split("test"),
+        output_library,
+        compute_output=True,
+    )
 
     if metric is not None:
         metric = compute_relative_difference

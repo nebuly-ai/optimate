@@ -273,8 +273,8 @@ class TensorRTOptimizer(BaseOptimizer):
             ]
             subprocess.run(cmd)
 
-        input_data_onnx = input_data.get_numpy_list(
-            QUANTIZATION_DATA_NUM, with_ys=False
+        train_input_data = input_data.get_split("train").get_numpy_list(
+            QUANTIZATION_DATA_NUM
         )
 
         try:
@@ -289,7 +289,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 model_params=model_params,
                 input_tfms=input_tfms,
                 quantization_type=quantization_type,
-                input_data=input_data_onnx,
+                input_data=train_input_data,
             )
         except Exception:
             # Try again with original model
@@ -301,7 +301,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 model_params=model_params,
                 input_tfms=input_tfms,
                 quantization_type=quantization_type,
-                input_data=input_data_onnx,
+                input_data=train_input_data,
             )
 
         learner = NVIDIA_INFERENCE_LEARNERS[output_library].from_engine_path(
@@ -315,10 +315,12 @@ class TensorRTOptimizer(BaseOptimizer):
             else None,
         )
 
-        inputs, ys = input_data.get_list(100, shuffle=True, with_ys=True)
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
         is_valid = check_precision(
             learner,
-            inputs,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None
@@ -370,7 +372,7 @@ class TensorRTOptimizer(BaseOptimizer):
         elif quantization_type is QuantizationType.STATIC:
             dtype = torch.int8
 
-            dataset = PytorchDataset(input_data)
+            dataset = PytorchDataset(input_data.get_split("train"))
             dataloader = torch.utils.data.DataLoader(
                 dataset,
                 batch_size=dataset.batch_size,
@@ -451,20 +453,22 @@ class TensorRTOptimizer(BaseOptimizer):
             dtype=dtype,
         )
 
-        inputs, ys = input_data.get_list(QUANTIZATION_DATA_NUM, with_ys=True)
-        inputs = [
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
+        test_input_data = [
             tuple(
                 tensor.cuda()
                 if tensor.dtype != torch.int64
                 else tensor.to(torch.int32).cuda()
                 for tensor in tensors
             )
-            for tensors in inputs
+            for tensors in test_input_data
         ]
 
         is_valid = check_precision(
             learner,
-            inputs,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None

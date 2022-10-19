@@ -22,7 +22,6 @@ def test_sparseml():
         metric,
     ) = initialize_model(
         dynamic=False,
-        metric_drop_ths=None,
         metric=None,
         output_library=DeepLearningFramework.PYTORCH,
     )

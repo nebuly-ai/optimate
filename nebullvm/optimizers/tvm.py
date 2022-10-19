@@ -75,8 +75,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    inputs = input_data.get_numpy_list(
-                        QUANTIZATION_DATA_NUM, with_ys=False
+                    inputs = input_data.get_split("train").get_numpy_list(
+                        QUANTIZATION_DATA_NUM
                     )
                     input_names = [f"input_{n}" for n in range(len(inputs[0]))]
                     inputs = TVMCalibrator(inputs, input_names)
@@ -106,10 +106,12 @@ class ApacheTVMOptimizer(BaseOptimizer):
             else None,
         )
 
-        inputs, ys = input_data.get_list(QUANTIZATION_DATA_NUM, with_ys=True)
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
         is_valid = check_precision(
             learner,
-            inputs,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None
@@ -182,8 +184,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    inputs = input_data.get_numpy_list(
-                        QUANTIZATION_DATA_NUM, with_ys=False
+                    inputs = input_data.get_split("train").get_numpy_list(
+                        QUANTIZATION_DATA_NUM
                     )
                     inputs = TVMCalibrator(inputs, get_input_names(model))
                 else:
@@ -207,10 +209,12 @@ class ApacheTVMOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        inputs, ys = input_data.get_list(QUANTIZATION_DATA_NUM, with_ys=True)
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
         is_valid = check_precision(
             learner,
-            inputs,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None

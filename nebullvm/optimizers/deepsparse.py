@@ -6,7 +6,7 @@ from typing import Optional, Callable, Any
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
-from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
+from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.converters import ONNXConverter
 from nebullvm.inference_learners.deepsparse import (
     DEEPSPARSE_INFERENCE_LEARNERS,
@@ -60,13 +60,13 @@ class DeepSparseOptimizer(BaseOptimizer):
                 output_names=get_output_names(str(onnx_pruned_path)),
             )
 
-        input_data_torch, ys = input_data.get_list(
-            QUANTIZATION_DATA_NUM, with_ys=True
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
         )
 
         is_valid = check_precision(
             learner,
-            input_data_torch,
+            test_input_data,
             model_outputs,
             metric_drop_ths
             if quantization_type is not None
