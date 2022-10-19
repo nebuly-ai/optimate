@@ -1,1 +1,2 @@
 recursive-include nebullvm/installers/tvm_installers *.cmake
+recursive-include nebullvm/installers *.sh

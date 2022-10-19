@@ -13,7 +13,7 @@ import torch
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.config import (
     ONNX_FILENAMES,
-    CUDA_PROVIDERS,
+    ONNX_PROVIDERS,
     NO_COMPILER_INSTALLATION,
 )
 from nebullvm.inference_learners.base import (
@@ -49,7 +49,7 @@ except ImportError:
         import onnxruntime as ort
 
 
-def _is_intel_cpu():
+def _running_on_intel_cpu():
     if torch.cuda.is_available():
         return False  # running on GPU
     cpu_info = cpuinfo.get_cpu_info()["brand_raw"].lower()
@@ -100,22 +100,22 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = str(onnx_path)
         filename = "/".join(onnx_path.split("/")[-1:])
         dir_path = "/".join(onnx_path.split("/")[:-1])
+
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
         sess_options = _get_ort_session_options()
 
-        if _is_intel_cpu():
+        if _running_on_intel_cpu():
             sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
-            ort_session = ort.InferenceSession(onnx_path, sess_options)
-        else:
-            ort_session = ort.InferenceSession(
-                onnx_path,
-                sess_options=sess_options,
-                providers=CUDA_PROVIDERS
-                if torch.cuda.is_available()
-                else None,
-            )
+
+        ort_session = ort.InferenceSession(
+            onnx_path,
+            sess_options=sess_options,
+            providers=ONNX_PROVIDERS["cuda"]
+            if torch.cuda.is_available()
+            else ONNX_PROVIDERS["cpu"],
+        )
         self._session = ort_session
         self.input_names = input_names
         self.output_names = output_names

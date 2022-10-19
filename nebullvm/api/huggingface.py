@@ -67,7 +67,8 @@ class _TransformerWrapper(torch.nn.Module):
             key: value for key, value in zip(self.inputs_types.keys(), args)
         }
         outputs = self.core_model(**inputs)
-        return tuple(_flatten_outputs(outputs.values()))
+        outputs = outputs.values() if isinstance(outputs, dict) else outputs
+        return tuple(_flatten_outputs(outputs))
 
 
 def _get_size_recursively(
@@ -89,15 +90,24 @@ def _get_output_structure_from_text(
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-    encoded_input = tokenizer([text], **tokenizer_args)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    encoded_input = tokenizer([text], **tokenizer_args).to(device)
     output = model(**encoded_input)
     structure = OrderedDict()
-    for key, value in output.items():
-        if isinstance(value, torch.Tensor):
-            structure[key] = None
-        else:
-            size = _get_size_recursively(value)
-            structure[key] = size
+    if isinstance(output, tuple):
+        for i, value in enumerate(output):
+            if isinstance(value, torch.Tensor):
+                structure[f"output_{i}"] = None
+            else:
+                size = _get_size_recursively(value)
+                structure[f"output_{i}"] = size
+    else:
+        for key, value in output.items():
+            if isinstance(value, torch.Tensor):
+                structure[key] = None
+            else:
+                size = _get_size_recursively(value)
+                structure[key] = size
     return structure, type(output)
 
 
@@ -110,12 +120,20 @@ def _get_output_structure_from_dict(
     """
     output = model(**input_example)
     structure = OrderedDict()
-    for key, value in output.items():
-        if isinstance(value, torch.Tensor):
-            structure[key] = None
-        else:
-            size = _get_size_recursively(value)
-            structure[key] = size
+    if isinstance(output, tuple):
+        for i, value in enumerate(output):
+            if isinstance(value, torch.Tensor):
+                structure[f"output_{i}"] = None
+            else:
+                size = _get_size_recursively(value)
+                structure[f"output_{i}"] = size
+    else:
+        for key, value in output.items():
+            if isinstance(value, torch.Tensor):
+                structure[key] = None
+            else:
+                size = _get_size_recursively(value)
+                structure[key] = size
     return structure, type(output)
 
 
@@ -207,9 +225,13 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
             return self.core_inference_learner(*args)
         inputs = (kwargs.pop(name) for name in self.input_names)
         outputs = self.core_inference_learner(*inputs)
-        return _restructure_output(
-            outputs, self.output_structure, self.output_type
-        )
+
+        if self.output_type is tuple:
+            return outputs
+        else:
+            return _restructure_output(
+                outputs, self.output_structure, self.output_type
+            )
 
     def _get_extra_metadata_kwargs(self) -> Dict:
         metadata_kwargs = {

@@ -14,11 +14,13 @@ from nebullvm.base import (
     ModelParams,
     QuantizationType,
     ModelCompiler,
+    ModelCompressor,
     OptimizationTime,
 )
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.compressors.intel import TorchIntelPruningCompressor
 from nebullvm.compressors.sparseml import SparseMLCompressor
+from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.inference_learners import (
     BaseInferenceLearner,
     PytorchBaseInferenceLearner,
@@ -31,6 +33,7 @@ from nebullvm.optimizers import (
     DeepSparseOptimizer,
 )
 from nebullvm.optimizers.blade_disc import BladeDISCOptimizer
+from nebullvm.optimizers.neural_compressor import NeuralCompressorOptimizer
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tensor_rt import TensorRTOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
@@ -41,9 +44,11 @@ from nebullvm.utils.compilers import (
     deepsparse_is_available,
     bladedisc_is_available,
     torch_tensorrt_is_available,
+    intel_neural_compressor_is_available,
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
+from nebullvm.utils.general import is_python_version_3_10
 from nebullvm.utils.optional_modules import tensorflow as tf
 
 
@@ -104,6 +109,7 @@ class CompressorStep(Step, ABC):
         input_data: DataManager = None,
         metric_drop_ths: float = None,
         metric: Callable = None,
+        ignore_compressors: List[ModelCompressor] = None,
         **kwargs,
     ) -> Dict:
         """Run the CompressorStep.
@@ -113,43 +119,71 @@ class CompressorStep(Step, ABC):
             input_data (DataManager): Data to be used for compressing the
                 model.
             metric_drop_ths: Maximum reduction in the selected metric accepted.
-                No model with an higher error will be accepted. Note that the
+                No model with a higher error will be accepted. Note that the
                 maximum error is modified and then propagated to the next
                 steps.
             metric (Callable): Metric to be used for estimating the error
                 due to the compression.
+            ignore_compressors (List, optional): List of compressors
+                to be ignored.
             kwargs (Dict): Keyword arguments propagated to the next step.
         """
-        compressor_dict = self._get_compressors()
+        compressor_dict = self._get_compressors(ignore_compressors)
         self._log_info(f"Compressions: {tuple(compressor_dict.keys())}")
         models = {"no_compression": (copy.deepcopy(model), metric_drop_ths)}
-        train_input_data, eval_input_data = input_data.split(0.8)
-        for technique, compressor in tqdm(compressor_dict.items()):
-            try:
-                compressed_model, ths = compressor.compress(
-                    model,
-                    train_input_data,
-                    eval_input_data,
-                    metric_drop_ths,
-                    metric,
-                )
-                models[technique] = (compressed_model, ths)
-            except Exception as ex:
+
+        # input_data[0][0][0].shape[0] is the batch size
+        if (
+            len(input_data) < 1
+            or (len(input_data) * input_data[0][0][0].shape[0])
+            < MIN_DIM_INPUT_DATA
+        ):
+            self._log_warning(
+                f"Compression step needs at least {MIN_DIM_INPUT_DATA} "
+                f"input data to be activated. Please provide more inputs. "
+                f"Compression step will be skipped."
+            )
+        else:
+            train_input_data = input_data.get_split("train")
+            eval_input_data = input_data.get_split("eval")
+            if len(eval_input_data) > 0:
+                for technique, compressor in tqdm(compressor_dict.items()):
+                    try:
+                        compressed_model, ths = compressor.compress(
+                            model,
+                            train_input_data,
+                            eval_input_data,
+                            metric_drop_ths,
+                            metric,
+                        )
+                        models[technique] = (compressed_model, ths)
+                    except Exception as ex:
+                        self._log_warning(
+                            f"Error during compression {technique}. Got error "
+                            f"{ex}. The compression technique will be skipped."
+                            f" Please consult the documentation for further "
+                            f"info or open an issue on GitHub for receiving "
+                            f"assistance."
+                        )
+            else:
                 self._log_warning(
-                    f"Error during compression {technique}. Got error {ex}. "
-                    f"The compression technique will be skipped. "
-                    f"Please consult the documentation for further info or "
-                    f"open an issue on GitHub for receiving assistance."
+                    "Please note that DIM_DATASET / BATCH_SIZE >= 5, "
+                    "otherwise the data cannot be split in training and "
+                    "evaluation set properly. Compression step will be "
+                    "skipped."
                 )
         return {
             "models": models,
-            "input_data": eval_input_data,
+            "input_data": input_data,
             "metric": metric,
+            "ignore_compressors": ignore_compressors,
             **kwargs,
         }
 
     @abstractmethod
-    def _get_compressors(self) -> Dict[str, BaseCompressor]:
+    def _get_compressors(
+        self, ignore_compressors
+    ) -> Dict[str, BaseCompressor]:
         raise NotImplementedError()
 
     @property
@@ -174,12 +208,25 @@ class TorchCompressorStep(CompressorStep):
         logger (Logger, optional): Logger defined by the user.
     """
 
-    def _get_compressors(self) -> Dict[str, BaseCompressor]:
-        compressors = {
-            "sparseml": SparseMLCompressor(config_file=self._config_file)
-        }
-        # TODO: Reactivate the intel-neural-compressor when properly tested
-        if False and "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower():
+    def _get_compressors(
+        self, ignore_compressors
+    ) -> Dict[str, BaseCompressor]:
+        compressors = {}
+
+        if (
+            deepsparse_is_available()
+            and not is_python_version_3_10()
+            and ModelCompressor.SPARSEML not in ignore_compressors
+        ):
+            compressors["sparseml"] = SparseMLCompressor(
+                config_file=self._config_file
+            )
+
+        if (
+            "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+            and ModelCompressor.NEURAL_COMPRESSOR_PRUNING
+            not in ignore_compressors
+        ):
             compressors["intel_pruning"] = TorchIntelPruningCompressor(
                 config_file=self._config_file
             )
@@ -226,6 +273,7 @@ class OptimizerStep(Step, ABC):
         ignore_compilers: List[ModelCompiler] = None,
         optimization_time: OptimizationTime = None,
         pipeline_name: str = None,
+        model_outputs: Any = None,
         **kwargs,
     ) -> Dict:
         """Run the OptimizerStep for all the available compilers.
@@ -253,6 +301,7 @@ class OptimizerStep(Step, ABC):
                 already been compiled with the same compiler on another
                 framework interface.
             pipeline_name (str): Name of the pipeline.
+            model_outputs (Any): Outputs computed by the original model
             kwargs (Dict): Extra keywords that will be ignored.
         """
 
@@ -290,10 +339,11 @@ class OptimizerStep(Step, ABC):
                             q_type,
                             metric,
                             input_data,
+                            model_outputs,
                         )
                         if optimized_model is not None:
                             latency = compute_optimized_running_time(
-                                optimized_model
+                                optimized_model, input_data
                             )
                         else:
                             latency = np.inf
@@ -351,6 +401,7 @@ class OptimizerStep(Step, ABC):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outpust: Any = None,
     ) -> BaseInferenceLearner:
         raise NotImplementedError()
 
@@ -407,6 +458,13 @@ class TorchOptimizerStep(OptimizerStep):
             optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer(
                 logger=self._logger
             )
+        if (
+            intel_neural_compressor_is_available()
+            and ModelCompiler.INTEL_NEURAL_COMPRESSOR not in ignore_compilers
+        ):
+            optimizers[
+                ModelCompiler.INTEL_NEURAL_COMPRESSOR
+            ] = NeuralCompressorOptimizer(logger=self._logger)
         return optimizers
 
     def _run_optimizer(
@@ -420,6 +478,7 @@ class TorchOptimizerStep(OptimizerStep):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> PytorchBaseInferenceLearner:
         if hasattr(optimizer, "optimize_from_torch"):
             optimized_model = optimizer.optimize_from_torch(
@@ -432,6 +491,7 @@ class TorchOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
+                model_outputs=model_outputs,
             )
         else:
             optimized_model = optimizer.optimize(
@@ -445,6 +505,7 @@ class TorchOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
+                model_outputs=model_outputs,
             )
         return optimized_model
 
@@ -480,6 +541,7 @@ class TFOptimizerStep(OptimizerStep):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> PytorchBaseInferenceLearner:
         if hasattr(optimizer, "optimize_from_tf"):
             optimized_model = optimizer.optimize_from_tf(
@@ -492,6 +554,7 @@ class TFOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
+                model_outputs=model_outputs,
             )
         else:
             optimized_model = optimizer.optimize(
@@ -505,6 +568,7 @@ class TFOptimizerStep(OptimizerStep):
                 quantization_type=quantization_type,
                 input_tfms=input_tfms,
                 input_data=input_data,
+                model_outputs=model_outputs,
             )
         return optimized_model
 
@@ -541,6 +605,7 @@ class OnnxOptimizerStep(OptimizerStep):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> PytorchBaseInferenceLearner:
         optimized_model = optimizer.optimize(
             model=model,
@@ -553,6 +618,7 @@ class OnnxOptimizerStep(OptimizerStep):
             quantization_type=quantization_type,
             input_tfms=input_tfms,
             input_data=input_data,
+            model_outputs=model_outputs,
         )
         return optimized_model
 
@@ -650,8 +716,6 @@ def build_pipeline_from_model(
             accepted, i.e. all optimized model having a larger error respect to
             the original one will be discarded, without even considering their
             possible speed-up.
-        metric (Callable): Metric to be used for estimating the error
-            due to the optimization techniques.
         config_file (str, optional): Configuration file containing the
             parameters needed for defining the CompressionStep in the pipeline.
         logger (Logger, optional): Logger defined by the user.

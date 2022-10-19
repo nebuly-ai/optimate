@@ -10,7 +10,7 @@ import torch
 from nebullvm.utils.general import check_module_version
 
 
-def _get_cpu_arch():
+def get_cpu_arch():
     arch = cpuinfo.get_cpu_info()["arch"].lower()
     if "x86" in arch:
         return "x86"
@@ -42,7 +42,7 @@ def install_tvm(working_dir: str = None):
         cwd=working_dir or Path.home(),
     )
     installation_file = str(path / "install_tvm.sh")
-    hardware_config = _get_cpu_arch()
+    hardware_config = get_cpu_arch()
     if torch.cuda.is_available():
         hardware_config = f"{hardware_config}_cuda"
     env_dict = {
@@ -91,48 +91,22 @@ def install_torch_tensor_rt():
     except ImportError:
         install_tensor_rt()
 
-    # # Will work when Torch-TensorRT v1.2 will be available
     # cmd = [
     #     "pip3",
     #     "install",
-    #     "torch-tensorrt",
+    #     "torch-tensorrt>=1.2.0",
     #     "-f",
     #     "https://github.com/pytorch/TensorRT/releases",
     # ]
-    # subprocess.run(cmd)
 
-    # Install Torch-TensorRT from alpha wheel
-    wheels_dict = {
-        "37": "1nTEk1gyOx87hapRuORik9OhjudXKvvnG",
-        "38": "1IYcMFf9eeESOsvOIZgE2E2NJ9tjRvfri",
-        "39": "15vMu3dzd3-hRUnIiIIbagvU-UJftM9i1",
-        "310": "1sVODbKNd66h0W86T9VQ6QXS1t2ZUQIdr",
-    }
-
-    python_version = str(sys.version_info.major) + str(sys.version_info.minor)
-    tensor_rt_wheel = (
-        f"torch_tensorrt-1.2.0a0-cp{python_version}-cp"
-        f"{python_version + 'm' if python_version == '37' else python_version}"
-        f"-linux_x86_64.whl"
-    )
-
-    wheel_id = wheels_dict.get(python_version)
-    if wheel_id is not None:
-        cmd = (
-            f"wget --no-check-certificate https://drive.google.com/uc?export="
-            f"download&id={wheel_id} -O {tensor_rt_wheel}"
-        )
-
-        subprocess.run(cmd.split())
-
-        cmd = [
-            "pip",
-            "install",
-            "./" + tensor_rt_wheel,
-        ]
-        subprocess.run(cmd)
-
-        os.remove("./" + tensor_rt_wheel)
+    cmd = [
+        "pip3",
+        "install",
+        "torch-tensorrt",
+        "--find-links",
+        "https://github.com/pytorch/TensorRT/releases/expanded_assets/v1.2.0",
+    ]
+    subprocess.run(cmd)
 
 
 def install_tf2onnx():
@@ -141,7 +115,9 @@ def install_tf2onnx():
 
 
 def install_tensorflow():
-    cmd = ["pip3", "install", "tensorflow>=2.7.0"]
+    # Tensorflow 2.10 for now it's not supported
+    # Will be supported when tf2onnx library will support flatbuffers >= 2.x
+    cmd = ["pip3", "install", "tensorflow>=2.7.0,<2.10"]
     subprocess.run(cmd)
 
 
@@ -176,10 +152,16 @@ def install_openvino(with_optimization: bool = True):
             f"Openvino can run just on Intel machines. "
             f"You are trying to install it on {processor}"
         )
+
     openvino_version = "openvino-dev" if with_optimization else "openvino"
     cmd = ["pip3", "install", f"{openvino_version}[onnx]"]
     subprocess.run(cmd)
-    cmd = ["pip3", "install", "numpy>=1.20,<1.23"]
+
+    # Reinstall updated versions of libraries that were downgraded by openvino
+    cmd = ["pip3", "install", "onnx>=1.12"]
+    subprocess.run(cmd)
+
+    cmd = ["pip3", "install", "scipy>=1.7.3"]
     subprocess.run(cmd)
 
 
@@ -188,7 +170,7 @@ def install_onnxruntime():
     distribution_name = "onnxruntime"
     if torch.cuda.is_available():
         distribution_name = f"{distribution_name}-gpu"
-    if _get_os() == "Darwin" and _get_cpu_arch() == "arm":
+    if _get_os() == "Darwin" and get_cpu_arch() == "arm":
         cmd = ["conda", "install", "-y", distribution_name]
     else:
         cmd = ["pip3", "install", distribution_name]
@@ -200,5 +182,26 @@ def install_onnxruntime():
 
 def install_deepsparse():
     """Helper function for installing DeepSparse."""
+    python_minor_version = sys.version_info.minor
+
+    cmd = ["apt-get", "install", f"python3.{python_minor_version}-venv"]
+    subprocess.run(cmd)
+
     cmd = ["pip3", "install", "deepsparse"]
     subprocess.run(cmd)
+
+
+def install_intel_neural_compressor():
+    """Helper function for installing Intel Neural Compressor."""
+
+    cmd = ["pip3", "install", "neural-compressor"]
+    subprocess.run(cmd)
+
+
+def install_onnx_simplifier():
+    """Helper function for installing ONNX simplifier."""
+
+    if get_cpu_arch() != "arm":
+        # Install onnx simplifier
+        cmd = ["pip3", "install", "onnxsim"]
+        subprocess.run(cmd)

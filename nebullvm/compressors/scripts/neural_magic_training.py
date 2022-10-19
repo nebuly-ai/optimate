@@ -25,12 +25,10 @@ from torch.nn import CrossEntropyLoss, MSELoss
 from torch.optim import SGD
 from tqdm.auto import tqdm
 
-
 CRITERION_FNS = {
     "CrossEntropy": CrossEntropyLoss(),
     "MSE": MSELoss(),
 }
-
 
 logging.basicConfig(
     format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"
@@ -45,6 +43,10 @@ def _export_model_onnx(
     model_name: str,
     input_batch: Tuple,
 ):
+    if torch.cuda.is_available():
+        input_batch = tuple(t.cuda() for t in input_batch)
+        model.cuda()
+
     exporter = ModuleExporter(model, output_dir=save_path)
     with torch.no_grad():
         example_outputs = model(*input_batch)

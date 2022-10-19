@@ -8,10 +8,7 @@ import numpy as np
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
-from nebullvm.config import (
-    NVIDIA_FILENAMES,
-    NO_COMPILER_INSTALLATION,
-)
+from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -23,7 +20,6 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.optional_modules import tensorflow as tf
-
 
 if torch.cuda.is_available():
     try:

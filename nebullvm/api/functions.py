@@ -14,17 +14,33 @@ from nebullvm.base import (
     DeepLearningFramework,
     ModelParams,
     ModelCompiler,
+    ModelCompressor,
     OptimizationTime,
 )
+from nebullvm.config import QUANTIZATION_DATA_NUM, TRAIN_TEST_SPLIT_RATIO
 from nebullvm.converters.converters import CrossConverter
+from nebullvm.measure import (
+    compute_torch_latency,
+    compute_tf_latency,
+    compute_onnx_latency,
+)
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
-from nebullvm.utils.onnx import get_output_sizes_onnx
+from nebullvm.utils.onnx import (
+    get_output_sizes_onnx,
+    run_onnx_model,
+)
 from nebullvm.utils.optional_modules import tensorflow as tf
-from nebullvm.utils.tf import get_outputs_sizes_tf
-from nebullvm.utils.torch import get_outputs_sizes_torch
+from nebullvm.utils.tf import (
+    get_outputs_sizes_tf,
+    run_tf_model,
+)
+from nebullvm.utils.torch import (
+    get_outputs_sizes_torch,
+    run_torch_model,
+)
 
 
 logging.basicConfig(
@@ -60,11 +76,22 @@ INFO_EXTRACTION_DICT: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.NUMPY: extract_info_from_np_data,
 }
 
-
 OUTPUT_SIZE_COMPUTATION_DICT: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.PYTORCH: get_outputs_sizes_torch,
     DeepLearningFramework.TENSORFLOW: get_outputs_sizes_tf,
     DeepLearningFramework.NUMPY: get_output_sizes_onnx,
+}
+
+COMPUTE_OUTPUT_FRAMEWORK: Dict[DeepLearningFramework, Callable] = {
+    DeepLearningFramework.PYTORCH: run_torch_model,
+    DeepLearningFramework.TENSORFLOW: run_tf_model,
+    DeepLearningFramework.NUMPY: run_onnx_model,
+}
+
+COMPUTE_LATENCY_FRAMEWORK: Dict[DeepLearningFramework, Callable] = {
+    DeepLearningFramework.PYTORCH: compute_torch_latency,
+    DeepLearningFramework.TENSORFLOW: compute_tf_latency,
+    DeepLearningFramework.NUMPY: compute_onnx_latency,
 }
 
 
@@ -108,6 +135,39 @@ def _is_huggingface_data(data_sample: Any) -> bool:
     return False
 
 
+def _benchmark_original_model(
+    model: Any,
+    input_data: DataManager,
+    dl_framework: DeepLearningFramework,
+    compute_output: bool = False,
+):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    outputs = None
+
+    if compute_output:
+        outputs = [
+            tuple(
+                COMPUTE_OUTPUT_FRAMEWORK[dl_framework](
+                    model, list(input_tensors[0])
+                )
+            )
+            for input_tensors in input_data
+        ]
+
+    inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
+    latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](inputs, model, device)
+
+    return outputs, latency
+
+
+def _map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
+    if ignore_list is None:
+        ignore_list = []
+    else:
+        ignore_list = [enum_class(element) for element in ignore_list]
+    return ignore_list
+
+
 def optimize_model(
     model: Any,
     input_data: Union[Iterable, Sequence],
@@ -117,6 +177,8 @@ def optimize_model(
     dynamic_info: Dict = None,
     config_file: str = None,
     ignore_compilers: List[str] = None,
+    ignore_compressors: List[str] = None,
+    store_latencies: bool = False,
     **kwargs,
 ):
     """Optimize the input model regardless of the framework it was used for
@@ -185,6 +247,10 @@ def optimize_model(
             Default: None.
         ignore_compilers (List, optional): List containing the compilers to be
             ignored during the OptimizerStep. Default: None.
+        ignore_compressors (List, optional): List containing the compressors
+            to be ignored during the CompressionStep. Default: None.
+        store_latencies (bool, optional): Parameter that allows to save the
+            latency for each compiler used by nebullvm. Default: False.
 
     Returns:
         InferenceLearner: Optimized version of the input model having the same
@@ -217,24 +283,44 @@ def optimize_model(
         input_data = DataManager(input_data)
     else:
         input_data = DataManager.from_iterable(input_data)
+    input_data.split(TRAIN_TEST_SPLIT_RATIO)
     model_params = _extract_info_from_data(
         model,
         input_data,
         dl_framework,
         dynamic_info,
     )
-    converter = CrossConverter()
+    converter = CrossConverter(logger=logger)
     optimized_models = []
     with TemporaryDirectory() as tmp_dir:
-        tmp_dir = Path(tmp_dir)
+        tmp_dir = Path(tmp_dir) / "fp32"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
         models = converter.convert(model, model_params, tmp_dir, input_data)
 
-        if ignore_compilers is None:
-            ignore_compilers = []
-        else:
-            ignore_compilers = [
-                ModelCompiler(compiler) for compiler in ignore_compilers
-            ]
+        ignore_compilers = _map_compilers_and_compressors(
+            ignore_compilers, ModelCompiler
+        )
+        ignore_compressors = _map_compilers_and_compressors(
+            ignore_compressors, ModelCompressor
+        )
+
+        # Benchmark original model
+        model_outputs, orig_latency = _benchmark_original_model(
+            model=model,
+            input_data=input_data.get_split("test"),
+            dl_framework=dl_framework,
+            compute_output=True,
+        )
+
+        # Store original model result
+        FEEDBACK_COLLECTOR.store_compiler_result(
+            compiler=dl_framework,
+            q_type=None,
+            metric_drop_ths=metric_drop_ths,
+            latency=orig_latency,
+            pipeline_name="original",
+        )
+
         for model in models:
             input_tfms = MultiStageTransformation([])
             pipeline = build_pipeline_from_model(
@@ -253,21 +339,26 @@ def optimize_model(
                 model_params=model_params,
                 input_tfms=input_tfms,
                 ignore_compilers=ignore_compilers,
+                ignore_compressors=ignore_compressors,
                 optimization_time=optimization_time,
+                model_outputs=model_outputs,
             )
             ignore_compilers = output_dict["ignore_compilers"]
             optimized_models.extend(output_dict["optimized_models"])
 
     optimized_models.sort(key=lambda x: x[1], reverse=False)
-    optimal_model = optimized_models[0][0]
-    FEEDBACK_COLLECTOR.send_feedback()
-    if optimal_model is None:
+    FEEDBACK_COLLECTOR.send_feedback(store_latencies)
+
+    if len(optimized_models) < 1 or optimized_models[0][0] is None:
         logger.warning(
             "No optimized model has been created. This is likely due to a "
             "bug in Nebullvm. Please open an issue and report in details "
             "your use case."
         )
-        return optimal_model
+        return None
+
+    optimal_model = optimized_models[0][0]
+
     if needs_conversion_to_hf:
         from nebullvm.api.huggingface import HuggingFaceInferenceLearner
 

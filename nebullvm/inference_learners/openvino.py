@@ -3,7 +3,7 @@ import shutil
 import warnings
 from abc import ABC
 from pathlib import Path
-from typing import Dict, Union, Type, Generator, Tuple, List
+from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
 import cpuinfo
 import numpy as np
@@ -28,8 +28,11 @@ from nebullvm.utils.optional_modules import tensorflow as tf
 try:
     from openvino.runtime import Core, Model, CompiledModel, InferRequest
 except ImportError:
+    from nebullvm.utils.general import is_python_version_3_10
+
     if (
         "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+        and not is_python_version_3_10()
         and not NO_COMPILER_INSTALLATION
     ):
         warnings.warn(
@@ -146,6 +149,12 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
         core = Core()
         model = core.read_model(model=model_name, weights=model_weights)
+
+        dynamic_shape = cls._get_dynamic_shape(model, network_parameters)
+
+        if dynamic_shape is not None:
+            model.reshape(dynamic_shape)
+
         compiled_model = core.compile_model(model=model, device_name="CPU")
         infer_request = compiled_model.create_infer_request()
 
@@ -169,30 +178,43 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             input_data=input_data,
         )
 
-    def _rebuild_network(self, input_shapes: Dict):
-        # get the input name and input shape info from model
-        model_inputs_info = {
-            item.get_any_name(): tuple(item.shape)
-            for item in self.model.inputs
-        }
-        if all(
-            input_shape == model_inputs_info[input_name]
-            for input_name, input_shape in input_shapes.items()
-        ):
-            # If the new input shapes is equal to the previous one do nothing.
-            return
+    @staticmethod
+    def _get_dynamic_shape(
+        model: Model, network_parameters: ModelParams
+    ) -> Optional[Dict[str, Tuple[int]]]:
+        if network_parameters.dynamic_info is None:
+            return None
 
-        core = Core()
-        model = core.read_model(
-            model=self.description_file, weights=self.weights_file
+        input_names = [
+            list(model_input.names)[0] for model_input in model.inputs
+        ]
+        input_shapes = [
+            (network_parameters.batch_size, *input_info.size)
+            for input_info in network_parameters.input_infos
+        ]
+        dynamic_shapes = []
+
+        assert len(input_shapes) == len(
+            network_parameters.dynamic_info.inputs
+        ), (
+            f"Number of inputs defined in dynamic info "
+            f"({len(input_shapes)}) is different from the one "
+            f"expected from the model "
+            f"({len(network_parameters.dynamic_info.inputs)})."
         )
-        model.reshape(input_shapes)
-        compiled_model = core.compile_model(model=model, device_name="CPU")
-        infer_request = compiled_model.create_infer_request()
 
-        self.model = model
-        self.compiled_model = compiled_model
-        self.infer_request = infer_request
+        for input_shape, dynamic_shape_dict in zip(
+            input_shapes, network_parameters.dynamic_info.inputs
+        ):
+            input_shape = list(input_shape)
+            for key in dynamic_shape_dict.keys():
+                input_shape[int(key)] = -1
+            dynamic_shapes.append(tuple(input_shape))
+
+        dynamic_shape_dict = {
+            k: v for k, v in zip(input_names, dynamic_shapes)
+        }
+        return dynamic_shape_dict
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         # metadata = {
@@ -226,13 +248,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
     def _predict_array(
         self,
         input_arrays: Generator[np.ndarray, None, None],
-        input_shapes: Generator[Tuple[int, ...], None, None] = None,
     ) -> Generator[np.ndarray, None, None]:
-        if input_shapes is not None:
-            input_shapes_dict = {
-                name: size for name, size in zip(self.input_keys, input_shapes)
-            }
-            self._rebuild_network(input_shapes_dict)
 
         results = self.infer_request.infer(
             inputs={
@@ -293,12 +309,7 @@ class PytorchOpenVinoInferenceLearner(
             input_tensor.cpu().detach().numpy()
             for input_tensor in input_tensors
         )
-        extra_kwargs = {}
-        if self.network_parameters.dynamic_info is not None:
-            extra_kwargs["input_shapes"] = (
-                tuple(input_tensor.size()) for input_tensor in input_tensors
-            )
-        output_arrays = self._predict_array(input_arrays, **extra_kwargs)
+        output_arrays = self._predict_array(input_arrays)
         return tuple(
             torch.from_numpy(output_array) for output_array in output_arrays
         )
@@ -345,12 +356,7 @@ class TensorflowOpenVinoInferenceLearner(
                 multiple-output of the model given a (multi-) tensor input.
         """
         input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
-        extra_kwargs = {}
-        if self.network_parameters.dynamic_info is not None:
-            extra_kwargs["input_shapes"] = (
-                tuple(input_tensor.shape) for input_tensor in input_tensors
-            )
-        output_arrays = self._predict_array(input_arrays, **extra_kwargs)
+        output_arrays = self._predict_array(input_arrays)
         # noinspection PyTypeChecker
         return tuple(
             tf.convert_to_tensor(output_array)
@@ -400,12 +406,7 @@ class NumpyOpenVinoInferenceLearner(
                 input.
         """
         input_arrays = (input_tensor for input_tensor in input_tensors)
-        extra_kwargs = {}
-        if self.network_parameters.dynamic_info is not None:
-            extra_kwargs["input_shapes"] = (
-                tuple(input_tensor.shape) for input_tensor in input_tensors
-            )
-        output_arrays = self._predict_array(input_arrays, **extra_kwargs)
+        output_arrays = self._predict_array(input_arrays)
         return tuple(output_arrays)
 
 

@@ -11,29 +11,13 @@ import torch.fx
 
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
 from nebullvm.utils.venv import run_in_different_venv
-
-FX_MODULE_NAME = "NebullvmFxModule"
-
-
-def _save_with_torch_fx(model: torch.nn.Module, path: Path):
-    traced_model = torch.fx.symbolic_trace(model)
-    traced_model.to_folder(path, FX_MODULE_NAME)
-
-
-def _load_with_torch_fx(path: Path):
-    module_file = path / "module.py"
-    with open(module_file, "r") as f:
-        module_str = f.read()
-    exec(module_str, globals())
-    model = eval(FX_MODULE_NAME)()
-    model.load_state_dict(torch.load(path / "pruned_state_dict.pt"))
-    return model
 
 
 def _save_model(model: torch.nn.Module, path: Path, logger: Logger = None):
     try:
-        _save_with_torch_fx(model, path)
+        save_with_torch_fx(model, path)
     except Exception as ex:
         message = (
             f"Got an error while exporting with TorchFX. The model will be "
@@ -54,7 +38,7 @@ def _load_model(path: Path):
     if path.is_file():
         return torch.load(path)
     else:
-        return _load_with_torch_fx(path)
+        return load_with_torch_fx(path)
 
 
 def _save_dataset(input_data: DataManager, path: Path):
@@ -69,7 +53,7 @@ def _save_json(dictionary: Dict, path: Path):
 
 
 def _write_requirements_file(path: Path):
-    requirements = "torch<=1.9\ntorchvision<=0.10\nsparseml\nsparsify\ntqdm"
+    requirements = "sparseml\nsparsify\ntqdm"
     with open(path, "w") as f:
         f.write(requirements)
 
@@ -107,6 +91,7 @@ class SparseMLCompressor(BaseCompressor):
             run_in_different_venv(
                 str(requirements_file),
                 str(script_path),
+                torch.cuda.is_available(),
                 "--model",
                 f"{model_path}",
                 "--train_dir",
@@ -144,6 +129,10 @@ class SparseMLCompressor(BaseCompressor):
         model.eval()
         pruned_model.eval()
         for inputs, y in eval_input_data:
+            if torch.cuda.is_available():
+                inputs = tuple(data.cuda() for data in inputs)
+                pruned_model.cuda()
+                model.cuda()
             model_pred = model(*inputs)
             pruned_pred = pruned_model(*inputs)
             metric_val += metric(model_pred, pruned_pred, y)

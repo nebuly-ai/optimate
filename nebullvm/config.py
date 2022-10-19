@@ -1,7 +1,9 @@
 import os
 
+import torch
 
-VERSION = "0.4.3"
+
+VERSION = "0.4.4"
 LEARNER_METADATA_FILENAME = "metadata.json"
 NO_COMPILER_INSTALLATION = int(os.getenv("NO_COMPILER_INSTALLATION", "0")) > 0
 ONNX_OPSET_VERSION = 13
@@ -28,10 +30,15 @@ NVIDIA_FILENAMES = {
 TVM_FILENAMES = {"engine": "compiled_lib.so"}
 
 ONNX_FILENAMES = {"model_name": "model.onnx"}
-CUDA_PROVIDERS = [
-    "CUDAExecutionProvider",
-    "CPUExecutionProvider",
-]
+ONNX_PROVIDERS = {
+    "cuda": [
+        "CUDAExecutionProvider",
+        "CPUExecutionProvider",
+    ],
+    "cpu": [
+        "CPUExecutionProvider",
+    ],
+}
 
 OPENVINO_FILENAMES = {
     "metadata": LEARNER_METADATA_FILENAME,
@@ -43,3 +50,31 @@ TENSORFLOW_BACKEND_FILENAMES = {
     "tflite_model": "tf_model.tflite",
     "tf_model": "tf_model.h5",
 }
+
+TORCH_TENSORRT_PRECISIONS = {
+    "torch.float32": {torch.float},
+    "torch.float16": {torch.float, torch.half},
+    "torch.int8": {torch.float, torch.half, torch.int8},
+}
+
+MIN_DIM_INPUT_DATA = 100
+QUANTIZATION_DATA_NUM = 300
+CONSTRAINED_METRIC_DROP_THS = 1e-2
+TRAIN_TEST_SPLIT_RATIO = 0.8
+
+COMPILER_LIST = [
+    "deepsparse",
+    "tensor RT",
+    "torchscript",
+    "onnxruntime",
+    "tflite",
+    "tvm",
+    "openvino",
+    "bladedisc",
+    "intel_neural_compressor",
+]
+
+COMPRESSOR_LIST = [
+    "sparseml",
+    "intel_pruning",
+]

@@ -4,6 +4,7 @@ from typing import Sequence, List, Tuple, Any, Union, Iterable
 import numpy as np
 import torch
 
+from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.utils.onnx import convert_to_numpy
 
 
@@ -19,6 +20,8 @@ class DataManager:
     def __init__(self, data_reader: Sequence):
         self._data_reader = data_reader
         self._pointer = 0
+        self.train_idxs = []
+        self.test_idxs = []
 
     def __getitem__(self, item):
         return self._data_reader[item]
@@ -39,10 +42,12 @@ class DataManager:
             raise StopIteration
 
     def get_numpy_list(
-        self, n: int, shuffle: bool = False, with_ys: bool = False
+        self, n: int = None, shuffle: bool = False, with_ys: bool = False
     ) -> Union[
         List[Tuple[np.ndarray, ...]], Tuple[List[Tuple[np.ndarray, ...]], List]
     ]:
+        if n is None:
+            n = len(self)
         if not with_ys:
             return [
                 tuple(convert_to_numpy(x) for x in tuple_)
@@ -55,13 +60,16 @@ class DataManager:
             ], ys
 
     def get_list(
-        self, n: int, shuffle: bool = False, with_ys: bool = False
+        self, n: int = None, shuffle: bool = False, with_ys: bool = False
     ) -> Union[List[Tuple[Any, ...]], Tuple[List[Tuple[Any, ...]], List]]:
+        if n is None:
+            n = len(self)
         if shuffle:
             idx = np.random.choice(len(self), n, replace=n > len(self))
         else:
             idx = np.arange(0, min(n, len(self)))
             if n > len(self):
+                np.random.seed(0)
                 idx = np.concatenate(
                     [
                         idx,
@@ -84,6 +92,13 @@ class DataManager:
     def from_iterable(cls, iterable: Iterable, max_length: int = 500):
         return cls([x for i, x in enumerate(iterable) if i < max_length])
 
+    def get_split(self, split_type="train"):
+        return (
+            DataManager([self[i] for i in self.train_idxs])
+            if split_type == "train"
+            else DataManager([self[i] for i in self.test_idxs])
+        )
+
     def split(self, split_pct: float, shuffle: bool = False):
         if shuffle:
             idx = np.random.choice(len(self), len(self), replace=False)
@@ -91,15 +106,20 @@ class DataManager:
             idx = np.arange(len(self))
 
         n = int(round(len(idx) * split_pct))
-        if n == 0 or n == len(idx):
+
+        if len(self) < MIN_DIM_INPUT_DATA:
             warnings.warn(
-                "Not enough data for splitting the DataManager. "
-                "An empty data-manager will be passed as result of the split."
+                f"Not enough data for splitting the DataManager. "
+                f"You should provide at least {MIN_DIM_INPUT_DATA}. "
+                f"data samples to allow a good split between train "
+                f"and test sets. Compression, calibration and precision "
+                f"checks will use the same data."
             )
-        return (
-            DataManager([self[i] for i in idx[:n]]),
-            DataManager([self[i] for i in idx[n:]]),
-        )
+            self.train_idxs = idx
+            self.test_idxs = idx
+        else:
+            self.train_idxs = idx[:n]
+            self.test_idxs = idx[n:]
 
 
 class PytorchDataset(torch.utils.data.Dataset):

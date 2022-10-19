@@ -1,0 +1,5 @@
+pytest
+torchvision
+sentencepiece
+tensorflow<2.10
+transformers

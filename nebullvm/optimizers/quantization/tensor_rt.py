@@ -38,24 +38,31 @@ class TensorRTCalibrator(IInt8EntropyCalibrator2):
     ):
         super(TensorRTCalibrator, self).__init__()
         self._bs = batch_size
-        self._input_data = (x for x in input_data)
+        self.batches = (x for x in input_data)
+
+    def get_batch(self, names):
+        cuda_stream = polygraphy.cuda.Stream()
+        try:
+            data = next(self.batches)
+
+            cuda_data = []
+            for input_tensor in data:
+                device_array = polygraphy.cuda.DeviceArray()
+                device_array.resize(input_tensor.shape)
+                device_array.copy_from(
+                    host_buffer=input_tensor, stream=cuda_stream
+                )
+                cuda_data.append(device_array)
+
+            return [input_tensor.ptr for input_tensor in cuda_data]
+        except StopIteration:
+            return None
+
+    def get_batch_size(self):
+        return self._bs
 
     def read_calibration_cache(self):
         return None
 
     def write_calibration_cache(self, cache):
         return None
-
-    def get_batch(self, names):
-        cuda_stream = polygraphy.Stream()
-        try:
-            data = next(self._input_data)
-            cuda_data = [
-                polygraphy.DeviceArray.copy_from(
-                    input_tensor, stream=cuda_stream
-                )
-                for input_tensor in data
-            ]
-            return [input_tensor.ptr for input_tensor in cuda_data]
-        except StopIteration:
-            return None

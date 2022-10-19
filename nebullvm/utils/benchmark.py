@@ -68,6 +68,9 @@ class PytorchBenchmark(BaseBenchmark):
         input_tensors = [tensor.to(device) for tensor in self.input_tensors]
         batch_size = input_tensors[0].shape[0]
 
+        if isinstance(self.model, torch.nn.Module):
+            self.model.to(device).eval()
+
         with torch.no_grad():
             for _ in tqdm(
                 range(self.n_warmup),

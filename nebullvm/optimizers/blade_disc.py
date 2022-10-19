@@ -1,13 +1,19 @@
+import logging
 import warnings
 
-from collections import Callable
-from typing import Optional
+from collections.abc import Callable
+from typing import Optional, Any
 
 import torch.nn
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
-from nebullvm.config import NO_COMPILER_INSTALLATION
+from nebullvm.config import (
+    NO_COMPILER_INSTALLATION,
+    QUANTIZATION_DATA_NUM,
+    CONSTRAINED_METRIC_DROP_THS,
+)
 from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.pytorch import quantize_torch
 from nebullvm.optimizers.quantization.utils import (
@@ -16,8 +22,7 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.onnx import convert_to_target_framework
-from nebullvm.utils.torch import create_model_inputs_torch, run_torch_model
+from nebullvm.utils.torch import create_model_inputs_torch
 
 try:
     import torch_blade
@@ -61,6 +66,7 @@ class BladeDISCOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[BladeDISCInferenceLearner]:
         """Optimize the input model using pytorch built-in techniques.
 
@@ -73,16 +79,19 @@ class BladeDISCOptimizer(BaseOptimizer):
             model_params (ModelParams): Model parameters.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
-                get the prediction.
+                get the prediction. Default: None.
             metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
-                will be ignored.
+                will be ignored. Default: None.
             quantization_type (QuantizationType, optional): The desired
-                quantization algorithm to be used.
+                quantization algorithm to be used. Default: None.
             metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
-                prediction.
+                prediction. Default: None.
             input_data (DataManager, optional): User defined data.
+                Default: None.
+            model_outputs (Any, optional): Outputs computed by the original
+                model. Default: None.
 
         Returns:
             BladeDISCInferenceLearner: Model optimized for inference.
@@ -96,32 +105,14 @@ class BladeDISCOptimizer(BaseOptimizer):
             "for the Pytorch Backend yet."
         )
         check_quantization(quantization_type, metric_drop_ths)
-        if metric_drop_ths is not None:
-            if input_data is None:
-                input_data_torch = [
-                    tuple(
-                        create_model_inputs_torch(
-                            model_params.batch_size, model_params.input_infos
-                        )
-                    )
-                ]
-            else:
-                input_data_torch, ys = input_data.get_numpy_list(
-                    300, with_ys=True
-                )
-                input_data_torch = [
-                    tuple(
-                        convert_to_target_framework(t, output_library)
-                        for t in data_tuple
-                    )
-                    for data_tuple in input_data_torch
-                ]
-            output_data_torch = [
-                tuple(run_torch_model(model, list(input_tensors)))
-                for input_tensors in input_data_torch
-            ]
+
+        train_input_data = input_data.get_split("train").get_list(
+            QUANTIZATION_DATA_NUM
+        )
+
+        if quantization_type is not None:
             model, input_tfms = quantize_torch(
-                model, quantization_type, input_tfms, input_data_torch
+                model, quantization_type, input_tfms, train_input_data
             )
 
         with torch.no_grad():
@@ -145,15 +136,30 @@ class BladeDISCOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if metric_drop_ths is not None:
-            is_valid = check_precision(
-                learner,
-                input_data_torch,
-                output_data_torch,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
-            )
-            if not is_valid:
-                return None
+
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
+
+        is_valid = check_precision(
+            learner,
+            test_input_data,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with blade_disc gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
+                )
+            return None
         return learner

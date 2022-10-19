@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union, Optional, List
 
 import torch
+from torch.fx import symbolic_trace
 
 from nebullvm.base import ModelParams
 from nebullvm.inference_learners import (
@@ -9,7 +10,6 @@ from nebullvm.inference_learners import (
     LearnerMetadata,
 )
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.data import DataManager
 
 
 class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
@@ -37,7 +37,8 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         path.mkdir(exist_ok=True)
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
-        self.model.save(path / self.MODEL_NAME)
+
+        torch.jit.save(self.model, path / self.MODEL_NAME)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -55,12 +56,27 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     @classmethod
     def from_torch_model(
         cls,
-        model: torch.nn.Module,
+        model: Union[torch.nn.Module, torch.fx.GraphModule],
         network_parameters: ModelParams,
         input_tfms: Optional[MultiStageTransformation] = None,
-        input_data: DataManager = None,
+        input_data: List[torch.tensor] = None,
     ):
-        model_scripted = torch.jit.script(model)
+        if torch.cuda.is_available():
+            input_data = [t.cuda() for t in input_data]
+
+        if not isinstance(model, torch.fx.GraphModule):
+            model.eval()
+            try:
+                model_scripted = symbolic_trace(model)
+                model_scripted = torch.jit.script(model_scripted)
+            except Exception:
+                try:
+                    model_scripted = torch.jit.script(model)
+                except Exception:
+                    model_scripted = torch.jit.trace(model, tuple(input_data))
+        else:
+            model_scripted = torch.jit.script(model)
+
         return cls(
             torch_model=model_scripted,
             network_parameters=network_parameters,

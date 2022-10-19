@@ -21,6 +21,12 @@ def check_precision(
     relative_differences = []
     if ys is None:
         ys = [None] * len(input_data)
+
+    assert len(input_data) == len(base_outputs_list) == len(ys), (
+        "INTERNAL ASSERT FAILED: error during computation of precision "
+        "of the optimized model, got wrong dimensions of the data. "
+    )
+
     for inputs, base_outputs, y in zip(input_data, base_outputs_list, ys):
         opt_outputs = optimized_learner(*inputs)
         relative_difference = max(

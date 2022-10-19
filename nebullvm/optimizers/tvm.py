@@ -1,6 +1,7 @@
+import logging
 import os
 import uuid
-from typing import Tuple, Dict, Optional, Callable
+from typing import Tuple, Dict, Optional, Callable, Any
 
 import onnx
 import torch.cuda
@@ -9,11 +10,14 @@ from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.config import (
     AUTO_TVM_TUNING_OPTION,
     AUTO_TVM_PARAMS,
+    QUANTIZATION_DATA_NUM,
+    CONSTRAINED_METRIC_DROP_THS,
 )
 from nebullvm.inference_learners.tvm import (
     TVM_INFERENCE_LEARNERS,
     ApacheTVMInferenceLearner,
 )
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers.base import BaseOptimizer
 from nebullvm.optimizers.quantization.tvm import TVMCalibrator
 from nebullvm.optimizers.quantization.utils import (
@@ -24,11 +28,8 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
-    create_model_inputs_onnx,
-    run_onnx_model,
-    convert_to_numpy,
 )
-from nebullvm.utils.torch import create_model_inputs_torch, run_torch_model
+from nebullvm.utils.torch import create_model_inputs_torch
 
 try:
     import tvm
@@ -37,6 +38,7 @@ try:
     from tvm.autotvm.tuner import XGBTuner
     from tvm import autotvm
     import tvm.relay as relay
+    from tvm.relay.transform import ToMixedPrecision
 except ImportError:
     # TVM is installed in the inference_learner package.
     # TVM objects needed for avoiding errors:
@@ -56,6 +58,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         self._log(
             f"Optimizing with {self.__class__.__name__} and "
@@ -65,26 +68,18 @@ class ApacheTVMOptimizer(BaseOptimizer):
         mod, params = self._build_tvm_model_from_torch(
             torch_model, model_params
         )
-        if metric_drop_ths is not None:
+        if quantization_type is not None:
             if quantization_type is QuantizationType.HALF:
-                mod = tvm.relay.transform.ToMixedPrecision(
-                    mixed_precision_type="float16"
-                )(mod)
+                mod = ToMixedPrecision(mixed_precision_type="float16")(mod)
             else:
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    if input_data is None:
-                        inputs = [
-                            tuple(
-                                create_model_inputs_onnx(
-                                    model_params.batch_size,
-                                    model_params.input_infos,
-                                )
-                            )
-                        ]
-                    else:
-                        inputs = input_data.get_numpy_list(300, with_ys=False)
+                    inputs = input_data.get_split("train").get_numpy_list(
+                        QUANTIZATION_DATA_NUM
+                    )
+                    input_names = [f"input_{n}" for n in range(len(inputs[0]))]
+                    inputs = TVMCalibrator(inputs, input_names)
                 else:
                     return
                 mod = self._quantize(mod, params, input_data=inputs)
@@ -92,7 +87,11 @@ class ApacheTVMOptimizer(BaseOptimizer):
         with autotvm.apply_history_best(tuning_records):
             with tvm.transform.PassContext(opt_level=3, config={}):
                 lib = relay.build(mod, target=target, params=params)
-        model = TVM_INFERENCE_LEARNERS[
+
+        # Remove temporary file created by tvm
+        os.remove(tuning_records)
+
+        learner = TVM_INFERENCE_LEARNERS[
             DeepLearningFramework.PYTORCH
         ].from_runtime_module(
             input_tfms=input_tfms,
@@ -106,29 +105,32 @@ class ApacheTVMOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if quantization_type is not None:
-            if input_data is None:
-                inputs = [model.get_inputs_example()]
-                ys = None
-            else:
-                inputs, ys = input_data.get_list(
-                    100, shuffle=True, with_ys=True
+
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
+        is_valid = check_precision(
+            learner,
+            test_input_data,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with Pytorch tvm gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
                 )
-            output_data = [
-                tuple(run_torch_model(torch_model, list(tuple_)))
-                for tuple_ in inputs
-            ]
-            is_valid = check_precision(
-                model,
-                inputs,
-                output_data,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
-            )
-            if not is_valid:
-                return None
-        return model
+            return None
+        return learner
 
     def optimize(
         self,
@@ -140,6 +142,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
         """Optimize the input model with Apache TVM.
 
@@ -160,6 +163,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 compute the difference between the quantized and the normal
                 prediction.
             input_data (DataManager, optional): User defined data.
+            model_outputs (Any): Outputs computed by the original model.
 
         Returns:
             ApacheTVMInferenceLearner: Model optimized with TVM. The model
@@ -173,26 +177,16 @@ class ApacheTVMOptimizer(BaseOptimizer):
         check_quantization(quantization_type, metric_drop_ths)
         target = self._get_target()
         mod, params = self._build_tvm_model_from_onnx(model, model_params)
-        if metric_drop_ths is not None:
+        if quantization_type is not None:
             if quantization_type is QuantizationType.HALF:
-                mod = tvm.relay.transform.ToMixedPrecision(
-                    mixed_precision_type="float16"
-                )(mod)
+                mod = ToMixedPrecision(mixed_precision_type="float16")(mod)
             else:
                 if quantization_type is QuantizationType.DYNAMIC:
                     inputs = None
                 elif quantization_type is QuantizationType.STATIC:
-                    if input_data is None:
-                        inputs = [
-                            tuple(
-                                create_model_inputs_onnx(
-                                    model_params.batch_size,
-                                    model_params.input_infos,
-                                )
-                            )
-                        ]
-                    else:
-                        inputs = input_data.get_numpy_list(300, with_ys=False)
+                    inputs = input_data.get_split("train").get_numpy_list(
+                        QUANTIZATION_DATA_NUM
+                    )
                     inputs = TVMCalibrator(inputs, get_input_names(model))
                 else:
                     return
@@ -205,7 +199,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         # Remove temporary file created by tvm
         os.remove(tuning_records)
 
-        model = TVM_INFERENCE_LEARNERS[output_library].from_runtime_module(
+        learner = TVM_INFERENCE_LEARNERS[output_library].from_runtime_module(
             input_tfms=input_tfms,
             network_parameters=model_params,
             lib=lib,
@@ -215,34 +209,31 @@ class ApacheTVMOptimizer(BaseOptimizer):
             if input_data is not None
             else None,
         )
-        if quantization_type is not None:
-            if input_data is None:
-                inputs = [model.get_inputs_example()]
-                ys = None
-            else:
-                inputs, ys = input_data.get_list(
-                    100, shuffle=True, with_ys=True
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
+        is_valid = check_precision(
+            learner,
+            test_input_data,
+            model_outputs,
+            metric_drop_ths
+            if quantization_type is not None
+            else CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+        if not is_valid:
+            if quantization_type is None:
+                self._log(
+                    "The model optimized with ONNX tvm gives a "
+                    "different result compared with the original model. "
+                    "This compiler will be skipped.",
+                    level=logging.WARNING,
                 )
-            output_data = [
-                tuple(
-                    run_onnx_model(
-                        model,
-                        [convert_to_numpy(x) for x in tuple_],
-                    )
-                )
-                for tuple_ in inputs
-            ]
-            is_valid = check_precision(
-                model,
-                inputs,
-                output_data,
-                metric_drop_ths,
-                metric_func=metric,
-                ys=ys,
-            )
-            if not is_valid:
-                return None
-        return model
+            return None
+        return learner
 
     @staticmethod
     def _build_tvm_model_from_torch(

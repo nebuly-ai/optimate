@@ -110,6 +110,12 @@ class ModelCompiler(Enum):
     TORCHSCRIPT = "torchscript"
     TFLITE = "tflite"
     BLADEDISC = "bladedisc"
+    INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
+
+
+class ModelCompressor(Enum):
+    SPARSEML = "sparseml"
+    NEURAL_COMPRESSOR_PRUNING = "intel_pruning"
 
 
 class QuantizationType(Enum):

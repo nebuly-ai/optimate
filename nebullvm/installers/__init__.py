@@ -8,6 +8,7 @@ from nebullvm.installers.installers import (
     install_bladedisc,
     install_deepsparse,
     install_torch_tensor_rt,
+    install_intel_neural_compressor,
 )
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]

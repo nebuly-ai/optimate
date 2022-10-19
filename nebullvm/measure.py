@@ -5,91 +5,174 @@ from typing import Tuple, List, Union, Any
 import numpy as np
 import torch
 
+from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.inference_learners.base import BaseInferenceLearner
-from nebullvm.utils.onnx import convert_to_numpy
+from nebullvm.utils.data import DataManager
+from nebullvm.utils.onnx import (
+    convert_to_numpy,
+    get_input_names,
+    get_output_names,
+)
 from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 def compute_torch_latency(
-    xs: List[torch.Tensor],
+    xs: List[Tuple[torch.Tensor]],
     model: torch.nn.Module,
     device: str,
-    steps: int,
+    steps: int = 100,
+    warmup_steps: int = 10,
 ) -> Tuple[float, List[float]]:
     """Compute the latency associated with the torch model.
 
     Args:
-        xs (List[Tensor]): List of input tensors (a single batch for the model)
+        xs (List[Tuple[torch.Tensor]]): List of tuples containing the
+            input tensors (a single batch for the model).
         model (Module): Torch model.
         device (str): Device where computing the latency.
-        steps (int): Number of times the experiment needs to be performed for
-            computing the statistics.
+        steps (int, optional): Number of input data to be used to compute the
+            latency of the model. It must be a number <= len(xs). Default: 100.
+        warmup_steps (int, optional): Number of input data to be used to warm
+            up the model. It must be a number <= len(xs). Default: 10.
 
     Returns:
         Float: Average latency.
         List[Float]: List of latencies obtained.
     """
-    xs = [x.to(device) for x in xs]
-    model = model.to(device)
+    xs = [tuple(t.to(device) for t in tensors) for tensors in xs]
+    model = model.to(device).eval()
     latencies = []
-    for _ in range(steps):
-        starting_time = time.time()
-        _ = model.forward(*xs)
-        latencies.append(time.time() - starting_time)
-    latency = sum(latencies) / steps
+    with torch.no_grad():
+        for i in range(warmup_steps):
+            _ = model.forward(*xs[i])
+        for i in range(steps):
+            starting_time = time.time()
+            _ = model.forward(*xs[i])
+            latencies.append(time.time() - starting_time)
+        latency = np.mean(latencies)
     return latency, latencies
 
 
 def compute_tf_latency(
-    xs: List[tf.Tensor],
+    xs: List[Tuple[tf.Tensor]],
     model: Union[tf.Module, tf.keras.Model],
     device: str,
-    steps: int,
+    steps: int = 100,
+    warmup_steps: int = 10,
 ) -> Tuple[float, List[float]]:
     """Compute the latency associated with the tensorflow model.
 
     Args:
-        xs (List[Tensor]): List of input tensors (a single batch for the model)
+        xs (List[Tuple[tf.Tensor]]): List of tuples containing the
+            input tensors (a single batch for the model).
         model (Module or keras.Model): TF model.
         device (str): Device where computing the latency.
-        steps (int): Number of times the experiment needs to be performed for
-            computing the statistics.
+        steps (int, optional): Number of input data to be used to compute the
+            latency of the model. It must be a number <= len(xs). Default: 100.
+        warmup_steps (int, optional): Number of input data to be used to warm
+            up the model. It must be a number <= len(xs). Default: 10.
 
     Returns:
         Float: Average latency.
         List[Float]: List of latencies obtained.
     """
     latencies = []
+    device = "gpu" if device == "cuda" else "cpu"
     with tf.device(device):
-        for _ in range(steps):
+        for i in range(warmup_steps):
+            _ = model(xs[i])
+        for i in range(steps):
             starting_time = time.time()
-            _ = model(*xs)
+            _ = model(xs[i])
             latencies.append(time.time() - starting_time)
-        latency = sum(latencies) / steps
+        latency = np.mean(latencies)
         return latency, latencies
 
 
+def compute_onnx_latency(
+    xs: List[Tuple[np.array]],
+    model: str,
+    device: str,
+    steps: int = 100,
+    warmup_steps: int = 10,
+) -> Tuple[float, List[float]]:
+    """Compute the latency associated with the ONNX model.
+
+    Args:
+        xs (List[Tuple[np.array]]): List of tuples containing the
+            inputs (a single batch for the model).
+        model (str): ONNX model path.
+        device (str): Device where computing the latency.
+        steps (int, optional): Number of input data to be used to compute the
+            latency of the model. It must be a number <= len(xs). Default: 100.
+        warmup_steps (int, optional): Number of input data to be used to warm
+            up the model. It must be a number <= len(xs). Default: 10.
+
+    Returns:
+        Float: Average latency.
+        List[Float]: List of latencies obtained.
+    """
+    import onnxruntime as ort
+
+    input_names = get_input_names(model)
+    output_names = get_output_names(model)
+
+    model = ort.InferenceSession(
+        model,
+        providers=ONNX_PROVIDERS["cuda"]
+        if device == "cuda"
+        else ONNX_PROVIDERS["cpu"],
+    )
+
+    latencies = []
+    for i in range(warmup_steps):
+        inputs = {name: array for name, array in zip(input_names, xs[i])}
+        _ = model.run(output_names=output_names, input_feed=inputs)
+    for i in range(steps):
+        inputs = {name: array for name, array in zip(input_names, xs[i])}
+        starting_time = time.time()
+        _ = model.run(output_names=output_names, input_feed=inputs)
+        latencies.append(time.time() - starting_time)
+    latency = np.mean(latencies)
+    return latency, latencies
+
+
 def compute_optimized_running_time(
-    optimized_model: BaseInferenceLearner, steps: int = 100, min_steps=5
+    optimized_model: BaseInferenceLearner,
+    input_data: DataManager,
+    steps: int = 100,
+    min_steps: int = 5,
+    warmup_steps: int = 10,
 ) -> float:
     """Compute the running time of the optimized model.
 
     Args:
         optimized_model (BaseInferenceLearner): Optimized model.
-        steps (int): Number of times the experiment needs to be performed for
-            computing the statistics.
+        input_data: (DataManager): Dataset used to compute latency.
+        steps (int, optional): Number of input data to be used to
+            compute the latency of the model. Default: 100.
+        min_steps (int, optional): Minimum number of iterations to
+            be performed. Default: 5.
+        warmup_steps (int, optional): Number of input data to be used
+            to warm up the model. Default: 10.
 
     Returns:
         Float: Average latency.
     """
 
-    model_inputs = optimized_model.get_inputs_example()
-
     latencies = []
     last_median = None
-    for _ in range(steps):
+
+    # Warmup
+    inputs_list = input_data.get_split("test").get_list(warmup_steps)
+    for model_inputs in inputs_list:
+        _ = optimized_model(*model_inputs)
+
+    # Compute latency
+    inputs_list = input_data.get_split("test").get_list(steps)
+    for model_inputs in inputs_list:
         starting_time = time.time()
-        _ = optimized_model.predict(*model_inputs)
+        _ = optimized_model(*model_inputs)
         latencies.append(time.time() - starting_time)
         if len(latencies) > min_steps:
             median = np.median(latencies)
@@ -119,7 +202,7 @@ def compute_relative_difference(
     diff = np.abs(tensor_1 - tensor_2) / (
         np.maximum(np.abs(tensor_1), np.abs(tensor_2)) + eps
     )
-    return np.max(diff)
+    return float(np.mean(diff))
 
 
 def compute_accuracy_drop(tensor_1: Any, tensor_2: Any, y: Any) -> float:

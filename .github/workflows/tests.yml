@@ -4,21 +4,65 @@ on:
   push:
     branches:
       - "main"
+      - "dev"
   pull_request:
     branches:
       - "main"
 
 jobs:
-  test_on_ubuntu:
+  test_on_ubuntu_gpu:
+    runs-on: self-hosted
+
+    strategy:
+      matrix:
+        # Run in all these versions of Python
+        python-version: [ 3.9 ]
+
+    steps:
+      # Checkout the latest code from the repo
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        # Setup which version of Python to use
+      - name: Set Up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+        # Display the Python version being used
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+        # Install nebullvm
+      - name: Install nebullvm
+        run: |
+          python -m pip install --upgrade pip
+          pip uninstall -y nebullvm
+          pip install .
+        # Install requirements for testing
+      - name: Install requirements for testing
+        run: pip install -r "requirements-dev.txt"
+        # Install compilers except tvm
+      - name: Install deep learning compilers
+        run: python -c "import nebullvm"
+        #        # Install tvm
+        #      - name: Install tvm
+        #        run: |
+        #          pip install apache-tvm
+        #          pip install xgboost
+        # Run the tests ignoring tvm
+      - name: Run tests
+        run: |
+          cd nebullvm
+          pytest compressors
+          pytest
+  test_on_ubuntu_cpu:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         # Run in all these versions of Python
-        python-version: [3.8, 3.9]
+        python-version: [ 3.7, 3.8, 3.9, "3.10" ]
 
     steps:
-        # Checkout the latest code from the repo
+      # Checkout the latest code from the repo
       - name: Checkout repo
         uses: actions/checkout@v2
         # Setup which version of Python to use
@@ -34,12 +78,23 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
+      # Install requirements for testing
+      - name: Install requirements for testing
+        run: pip install -r "requirements-dev.txt"
         # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -c "import nebullvm"
-        # Install pytest
-      - name: Install pytest
-        run: pip install pytest
+        #        # Install tvm
+        #      - name: Install tvm
+        #        run: |
+        #          pip install apache-tvm
+        #          pip install xgboost
+        # Install requirements for testing
+      - name: Install requirements for testing
+        run: pip install -r "requirements-dev.txt"
         # Run the tests ignoring tvm
       - name: Run tests
-        run: pytest --ignore=nebullvm/optimizers/tests/test_tvm.py --ignore=nebullvm/optimizers/tests/test_bladedisc.py
+        run: |
+          cd nebullvm
+          pytest compressors
+          pytest --ignore compressors

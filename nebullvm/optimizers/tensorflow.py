@@ -1,11 +1,14 @@
+import logging
 from tempfile import TemporaryDirectory
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TF_BACKEND_LEARNERS_DICT,
 )
+from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.tensorflow import quantize_tf
 from nebullvm.optimizers.quantization.utils import (
@@ -14,9 +17,7 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.onnx import convert_to_target_framework
 from nebullvm.utils.optional_modules import tensorflow as tf
-from nebullvm.utils.tf import create_model_inputs_tf, run_tf_model
 
 
 class TensorflowBackendOptimizer(BaseOptimizer):
@@ -40,6 +41,7 @@ class TensorflowBackendOptimizer(BaseOptimizer):
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
+        model_outputs: Any = None,
     ) -> Optional[TensorflowBackendInferenceLearner]:
         """Optimize the input model using pytorch built-in techniques.
 
@@ -52,16 +54,20 @@ class TensorflowBackendOptimizer(BaseOptimizer):
             model_params (ModelParams): Model parameters.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
-                get the prediction.
+                get the prediction. Default: None.
             metric_drop_ths (float, optional): Threshold for the accepted drop
                 in terms of precision. Any optimized model with an higher drop
-                will be ignored.
+                will be ignored. Default: None.
             quantization_type (QuantizationType, optional): The desired
-                quantization algorithm to be used.
+                quantization algorithm to be used. Default: None.
             metric (Callable, optional): If given it should
                 compute the difference between the quantized and the normal
-                prediction.
+                prediction. Default: None.
             input_data (DataManager, optional): User defined data.
+                Default: None.
+            model_outputs (Any, optional): Outputs computed by the original
+                model. Default: None.
+
 
         Returns:
             TensorflowBackendInferenceLearner or TFLiteBackendInferenceLearner:
@@ -78,37 +84,16 @@ class TensorflowBackendOptimizer(BaseOptimizer):
 
         check_quantization(quantization_type, metric_drop_ths)
         with TemporaryDirectory() as tmp_dir:
-            if metric_drop_ths is not None:
-                if input_data is None:
-                    input_data_tf = [
-                        tuple(
-                            create_model_inputs_tf(
-                                model_params.batch_size,
-                                model_params.input_infos,
-                            )
-                        )
-                    ]
-                    ys = None
-                else:
-                    input_data_tf, ys = input_data.get_numpy_list(
-                        300, with_ys=True
-                    )
-                    input_data_tf = [
-                        tuple(
-                            convert_to_target_framework(t, output_library)
-                            for t in data_tuple
-                        )
-                        for data_tuple in input_data_tf
-                    ]
-                output_data_tf = [
-                    tuple(run_tf_model(model, input_tensors))
-                    for input_tensors in input_data_tf
-                ]
+            train_input_data = input_data.get_split("train").get_list(
+                QUANTIZATION_DATA_NUM
+            )
+
+            if quantization_type is not None:
                 model, input_tfms = quantize_tf(
                     model=model,
                     quantization_type=quantization_type,
                     input_tfms=input_tfms,
-                    input_data=input_data_tf,
+                    input_data=train_input_data,
                     tmp_dir=tmp_dir,
                 )
 
@@ -122,15 +107,29 @@ class TensorflowBackendOptimizer(BaseOptimizer):
                 if input_data is not None
                 else None,
             )
-            if metric_drop_ths is not None:
-                is_valid = check_precision(
-                    learner,
-                    input_data_tf,
-                    output_data_tf,
-                    metric_drop_ths,
-                    metric_func=metric,
-                    ys=ys,
-                )
-                if not is_valid:
-                    return None
+
+            test_input_data, ys = input_data.get_split("test").get_list(
+                with_ys=True
+            )
+            is_valid = check_precision(
+                learner,
+                test_input_data,
+                model_outputs,
+                metric_drop_ths
+                if quantization_type is not None
+                else CONSTRAINED_METRIC_DROP_THS,
+                metric_func=metric
+                if quantization_type is not None
+                else compute_relative_difference,
+                ys=ys,
+            )
+            if not is_valid:
+                if quantization_type is None:
+                    self._log(
+                        "The model optimized with Tensorflow backend gives a "
+                        "different result compared with the original model. "
+                        "This compiler will be skipped.",
+                        level=logging.WARNING,
+                    )
+                return None
         return learner
