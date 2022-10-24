@@ -42,7 +42,20 @@ except ImportError:
         from nebullvm.installers.installers import install_openvino
 
         install_openvino(with_optimization=True)
-        from openvino.runtime import Core, Model, CompiledModel, InferRequest
+
+        try:
+            from openvino.runtime import (
+                Core,
+                Model,
+                CompiledModel,
+                InferRequest,
+            )
+        except ImportError:
+            warnings.warn(
+                "No Openvino library detected. "
+                "The Openvino Inference learner should not be used."
+            )
+            Model = CompiledModel = InferRequest = object
     else:
         warnings.warn(
             "No Openvino library detected. "

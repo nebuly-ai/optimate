@@ -154,7 +154,7 @@ def install_openvino(with_optimization: bool = True):
         )
 
     openvino_version = "openvino-dev" if with_optimization else "openvino"
-    cmd = ["pip3", "install", f"{openvino_version}[onnx]"]
+    cmd = ["pip3", "install", f"{openvino_version}[onnx]>=2022.1.0"]
     subprocess.run(cmd)
 
     # Reinstall updated versions of libraries that were downgraded by openvino
@@ -184,8 +184,11 @@ def install_deepsparse():
     """Helper function for installing DeepSparse."""
     python_minor_version = sys.version_info.minor
 
-    cmd = ["apt-get", "install", f"python3.{python_minor_version}-venv"]
-    subprocess.run(cmd)
+    try:
+        cmd = ["apt-get", "install", f"python3.{python_minor_version}-venv"]
+        subprocess.run(cmd)
+    except Exception:
+        pass
 
     cmd = ["pip3", "install", "deepsparse"]
     subprocess.run(cmd)

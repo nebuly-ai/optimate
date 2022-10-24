@@ -22,11 +22,15 @@ except ImportError:
         from nebullvm.installers.installers import install_openvino
 
         install_openvino()
-        from openvino.tools.pot import DataLoader
-        from openvino.tools.pot import IEEngine
-        from openvino.tools.pot import load_model, save_model
-        from openvino.tools.pot import compress_model_weights
-        from openvino.tools.pot import create_pipeline
+
+        try:
+            from openvino.tools.pot import DataLoader
+            from openvino.tools.pot import IEEngine
+            from openvino.tools.pot import load_model, save_model
+            from openvino.tools.pot import compress_model_weights
+            from openvino.tools.pot import create_pipeline
+        except Exception:
+            DataLoader = object
     else:
         DataLoader = object
 
