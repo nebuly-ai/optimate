@@ -52,7 +52,8 @@ def _extract_dynamic_axis(
 ) -> Optional[Dict]:
     dynamic_axis = {"inputs": [{}] * len(input_sizes), "outputs": []}
     output_sizes = []
-    for i, (input_tensors, y) in enumerate(dataset):
+    for i, input_data in enumerate(dataset):
+        input_tensors = input_data[0]
         if i >= max_data:
             break
         inspect_dynamic_size(
@@ -80,7 +81,7 @@ def extract_info_from_tf_data(
     input_types: List[str],
     dynamic_axis: Dict,
 ):
-    input_row, _ = dataset[0]
+    input_row = dataset[0][0]
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
     input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
     input_types = ifnone(

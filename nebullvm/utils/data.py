@@ -83,7 +83,7 @@ class DataManager:
 
         ys, xs = [], []
         for i in idx:
-            x, y = self[i]
+            x, y = self[i] if len(self[i]) > 1 else (self[i][0], None)
             xs.append(x)
             ys.append(y)
         return xs, ys

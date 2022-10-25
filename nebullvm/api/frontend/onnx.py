@@ -39,7 +39,8 @@ def _extract_dynamic_axis(
 ) -> Optional[Dict]:
     dynamic_axis = {"inputs": [{}] * len(input_sizes), "outputs": []}
     output_sizes = []
-    for i, (input_tensors, y) in enumerate(data):
+    for i, input_data in enumerate(data):
+        input_tensors = input_data[0]
         if i >= max_data:
             break
         inspect_dynamic_size(
@@ -67,7 +68,7 @@ def extract_info_from_np_data(
     input_types: List[str],
     dynamic_axis: Dict,
 ):
-    input_row, _ = data[0]
+    input_row = data[0][0]
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
     input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
     input_types = ifnone(

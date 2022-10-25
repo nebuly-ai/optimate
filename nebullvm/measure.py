@@ -206,6 +206,10 @@ def compute_relative_difference(
 
 
 def compute_accuracy_drop(tensor_1: Any, tensor_2: Any, y: Any) -> float:
+    assert y is not None, (
+        "No label found in the dataloader provided. "
+        "To use accuracy metric, you must set also the labels"
+    )
     tensor_1, tensor_2, y = map(convert_to_numpy, (tensor_1, tensor_2, y))
     accuracy_1 = np.mean(tensor_1.argmax(axis=-1) == y)
     accuracy_2 = np.mean(tensor_2.argmax(axis=-1) == y)

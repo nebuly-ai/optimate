@@ -50,14 +50,15 @@ logger.setLevel(logging.INFO)
 
 def _extract_dynamic_axis(
     torch_model: torch.nn.Module,
-    dataloader: DataLoader,
+    dataloader: DataManager,
     input_sizes: List[Tuple[int, ...]],
     batch_size: int,
     max_data: int = 100,
 ) -> Optional[Dict]:
     dynamic_axis = {"inputs": [{}] * len(input_sizes), "outputs": []}
     output_sizes = []
-    for i, (input_tensors, y) in enumerate(dataloader):
+    for i, input_data in enumerate(dataloader):
+        input_tensors = input_data[0]
         if i >= max_data:
             break
         inspect_dynamic_size(
@@ -85,11 +86,13 @@ def extract_info_from_torch_data(
     input_types: List[str],
     dynamic_axis: Dict,
 ):
-    input_row, _ = (
+    input_data = (
         dataloader[0]
         if isinstance(dataloader, Sequence)
         else next(iter(dataloader))
     )
+    input_row = input_data[0]
+
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
     input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
     input_types = ifnone(
