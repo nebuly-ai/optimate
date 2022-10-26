@@ -237,7 +237,7 @@ def install_onnxruntime():
         cmd = ["pip3", "install", distribution_name]
     subprocess.run(cmd)
     # install requirements for onnxruntime.transformers
-    cmd = ["pip3", "install", "coloredlogs", "sympy"]
+    cmd = ["pip3", "install", "coloredlogs", "sympy", "transformers"]
     subprocess.run(cmd)
 
     try:
