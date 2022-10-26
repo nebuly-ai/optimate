@@ -5,14 +5,12 @@ from abc import ABC
 from pathlib import Path
 from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
-import cpuinfo
 import numpy as np
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import (
     OPENVINO_FILENAMES,
-    NO_COMPILER_INSTALLATION,
 )
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -21,51 +19,19 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.optional_modules.openvino import (
+    Core,
+    Model,
+    CompiledModel,
+    InferRequest,
+)
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
-
-try:
-    from openvino.runtime import Core, Model, CompiledModel, InferRequest
-except ImportError:
-    from nebullvm.utils.general import is_python_version_3_10
-
-    if (
-        "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
-        and not is_python_version_3_10()
-        and not NO_COMPILER_INSTALLATION
-    ):
-        warnings.warn(
-            "No valid OpenVino installation has been found. "
-            "Trying to re-install it from source."
-        )
-        from nebullvm.installers.installers import install_openvino
-
-        install_openvino(with_optimization=True)
-
-        try:
-            from openvino.runtime import (
-                Core,
-                Model,
-                CompiledModel,
-                InferRequest,
-            )
-        except ImportError:
-            warnings.warn(
-                "No Openvino library detected. "
-                "The Openvino Inference learner should not be used."
-            )
-            Model = CompiledModel = InferRequest = object
-    else:
-        warnings.warn(
-            "No Openvino library detected. "
-            "The Openvino Inference learner should not be used."
-        )
-        Model = CompiledModel = InferRequest = object
 
 
 class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
-    """Model optimized using ApacheTVM.
+    """Model optimized using OpenVINO.
 
     The class cannot be directly instantiated, but implements all the core
     methods needed for using ApacheTVM at inference time.

@@ -1,4 +1,3 @@
-import cpuinfo
 import warnings
 from abc import ABC
 from pathlib import Path
@@ -8,39 +7,17 @@ import torch.fx
 from torch.quantization.quantize_fx import prepare_fx, convert_fx
 
 from nebullvm.base import DeepLearningFramework, ModelParams
-from nebullvm.config import NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
 )
-from nebullvm.installers.installers import install_intel_neural_compressor
+from nebullvm.optional_modules.neural_compressor import (
+    _cfgs_to_fx_cfgs,
+    _cfg_to_qconfig,
+)
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
-
-try:
-    from neural_compressor.adaptor.pytorch import (
-        _cfg_to_qconfig,
-        _cfgs_to_fx_cfgs,
-    )
-except ImportError:
-    import platform
-
-    os_ = platform.system()
-    if (
-        "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
-        and not NO_COMPILER_INSTALLATION
-    ):
-        warnings.warn(
-            "No intel neural compressor installation found. "
-            "Trying to install it..."
-        )
-        install_intel_neural_compressor()
-    else:
-        warnings.warn(
-            "No valid intel neural compressor installation found. "
-            "The compiler won't be used in the following."
-        )
 
 
 class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):

@@ -24,6 +24,7 @@ from nebullvm.measure import (
     compute_tf_latency,
     compute_onnx_latency,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
@@ -32,7 +33,6 @@ from nebullvm.utils.onnx import (
     get_output_sizes_onnx,
     run_onnx_model,
 )
-from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import (
     get_outputs_sizes_tf,
     run_tf_model,

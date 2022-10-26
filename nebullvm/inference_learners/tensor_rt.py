@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
-from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.config import NVIDIA_FILENAMES
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -16,31 +16,11 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.tensor_rt import tensorrt as trt, polygraphy
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
-
-if torch.cuda.is_available():
-    try:
-        import tensorrt as trt
-        import polygraphy.cuda
-    except ImportError:
-        if not NO_COMPILER_INSTALLATION:
-            from nebullvm.installers.installers import install_tensor_rt
-
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "Trying to install it from source."
-            )
-            install_tensor_rt()
-            import tensorrt as trt
-            import polygraphy.cuda
-        else:
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "It won't be possible to use it in the following steps."
-            )
 
 
 class NvidiaInferenceLearner(BaseInferenceLearner, ABC):

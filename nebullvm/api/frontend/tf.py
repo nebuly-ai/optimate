@@ -24,7 +24,9 @@ from nebullvm.converters import ONNXConverter
 from nebullvm.inference_learners import TensorflowBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import BaseOptimizer
+from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
@@ -33,8 +35,6 @@ from nebullvm.utils.tf import (
     create_model_inputs_tf,
     run_tf_model,
 )
-from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
-from nebullvm.utils.optional_modules import tensorflow as tf
 
 logging.basicConfig(
     format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"

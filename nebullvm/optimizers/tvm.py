@@ -24,26 +24,21 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.tvm import (
+    tvm,
+    IRModule,
+    NDArray,
+    XGBTuner,
+    autotvm,
+    relay,
+    ToMixedPrecision,
+)
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
 )
 from nebullvm.utils.torch import create_model_inputs_torch
-
-try:
-    import tvm
-    from tvm import IRModule
-    from tvm.runtime.ndarray import NDArray
-    from tvm.autotvm.tuner import XGBTuner
-    from tvm import autotvm
-    import tvm.relay as relay
-    from tvm.relay.transform import ToMixedPrecision
-except ImportError:
-    # TVM is installed in the inference_learner package.
-    # TVM objects needed for avoiding errors:
-    IRModule = object
-    NDArray = object
 
 
 class ApacheTVMOptimizer(BaseOptimizer):

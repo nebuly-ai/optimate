@@ -5,6 +5,7 @@ on:
     branches:
       - "main"
       - "dev"
+      - "change_install_method"
   pull_request:
     branches:
       - "main"

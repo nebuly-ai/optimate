@@ -13,25 +13,13 @@ from nebullvm.inference_learners.onnx import (
 from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.utils import check_precision
+from nebullvm.optional_modules.onnxruntime import optimizer
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
 )
-
-try:
-    from onnxruntime.transformers import optimizer
-except ImportError:
-    import warnings
-
-    warnings.warn(
-        "No valid onnxruntime installation found. Trying to install it..."
-    )
-    from nebullvm.installers.installers import install_onnxruntime
-
-    install_onnxruntime()
-    from onnxruntime.transformers import optimizer
 
 
 class HuggingFaceOptimizer(BaseOptimizer):

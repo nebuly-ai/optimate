@@ -8,7 +8,7 @@ from nebullvm.inference_learners import (
     TensorflowBaseInferenceLearner,
     LearnerMetadata,
 )
-from nebullvm.utils.optional_modules import tensorflow as tf
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 
 
 class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):

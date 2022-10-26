@@ -9,8 +9,8 @@ import onnx
 
 from nebullvm.base import ModelParams, DataType
 from nebullvm.config import ONNX_OPSET_VERSION
-from nebullvm.utils.optional_modules import tensorflow as tf
-from nebullvm.utils.optional_modules import tf2onnx
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.tensorflow import tf2onnx
 
 
 def convert_tf_to_onnx(

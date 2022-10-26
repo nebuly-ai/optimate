@@ -13,7 +13,7 @@ from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
 )
-from nebullvm.utils.optional_modules import tensorflow as tf
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 
 
 def compute_torch_latency(

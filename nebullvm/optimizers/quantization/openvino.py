@@ -2,37 +2,14 @@ from typing import List, Tuple, Any
 
 import numpy as np
 
-from nebullvm.config import NO_COMPILER_INSTALLATION
-
-try:
-    from openvino.tools.pot import DataLoader
-    from openvino.tools.pot import IEEngine
-    from openvino.tools.pot import load_model, save_model
-    from openvino.tools.pot import compress_model_weights
-    from openvino.tools.pot import create_pipeline
-except ImportError:
-    import cpuinfo
-    from nebullvm.utils.general import is_python_version_3_10
-
-    if (
-        "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
-        and not is_python_version_3_10()
-        and not NO_COMPILER_INSTALLATION
-    ):
-        from nebullvm.installers.installers import install_openvino
-
-        install_openvino()
-
-        try:
-            from openvino.tools.pot import DataLoader
-            from openvino.tools.pot import IEEngine
-            from openvino.tools.pot import load_model, save_model
-            from openvino.tools.pot import compress_model_weights
-            from openvino.tools.pot import create_pipeline
-        except Exception:
-            DataLoader = object
-    else:
-        DataLoader = object
+from nebullvm.optional_modules.openvino import (
+    DataLoader,
+    load_model,
+    IEEngine,
+    create_pipeline,
+    compress_model_weights,
+    save_model,
+)
 
 
 class _CalibrationDataLoader(DataLoader):

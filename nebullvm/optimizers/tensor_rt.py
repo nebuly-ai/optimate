@@ -11,7 +11,6 @@ import torch
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import (
     NVIDIA_FILENAMES,
-    NO_COMPILER_INSTALLATION,
     TORCH_TENSORRT_PRECISIONS,
     QUANTIZATION_DATA_NUM,
     CONSTRAINED_METRIC_DROP_THS,
@@ -30,91 +29,14 @@ from nebullvm.optimizers.quantization.utils import (
     check_precision,
     check_quantization,
 )
+from nebullvm.optional_modules.tensor_rt import tensorrt as trt
+from nebullvm.optional_modules.torch_tensorrt import torch_tensorrt
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager, PytorchDataset
-from nebullvm.utils.general import check_module_version
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
 )
-
-if torch.cuda.is_available():
-    try:
-        import onnxsim  # noqa F401
-    except ImportError:
-        from nebullvm.installers.installers import install_onnx_simplifier
-
-        if not NO_COMPILER_INSTALLATION:
-            warnings.warn(
-                "No ONNX simplifier valid installation has been found. "
-                "Trying to install it from source."
-            )
-            install_onnx_simplifier()
-            try:
-                import onnxsim  # noqa F401
-            except ImportError:
-                warnings.warn(
-                    "No ONNX simplifier valid installation has been found. "
-                    "It won't be possible to use it in the following."
-                )
-        else:
-            warnings.warn(
-                "No ONNX simplifier valid installation has been found. "
-                "It won't be possible to use it in the following."
-            )
-
-    try:
-        import tensorrt as trt
-    except ImportError:
-        from nebullvm.installers.installers import install_tensor_rt
-
-        if not NO_COMPILER_INSTALLATION:
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "Trying to install it from source."
-            )
-            install_tensor_rt()
-            import tensorrt as trt
-        else:
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "It won't be possible to use it in the following."
-            )
-    if check_module_version(torch, min_version="1.12.0"):
-        try:
-            import torch_tensorrt
-        except ImportError:
-            if not NO_COMPILER_INSTALLATION:
-                from nebullvm.installers.installers import (
-                    install_torch_tensor_rt,
-                )
-
-                warnings.warn(
-                    "No Torch TensorRT valid installation has been found. "
-                    "Trying to install it from source."
-                )
-
-                install_torch_tensor_rt()
-
-                # Wrap import inside try/except because installation
-                # may fail until wheel 1.2 will be officially out.
-                try:
-                    import torch_tensorrt
-                except ImportError:
-                    warnings.warn(
-                        "Unable to install Torch TensorRT on this platform. "
-                        "It won't be possible to use it in the following."
-                    )
-            else:
-                warnings.warn(
-                    "No Torch TensorRT valid installation has been found. "
-                    "It won't be possible to use it in the following."
-                )
-    else:
-        warnings.warn(
-            "Torch-TensorRT can be installed only from Pytorch 1.12. "
-            "Please update your Pytorch version."
-        )
 
 
 class TensorRTOptimizer(BaseOptimizer):

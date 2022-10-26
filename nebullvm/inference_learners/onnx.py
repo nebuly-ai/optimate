@@ -14,7 +14,6 @@ from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.config import (
     ONNX_FILENAMES,
     ONNX_PROVIDERS,
-    NO_COMPILER_INSTALLATION,
 )
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -23,30 +22,9 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.optional_modules import tensorflow as tf
-
-try:
-    import onnxruntime as ort
-except ImportError:
-    if NO_COMPILER_INSTALLATION:
-        warnings.warn(
-            "No valid onnxruntime installation found. The compiler will raise "
-            "an error if used."
-        )
-
-        class ort:
-            pass
-
-        setattr(ort, "SessionOptions", None)
-    else:
-        warnings.warn(
-            "No valid onnxruntime installation found. Trying to install it..."
-        )
-        from nebullvm.installers.installers import install_onnxruntime
-
-        install_onnxruntime()
-        import onnxruntime as ort
 
 
 def _running_on_intel_cpu():

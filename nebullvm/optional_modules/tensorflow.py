@@ -30,7 +30,7 @@ try:
         )
 except ImportError:
     warnings.warn(
-        "tensorflow module is not installed on this platform."
+        "tensorflow module is not installed on this platform. "
         "Please install it if you want to use tensorflow API."
     )
     tensorflow = Tensorflow
@@ -52,12 +52,3 @@ except ImportError:
         import tf2onnx
     except ImportError:
         tf2onnx = object
-
-
-try:
-    import onnxruntime as ort  # noqa F401
-except ImportError:
-    warnings.warn(
-        "onnxruntime module is not installed on this platform."
-        "Please install it if you want to use it."
-    )

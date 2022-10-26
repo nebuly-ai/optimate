@@ -15,9 +15,9 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 class TensorflowBackendOptimizer(BaseOptimizer):

@@ -5,7 +5,7 @@ import onnx
 import torch
 
 from nebullvm.base import InputInfo, DataType, DeepLearningFramework
-from nebullvm.utils.optional_modules import tensorflow as tf
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.config import ONNX_PROVIDERS
 
 

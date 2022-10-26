@@ -37,6 +37,7 @@ from nebullvm.optimizers.neural_compressor import NeuralCompressorOptimizer
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tensor_rt import TensorRTOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.compilers import (
     tvm_is_available,
@@ -49,7 +50,6 @@ from nebullvm.utils.compilers import (
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.utils.general import is_python_version_3_10
-from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 class Step(ABC):

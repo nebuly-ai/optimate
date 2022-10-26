@@ -3,8 +3,8 @@ from typing import List, Tuple
 
 from nebullvm.base import QuantizationType
 from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 def _quantize_dynamic(model: tf.Module):

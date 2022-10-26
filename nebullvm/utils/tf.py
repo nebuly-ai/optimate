@@ -1,7 +1,7 @@
 from typing import Union, List, Tuple
 
 from nebullvm.base import InputInfo, DataType
-from nebullvm.utils.optional_modules import tensorflow as tf
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 
 
 def get_outputs_sizes_tf(

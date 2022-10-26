@@ -11,16 +11,9 @@ import yaml
 from torch.utils.data import DataLoader, Dataset
 
 from nebullvm.compressors.base import BaseCompressor
+from nebullvm.optional_modules.neural_compressor import Pruning
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
-
-try:
-    from neural_compressor.experimental import Pruning
-except ImportError:
-    Pruning = object
-except ValueError:
-    # MacOS
-    Pruning = object
 
 
 def _get_model_framework(model: Any) -> str:

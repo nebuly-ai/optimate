@@ -1,5 +1,4 @@
 import logging
-import warnings
 
 from collections.abc import Callable
 from typing import Optional, Any
@@ -8,7 +7,6 @@ import torch.nn
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import (
-    NO_COMPILER_INSTALLATION,
     QUANTIZATION_DATA_NUM,
     CONSTRAINED_METRIC_DROP_THS,
 )
@@ -20,29 +18,10 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.blade_disc import torch_blade
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import create_model_inputs_torch
-
-try:
-    import torch_blade
-except ImportError:
-    # TODO: Remove the False flag for allowing BladeDISC to be installed by
-    # the Auto-Installer.
-    if False and not NO_COMPILER_INSTALLATION:
-        warnings.warn(
-            "No valid BladeDISC installation has been found. "
-            "Trying to re-install it from source."
-        )
-        from nebullvm.installers.installers import install_bladedisc
-
-        install_bladedisc()
-        import torch_blade
-    else:
-        warnings.warn(
-            "No BladeDISC library detected. "
-            "The BladeDISC Inference learner should not be used."
-        )
 
 
 class BladeDISCOptimizer(BaseOptimizer):

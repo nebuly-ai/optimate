@@ -10,18 +10,11 @@ from torch.utils.data import DataLoader
 
 from nebullvm.base import QuantizationType
 from nebullvm.compressors.intel import INCDataset
+from nebullvm.optional_modules.neural_compressor import (
+    MixedPrecision,
+    Quantization,
+)
 from nebullvm.utils.data import DataManager
-
-try:
-    from neural_compressor.experimental import (
-        MixedPrecision,
-        Quantization,
-    )
-except ImportError:
-    Quantization = object
-except ValueError:
-    # MacOS
-    Quantization = object
 
 
 def _prepare_quantization_config(model: Any, tmp_dir: str, approach: str):

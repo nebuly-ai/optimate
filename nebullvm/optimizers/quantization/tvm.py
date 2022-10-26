@@ -2,11 +2,6 @@ from typing import List, Sequence
 
 from nebullvm.utils.data import DataManager
 
-try:
-    from tvm.runtime.ndarray import NDArray
-except ImportError:
-    NDArray = object
-
 
 class TVMCalibrator(DataManager):
     def __init__(self, data_reader: Sequence, input_names: List[str]):
