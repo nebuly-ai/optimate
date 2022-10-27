@@ -2,7 +2,7 @@ import logging
 
 from nebullvm.utils.general import check_module_version
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nebullvm_logger")
 
 try:
     import onnx  # noqa F401

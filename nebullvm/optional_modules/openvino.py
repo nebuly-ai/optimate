@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nebullvm_logger")
 
 try:
     from openvino.runtime import Core, Model, CompiledModel, InferRequest

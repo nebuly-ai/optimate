@@ -42,7 +42,7 @@ from nebullvm.utils.torch import (
     run_torch_model,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nebullvm_logger")
 
 
 def _get_dl_framework(model: Any):

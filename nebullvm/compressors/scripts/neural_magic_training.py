@@ -34,7 +34,7 @@ logging.basicConfig(
     format=" %(asctime)s [%(levelname)s] %(message)s",
     datefmt="%d/%m/%Y %I:%M:%S %p",
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nebullvm_logger")
 logger.setLevel(logging.INFO)
 
 

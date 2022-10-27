@@ -41,7 +41,7 @@ from nebullvm.optimizers import (
 )
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nebullvm_logger")
 
 
 def _extract_dynamic_axis(

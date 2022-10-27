@@ -79,11 +79,7 @@ COMPRESSOR_LIST = [
     "intel_pruning",
 ]
 
-ONNX_MODULES = [
-    "onnxruntime",
-    "openvino",
-    "tensor_rt",
-]
+ONNX_MODULES = ["onnxruntime", "openvino", "tensor_rt", "onnx_simplifier"]
 
 TORCH_MODULES = [
     "deepsparse",

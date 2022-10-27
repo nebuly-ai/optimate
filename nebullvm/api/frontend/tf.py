@@ -36,7 +36,7 @@ from nebullvm.utils.tf import (
     run_tf_model,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nebullvm_logger")
 
 
 def _extract_dynamic_axis(

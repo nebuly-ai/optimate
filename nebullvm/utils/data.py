@@ -7,7 +7,7 @@ import torch
 from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.utils.onnx import convert_to_numpy
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nebullvm_logger")
 
 
 class DataManager:

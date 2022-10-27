@@ -18,7 +18,7 @@ from nebullvm.config import (
 )
 from nebullvm.utils.general import check_module_version, is_python_version_3_10
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nebullvm_logger")
 
 
 def get_cpu_arch():
