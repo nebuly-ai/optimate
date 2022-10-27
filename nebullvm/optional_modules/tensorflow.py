@@ -32,6 +32,7 @@ try:
         )
 except ImportError:
     logger.warning(
+        "Missing Library: "
         "tensorflow module is not installed on this platform. "
         "Please install it if you want to use tensorflow API."
     )
@@ -45,6 +46,7 @@ except ImportError:
         import tensorflow  # noqa F401
 
         logger.warning(
+            "Missing Library: "
             "tf2onnx module is not installed on this platform. "
             "Please install it if you want to exploit the ONNX "
             "pipeline with a Tensorflow model."

@@ -7,6 +7,7 @@ try:
     from tensorrt import IInt8EntropyCalibrator2
 except ImportError:
     logger.warning(
+        "Missing Library: "
         "tensorrt module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."
@@ -18,6 +19,7 @@ try:
     import polygraphy
 except ImportError:
     logger.warning(
+        "Missing Library: "
         "polygraphy module is not installed on this platform. "
         "It's needed for tensorrt to work properly, please install "
         "it if you want to include tensorrt in the optimization "

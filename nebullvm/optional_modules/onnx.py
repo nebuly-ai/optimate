@@ -14,6 +14,7 @@ try:
         )
 except ImportError:
     logger.warning(
+        "Missing Library: "
         "onnx module is not installed on this platform. "
         "Please install it if you want to use ONNX API or "
         "the ONNX pipeline for PyTorch and Tensorflow."
@@ -35,6 +36,7 @@ try:
 
 except ImportError:
     logger.warning(
+        "Missing Library: "
         "onnxmltools module is not installed on this platform. "
         "Please install it if you want to use ONNX API or "
         "the ONNX pipeline for PyTorch and Tensorflow."

@@ -11,6 +11,7 @@ try:
     from openvino.tools.pot import create_pipeline
 except ImportError:
     logger.warning(
+        "Missing Library: "
         "openvino module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."
