@@ -427,7 +427,8 @@ class TensorflowInstaller(BaseInstaller, ABC):
 class ONNXInstaller(BaseInstaller, ABC):
     @staticmethod
     def install_dependencies(include_frameworks: List[str]):
-        return
+        cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
+        subprocess.run(cmd)
 
     @staticmethod
     def check_framework():
@@ -450,12 +451,8 @@ class ONNXInstaller(BaseInstaller, ABC):
         cmd = ["pip3", "install", "onnx>=1.10.0"]
         subprocess.run(cmd)
 
-        cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
-        subprocess.run(cmd)
-
         try:
             import onnx  # noqa F401
-            import onnxmltools  # noqa F401
         except ImportError:
             return False
 
