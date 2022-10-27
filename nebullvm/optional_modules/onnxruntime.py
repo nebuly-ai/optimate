@@ -7,9 +7,6 @@ class Onnxruntime:
 
 try:
     import onnxruntime  # noqa F401
-    from onnxmltools.utils.float16_converter import (
-        convert_float_to_float16_model_path,
-    )
     from onnxruntime.quantization import (
         QuantType,
         quantize_static,
@@ -28,7 +25,6 @@ except ImportError:
     QuantType = quantize_static = quantize_dynamic = None
     CalibrationDataReader = object
     optimizer = object
-    convert_float_to_float16_model_path = object
 except FileNotFoundError:
     # Solves a colab issue
     QuantType = quantize_static = quantize_dynamic = None

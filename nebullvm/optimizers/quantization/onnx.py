@@ -3,7 +3,6 @@ from typing import Union, Iterable, Tuple, List
 
 import cpuinfo
 import numpy as np
-import onnx
 import torch
 from torch.utils.data import DataLoader
 
@@ -11,12 +10,15 @@ from nebullvm.base import QuantizationType
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 from nebullvm.utils.onnx import get_input_names
+from nebullvm.optional_modules.onnx import (
+    onnx,
+    convert_float_to_float16_model_path,
+)
 from nebullvm.optional_modules.onnxruntime import (
     CalibrationDataReader,
     QuantType,
     quantize_dynamic,
     quantize_static,
-    convert_float_to_float16_model_path,
 )
 
 

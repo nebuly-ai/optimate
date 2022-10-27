@@ -3,7 +3,6 @@ import os
 import uuid
 from typing import Tuple, Dict, Optional, Callable, Any
 
-import onnx
 import torch.cuda
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
@@ -24,6 +23,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tvm import (
     tvm,
     IRModule,

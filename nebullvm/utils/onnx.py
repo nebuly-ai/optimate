@@ -1,10 +1,10 @@
 from typing import List, Tuple, Any
 
 import numpy as np
-import onnx
 import torch
 
 from nebullvm.base import InputInfo, DataType, DeepLearningFramework
+from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.config import ONNX_PROVIDERS
 
@@ -48,7 +48,7 @@ def get_output_names(onnx_model: str):
 def run_onnx_model(
     onnx_model: str, input_tensors: List[np.ndarray]
 ) -> List[np.ndarray]:
-    import onnxruntime as ort
+    from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 
     model = ort.InferenceSession(
         onnx_model,

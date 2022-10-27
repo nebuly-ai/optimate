@@ -3,7 +3,6 @@ from logging import Logger
 from pathlib import Path
 from typing import Any, List
 
-import onnx
 from torch.nn import Module
 
 from nebullvm.base import ModelParams
@@ -12,6 +11,7 @@ from nebullvm.converters.tensorflow_converters import (
     convert_keras_to_onnx,
 )
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
+from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.utils.data import DataManager
 

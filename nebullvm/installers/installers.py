@@ -316,7 +316,31 @@ def install_onnx_simplifier():
     return True
 
 
+def install_onnx():
+    """Helper function for installing ONNX."""
+
+    if _get_os() == "Darwin" and get_cpu_arch() == "arm":
+        cmd = ["pip3", "install", "cmake"]
+        subprocess.run(cmd)
+
+    cmd = ["pip3", "install", "onnx>=1.10.0"]
+    subprocess.run(cmd)
+
+    cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
+    subprocess.run(cmd)
+
+    try:
+        import onnx  # noqa F401
+        import onnxmltools  # noqa F401
+    except ImportError:
+        return False
+
+    return True
+
+
 def auto_install_libraries(include_libraries: Optional[List[str]] = None):
+    install_onnx()
+
     try:
         import tensorflow  # noqa F401
 

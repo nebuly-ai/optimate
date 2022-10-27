@@ -5,12 +5,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Union
 
-import onnx
-
 from nebullvm.base import ModelParams, DataType
 from nebullvm.config import ONNX_OPSET_VERSION
-from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.tensorflow import tf2onnx
+from nebullvm.optional_modules.onnx import onnx
+from nebullvm.optional_modules.tensorflow import tensorflow as tf, tf2onnx
 
 
 def convert_tf_to_onnx(

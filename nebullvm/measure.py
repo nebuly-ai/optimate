@@ -112,7 +112,7 @@ def compute_onnx_latency(
         Float: Average latency.
         List[Float]: List of latencies obtained.
     """
-    import onnxruntime as ort
+    from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 
     input_names = get_input_names(model)
     output_names = get_output_names(model)

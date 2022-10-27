@@ -7,7 +7,6 @@ from typing import Union, List, Generator, Tuple, Dict, Type
 
 import cpuinfo
 import numpy as np
-import onnx
 import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
@@ -22,8 +21,9 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
-from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 
 
