@@ -1,6 +1,5 @@
 import logging
 
-from nebullvm.installers.installers import install_tf2onnx
 from nebullvm.utils.general import check_module_version
 
 logger = logging.getLogger(__name__)
@@ -42,17 +41,11 @@ except ImportError:
 try:
     import tf2onnx  # noqa F401
 except ImportError:
-    try:
-        import tensorflow  # noqa F401
+    logger.warning(
+        "Missing Library: "
+        "tf2onnx module is not installed on this platform. "
+        "Please install it if you want to exploit the ONNX "
+        "pipeline with a Tensorflow model."
+    )
 
-        logger.warning(
-            "Missing Library: "
-            "tf2onnx module is not installed on this platform. "
-            "Please install it if you want to exploit the ONNX "
-            "pipeline with a Tensorflow model."
-        )
-
-        install_tf2onnx()
-        import tf2onnx
-    except ImportError:
-        tf2onnx = object
+    tf2onnx = object
