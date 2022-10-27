@@ -10,7 +10,7 @@ try:
     from openvino.tools.pot import compress_model_weights
     from openvino.tools.pot import create_pipeline
 except ImportError:
-    logger.warn(
+    logger.warning(
         "openvino module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."

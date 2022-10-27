@@ -13,7 +13,7 @@ try:
         Pruning,
     )
 except ImportError:
-    logger.warn(
+    logger.warning(
         "neural_compressor module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."

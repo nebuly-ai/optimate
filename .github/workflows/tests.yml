@@ -42,7 +42,7 @@ jobs:
         run: pip install -r "requirements-dev.txt"
         # Install compilers except tvm
       - name: Install deep learning compilers
-        run: python -c "from nebullvm.installers.installers import auto_install_libraries; auto_install_libraries()"
+        run: python -c "from nebullvm.installers.installers import auto_install_libraries; auto_install_libraries(frameworks=["torch", "onnx", "tensorflow"])"
         #        # Install tvm
         #      - name: Install tvm
         #        run: |
@@ -84,7 +84,7 @@ jobs:
         run: pip install -r "requirements-dev.txt"
         # Install compilers except tvm
       - name: Install deep learning compilers
-        run: python -c "from nebullvm.installers.installers import auto_install_libraries; auto_install_libraries()"
+        run: python -c "from nebullvm.installers.installers import auto_install_libraries; auto_install_libraries(frameworks=["torch", "onnx", "tensorflow"])"
         #        # Install tvm
         #      - name: Install tvm
         #        run: |

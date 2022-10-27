@@ -13,7 +13,7 @@ try:
     from tvm.contrib.graph_executor import GraphModule
     from tvm.runtime import Module
 except ImportError:
-    logger.warn(
+    logger.warning(
         "tvm module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."

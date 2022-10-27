@@ -335,7 +335,7 @@ class BaseInstaller(ABC):
                 install_ok = False
 
             if not install_ok:
-                logger.warn(
+                logger.warning(
                     f"Unable to install {library} on this platform. "
                     f"The compiler will be skipped. "
                 )
