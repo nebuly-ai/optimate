@@ -1,8 +1,8 @@
+import logging
 import os
 import platform
 import subprocess
 import sys
-import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Optional, List
@@ -17,6 +17,8 @@ from nebullvm.config import (
     TENSORFLOW_MODULES,
 )
 from nebullvm.utils.general import check_module_version, is_python_version_3_10
+
+logger = logging.getLogger(__name__)
 
 
 def get_cpu_arch():
@@ -325,13 +327,15 @@ class BaseInstaller(ABC):
             ) or (not torch.cuda.is_available() and library in LIBRARIES_GPU):
                 continue
 
+            logger.info(f"Trying to install {library} on the platform...")
+
             try:
                 install_ok = COMPILER_INSTALLERS[library]()
             except Exception:
                 install_ok = False
 
             if not install_ok:
-                warnings.warn(
+                logger.warn(
                     f"Unable to install {library} on this platform. "
                     f"The compiler will be skipped. "
                 )

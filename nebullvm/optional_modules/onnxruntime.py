@@ -1,4 +1,6 @@
-import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Onnxruntime:
@@ -15,7 +17,7 @@ try:
     )
     from onnxruntime.transformers import optimizer
 except ImportError:
-    warnings.warn(
+    logger.warn(
         "onnxruntime module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."

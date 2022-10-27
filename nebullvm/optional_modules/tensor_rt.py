@@ -1,10 +1,12 @@
-import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     import tensorrt
     from tensorrt import IInt8EntropyCalibrator2
 except ImportError:
-    warnings.warn(
+    logger.warn(
         "tensorrt module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."
@@ -15,7 +17,7 @@ except ImportError:
 try:
     import polygraphy
 except ImportError:
-    warnings.warn(
+    logger.warn(
         "polygraphy module is not installed on this platform. "
         "It's needed for tensorrt to work properly, please install "
         "it if you want to include tensorrt in the optimization "

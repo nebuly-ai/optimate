@@ -1,4 +1,6 @@
-import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     import tvm
@@ -11,7 +13,7 @@ try:
     from tvm.contrib.graph_executor import GraphModule
     from tvm.runtime import Module
 except ImportError:
-    warnings.warn(
+    logger.warn(
         "tvm module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."

@@ -1,9 +1,11 @@
-import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     from deepsparse import compile_model, cpu
 except ImportError:
-    warnings.warn(
+    logger.warn(
         "deepsparse module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."

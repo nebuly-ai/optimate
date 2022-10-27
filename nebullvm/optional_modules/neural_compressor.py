@@ -1,4 +1,6 @@
-import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     from neural_compressor.adaptor.pytorch import (
@@ -11,7 +13,7 @@ try:
         Pruning,
     )
 except ImportError:
-    warnings.warn(
+    logger.warn(
         "neural_compressor module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."

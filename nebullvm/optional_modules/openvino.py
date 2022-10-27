@@ -1,4 +1,6 @@
-import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     from openvino.runtime import Core, Model, CompiledModel, InferRequest
@@ -8,7 +10,7 @@ try:
     from openvino.tools.pot import compress_model_weights
     from openvino.tools.pot import create_pipeline
 except ImportError:
-    warnings.warn(
+    logger.warn(
         "openvino module is not installed on this platform. "
         "Please install it if you want to include it in the "
         "optimization pipeline."
