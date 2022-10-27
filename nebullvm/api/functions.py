@@ -42,7 +42,12 @@ from nebullvm.utils.torch import (
     run_torch_model,
 )
 
+
+logging.basicConfig(
+    format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"
+)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def _get_dl_framework(model: Any):
