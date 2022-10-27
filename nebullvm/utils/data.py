@@ -1,4 +1,4 @@
-import warnings
+import logging
 from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
@@ -6,6 +6,8 @@ import torch
 
 from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.utils.onnx import convert_to_numpy
+
+logger = logging.getLogger(__name__)
 
 
 class DataManager:
@@ -108,7 +110,7 @@ class DataManager:
         n = int(round(len(idx) * split_pct))
 
         if len(self) < MIN_DIM_INPUT_DATA:
-            warnings.warn(
+            logger.warning(
                 f"Not enough data for splitting the DataManager. "
                 f"You should provide at least {MIN_DIM_INPUT_DATA}. "
                 f"data samples to allow a good split between train "
