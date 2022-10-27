@@ -78,3 +78,20 @@ COMPRESSOR_LIST = [
     "sparseml",
     "intel_pruning",
 ]
+
+ONNX_MODULES = [
+    "onnxruntime",
+    "openvino",
+    "tensor_rt",
+]
+
+TORCH_MODULES = [
+    "deepsparse",
+    "intel_neural_compressor",
+    "tensor_rt",
+    "torch_tensor_rt",
+]
+
+TENSORFLOW_MODULES = []
+
+LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt", "onnx_simplifier"]

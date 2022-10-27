@@ -3,12 +3,19 @@ import platform
 import subprocess
 import sys
 import warnings
+from abc import ABC
 from pathlib import Path
 from typing import Optional, List
 
 import cpuinfo
 import torch
 
+from nebullvm.config import (
+    LIBRARIES_GPU,
+    ONNX_MODULES,
+    TORCH_MODULES,
+    TENSORFLOW_MODULES,
+)
 from nebullvm.utils.general import check_module_version, is_python_version_3_10
 
 
@@ -133,25 +140,15 @@ def install_torch_tensor_rt():
 
 
 def install_tf2onnx():
-    cmd = ["pip3", "install", "tf2onnx>=1.8.4"]
-    subprocess.run(cmd)
+    if _get_os() == "Darwin" and get_cpu_arch() == "arm":
+        cmd = ["conda", "install", "-y", "tf2onnx>=1.8.4"]
+        subprocess.run(cmd)
+    else:
+        cmd = ["pip3", "install", "tf2onnx>=1.8.4"]
+        subprocess.run(cmd)
 
     try:
         import tf2onnx  # noqa F401
-    except ImportError:
-        return False
-
-    return True
-
-
-def install_tensorflow():
-    # Tensorflow 2.10 for now it's not supported
-    # Will be supported when tf2onnx library will support flatbuffers >= 2.x
-    cmd = ["pip3", "install", "tensorflow>=2.7.0,<2.10"]
-    subprocess.run(cmd)
-
-    try:
-        import tensorflow  # noqa F401
     except ImportError:
         return False
 
@@ -316,67 +313,16 @@ def install_onnx_simplifier():
     return True
 
 
-def install_onnx():
-    """Helper function for installing ONNX."""
+class BaseInstaller(ABC):
+    def __init__(self, module_list: List[str]):
+        self.modules = module_list
 
-    if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-        cmd = ["pip3", "install", "cmake"]
-        subprocess.run(cmd)
-
-    cmd = ["pip3", "install", "onnx>=1.10.0"]
-    subprocess.run(cmd)
-
-    cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
-    subprocess.run(cmd)
-
-    try:
-        import onnx  # noqa F401
-        import onnxmltools  # noqa F401
-    except ImportError:
-        return False
-
-    return True
-
-
-def auto_install_libraries(include_libraries: Optional[List[str]] = None):
-    install_onnx()
-
-    try:
-        import tensorflow  # noqa F401
-
-        install_tf2onnx()
-    except ImportError:
-        pass
-
-    for library in [
-        "onnxruntime",
-        "openvino",
-        "deepsparse",
-        "intel_neural_compressor",
-    ]:
-        if (
-            isinstance(include_libraries, List)
-            and library not in include_libraries
-        ):
-            continue
-
-        try:
-            install_ok = COMPILER_INSTALLERS[library]()
-        except Exception:
-            install_ok = False
-
-        if not install_ok:
-            warnings.warn(
-                f"Unable to install {library} on this platform. "
-                f"The compiler will be skipped. "
-            )
-
-    if torch.cuda.is_available():
-        for library in ["tensor_rt", "torch_tensor_rt", "onnx_simplifier"]:
+    def install_compilers(self, include_libraries: Optional[List[str]] = None):
+        for library in self.modules:
             if (
                 isinstance(include_libraries, List)
                 and library not in include_libraries
-            ):
+            ) or (not torch.cuda.is_available() and library in LIBRARIES_GPU):
                 continue
 
             try:
@@ -390,6 +336,136 @@ def auto_install_libraries(include_libraries: Optional[List[str]] = None):
                     f"The compiler will be skipped. "
                 )
 
+    @staticmethod
+    def install_dependencies(include_frameworks: List[str]):
+        raise NotImplementedError
+
+    @staticmethod
+    def check_framework():
+        raise NotImplementedError
+
+    @staticmethod
+    def install_framework():
+        raise NotImplementedError
+
+
+class PytorchInstaller(BaseInstaller, ABC):
+    @staticmethod
+    def install_dependencies(include_frameworks: List[str]):
+        return
+
+    @staticmethod
+    def check_framework():
+        try:
+            import torch  # noqa F401
+        except ImportError:
+            return False
+
+        if not check_module_version(torch, min_version="1.12.0"):
+            return False
+
+        return True
+
+    @staticmethod
+    def install_framework():
+        cmd = ["pip3", "install", "torch>=1.10.0"]
+        subprocess.run(cmd)
+
+        try:
+            import torch  # noqa F401
+        except ImportError:
+            return False
+
+        return True
+
+
+class TensorflowInstaller(BaseInstaller, ABC):
+    @staticmethod
+    def install_dependencies(include_frameworks: List[str]):
+        if "onnx" in include_frameworks:
+            install_tf2onnx()
+
+    @staticmethod
+    def check_framework():
+        try:
+            import tensorflow  # noqa F401
+        except ImportError:
+            return False
+
+        if not check_module_version(
+            tensorflow, min_version="2.7.0", max_version="2.10.0"
+        ):
+            return False
+
+        return True
+
+    @staticmethod
+    def install_framework():
+        # Tensorflow 2.10 for now it's not supported
+        # tf2onnx library does not support flatbuffers >= 2.x
+        if _get_os() == "Darwin" and get_cpu_arch() == "arm":
+            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0,<2.10"]
+            subprocess.run(cmd)
+        else:
+            cmd = ["pip3", "install", "tensorflow>=2.7.0,<2.10"]
+            subprocess.run(cmd)
+
+        try:
+            import tensorflow  # noqa F401
+        except ImportError:
+            return False
+
+        return True
+
+
+class ONNXInstaller(BaseInstaller, ABC):
+    @staticmethod
+    def install_dependencies(include_frameworks: List[str]):
+        return
+
+    @staticmethod
+    def check_framework():
+        try:
+            import onnx  # noqa F401
+        except ImportError:
+            return False
+
+        if not check_module_version(onnx, min_version="1.10.0"):
+            return False
+
+        return True
+
+    @staticmethod
+    def install_framework():
+        if _get_os() == "Darwin" and get_cpu_arch() == "arm":
+            cmd = ["pip3", "install", "cmake"]
+            subprocess.run(cmd)
+
+        cmd = ["pip3", "install", "onnx>=1.10.0"]
+        subprocess.run(cmd)
+
+        cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
+        subprocess.run(cmd)
+
+        try:
+            import onnx  # noqa F401
+            import onnxmltools  # noqa F401
+        except ImportError:
+            return False
+
+        return True
+
+
+def auto_install_libraries(
+    include_frameworks: List, include_compilers: Optional[List[str]] = None
+):
+    for framework in include_frameworks:
+        framework_installer = INSTALLERS[framework](MODULES[framework])
+        if not framework_installer.check_framework():
+            framework_installer.install_framework()
+        framework_installer.install_dependencies(include_frameworks)
+        framework_installer.install_compilers(include_compilers)
+
 
 COMPILER_INSTALLERS = {
     "onnxruntime": install_onnxruntime,
@@ -399,4 +475,16 @@ COMPILER_INSTALLERS = {
     "deepsparse": install_deepsparse,
     "intel_neural_compressor": install_intel_neural_compressor,
     "onnx_simplifier": install_onnx_simplifier,
+}
+
+INSTALLERS = {
+    "onnx": ONNXInstaller,
+    "torch": PytorchInstaller,
+    "tensorflow": TensorflowInstaller,
+}
+
+MODULES = {
+    "onnx": ONNX_MODULES,
+    "torch": TORCH_MODULES,
+    "tensorflow": TENSORFLOW_MODULES,
 }
