@@ -339,6 +339,8 @@ class BaseInstaller(ABC):
                     f"Unable to install {library} on this platform. "
                     f"The compiler will be skipped. "
                 )
+            else:
+                logger.info(f"{library} installed successfully!")
 
     @staticmethod
     def install_dependencies(include_frameworks: List[str]):
