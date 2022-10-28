@@ -1,11 +1,6 @@
-import logging
+from nebullvm.utils.general import setup_logger
 
-logging.basicConfig(
-    format=" %(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%d/%m/%Y %I:%M:%S %p",
-)
-logger = logging.getLogger("nebullvm_logger")
-logger.setLevel(logging.INFO)
+setup_logger()
 
 from nebullvm.api.frontend.torch import optimize_torch_model  # noqa F401
 from nebullvm.api.frontend.tf import optimize_tf_model  # noqa F401

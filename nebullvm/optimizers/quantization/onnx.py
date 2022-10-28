@@ -88,6 +88,12 @@ def _get_quantization_type_for_static() -> Tuple[QuantType, QuantType]:
 def _quantize_static(
     model_path: str, input_data: List[Tuple[np.ndarray, ...]]
 ):
+    import logging
+
+    for name in logging.root.manager.loggerDict:
+        logging.getLogger(name).setLevel(logging.CRITICAL)
+    logging.getLogger(__name__).setLevel(logging.CRITICAL)
+
     model_path = Path(model_path)
     model_quant = model_path.parent.parent / "int8_static"
     model_quant.mkdir(parents=True, exist_ok=True)
