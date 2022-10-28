@@ -19,3 +19,8 @@ except ImportError:
     Model = CompiledModel = InferRequest = Core = object
     DataLoader = IEEngine = object
     load_model = save_model = compress_model_weights = create_pipeline = None
+
+# Fix openvino issue with logging
+# It adds a second handler to the root logger that cause issues
+if len(logging.getLogger().handlers) > 1:
+    logging.getLogger().removeHandler(logging.getLogger().handlers[-1])
