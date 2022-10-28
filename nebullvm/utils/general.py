@@ -34,14 +34,16 @@ def debug_mode_enabled():
 
 
 def setup_logger():
-    logging.basicConfig(
-        format=" %(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%d/%m/%Y %I:%M:%S %p",
-    )
-
     if not debug_mode_enabled():
-        logging.getLogger().setLevel(logging.ERROR)
         warnings.filterwarnings("ignore")
 
     logger = logging.getLogger("nebullvm_logger")
     logger.setLevel(logging.INFO)
+
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "%(asctime)s [ %(levelname)s ] %(message)s", "%d/%m/%Y %I:%M:%S %p"
+    )
+    ch.setFormatter(formatter)
+    logger.handlers = [ch]
+    logger.propagate = False
