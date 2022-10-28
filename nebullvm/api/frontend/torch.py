@@ -1,6 +1,5 @@
 import logging
 import os
-import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Tuple, Dict, Optional, Callable, Union, Sequence
@@ -199,7 +198,7 @@ def optimize_torch_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor` s.
     """
-    warnings.warn(
+    logger.warning(
         "Deprecated: The usage of the torch api is deprecated. "
         "`optimize_torch_model`will be removed from the next release. "
         "Use `optimize_model` instead."
@@ -300,7 +299,6 @@ def optimize_torch_model(
             ignore_compilers=ignore_compilers,
             extra_optimizers=custom_optimizers,
             debug_mode=int(os.environ.get("DEBUG_MODE", "0")) > 0,
-            logger=logger,
         )
         if model_optimizer.usable:
             onnx_path = model_converter.convert(
@@ -338,12 +336,10 @@ def _get_optimizers_supporting_torch_api(
     use_extra_compilers: bool,
 ) -> List[Tuple[ModelCompiler, BaseOptimizer]]:
     optimizers = [
-        (ModelCompiler.TORCHSCRIPT, PytorchBackendOptimizer(logger=logger)),
+        (ModelCompiler.TORCHSCRIPT, PytorchBackendOptimizer()),
     ]
     if use_extra_compilers:
-        optimizers.append(
-            (ModelCompiler.APACHE_TVM, ApacheTVMOptimizer(logger=logger))
-        )
+        optimizers.append((ModelCompiler.APACHE_TVM, ApacheTVMOptimizer()))
     return optimizers
 
 
@@ -399,7 +395,7 @@ def _torch_api_optimization(
             )
             used_compilers.append(compiler)
         except Exception as ex:
-            warnings.warn(
+            logger.warning(
                 f"Compilation failed with torch interface of {compiler}. "
                 f"Got error {ex}. If possible the compilation will be "
                 f"re-scheduled with the ONNX interface. Please consult the "

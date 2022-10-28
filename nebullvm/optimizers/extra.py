@@ -1,8 +1,5 @@
 import logging
-from logging import Logger
 from typing import Dict, List, Optional, Callable, Any
-
-from onnxruntime.transformers.optimizer import MODEL_TYPES
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
@@ -13,13 +10,15 @@ from nebullvm.inference_learners.onnx import (
 from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.utils import check_precision
-from nebullvm.optional_modules.onnxruntime import optimizer
+from nebullvm.optional_modules.onnxruntime import optimizer, MODEL_TYPES
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
 )
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class HuggingFaceOptimizer(BaseOptimizer):
@@ -28,9 +27,8 @@ class HuggingFaceOptimizer(BaseOptimizer):
         hugging_face_params: Dict,
         metric_drop_ths: float = None,
         metric: Callable = None,
-        logger: Logger = None,
     ):
-        super(HuggingFaceOptimizer, self).__init__(logger)
+        super(HuggingFaceOptimizer, self).__init__()
         self.hf_params = hugging_face_params
         self.perf_loss_ths = metric_drop_ths
         self.perf_metric = metric
@@ -48,7 +46,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
         input_data: DataManager = None,
         model_outputs: Any = None,
     ) -> Optional[ONNXInferenceLearner]:
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -90,11 +88,10 @@ class HuggingFaceOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with huggingface gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner

@@ -23,6 +23,8 @@ from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import create_model_inputs_torch
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class BladeDISCOptimizer(BaseOptimizer):
     """Optimizer working directly on the pytorch backend, with no need of a
@@ -30,9 +32,6 @@ class BladeDISCOptimizer(BaseOptimizer):
     For avoiding un-wanted modification to the input model models are copied
     before being optimized.
 
-    Attributes:
-        logger (Logger, optional): Optional logger for logging optimization
-            information.
     """
 
     def optimize(
@@ -75,7 +74,7 @@ class BladeDISCOptimizer(BaseOptimizer):
         Returns:
             BladeDISCInferenceLearner: Model optimized for inference.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -134,11 +133,10 @@ class BladeDISCOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with blade_disc gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner

@@ -1,6 +1,5 @@
 import json
 import logging
-from logging import Logger
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Tuple, Optional, Dict
@@ -14,20 +13,18 @@ from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
 from nebullvm.utils.venv import run_in_different_venv
 
+logger = logging.getLogger("nebullvm_logger")
 
-def _save_model(model: torch.nn.Module, path: Path, logger: Logger = None):
+
+def _save_model(model: torch.nn.Module, path: Path):
     try:
         save_with_torch_fx(model, path)
     except Exception as ex:
-        message = (
+        logger.warning(
             f"Got an error while exporting with TorchFX. The model will be "
             f"saved using the standard PyTorch save pickling method. Error "
             f"got: {ex}"
         )
-        if logger is None:
-            logging.warning(message)
-        else:
-            logger.warning(message)
         torch.save(model, path / "model.pt")
         return path / "model.pt"
     else:

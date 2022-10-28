@@ -1,4 +1,4 @@
-import warnings
+import logging
 from abc import ABC
 from pathlib import Path
 from typing import Union, Tuple, Dict, Type
@@ -18,6 +18,8 @@ from nebullvm.optional_modules.neural_compressor import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
@@ -71,7 +73,7 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
             DeepSparseInferenceLearner: The optimized model.
         """
         if len(kwargs) > 0:
-            warnings.warn(
+            logger.warning(
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )

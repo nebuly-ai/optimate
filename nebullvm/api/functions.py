@@ -1,7 +1,16 @@
 import logging
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Iterable, Sequence, Union, Dict, Callable, List
+from typing import (
+    Any,
+    Iterable,
+    Sequence,
+    Union,
+    Dict,
+    Callable,
+    List,
+    Optional,
+)
 
 import torch.nn
 
@@ -94,7 +103,7 @@ def _extract_info_from_data(
     model: Any,
     input_data: DataManager,
     dl_framework: DeepLearningFramework,
-    dynamic_info: Dict,
+    dynamic_info: Optional[Dict],
 ):
     batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
         dl_framework
@@ -285,7 +294,7 @@ def optimize_model(
         dl_framework,
         dynamic_info,
     )
-    converter = CrossConverter(logger=logger)
+    converter = CrossConverter()
     optimized_models = []
     with TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir) / "fp32"
@@ -323,7 +332,6 @@ def optimize_model(
                 optimization_time,
                 metric_drop_ths,
                 config_file,
-                logger=logger,
             )
             output_dict = pipeline.run(
                 model=model,

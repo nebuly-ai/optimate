@@ -1,4 +1,4 @@
-import warnings
+import logging
 from typing import Tuple, Callable, Any, List
 
 import numpy as np
@@ -6,6 +6,8 @@ import numpy as np
 from nebullvm.base import QuantizationType
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.measure import compute_relative_difference
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 def check_precision(
@@ -47,7 +49,7 @@ def check_quantization(
             "specify the quantization algorithm too."
         )
     if quantization_type is not None and perf_loss_ths is None:
-        warnings.warn(
+        logger.warning(
             "Got a valid quantization type without any given quantization "
             "threshold. The quantization step will be ignored."
         )

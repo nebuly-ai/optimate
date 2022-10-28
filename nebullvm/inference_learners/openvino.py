@@ -1,6 +1,6 @@
 import json
+import logging
 import shutil
-import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Dict, Union, Type, Generator, Tuple, List, Optional
@@ -28,6 +28,8 @@ from nebullvm.optional_modules.openvino import (
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
@@ -124,7 +126,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             input_data (DataManager, optional): User defined data.
         """
         if len(kwargs) > 0:
-            warnings.warn(f"Found extra parameters: {kwargs}")
+            logger.warning(f"Found extra parameters: {kwargs}")
 
         core = Core()
         model = core.read_model(model=model_name, weights=model_weights)

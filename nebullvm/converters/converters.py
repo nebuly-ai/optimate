@@ -1,5 +1,5 @@
+import logging
 from abc import abstractmethod, ABC
-from logging import Logger
 from pathlib import Path
 from typing import Any, List
 
@@ -15,6 +15,8 @@ from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.utils.data import DataManager
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class BaseConverter(ABC):
     """Base class for converters.
@@ -24,9 +26,8 @@ class BaseConverter(ABC):
             be used as model name.
     """
 
-    def __init__(self, model_name: str = None, logger: Logger = None):
+    def __init__(self, model_name: str = None):
         self.model_name = model_name or "temp"
-        self.logger = logger
 
     @abstractmethod
     def convert(
@@ -120,7 +121,6 @@ class CrossConverter(BaseConverter):
                 model_params=model_params,
                 output_file_path=onnx_path,
                 input_data=input_data,
-                logger=self.logger,
             )
 
             return (
@@ -130,7 +130,6 @@ class CrossConverter(BaseConverter):
             onnx_path = convert_tf_to_onnx(
                 model=model,
                 output_file_path=onnx_path,
-                logger=self.logger,
             )
             return (
                 [model, str(onnx_path)] if onnx_path is not None else [model]
@@ -144,7 +143,7 @@ class CrossConverter(BaseConverter):
                 model_onnx = onnx.load(str(model))
                 onnx.save(model_onnx, str(onnx_path))
             except Exception:
-                self.logger.error(
+                logger.error(
                     "The provided onnx model path is invalid. Please provide"
                     " a valid path to a model in order to use Nebullvm."
                 )

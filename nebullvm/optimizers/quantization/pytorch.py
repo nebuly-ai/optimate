@@ -1,5 +1,5 @@
 import copy
-import warnings
+import logging
 from typing import List, Tuple, Union
 
 import torch
@@ -11,6 +11,8 @@ from torch.quantization.quantize_fx import prepare_fx, convert_fx
 from nebullvm.base import QuantizationType
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class _QuantWrapper(torch.nn.Module):
@@ -119,7 +121,7 @@ def quantize_torch(
     try:
         model = symbolic_trace(model)
     except Exception:
-        warnings.warn("Unable to trace model with torch.fx")
+        logger.warning("Unable to trace model with torch.fx")
 
     if quantization_type is QuantizationType.HALF:
         input_tfms.append(HalfPrecisionTransformation())

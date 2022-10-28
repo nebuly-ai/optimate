@@ -22,6 +22,8 @@ from nebullvm.optimizers.quantization.utils import (
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class NeuralCompressorOptimizer(BaseOptimizer):
     def optimize(
@@ -64,7 +66,7 @@ class NeuralCompressorOptimizer(BaseOptimizer):
         Returns:
             NeuralCompressorInferenceLearner: Model optimized for inference.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -109,11 +111,10 @@ class NeuralCompressorOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with neural compressor gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner

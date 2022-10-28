@@ -3,6 +3,8 @@ import subprocess
 import tempfile
 import venv
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class EnvBuilder(venv.EnvBuilder):
     def __init__(self, *args, **kwargs):
@@ -18,7 +20,6 @@ def run_in_different_venv(
     script_path: str,
     use_gpu: bool,
     *args,
-    logger: logging.Logger = None,
 ):
     """Run a python scripts in a new temporary environment. Arguments for the
     script must be passed in the function args.
@@ -31,21 +32,15 @@ def run_in_different_venv(
             requirements.
         script_path (str): Path to the script that must be run.
         args: Arguments of the script.
-        logger (Logger, optional): Logger for the project.
     """
-    if logger is not None:
-        logger.debug(
-            f"Debug: Running script {script_path} in a new virtual env."
-        )
+    logger.debug(f"Debug: Running script {script_path} in a new virtual env.")
     with tempfile.TemporaryDirectory() as target_dir_path:
-        if logger is not None:
-            logger.debug("Debug: Creating virtual environment...")
+        logger.debug("Debug: Creating virtual environment...")
         venv_builder = EnvBuilder(with_pip=True)
         venv_builder.create(str(target_dir_path))
         venv_context = venv_builder.context
 
-        if logger is not None:
-            logger.debug("Debug: Installing requirements...")
+        logger.debug("Debug: Installing requirements...")
 
         if use_gpu:
             pip_install_command = [
@@ -79,7 +74,6 @@ def run_in_different_venv(
         ]
         subprocess.check_call(pip_install_command)
 
-        if logger is not None:
-            logger.debug("Debug: Executing script...")
+        logger.debug("Debug: Executing script...")
         script_command = [venv_context.env_exe, script_path, *args]
         subprocess.check_call(script_command)

@@ -15,6 +15,8 @@ from nebullvm.utils.onnx import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 def compute_torch_latency(
     xs: List[Tuple[torch.Tensor]],
@@ -194,7 +196,7 @@ def compute_relative_difference(
     eps: float = 1e-5,
 ) -> float:
     if y is not None:
-        logging.debug(
+        logger.debug(
             "Received a label for the precision computation. "
             "It will be ignored."
         )

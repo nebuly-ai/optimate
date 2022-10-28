@@ -1,6 +1,6 @@
+import logging
 import os
 import shutil
-import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Union, List, Generator, Tuple, Dict, Type
@@ -17,6 +17,8 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.optional_modules.deepsparse import cpu, compile_model
 from nebullvm.transformations.base import MultiStageTransformation
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
@@ -90,7 +92,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
             DeepSparseInferenceLearner: The optimized model.
         """
         if len(kwargs) > 0:
-            warnings.warn(
+            logger.warning(
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )

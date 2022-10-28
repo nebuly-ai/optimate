@@ -1,7 +1,6 @@
 import logging
 import os
 import subprocess
-import warnings
 from pathlib import Path
 from typing import List, Tuple, Optional, Callable, Any
 
@@ -38,6 +37,8 @@ from nebullvm.utils.onnx import (
     get_output_names,
 )
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class TensorRTOptimizer(BaseOptimizer):
     """Class for compiling the AI models on Nvidia GPUs using TensorRT."""
@@ -66,7 +67,7 @@ class TensorRTOptimizer(BaseOptimizer):
         except AttributeError:
             # The method set_memory_pool_limit is not available
             # until TensorRT Release 8.4.1
-            warnings.warn(
+            logger.warning(
                 "Cannot call method set_memory_pool_limit for TensorRT."
                 "Please update TensorRT version."
             )
@@ -94,8 +95,7 @@ class TensorRTOptimizer(BaseOptimizer):
 
         if not success:
             for idx in range(parser.num_errors):
-                if self.logger is not None:
-                    self.logger.debug(parser.get_error(idx))
+                logger.debug(parser.get_error(idx))
             raise ValueError(
                 f"Errors occurred while processing the "
                 f"ONNX file at {onnx_model_path}"
@@ -169,7 +169,7 @@ class TensorRTOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -254,11 +254,10 @@ class TensorRTOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with ONNX tensor RT gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner
@@ -274,7 +273,7 @@ class TensorRTOptimizer(BaseOptimizer):
         input_data: DataManager = None,
         model_outputs: Any = None,
     ) -> Optional[PytorchTensorRTInferenceLearner]:
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -402,11 +401,10 @@ class TensorRTOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with Torch-TensorRT gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner

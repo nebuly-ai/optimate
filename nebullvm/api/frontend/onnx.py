@@ -1,6 +1,6 @@
+import logging
 import os
 import shutil
-import warnings
 from tempfile import TemporaryDirectory
 from typing import List, Tuple, Dict, Optional, Callable, Union
 
@@ -28,6 +28,8 @@ from nebullvm.utils.onnx import (
     get_output_sizes_onnx,
     run_onnx_model,
 )
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 def _extract_dynamic_axis(
@@ -115,7 +117,7 @@ def optimize_onnx_model(
         input_sizes (List[Tuple]], optional): List containing the size of all
             the input tensors of the model. Note that even just a single
             tensor is needed as model input, this field must be a list
-            containing (in the exposed case) a single element). The tuple must
+            containing (in the exposed case) a single element. The tuple must
             contain all the input tensor dimensions excluding the batch size.
             This means that the final input tensor size will be considered as
             `(batch_size, *input_tensor_size)`, where `input_tensor_size` is
@@ -168,7 +170,7 @@ def optimize_onnx_model(
             Pytorch interface. Note that as a torch model it takes as input
             and it gives as output `torch.Tensor`s.
     """
-    warnings.warn(
+    logger.warning(
         "Deprecated: The usage of the onnx api is deprecated. "
         "`optimize_onnx_model`will be removed from the next release. "
         "Use `optimize_model` instead."

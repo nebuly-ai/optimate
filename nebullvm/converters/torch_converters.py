@@ -1,5 +1,4 @@
 import logging
-from logging import Logger
 from pathlib import Path
 from typing import Union
 
@@ -14,13 +13,14 @@ from nebullvm.utils.torch import (
     create_model_inputs_torch,
 )
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 def convert_torch_to_onnx(
     torch_model: Module,
     model_params: ModelParams,
     output_file_path: Union[str, Path],
     input_data: DataManager = None,
-    logger: Logger = None,
 ):
     """Function importing a custom model in pytorch and converting it in ONNX
 
@@ -32,7 +32,6 @@ def convert_torch_to_onnx(
             ONNX file.
         input_data (DataManager, optional): Custom data provided by user to be
         used as input for the converter.
-        logger (Logger, optional): logger object.
     """
 
     if input_data is not None:
@@ -117,22 +116,14 @@ def convert_torch_to_onnx(
 
                 return output_file_path
             except Exception:
-                warning_msg = (
+                logger.warning(
                     "Exception raised during conversion from torch"
                     " to onnx model. ONNX pipeline will be unavailable."
                 )
-                if logger is not None:
-                    logger.warning(warning_msg)
-                else:
-                    logging.warning(warning_msg)
                 return None
         else:
-            warning_msg = (
+            logger.warning(
                 "Exception raised during conversion from torch"
                 " to onnx model. ONNX pipeline will be unavailable."
             )
-            if logger is not None:
-                logger.warning(warning_msg)
-            else:
-                logging.warning(warning_msg)
             return None

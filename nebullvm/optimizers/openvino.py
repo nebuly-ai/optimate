@@ -19,6 +19,8 @@ from nebullvm.utils.onnx import (
     get_input_names,
 )
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class OpenVinoOptimizer(BaseOptimizer):
     """Class for compiling the AI models on Intel CPUs using OpenVino."""
@@ -63,7 +65,7 @@ class OpenVinoOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -137,11 +139,10 @@ class OpenVinoOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with openvino gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner

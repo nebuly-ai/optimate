@@ -1,5 +1,5 @@
 import json
-import warnings
+import logging
 from abc import ABC
 from pathlib import Path
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
@@ -21,6 +21,8 @@ from nebullvm.optional_modules.tensor_rt import tensorrt as trt, polygraphy
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
@@ -126,7 +128,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             NvidiaInferenceLearner: The optimized model.
         """
         if kwargs:
-            warnings.warn(
+            logger.warning(
                 f"Debug: Got extra keywords in "
                 f"NvidiaInferenceLearner::from_engine_path: {kwargs}"
             )

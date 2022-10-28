@@ -1,4 +1,4 @@
-import warnings
+import logging
 from tempfile import TemporaryDirectory
 from typing import (
     Tuple,
@@ -29,6 +29,8 @@ except ImportError:
     # add placeholders for function definition
     PreTrainedModel = None
     PreTrainedTokenizer = None
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 def _get_dynamic_axis(
@@ -141,7 +143,7 @@ def optimize_huggingface_model(
             all the input tensors of the model.
             Note that even just a single tensor is needed as model input,
             this field must be a list containing (in the exposed case)
-            a single element). The tuple must contain the maximum value for
+            a single element. The tuple must contain the maximum value for
             all the input tensor dimensions excluding the batch size.
             This means that the final input tensor size will be considered as
             `(batch_size, *input_tensor_size)`, where `input_tensor_size` is
@@ -187,7 +189,7 @@ def optimize_huggingface_model(
             techniques. It will be ignored if these techniques are not
             activated.
     """
-    warnings.warn(
+    logger.warning(
         "Deprecated: The usage of the HuggingFace api is deprecated. "
         "`optimize_huggingface_model`will be removed from the next release. "
         "Use `optimize_model` instead."

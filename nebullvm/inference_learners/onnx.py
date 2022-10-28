@@ -1,6 +1,6 @@
+import logging
 import os
 import shutil
-import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Union, List, Generator, Tuple, Dict, Type
@@ -25,6 +25,8 @@ from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 def _running_on_intel_cpu():
@@ -152,7 +154,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             ONNXInferenceLearner: The optimized model.
         """
         if len(kwargs) > 0:
-            warnings.warn(
+            logger.warning(
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )

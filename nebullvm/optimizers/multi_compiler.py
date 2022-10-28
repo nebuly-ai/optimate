@@ -1,6 +1,5 @@
 import json
-import warnings
-from logging import Logger
+import logging
 from pathlib import Path
 from typing import Dict, Type, Tuple, Callable, List, Any
 import uuid
@@ -26,6 +25,7 @@ from nebullvm.utils.compilers import select_compilers_from_hardware_onnx
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 
+logger = logging.getLogger("nebullvm_logger")
 
 OPTIMIZER_TO_COMPILER_MAP: Dict[Type[BaseOptimizer], ModelCompiler] = dict(
     zip(COMPILER_TO_OPTIMIZER_MAP.values(), COMPILER_TO_OPTIMIZER_MAP.keys())
@@ -34,12 +34,11 @@ OPTIMIZER_TO_COMPILER_MAP: Dict[Type[BaseOptimizer], ModelCompiler] = dict(
 
 def _optimize_with_compiler(
     compiler: ModelCompiler,
-    logger: Logger,
     metric_func: Callable = None,
     **kwargs,
 ) -> Tuple[BaseInferenceLearner, float]:
-    optimizer = COMPILER_TO_OPTIMIZER_MAP[compiler](logger)
-    return _optimize_with_optimizer(optimizer, logger, metric_func, **kwargs)
+    optimizer = COMPILER_TO_OPTIMIZER_MAP[compiler]()
+    return _optimize_with_optimizer(optimizer, metric_func, **kwargs)
 
 
 def _save_info(
@@ -69,7 +68,6 @@ def _save_info(
 
 def _optimize_with_optimizer(
     optimizer: BaseOptimizer,
-    logger: Logger,
     metric_func: Callable = None,
     debug_file: str = None,
     **kwargs,
@@ -86,14 +84,10 @@ def _optimize_with_optimizer(
             latency,
         )
     except Exception as ex:
-        warning_msg = (
+        logger.warning(
             f"Compilation failed with {optimizer.__class__.__name__}. "
             f"Got error {ex}. The optimizer will be skipped."
         )
-        if logger is None:
-            warnings.warn(warning_msg)
-        else:
-            logger.warning(warning_msg)
         latency = np.inf
         model_optimized = None
         FEEDBACK_COLLECTOR.store_compiler_result(
@@ -113,7 +107,6 @@ class MultiCompilerOptimizer(BaseOptimizer):
     performance.
 
     Attributes:
-        logger (Logger, optional): User defined logger.
         ignore_compilers (List[str], optional): List of compilers that must
             be ignored.
         extra_optimizers (List[BaseOptimizer], optional): List of optimizers
@@ -130,12 +123,11 @@ class MultiCompilerOptimizer(BaseOptimizer):
 
     def __init__(
         self,
-        logger: Logger = None,
         ignore_compilers: List = None,
         extra_optimizers: List[BaseOptimizer] = None,
         debug_mode: bool = False,
     ):
-        super().__init__(logger)
+        super().__init__()
         self.compilers = [
             compiler
             for compiler in select_compilers_from_hardware_onnx()
@@ -195,7 +187,6 @@ class MultiCompilerOptimizer(BaseOptimizer):
         optimized_models = [
             _optimize_with_compiler(
                 compiler,
-                logger=self.logger,
                 model=model,
                 output_library=output_library,
                 model_params=model_params,
@@ -215,11 +206,10 @@ class MultiCompilerOptimizer(BaseOptimizer):
             for q_type in tqdm(quantization_types)
         ]
         if self.extra_optimizers is not None:
-            self._log("Running extra-optimizers...")
+            logger.info("Running extra-optimizers...")
             optimized_models += [
                 _optimize_with_optimizer(
                     op,
-                    logger=self.logger,
                     model=model,
                     output_library=output_library,
                     model_params=model_params,
@@ -303,7 +293,6 @@ class MultiCompilerOptimizer(BaseOptimizer):
             _optimize_with_compiler(
                 compiler,
                 metric_func=metric_func,
-                logger=self.logger,
                 model=model,
                 output_library=output_library,
                 model_params=model_params,
@@ -323,7 +312,6 @@ class MultiCompilerOptimizer(BaseOptimizer):
             optimized_models += [
                 _optimize_with_optimizer(
                     op,
-                    logger=self.logger,
                     model=model,
                     output_library=output_library,
                     model_params=model_params,

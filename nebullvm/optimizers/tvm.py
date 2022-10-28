@@ -40,6 +40,8 @@ from nebullvm.utils.onnx import (
 )
 from nebullvm.utils.torch import create_model_inputs_torch
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class ApacheTVMOptimizer(BaseOptimizer):
     """Class for compiling the AI models on Nvidia GPUs using TensorRT."""
@@ -55,7 +57,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         input_data: DataManager = None,
         model_outputs: Any = None,
     ) -> Optional[ApacheTVMInferenceLearner]:
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -118,11 +120,10 @@ class ApacheTVMOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with Pytorch tvm gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner
@@ -165,7 +166,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -221,11 +222,10 @@ class ApacheTVMOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with ONNX tvm gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner

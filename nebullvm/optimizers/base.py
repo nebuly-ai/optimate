@@ -1,6 +1,4 @@
-import logging
 from abc import abstractmethod, ABC
-from logging import Logger
 from typing import Optional, Callable, Any
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
@@ -11,9 +9,6 @@ from nebullvm.utils.data import DataManager
 
 class BaseOptimizer(ABC):
     """Base class for Optimizers"""
-
-    def __init__(self, logger: Logger = None):
-        self.logger = logger
 
     @abstractmethod
     def optimize(
@@ -29,9 +24,3 @@ class BaseOptimizer(ABC):
         model_outputs: Any = None,
     ) -> Optional[BaseInferenceLearner]:
         raise NotImplementedError
-
-    def _log(self, message: str, level: int = logging.INFO):
-        if self.logger is None:
-            logging.log(level, message)
-        else:
-            self.logger.log(level, message)

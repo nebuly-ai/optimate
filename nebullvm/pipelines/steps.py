@@ -1,7 +1,6 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from logging import Logger
 from typing import Dict, List, Any, Callable, Tuple, Optional
 
 import cpuinfo
@@ -51,16 +50,11 @@ from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.utils.general import is_python_version_3_10
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class Step(ABC):
-    """Fundamental building block for the Pipeline.
-
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
-    """
-
-    def __init__(self, logger: Logger = None):
-        self._logger = logger
+    """Fundamental building block for the Pipeline."""
 
     @abstractmethod
     def run(self, *args, **kwargs) -> Dict:
@@ -71,18 +65,6 @@ class Step(ABC):
     @abstractmethod
     def name(self):
         raise NotImplementedError()
-
-    def _log_info(self, text: str):
-        if self._logger is None:
-            logging.info(text)
-        else:
-            self._logger.info(text)
-
-    def _log_warning(self, text: str):
-        if self._logger is None:
-            logging.warning(text)
-        else:
-            self._logger.warning(text)
 
 
 class CompressorStep(Step, ABC):
@@ -96,11 +78,10 @@ class CompressorStep(Step, ABC):
             a YAML file having as main keywords the Compressor names and as
             values dictionaries containing the specific parameters for the
             related Compressor object.
-        logger (Logger, optional): Logger defined by the user.
     """
 
-    def __init__(self, config_file: str = None, logger: Logger = None):
-        super().__init__(logger)
+    def __init__(self, config_file: str = None):
+        super().__init__()
         self._config_file = config_file
 
     def run(
@@ -129,7 +110,7 @@ class CompressorStep(Step, ABC):
             kwargs (Dict): Keyword arguments propagated to the next step.
         """
         compressor_dict = self._get_compressors(ignore_compressors)
-        self._log_info(f"Compressions: {tuple(compressor_dict.keys())}")
+        logger.info(f"Compressions: {tuple(compressor_dict.keys())}")
         models = {"no_compression": (copy.deepcopy(model), metric_drop_ths)}
 
         # input_data[0][0][0].shape[0] is the batch size
@@ -138,7 +119,7 @@ class CompressorStep(Step, ABC):
             or (len(input_data) * input_data[0][0][0].shape[0])
             < MIN_DIM_INPUT_DATA
         ):
-            self._log_warning(
+            logger.warning(
                 f"Compression step needs at least {MIN_DIM_INPUT_DATA} "
                 f"input data to be activated. Please provide more inputs. "
                 f"Compression step will be skipped."
@@ -158,7 +139,7 @@ class CompressorStep(Step, ABC):
                         )
                         models[technique] = (compressed_model, ths)
                     except Exception as ex:
-                        self._log_warning(
+                        logger.warning(
                             f"Error during compression {technique}. Got error "
                             f"{ex}. The compression technique will be skipped."
                             f" Please consult the documentation for further "
@@ -166,7 +147,7 @@ class CompressorStep(Step, ABC):
                             f"assistance."
                         )
             else:
-                self._log_warning(
+                logger.warning(
                     "Please note that DIM_DATASET / BATCH_SIZE >= 5, "
                     "otherwise the data cannot be split in training and "
                     "evaluation set properly. Compression step will be "
@@ -205,7 +186,6 @@ class TorchCompressorStep(CompressorStep):
             a YAML file having as main keywords the Compressor names and as
             values dictionaries containing the specific parameters for the
             related Compressor object.
-        logger (Logger, optional): Logger defined by the user.
     """
 
     def _get_compressors(
@@ -234,11 +214,7 @@ class TorchCompressorStep(CompressorStep):
 
 
 class NoCompressionStep(Step):
-    """Step to be used when no compression is required.
-
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
-    """
+    """Step to be used when no compression is required."""
 
     def run(
         self, model: Any, metric_drop_ths: Optional[float], **kwargs
@@ -258,8 +234,6 @@ class OptimizerStep(Step, ABC):
     optimizers are run on the model given as input and a list of tuples
     (optimized_model, latency) is given as output.
 
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
     """
 
     def run(
@@ -306,14 +280,14 @@ class OptimizerStep(Step, ABC):
         """
 
         optimizers = self._get_optimizers(ignore_compilers)
-        self._log_info(
+        logger.info(
             f"Optimizations: "
             f"{tuple(compiler.value for compiler in optimizers.keys())}"
         )
         optimized_models = []
 
         for prev_tech, (model, metric_drop_ths) in tqdm(models.items()):
-            self._log_info(f"Optimizing output of {prev_tech}")
+            logger.info(f"Optimizing output of {prev_tech}")
             if model is None:
                 continue
             if metric_drop_ths is not None:
@@ -363,7 +337,7 @@ class OptimizerStep(Step, ABC):
                             pipeline_name=pipeline_name,
                         )
                     except Exception as ex:
-                        self._log_warning(
+                        logger.warning(
                             f"Compilation failed with {output_library.value} "
                             f"interface of {compiler}. Got error {ex}. "
                             f"If possible the compilation will be re-scheduled"
@@ -418,8 +392,6 @@ class TorchOptimizerStep(OptimizerStep):
     as input and a list of tuples (optimized_model, latency) is given as
     output.
 
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
     """
 
     def _get_optimizers(
@@ -427,44 +399,34 @@ class TorchOptimizerStep(OptimizerStep):
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         optimizers = {}
         if ModelCompiler.TORCHSCRIPT not in ignore_compilers:
-            optimizers[ModelCompiler.TORCHSCRIPT] = PytorchBackendOptimizer(
-                logger=self._logger
-            )
+            optimizers[ModelCompiler.TORCHSCRIPT] = PytorchBackendOptimizer()
         if (
             tvm_is_available()
             and ModelCompiler.APACHE_TVM not in ignore_compilers
         ):
-            optimizers[ModelCompiler.APACHE_TVM] = ApacheTVMOptimizer(
-                logger=self._logger
-            )
+            optimizers[ModelCompiler.APACHE_TVM] = ApacheTVMOptimizer()
         if (
             deepsparse_is_available()
             and ModelCompiler.DEEPSPARSE not in ignore_compilers
         ):
-            optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer(
-                logger=self._logger
-            )
+            optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer()
         if (
             bladedisc_is_available()
             and ModelCompiler.BLADEDISC not in ignore_compilers
         ):
-            optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer(
-                logger=self._logger
-            )
+            optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer()
         if (
             torch_tensorrt_is_available()
             and ModelCompiler.TENSOR_RT not in ignore_compilers
         ):
-            optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer(
-                logger=self._logger
-            )
+            optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer()
         if (
             intel_neural_compressor_is_available()
             and ModelCompiler.INTEL_NEURAL_COMPRESSOR not in ignore_compilers
         ):
             optimizers[
                 ModelCompiler.INTEL_NEURAL_COMPRESSOR
-            ] = NeuralCompressorOptimizer(logger=self._logger)
+            ] = NeuralCompressorOptimizer()
         return optimizers
 
     def _run_optimizer(
@@ -516,8 +478,6 @@ class TFOptimizerStep(OptimizerStep):
     the model given as input and a list of tuples (optimized_model, latency)
     is given as output.
 
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
     """
 
     def _get_optimizers(
@@ -525,9 +485,7 @@ class TFOptimizerStep(OptimizerStep):
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         optimizers = {}
         if ModelCompiler.TFLITE not in ignore_compilers:
-            optimizers[ModelCompiler.TFLITE] = TensorflowBackendOptimizer(
-                logger=self._logger
-            )
+            optimizers[ModelCompiler.TFLITE] = TensorflowBackendOptimizer()
         return optimizers
 
     def _run_optimizer(
@@ -579,8 +537,6 @@ class OnnxOptimizerStep(OptimizerStep):
     as input and a list of tuples (optimized_model, latency) is given as
     output.
 
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
     """
 
     def _get_optimizers(
@@ -588,7 +544,7 @@ class OnnxOptimizerStep(OptimizerStep):
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         compilers = select_compilers_from_hardware_onnx()
         optimizers = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](self._logger)
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
             for compiler in compilers
             if compiler not in ignore_compilers
         }
@@ -632,21 +588,18 @@ class Pipeline(Step):
     Attributes:
         pipeline_name: str,
         steps (List): List of Steps composing the pipeline.
-        logger (Logger): Logger defined by the user.
     """
 
-    def __init__(
-        self, pipeline_name: str, steps: List[Step], logger: Logger = None
-    ):
-        super().__init__(logger)
+    def __init__(self, pipeline_name: str, steps: List[Step]):
+        super().__init__()
         self._name = pipeline_name
         self._steps = steps
 
     def run(self, **kwargs) -> Dict:
-        self._log_info(f"Running pipeline: {self.name}")
+        logger.info(f"Running pipeline: {self.name}")
         kwargs["pipeline_name"] = self.name.split("_")[0]
         for step in self._steps:
-            self._log_info(f"Running step: {step.name}")
+            logger.info(f"Running step: {step.name}")
             kwargs = step.run(**kwargs)
         return kwargs
 
@@ -660,28 +613,26 @@ def _get_compressor_step(
     optimization_time: OptimizationTime,
     config_file: Optional[str],
     metric_drop_ths: Optional[float],
-    logger: Optional[Logger],
 ) -> Step:
     if optimization_time is OptimizationTime.CONSTRAINED:
-        return NoCompressionStep(logger=logger)
+        return NoCompressionStep()
     if metric_drop_ths is None:
-        return NoCompressionStep(logger=logger)
+        return NoCompressionStep()
     elif isinstance(model, torch.nn.Module):
-        return TorchCompressorStep(config_file=config_file, logger=logger)
+        return TorchCompressorStep(config_file=config_file)
     else:  # default is NoCompression
-        return NoCompressionStep(logger=logger)
+        return NoCompressionStep()
 
 
 def _get_optimizer_step(
     model: Any,
-    logger: Optional[Logger],
 ) -> Step:
     if isinstance(model, torch.nn.Module):
-        return TorchOptimizerStep(logger=logger)
+        return TorchOptimizerStep()
     elif isinstance(model, tf.Module) and model is not None:
-        return TFOptimizerStep(logger=logger)
+        return TFOptimizerStep()
     else:
-        return OnnxOptimizerStep(logger=logger)
+        return OnnxOptimizerStep()
 
 
 def _get_pipeline_name(model: Any):
@@ -698,7 +649,6 @@ def build_pipeline_from_model(
     optimization_time: OptimizationTime,
     metric_drop_ths: Optional[float],
     config_file: Optional[str],
-    logger: Logger = None,
 ) -> Pipeline:
     """Function for building a pipeline from a model and user-defined
     parameters
@@ -718,15 +668,13 @@ def build_pipeline_from_model(
             possible speed-up.
         config_file (str, optional): Configuration file containing the
             parameters needed for defining the CompressionStep in the pipeline.
-        logger (Logger, optional): Logger defined by the user.
     """
     compressor_step = _get_compressor_step(
-        model, optimization_time, config_file, metric_drop_ths, logger
+        model, optimization_time, config_file, metric_drop_ths
     )
-    optimizer_step = _get_optimizer_step(model, logger)
+    optimizer_step = _get_optimizer_step(model)
     pipeline = Pipeline(
         pipeline_name=_get_pipeline_name(model),
-        logger=logger,
         steps=[compressor_step, optimizer_step],
     )
     return pipeline

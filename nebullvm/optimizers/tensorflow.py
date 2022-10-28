@@ -19,6 +19,8 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class TensorflowBackendOptimizer(BaseOptimizer):
     """Optimizer working directly on the tensorflow backend, with no need of a
@@ -26,9 +28,6 @@ class TensorflowBackendOptimizer(BaseOptimizer):
     For avoiding un-wanted modification to the input model models are copied
     before being optimized.
 
-    Attributes:
-        logger (Logger, optional): Optional logger for logging optimization
-            information.
     """
 
     def optimize(
@@ -73,7 +72,7 @@ class TensorflowBackendOptimizer(BaseOptimizer):
             TensorflowBackendInferenceLearner or TFLiteBackendInferenceLearner:
                 Model optimized for inference.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -125,11 +124,10 @@ class TensorflowBackendOptimizer(BaseOptimizer):
             )
             if not is_valid:
                 if quantization_type is None:
-                    self._log(
+                    logger.warning(
                         "The model optimized with Tensorflow backend gives a "
                         "different result compared with the original model. "
-                        "This compiler will be skipped.",
-                        level=logging.WARNING,
+                        "This compiler will be skipped."
                     )
                 return None
         return learner

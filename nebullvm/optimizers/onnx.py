@@ -21,6 +21,8 @@ from nebullvm.utils.onnx import (
     get_output_names,
 )
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class ONNXOptimizer(BaseOptimizer):
     """Class for compiling the AI models using ONNX runtime."""
@@ -65,7 +67,7 @@ class ONNXOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -108,11 +110,10 @@ class ONNXOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with onnxruntime gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
         return learner
