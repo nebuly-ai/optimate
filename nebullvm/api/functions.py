@@ -365,6 +365,7 @@ def optimize_model(
 
     optimal_model = optimized_models[0][0]
 
+    logger.info("--- Nebullvm results ---")
     logger.info(f"Original model latency: {orig_latency} sec/iter")
     logger.info(f"Optimized model latency: {optimized_models[0][1]} sec/iter")
     logger.info(

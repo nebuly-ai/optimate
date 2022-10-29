@@ -287,8 +287,13 @@ class OptimizerStep(Step, ABC):
         )
         optimized_models = []
 
-        for prev_tech, (model, metric_drop_ths) in tqdm(models.items()):
-            logger.info(f"Optimizing output of {prev_tech}")
+        for i, (prev_tech, (model, metric_drop_ths)) in enumerate(
+            models.items()
+        ):
+            logger.info(
+                f"--- Optimizing output of compressor "
+                f"{i+1}/{len(models)}: {prev_tech} ---"
+            )
             if model is None:
                 continue
             if metric_drop_ths is not None:
@@ -301,7 +306,8 @@ class OptimizerStep(Step, ABC):
                     q_types.append(QuantizationType.STATIC)
             else:
                 q_types = [None]
-            for compiler, optimizer in tqdm(optimizers.items()):
+            for j, (compiler, optimizer) in enumerate(optimizers.items()):
+                logger.info(f"------ OPTIMIZER {j+1}/{len(optimizers)} ------")
                 for q_type in q_types:
                     try:
                         optimized_model = self._run_optimizer(
