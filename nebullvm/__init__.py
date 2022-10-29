@@ -1,4 +1,4 @@
-from nebullvm.utils.general import setup_logger
+from nebullvm.utils.logger import setup_logger
 
 setup_logger()
 

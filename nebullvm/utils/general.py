@@ -1,7 +1,4 @@
-import logging
-import os
 import sys
-import warnings
 from packaging import version
 from types import ModuleType
 
@@ -27,23 +24,3 @@ def is_python_version_3_10():
         str(sys.version_info.major) + "." + str(sys.version_info.minor)
         == "3.10"
     )
-
-
-def debug_mode_enabled():
-    return int(os.environ.get("DEBUG_MODE", "0")) > 0
-
-
-def setup_logger():
-    if not debug_mode_enabled():
-        warnings.filterwarnings("ignore")
-
-    logger = logging.getLogger("nebullvm_logger")
-    logger.setLevel(logging.INFO)
-
-    ch = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "%(asctime)s [ %(levelname)s ] %(message)s", "%d/%m/%Y %I:%M:%S %p"
-    )
-    ch.setFormatter(formatter)
-    logger.handlers = [ch]
-    logger.propagate = False

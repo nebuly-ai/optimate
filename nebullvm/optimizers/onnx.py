@@ -16,6 +16,12 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.logger import (
+    save_root_logger_state,
+    load_root_logger_state,
+    raise_logger_level,
+    debug_mode_enabled,
+)
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
@@ -77,10 +83,17 @@ class ONNXOptimizer(BaseOptimizer):
             QUANTIZATION_DATA_NUM
         )
 
+        if not debug_mode_enabled():
+            logger_state = save_root_logger_state()
+            raise_logger_level()
+
         if quantization_type is not None:
             model, input_tfms = quantize_onnx(
                 model, quantization_type, input_tfms, input_data_onnx
             )
+
+        if not debug_mode_enabled():
+            load_root_logger_state(logger_state)
 
         learner = ONNX_INFERENCE_LEARNERS[output_library](
             input_tfms=input_tfms,
@@ -108,6 +121,7 @@ class ONNXOptimizer(BaseOptimizer):
             else compute_relative_difference,
             ys=ys,
         )
+
         if not is_valid:
             if quantization_type is None:
                 logger.warning(
