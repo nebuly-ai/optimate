@@ -320,6 +320,9 @@ class OptimizerStep(Step, ABC):
                             latency = compute_optimized_running_time(
                                 optimized_model, input_data
                             )
+                            logger.info(
+                                f"Optimized model latency: {latency} sec/iter"
+                            )
                         else:
                             latency = np.inf
                         optimized_models.append((optimized_model, latency))

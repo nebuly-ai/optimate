@@ -148,6 +148,8 @@ def _benchmark_original_model(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     outputs = None
 
+    logger.info("Benchmark performance of original model")
+
     if compute_output:
         outputs = [
             tuple(
@@ -160,6 +162,7 @@ def _benchmark_original_model(
 
     inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
     latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](inputs, model, device)
+    logger.info(f"Original model latency: {latency} sec/iter")
 
     return outputs, latency
 
@@ -361,6 +364,14 @@ def optimize_model(
         return None
 
     optimal_model = optimized_models[0][0]
+
+    logger.info(f"Original model latency: {orig_latency} sec/iter")
+    logger.info(f"Optimized model latency: {optimized_models[0][1]} sec/iter")
+    logger.info(
+        "Estimated speedup: {:.2f}x".format(
+            orig_latency / optimized_models[0][1]
+        )
+    )
 
     if needs_conversion_to_hf:
         from nebullvm.api.huggingface import HuggingFaceInferenceLearner

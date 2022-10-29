@@ -116,6 +116,7 @@ class CrossConverter(BaseConverter):
         # TODO: Add cross conversion torch-tf
         onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
         if isinstance(model, Module):
+            logger.info("Converting the torch model to onnx")
             onnx_path = convert_torch_to_onnx(
                 torch_model=model,
                 model_params=model_params,
@@ -127,6 +128,7 @@ class CrossConverter(BaseConverter):
                 [model, str(onnx_path)] if onnx_path is not None else [model]
             )
         elif isinstance(model, tf.Module) and model is not None:
+            logger.info("Converting the tensorflow model to onnx")
             onnx_path = convert_tf_to_onnx(
                 model=model,
                 output_file_path=onnx_path,
