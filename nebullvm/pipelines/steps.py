@@ -203,7 +203,8 @@ class TorchCompressorStep(CompressorStep):
             )
 
         if (
-            "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+            intel_neural_compressor_is_available()
+            and "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
             and ModelCompressor.NEURAL_COMPRESSOR_PRUNING
             not in ignore_compressors
         ):
