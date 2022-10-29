@@ -23,6 +23,7 @@ from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers.base import (
     BaseOptimizer,
 )
+from nebullvm.optional_modules.onnxsim import onnxsim  # noqa F401
 from nebullvm.optimizers.quantization.tensor_rt import TensorRTCalibrator
 from nebullvm.optimizers.quantization.utils import (
     check_precision,
@@ -184,22 +185,22 @@ class TensorRTOptimizer(BaseOptimizer):
         if quantization_type is QuantizationType.DYNAMIC:
             return None  # Dynamic quantization is not supported on tensorRT
 
-        # Simplify model, otherwise tensor RT won't work on gpt2 and some
-        # other models.
-        simplified_model = model + "_simplified"
-        if not Path(simplified_model).is_file():
-            cmd = [
-                "onnxsim",
-                model,
-                model + "_simplified",
-            ]
-            subprocess.run(cmd)
-
         train_input_data = input_data.get_split("train").get_numpy_list(
             QUANTIZATION_DATA_NUM
         )
 
         try:
+            # Simplify model, otherwise tensor RT won't work on gpt2 and some
+            # other models.
+            simplified_model = model + "_simplified"
+            if not Path(simplified_model).is_file():
+                cmd = [
+                    "onnxsim",
+                    model,
+                    model + "_simplified",
+                ]
+                subprocess.run(cmd)
+
             # First try with simplified model
             engine_path = (
                 Path(simplified_model).parent / NVIDIA_FILENAMES["engine"]
