@@ -8,11 +8,11 @@ from tempfile import mkdtemp
 from typing import Union, Dict, Any, List, Optional
 
 import numpy as np
-import torch
 
 from nebullvm.base import ModelParams
 from nebullvm.config import LEARNER_METADATA_FILENAME
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import create_model_inputs_onnx
 from nebullvm.utils.tf import create_model_inputs_tf

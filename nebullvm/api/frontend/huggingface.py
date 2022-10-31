@@ -8,8 +8,6 @@ from typing import (
     Callable,
 )
 
-import torch
-
 from nebullvm import optimize_torch_model
 from nebullvm.api.huggingface import (
     _flatten_outputs,
@@ -21,6 +19,7 @@ from nebullvm.api.huggingface import (
 from nebullvm.api.utils import ifnone, QUANTIZATION_METRIC_MAP
 from nebullvm.base import DataType, ModelCompiler
 from nebullvm.optimizers.extra import HuggingFaceOptimizer
+from nebullvm.optional_modules.torch import torch
 
 try:
     from transformers import PreTrainedModel, PretrainedConfig

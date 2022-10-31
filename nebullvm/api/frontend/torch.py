@@ -5,8 +5,6 @@ from tempfile import TemporaryDirectory
 from typing import List, Tuple, Dict, Optional, Callable, Union, Sequence
 
 import numpy as np
-import torch
-from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from nebullvm.api.utils import (
@@ -39,6 +37,7 @@ from nebullvm.optimizers import (
     BaseOptimizer,
 )
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
+from nebullvm.optional_modules.torch import torch, DataLoader
 
 logger = logging.getLogger("nebullvm_logger")
 

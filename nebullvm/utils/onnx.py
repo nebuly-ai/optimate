@@ -5,6 +5,7 @@ import torch
 
 from nebullvm.base import InputInfo, DataType, DeepLearningFramework
 from nebullvm.optional_modules.onnx import onnx
+from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.config import ONNX_PROVIDERS
 
@@ -88,3 +89,7 @@ def create_model_inputs_onnx(
         for input_info in input_infos
     )
     return list(input_tensors)
+
+
+def onnx_is_gpu_available():
+    return ort.get_device() == "GPU"

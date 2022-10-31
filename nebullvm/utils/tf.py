@@ -38,3 +38,7 @@ def run_tf_model(
     if isinstance(pred, tf.Module) and pred is not None:
         pred = (pred,)
     return pred
+
+
+def tensorflow_is_gpu_available():
+    return len(tf.config.list_physical_devices("GPU")) > 0

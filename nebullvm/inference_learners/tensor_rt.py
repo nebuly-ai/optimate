@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
 
 import numpy as np
-import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import NVIDIA_FILENAMES
@@ -18,9 +17,11 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt, polygraphy
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.general import use_gpu
 
 logger = logging.getLogger("nebullvm_logger")
 
@@ -79,7 +80,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
 
     @staticmethod
     def check_env():
-        if not torch.cuda.is_available():
+        if not use_gpu():
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."

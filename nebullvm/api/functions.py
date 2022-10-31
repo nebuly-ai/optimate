@@ -12,8 +12,6 @@ from typing import (
     Optional,
 )
 
-import torch.nn
-
 from nebullvm.api.frontend.onnx import extract_info_from_np_data
 from nebullvm.api.frontend.tf import extract_info_from_tf_data
 from nebullvm.api.frontend.torch import extract_info_from_torch_data
@@ -34,6 +32,7 @@ from nebullvm.measure import (
     compute_onnx_latency,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager

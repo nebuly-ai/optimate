@@ -78,3 +78,7 @@ def run_torch_model(
     else:
         pred = [p.cpu() for p in pred]
     return pred
+
+
+def torch_is_gpu_available():
+    return torch.cuda.is_available()

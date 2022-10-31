@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
 import numpy as np
-import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import (
@@ -19,6 +18,7 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.optional_modules.torch import torch
 from nebullvm.optional_modules.openvino import (
     Core,
     Model,

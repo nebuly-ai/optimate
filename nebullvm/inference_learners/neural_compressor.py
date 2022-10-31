@@ -3,9 +3,6 @@ from abc import ABC
 from pathlib import Path
 from typing import Union, Tuple, Dict, Type
 
-import torch.fx
-from torch.quantization.quantize_fx import prepare_fx, convert_fx
-
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -16,6 +13,7 @@ from nebullvm.optional_modules.neural_compressor import (
     _cfgs_to_fx_cfgs,
     _cfg_to_qconfig,
 )
+from nebullvm.optional_modules.torch import torch, prepare_fx, convert_fx
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
 

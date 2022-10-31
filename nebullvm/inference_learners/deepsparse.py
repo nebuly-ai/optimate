@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Union, List, Generator, Tuple, Dict, Type
 
 import numpy as np
-import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.config import ONNX_FILENAMES
@@ -16,6 +15,7 @@ from nebullvm.inference_learners.base import (
     PytorchBaseInferenceLearner,
 )
 from nebullvm.optional_modules.deepsparse import cpu, compile_model
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import MultiStageTransformation
 
 logger = logging.getLogger("nebullvm_logger")

@@ -5,10 +5,9 @@ from tempfile import TemporaryDirectory
 from typing import Any, Callable, Tuple, Optional, Dict
 
 import numpy as np
-import torch
-import torch.fx
 
 from nebullvm.compressors.base import BaseCompressor
+from nebullvm.optional_modules.torch import torch
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
 from nebullvm.utils.venv import run_in_different_venv

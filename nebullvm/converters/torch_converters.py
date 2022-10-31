@@ -2,11 +2,9 @@ import logging
 from pathlib import Path
 from typing import Union
 
-import torch
-from torch.nn import Module
-
 from nebullvm.base import ModelParams
 from nebullvm.config import ONNX_OPSET_VERSION
+from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,

@@ -6,13 +6,13 @@ from tempfile import mkdtemp
 from typing import Dict, Any, Callable, Optional, Tuple
 
 import numpy as np
-import torch.nn
 import yaml
 from torch.utils.data import DataLoader, Dataset
 
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.optional_modules.neural_compressor import Pruning
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.utils.data import DataManager
 
 

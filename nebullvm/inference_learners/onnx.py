@@ -7,7 +7,6 @@ from typing import Union, List, Generator, Tuple, Dict, Type
 
 import cpuinfo
 import numpy as np
-import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.config import (
@@ -24,13 +23,15 @@ from nebullvm.inference_learners.base import (
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.general import use_gpu
 
 logger = logging.getLogger("nebullvm_logger")
 
 
 def _running_on_intel_cpu():
-    if torch.cuda.is_available():
+    if use_gpu():
         return False  # running on GPU
     cpu_info = cpuinfo.get_cpu_info()["brand_raw"].lower()
     if "intel" in cpu_info:
@@ -43,7 +44,7 @@ def _get_ort_session_options() -> ort.SessionOptions:
     sess_options.graph_optimization_level = (
         ort.GraphOptimizationLevel.ORT_ENABLE_ALL
     )
-    if not torch.cuda.is_available():
+    if use_gpu():
         sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
         sess_options.inter_op_num_threads = 1
         sess_options.intra_op_num_threads = max(
@@ -93,7 +94,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             onnx_path,
             sess_options=sess_options,
             providers=ONNX_PROVIDERS["cuda"]
-            if torch.cuda.is_available()
+            if use_gpu()
             else ONNX_PROVIDERS["cpu"],
         )
         self._session = ort_session

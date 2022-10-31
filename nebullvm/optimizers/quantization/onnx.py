@@ -3,12 +3,11 @@ from typing import Union, Iterable, Tuple, List
 
 import cpuinfo
 import numpy as np
-import torch
-from torch.utils.data import DataLoader
 
 from nebullvm.base import QuantizationType
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
+from nebullvm.utils.general import use_gpu
 from nebullvm.utils.onnx import get_input_names
 from nebullvm.optional_modules.onnx import (
     onnx,
@@ -20,6 +19,7 @@ from nebullvm.optional_modules.onnxruntime import (
     quantize_dynamic,
     quantize_static,
 )
+from nebullvm.optional_modules.torch import DataLoader
 
 
 class _IterableCalibrationDataReader(CalibrationDataReader):
@@ -70,7 +70,7 @@ def _get_quantization_type_for_static() -> Tuple[QuantType, QuantType]:
     depending on the underlying hardware
     """
     arch = cpuinfo.get_cpu_info()["arch"].lower()
-    if torch.cuda.is_available():
+    if use_gpu():
         activation_type = weight_type = QuantType.QInt8
     elif "x86" in arch:
         cpu_raw_data = cpuinfo.get_cpu_info()["brand_raw"].lower()

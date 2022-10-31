@@ -12,13 +12,14 @@ from typing import (
 )
 
 import numpy as np
-import torch
 
 from nebullvm.inference_learners import (
     InferenceLearnerWrapper,
     PytorchBaseInferenceLearner,
     LearnerMetadata,
 )
+
+from nebullvm.optional_modules.torch import torch
 
 try:
     from transformers import (

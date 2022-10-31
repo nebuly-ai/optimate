@@ -1,6 +1,6 @@
 import os
 
-import torch
+from nebullvm.optional_modules.torch import torch
 
 
 VERSION = "0.4.4"
