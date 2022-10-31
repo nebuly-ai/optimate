@@ -2,8 +2,6 @@ import logging
 from collections.abc import Callable
 from typing import Optional, Any
 
-import torch.nn
-
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
@@ -14,6 +12,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.torch import Module
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 
@@ -30,7 +29,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        model: torch.nn.Module,
+        model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,

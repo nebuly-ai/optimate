@@ -3,8 +3,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional, Callable, Any
 
-import torch
-
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.converters import ONNXConverter
@@ -15,6 +13,7 @@ from nebullvm.inference_learners.deepsparse import (
 from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.utils import check_precision
+from nebullvm.optional_modules.torch import Module
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
@@ -28,7 +27,7 @@ logger = logging.getLogger("nebullvm_logger")
 class DeepSparseOptimizer(BaseOptimizer):
     def optimize(
         self,
-        model: torch.nn.Module,
+        model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,

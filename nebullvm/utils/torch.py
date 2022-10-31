@@ -1,15 +1,13 @@
 from pathlib import Path
 from typing import List, Tuple
 
-import torch
-from torch.nn import Module
-
 from nebullvm.base import DataType, InputInfo
+from nebullvm.optional_modules.torch import torch, Module
 
 FX_MODULE_NAME = "NebullvmFxModule"
 
 
-def save_with_torch_fx(model: torch.nn.Module, path: Path):
+def save_with_torch_fx(model: Module, path: Path):
     traced_model = torch.fx.symbolic_trace(model)
     traced_model.to_folder(path, FX_MODULE_NAME)
 
@@ -57,9 +55,9 @@ def create_model_inputs_torch(
 
 
 def run_torch_model(
-    torch_model: torch.nn.Module,
+    torch_model: Module,
     input_tensors: List[torch.Tensor],
-    dtype: torch.dtype = torch.float32,
+    dtype: torch.dtype = torch.float,
 ) -> List[torch.Tensor]:
     torch_model.eval()
     if torch.cuda.is_available():
@@ -68,7 +66,7 @@ def run_torch_model(
             input_tensors = (t.cuda() for t in input_tensors)
         else:
             input_tensors = (
-                t.cuda().half() if t.dtype == torch.float32 else t.cuda()
+                t.cuda().half() if t.dtype == torch.float else t.cuda()
                 for t in input_tensors
             )
     with torch.no_grad():

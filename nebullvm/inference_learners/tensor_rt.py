@@ -17,7 +17,7 @@ from nebullvm.inference_learners.base import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt, polygraphy
-from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.torch import torch, ScriptModule
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
@@ -231,7 +231,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_optimized.pt"
 
     def __init__(
-        self, torch_model: torch.jit.ScriptModule, dtype: torch.dtype, **kwargs
+        self, torch_model: ScriptModule, dtype: torch.dtype, **kwargs
     ):
         super().__init__(**kwargs)
         self.model = torch_model.eval()

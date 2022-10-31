@@ -13,7 +13,13 @@ from nebullvm.optional_modules.neural_compressor import (
     _cfgs_to_fx_cfgs,
     _cfg_to_qconfig,
 )
-from nebullvm.optional_modules.torch import torch, prepare_fx, convert_fx
+from nebullvm.optional_modules.torch import (
+    torch,
+    prepare_fx,
+    convert_fx,
+    Module,
+    GraphModule,
+)
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
 
@@ -31,8 +37,8 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
 
     def __init__(
         self,
-        model: Union[torch.nn.Module, torch.fx.GraphModule],
-        model_quant: torch.fx.GraphModule,
+        model: Union[Module, GraphModule],
+        model_quant: GraphModule,
         **kwargs,
     ):
         super().__init__(**kwargs)

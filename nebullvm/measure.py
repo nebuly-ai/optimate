@@ -3,24 +3,24 @@ import time
 from typing import Tuple, List, Union, Any
 
 import numpy as np
-import torch
 
 from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.inference_learners.base import BaseInferenceLearner
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
     convert_to_numpy,
     get_input_names,
     get_output_names,
 )
-from nebullvm.optional_modules.tensorflow import tensorflow as tf
 
 logger = logging.getLogger("nebullvm_logger")
 
 
 def compute_torch_latency(
     xs: List[Tuple[torch.Tensor]],
-    model: torch.nn.Module,
+    model: Module,
     device: str,
     steps: int = 100,
     warmup_steps: int = 10,

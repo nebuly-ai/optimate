@@ -37,13 +37,13 @@ from nebullvm.optimizers import (
     BaseOptimizer,
 )
 from nebullvm.optimizers.multi_compiler import MultiCompilerOptimizer
-from nebullvm.optional_modules.torch import torch, DataLoader
+from nebullvm.optional_modules.torch import torch, DataLoader, Module
 
 logger = logging.getLogger("nebullvm_logger")
 
 
 def _extract_dynamic_axis(
-    torch_model: torch.nn.Module,
+    torch_model: Module,
     dataloader: DataManager,
     input_sizes: List[Tuple[int, ...]],
     batch_size: int,
@@ -73,7 +73,7 @@ def _extract_dynamic_axis(
 
 
 def extract_info_from_torch_data(
-    model: torch.nn.Module,
+    model: Module,
     dataloader: Union[DataLoader, Sequence],
     batch_size: int,
     input_sizes: List[Tuple[int, ...]],
@@ -104,7 +104,7 @@ def extract_info_from_torch_data(
 
 
 def optimize_torch_model(
-    model: torch.nn.Module,
+    model: Module,
     save_dir: str,
     dataloader: Union[DataLoader, Sequence] = None,
     batch_size: int = None,
@@ -343,7 +343,7 @@ def _get_optimizers_supporting_torch_api(
 
 
 def _torch_api_optimization(
-    model: torch.nn.Module,
+    model: Module,
     model_params: ModelParams,
     quantization_ths: float,
     quantization_type: QuantizationType,

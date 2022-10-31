@@ -3,8 +3,6 @@ import logging
 from collections.abc import Callable
 from typing import Optional, Any
 
-import torch.nn
-
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import (
     QUANTIZATION_DATA_NUM,
@@ -19,6 +17,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_precision,
 )
 from nebullvm.optional_modules.blade_disc import torch_blade
+from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import create_model_inputs_torch
@@ -36,7 +35,7 @@ class BladeDISCOptimizer(BaseOptimizer):
 
     def optimize(
         self,
-        model: torch.nn.Module,
+        model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,

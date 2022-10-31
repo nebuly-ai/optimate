@@ -7,17 +7,16 @@ from typing import Dict, Any, Callable, Optional, Tuple
 
 import numpy as np
 import yaml
-from torch.utils.data import DataLoader, Dataset
 
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.optional_modules.neural_compressor import Pruning
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.torch import DataLoader, Dataset, Module
 from nebullvm.utils.data import DataManager
 
 
 def _get_model_framework(model: Any) -> str:
-    if isinstance(model, torch.nn.Module):
+    if isinstance(model, Module):
         return "torch"
     elif isinstance(model, tf.Module) and model is not None:
         return "tensorflow"
@@ -171,8 +170,8 @@ class TorchIntelPruningCompressor(IntelPruningCompressor):
 
     def _compute_error(
         self,
-        model: torch.nn.Module,
-        compressed_model: torch.nn.Module,
+        model: Module,
+        compressed_model: Module,
         eval_input_data: DataManager,
         metric: Callable,
     ):

@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import List, Tuple, Optional, Callable, Any
 
 import numpy as np
-import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import (
@@ -30,6 +29,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
+from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.optional_modules.torch_tensorrt import torch_tensorrt
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager, PytorchDataset
@@ -265,7 +265,7 @@ class TensorRTOptimizer(BaseOptimizer):
 
     def optimize_from_torch(
         self,
-        torch_model: torch.nn.Module,
+        torch_model: Module,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,

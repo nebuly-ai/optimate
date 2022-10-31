@@ -1,13 +1,14 @@
 from typing import List, Tuple, Any
 
 import numpy as np
-import torch
 
 from nebullvm.base import InputInfo, DataType, DeepLearningFramework
+from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.config import ONNX_PROVIDERS
+from nebullvm.optional_modules.torch import torch
+from nebullvm.utils.general import use_gpu
 
 
 def convert_to_numpy(tensor: Any):
@@ -54,7 +55,7 @@ def run_onnx_model(
     model = ort.InferenceSession(
         onnx_model,
         providers=ONNX_PROVIDERS["cuda"]
-        if torch.cuda.is_available()
+        if use_gpu()
         else ONNX_PROVIDERS["cpu"],
     )
     inputs = {

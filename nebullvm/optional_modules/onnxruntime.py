@@ -15,8 +15,6 @@ try:
         quantize_dynamic,
         CalibrationDataReader,
     )
-    from onnxruntime.transformers import optimizer
-    from onnxruntime.transformers.optimizer import MODEL_TYPES
 except ImportError:
     logger.warning(
         "Missing Library: "
@@ -27,9 +25,16 @@ except ImportError:
     onnxruntime = Onnxruntime
     setattr(onnxruntime, "SessionOptions", None)
     QuantType = quantize_static = quantize_dynamic = None
-    CalibrationDataReader = MODEL_TYPES = object
-    optimizer = object
+    CalibrationDataReader = object
 except FileNotFoundError:
     # Solves a colab issue
     QuantType = quantize_static = quantize_dynamic = None
     CalibrationDataReader = object
+
+try:
+    # They require torch
+    from onnxruntime.transformers import optimizer
+    from onnxruntime.transformers.optimizer import MODEL_TYPES
+except ImportError:
+    MODEL_TYPES = object
+    optimizer = object

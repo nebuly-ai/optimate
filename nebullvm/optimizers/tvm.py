@@ -3,8 +3,6 @@ import os
 import uuid
 from typing import Tuple, Dict, Optional, Callable, Any
 
-import torch.cuda
-
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.config import (
     AUTO_TVM_TUNING_OPTION,
@@ -24,6 +22,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_precision,
 )
 from nebullvm.optional_modules.onnx import onnx
+from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.optional_modules.tvm import (
     tvm,
     IRModule,
@@ -48,7 +47,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
 
     def optimize_from_torch(
         self,
-        torch_model: torch.nn.Module,
+        torch_model: Module,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
@@ -232,7 +231,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
 
     @staticmethod
     def _build_tvm_model_from_torch(
-        torch_model: torch.nn.Module, model_params: ModelParams
+        torch_model: Module, model_params: ModelParams
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {
             f"input_{i}": (

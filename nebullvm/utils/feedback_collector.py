@@ -9,7 +9,6 @@ from typing import Any, Optional
 
 import psutil
 import requests
-import torch.cuda
 from cpuinfo import cpuinfo
 
 from nebullvm.base import (
@@ -18,6 +17,8 @@ from nebullvm.base import (
     QuantizationType,
 )
 from nebullvm.config import VERSION
+from nebullvm.optional_modules.torch import Module
+from nebullvm.utils.general import use_gpu
 
 NEBULLVM_METADATA_PATH = Path.home() / ".nebullvm/collect.json"
 
@@ -35,7 +36,7 @@ def _input_with_timeout(message: str, timeout: int):
 def _read_model_size(model: Any):
     if isinstance(model, str) or isinstance(model, Path):
         size = os.stat(str(model)).st_size
-    elif isinstance(model, torch.nn.Module):
+    elif isinstance(model, Module):
         size = sum(
             param.nelement() * param.element_size()
             for param in model.parameters()
@@ -44,6 +45,10 @@ def _read_model_size(model: Any):
         # we assume it is a tf_model
         size = model.count_params() * 4  # assuming full precision 32 bit
     return f"{round(size * 1e-6, 2)} MB"
+
+
+def _get_gpu_name():
+    raise NotImplementedError
 
 
 class FeedbackCollector:
@@ -65,8 +70,8 @@ class FeedbackCollector:
             "operative_system": platform.system(),
             "ram": f"{round(psutil.virtual_memory().total * 1e-9, 2)} GB",
         }
-        if torch.cuda.is_available():
-            self._hw_info["gpu"] = torch.cuda.get_device_name(0)
+        if use_gpu():
+            self._hw_info["gpu"] = _get_gpu_name()
 
     @property
     def is_active(self):

@@ -5,7 +5,6 @@ from typing import Dict, List, Any, Callable, Tuple, Optional
 
 import cpuinfo
 import numpy as np
-import torch.nn
 from tqdm import tqdm
 
 from nebullvm.base import (
@@ -36,6 +35,7 @@ from nebullvm.optimizers.neural_compressor import NeuralCompressorOptimizer
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tensor_rt import TensorRTOptimizer
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
+from nebullvm.optional_modules.torch import Module
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.compilers import (
@@ -628,7 +628,7 @@ def _get_compressor_step(
         return NoCompressionStep()
     if metric_drop_ths is None:
         return NoCompressionStep()
-    elif isinstance(model, torch.nn.Module):
+    elif isinstance(model, Module):
         return TorchCompressorStep(config_file=config_file)
     else:  # default is NoCompression
         return NoCompressionStep()
@@ -637,7 +637,7 @@ def _get_compressor_step(
 def _get_optimizer_step(
     model: Any,
 ) -> Step:
-    if isinstance(model, torch.nn.Module):
+    if isinstance(model, Module):
         return TorchOptimizerStep()
     elif isinstance(model, tf.Module) and model is not None:
         return TFOptimizerStep()
@@ -646,7 +646,7 @@ def _get_optimizer_step(
 
 
 def _get_pipeline_name(model: Any):
-    if isinstance(model, torch.nn.Module):
+    if isinstance(model, Module):
         return "pytorch_pipeline"
     elif isinstance(model, tf.Module) and model is not None:
         return "tensorflow_pipeline"

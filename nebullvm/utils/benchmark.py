@@ -4,11 +4,11 @@ from tqdm import tqdm
 from typing import Any, Dict, Type
 
 import numpy as np
-import torch
 
 from nebullvm.api.functions import _check_input_data, _extract_info_from_data
 from nebullvm.base import DeepLearningFramework, ModelParams
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import create_model_inputs_onnx
 from nebullvm.utils.tf import create_model_inputs_tf

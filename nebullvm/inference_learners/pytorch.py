@@ -1,13 +1,17 @@
 from pathlib import Path
 from typing import Tuple, Union, Optional, List
 
-import torch
-from torch.fx import symbolic_trace
-
 from nebullvm.base import ModelParams
 from nebullvm.inference_learners import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
+)
+from nebullvm.optional_modules.torch import (
+    torch,
+    symbolic_trace,
+    Module,
+    ScriptModule,
+    GraphModule,
 )
 from nebullvm.transformations.base import MultiStageTransformation
 
@@ -15,7 +19,7 @@ from nebullvm.transformations.base import MultiStageTransformation
 class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_scripted.pt"
 
-    def __init__(self, torch_model: torch.jit.ScriptModule, **kwargs):
+    def __init__(self, torch_model: ScriptModule, **kwargs):
         super().__init__(**kwargs)
         self.model = torch_model.eval()
         if torch.cuda.is_available():
@@ -56,10 +60,10 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     @classmethod
     def from_torch_model(
         cls,
-        model: Union[torch.nn.Module, torch.fx.GraphModule],
+        model: Union[Module, GraphModule],
         network_parameters: ModelParams,
         input_tfms: Optional[MultiStageTransformation] = None,
-        input_data: List[torch.tensor] = None,
+        input_data: List[torch.Tensor] = None,
     ):
         if torch.cuda.is_available():
             input_data = [t.cuda() for t in input_data]

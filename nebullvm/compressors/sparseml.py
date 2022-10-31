@@ -7,7 +7,7 @@ from typing import Any, Callable, Tuple, Optional, Dict
 import numpy as np
 
 from nebullvm.compressors.base import BaseCompressor
-from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
 from nebullvm.utils.venv import run_in_different_venv
@@ -15,7 +15,7 @@ from nebullvm.utils.venv import run_in_different_venv
 logger = logging.getLogger("nebullvm_logger")
 
 
-def _save_model(model: torch.nn.Module, path: Path):
+def _save_model(model: Module, path: Path):
     try:
         save_with_torch_fx(model, path)
     except Exception as ex:
@@ -57,7 +57,7 @@ def _write_requirements_file(path: Path):
 class SparseMLCompressor(BaseCompressor):
     def compress(
         self,
-        model: torch.nn.Module,
+        model: Module,
         train_input_data: DataManager,
         eval_input_data: DataManager,
         metric_drop_ths: float,
@@ -114,8 +114,8 @@ class SparseMLCompressor(BaseCompressor):
     @staticmethod
     @torch.no_grad()
     def _compute_error(
-        model: torch.nn.Module,
-        pruned_model: torch.nn.Module,
+        model: Module,
+        pruned_model: Module,
         eval_input_data: DataManager,
         metric: Callable,
     ) -> float:

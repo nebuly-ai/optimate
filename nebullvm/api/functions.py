@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
@@ -32,34 +33,44 @@ from nebullvm.measure import (
     compute_onnx_latency,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.torch import Module
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
+from nebullvm.utils.general import use_gpu
 from nebullvm.utils.onnx import (
     get_output_sizes_onnx,
     run_onnx_model,
+    onnx_is_gpu_available,
 )
 from nebullvm.utils.tf import (
     get_outputs_sizes_tf,
     run_tf_model,
+    tensorflow_is_gpu_available,
 )
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     run_torch_model,
+    torch_is_gpu_available,
 )
 
 logger = logging.getLogger("nebullvm_logger")
 
 
 def _get_dl_framework(model: Any):
-    if isinstance(model, torch.nn.Module):
+    if isinstance(model, Module):
         return DeepLearningFramework.PYTORCH
     elif isinstance(model, tf.Module) and model is not None:
         return DeepLearningFramework.TENSORFLOW
     elif isinstance(model, str):
-        return DeepLearningFramework.NUMPY
+        if Path(model).is_file():
+            return DeepLearningFramework.NUMPY
+        else:
+            raise FileNotFoundError(
+                f"No file '{model}' found, please provide a valid path to "
+                f"a model."
+            )
     else:
         raise TypeError(f"Model type {type(model)} not supported.")
 
@@ -144,7 +155,7 @@ def _benchmark_original_model(
     dl_framework: DeepLearningFramework,
     compute_output: bool = False,
 ):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if use_gpu() else "cpu"
     outputs = None
 
     logger.info("Benchmark performance of original model")
@@ -174,6 +185,36 @@ def _map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
     return ignore_list
 
 
+def _gpu_is_available(dl_framework: DeepLearningFramework):
+    if dl_framework is DeepLearningFramework.PYTORCH:
+        return torch_is_gpu_available()
+    elif dl_framework is DeepLearningFramework.TENSORFLOW:
+        return tensorflow_is_gpu_available()
+    else:
+        return onnx_is_gpu_available()
+
+
+def _set_device(device: Optional[str], dl_framework: DeepLearningFramework):
+    if device is None:
+        if _gpu_is_available(dl_framework):
+            os.environ["USE_GPU"] = "1"
+        else:
+            os.environ["USE_GPU"] = "0"
+    else:
+        if device == "gpu":
+            if not _gpu_is_available(dl_framework):
+                logger.warning(
+                    "Selected gpu device but no available gpu found on this "
+                    "platform. Please make sure that the gpu is installed and "
+                    "can be used by your framework."
+                )
+                os.environ["USE_GPU"] = "0"
+            else:
+                os.environ["USE_GPU"] = "1"
+        else:
+            os.environ["USE_GPU"] = "0"
+
+
 def optimize_model(
     model: Any,
     input_data: Union[Iterable, Sequence],
@@ -185,6 +226,7 @@ def optimize_model(
     ignore_compilers: List[str] = None,
     ignore_compressors: List[str] = None,
     store_latencies: bool = False,
+    device: Optional[str] = None,
     **kwargs,
 ):
     """Optimize the input model regardless of the framework it was used for
@@ -257,6 +299,8 @@ def optimize_model(
             to be ignored during the CompressionStep. Default: None.
         store_latencies (bool, optional): Parameter that allows to save the
             latency for each compiler used by nebullvm. Default: False.
+        device (str, optional): Device used, can be 'cpu' or 'gpu'. If not
+            set, gpu will be used if available, otherwise cpu. Default: None
 
     Returns:
         InferenceLearner: Optimized version of the input model having the same
@@ -267,6 +311,7 @@ def optimize_model(
             take as input and it will return `torch.Tensor`s.
     """
     dl_framework = _get_dl_framework(model)
+    _set_device(device, dl_framework)
     optimization_time = OptimizationTime(optimization_time)
     FEEDBACK_COLLECTOR.start_collection(model, framework=dl_framework)
     if metric_drop_ths is not None and metric_drop_ths <= 0:

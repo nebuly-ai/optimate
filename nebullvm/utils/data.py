@@ -2,9 +2,9 @@ import logging
 from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
-import torch
 
 from nebullvm.config import MIN_DIM_INPUT_DATA
+from nebullvm.optional_modules.torch import Dataset
 from nebullvm.utils.onnx import convert_to_numpy
 
 logger = logging.getLogger("nebullvm_logger")
@@ -124,7 +124,7 @@ class DataManager:
             self.test_idxs = idx[n:]
 
 
-class PytorchDataset(torch.utils.data.Dataset):
+class PytorchDataset(Dataset):
     def __init__(self, input_data: DataManager):
         self.data = input_data
         self.batch_size = input_data[0][0][0].shape[0]

@@ -2,11 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
-import torch.fx
-import torch.nn
-
 import yaml
-from torch.utils.data import DataLoader
 
 from nebullvm.base import QuantizationType
 from nebullvm.compressors.intel import INCDataset
@@ -14,6 +10,7 @@ from nebullvm.optional_modules.neural_compressor import (
     MixedPrecision,
     Quantization,
 )
+from nebullvm.optional_modules.torch import DataLoader, Module, GraphModule
 from nebullvm.utils.data import DataManager
 
 
@@ -64,9 +61,7 @@ def _get_dataloader(input_data: DataManager):
     return dl
 
 
-def _quantize_static(
-    model: torch.nn.Module, input_data: DataManager
-) -> torch.fx.GraphModule:
+def _quantize_static(model: Module, input_data: DataManager) -> GraphModule:
     with TemporaryDirectory() as tmp_dir:
         config_file_qt = _prepare_quantization_config(
             model, tmp_dir, "post_training_static_quant"
@@ -80,7 +75,7 @@ def _quantize_static(
     return compressed_model
 
 
-def _quantize_dynamic(model: torch.nn.Module) -> torch.fx.GraphModule:
+def _quantize_dynamic(model: Module) -> GraphModule:
     with TemporaryDirectory() as tmp_dir:
         config_file_qt = _prepare_quantization_config(
             model, tmp_dir, "post_training_dynamic_quant"
@@ -92,7 +87,7 @@ def _quantize_dynamic(model: torch.nn.Module) -> torch.fx.GraphModule:
     return compressed_model
 
 
-def _mixed_precision(model: torch.nn.Module) -> torch.fx.GraphModule:
+def _mixed_precision(model: Module) -> GraphModule:
     with TemporaryDirectory() as tmp_dir:
         config_file_qt = _prepare_mixed_precision_config(model, tmp_dir)
         converter = MixedPrecision(str(config_file_qt))
@@ -103,10 +98,10 @@ def _mixed_precision(model: torch.nn.Module) -> torch.fx.GraphModule:
 
 
 def quantize_neural_compressor(
-    model: torch.nn.Module,
+    model: Module,
     quantization_type: QuantizationType,
     input_data: DataManager,
-) -> torch.fx.GraphModule:
+) -> GraphModule:
     if quantization_type is QuantizationType.STATIC:
         compressed_model = _quantize_static(model, input_data)
     elif quantization_type is QuantizationType.DYNAMIC:

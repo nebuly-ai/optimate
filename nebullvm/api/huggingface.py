@@ -19,7 +19,7 @@ from nebullvm.inference_learners import (
     LearnerMetadata,
 )
 
-from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.torch import torch, Module
 
 try:
     from transformers import (
@@ -45,7 +45,7 @@ def _flatten_outputs(
     return new_outputs
 
 
-class _TransformerWrapper(torch.nn.Module):
+class _TransformerWrapper(Module):
     """Class for wrappering the Transformers and give them an API compatible
     with nebullvm. The class takes and input of the forward method positional
     arguments and transform them in the input dictionaries needed by
@@ -54,7 +54,7 @@ class _TransformerWrapper(torch.nn.Module):
 
     def __init__(
         self,
-        core_model: torch.nn.Module,
+        core_model: Module,
         encoded_input: Dict[str, torch.Tensor],
     ):
         super().__init__()

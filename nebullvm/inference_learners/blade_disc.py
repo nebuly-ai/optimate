@@ -1,11 +1,10 @@
 from typing import Optional
 
-from torch.jit import ScriptModule
-
 from nebullvm.base import ModelParams
 from nebullvm.inference_learners.pytorch import (
     PytorchBackendInferenceLearner,
 )
+from nebullvm.optional_modules.torch import ScriptModule
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 

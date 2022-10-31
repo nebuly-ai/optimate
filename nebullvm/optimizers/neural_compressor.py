@@ -2,8 +2,6 @@ import logging
 from copy import deepcopy
 from typing import Optional, Callable, Any
 
-import torch
-
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.neural_compressor import (
@@ -19,6 +17,7 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.torch import Module
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 
@@ -28,7 +27,7 @@ logger = logging.getLogger("nebullvm_logger")
 class NeuralCompressorOptimizer(BaseOptimizer):
     def optimize(
         self,
-        model: torch.nn.Module,
+        model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,

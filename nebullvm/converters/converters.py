@@ -3,8 +3,6 @@ from abc import abstractmethod, ABC
 from pathlib import Path
 from typing import Any, List
 
-from torch.nn import Module
-
 from nebullvm.base import ModelParams
 from nebullvm.converters.tensorflow_converters import (
     convert_tf_to_onnx,
@@ -13,6 +11,7 @@ from nebullvm.converters.tensorflow_converters import (
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import Module
 from nebullvm.utils.data import DataManager
 
 logger = logging.getLogger("nebullvm_logger")
