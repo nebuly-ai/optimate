@@ -100,6 +100,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         engine_path: Union[str, Path],
         input_names: List[str],
         output_names: List[str],
+        device: str,
         nvidia_logger: Any = None,
         cuda_stream: Any = None,
         input_tfms: MultiStageTransformation = None,
@@ -117,6 +118,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
                 tensors.
             output_names (List[str]): Names associated to the model output
                 tensors.
+            device: (str): Device where the model wil be run.
             cuda_stream (any, optional): Stream used for communication with
                 Nvidia GPUs.
             nvidia_logger (any, optional): Logger used by the Nvidia service
@@ -151,6 +153,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             nvidia_logger=nvidia_logger,
             cuda_stream=cuda_stream,
             input_data=input_data,
+            device=device,
         )
 
     def _predict_tensors(
