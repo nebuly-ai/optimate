@@ -101,15 +101,15 @@ def tensorflow_is_available() -> bool:
         return True
 
 
-def select_compilers_from_hardware_onnx():
+def select_compilers_from_hardware_onnx(device: str):
     compilers = []
     if onnx_is_available():
         if onnxruntime_is_available():
             compilers.append(ModelCompiler.ONNX_RUNTIME)
         if tvm_is_available():
             compilers.append(ModelCompiler.APACHE_TVM)
-        if tensorrt_is_available():
+        if device == "gpu" and tensorrt_is_available():
             compilers.append(ModelCompiler.TENSOR_RT)
-        if openvino_is_available():
+        if device == "cpu" and openvino_is_available():
             compilers.append(ModelCompiler.OPENVINO)
     return compilers

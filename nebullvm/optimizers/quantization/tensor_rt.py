@@ -17,13 +17,13 @@ class TensorRTCalibrator(IInt8EntropyCalibrator2):
         self.batches = (x for x in input_data)
 
     def get_batch(self, names):
-        cuda_stream = polygraphy.cuda.Stream()
+        cuda_stream = polygraphy.Stream()
         try:
             data = next(self.batches)
 
             cuda_data = []
             for input_tensor in data:
-                device_array = polygraphy.cuda.DeviceArray()
+                device_array = polygraphy.DeviceArray()
                 device_array.resize(input_tensor.shape)
                 device_array.copy_from(
                     host_buffer=input_tensor, stream=cuda_stream

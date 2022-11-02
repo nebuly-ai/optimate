@@ -50,7 +50,7 @@ class DeepSparseOptimizer(BaseOptimizer):
             converter = ONNXConverter(model_name="model_pruned")
             onnx_pruned_path = Path(tmp_dir)
             converter.convert(
-                model, model_params, onnx_pruned_path, input_data
+                model, model_params, onnx_pruned_path, device, input_data
             )
             onnx_pruned_path = str(onnx_pruned_path / "model_pruned.onnx")
 

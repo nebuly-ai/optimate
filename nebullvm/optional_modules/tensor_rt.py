@@ -16,7 +16,7 @@ except ImportError:
     IInt8EntropyCalibrator2 = object
 
 try:
-    import polygraphy
+    import polygraphy.cuda as polygraphy
 except ImportError:
     logger.warning(
         "Missing Library: "

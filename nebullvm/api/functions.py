@@ -194,7 +194,7 @@ def _check_device(
         else:
             device = "cpu"
     else:
-        if device.upper() == "gpu":
+        if device.lower() == "gpu":
             if not gpu_is_available(dl_framework):
                 logger.warning(
                     "Selected GPU device but no available GPU found on this "

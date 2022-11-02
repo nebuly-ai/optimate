@@ -282,7 +282,7 @@ class OptimizerStep(Step, ABC):
             kwargs (Dict): Extra keywords that will be ignored.
         """
 
-        optimizers = self._get_optimizers(ignore_compilers)
+        optimizers = self._get_optimizers(ignore_compilers, device)
         logger.info(
             f"Optimizations: "
             f"{tuple(compiler.value for compiler in optimizers.keys())}"
@@ -395,7 +395,7 @@ class OptimizerStep(Step, ABC):
 
     @abstractmethod
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler]
+        self, ignore_compilers: List[ModelCompiler], device: str
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         raise NotImplementedError()
 
@@ -409,7 +409,7 @@ class TorchOptimizerStep(OptimizerStep):
     """
 
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler]
+        self, ignore_compilers: List[ModelCompiler], device: str
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         optimizers = {}
         if ModelCompiler.TORCHSCRIPT not in ignore_compilers:
@@ -420,7 +420,8 @@ class TorchOptimizerStep(OptimizerStep):
         ):
             optimizers[ModelCompiler.APACHE_TVM] = ApacheTVMOptimizer()
         if (
-            deepsparse_is_available()
+            device == "cpu"
+            and deepsparse_is_available()
             and ModelCompiler.DEEPSPARSE not in ignore_compilers
         ):
             optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer()
@@ -430,12 +431,14 @@ class TorchOptimizerStep(OptimizerStep):
         ):
             optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer()
         if (
-            torch_tensorrt_is_available()
+            device == "gpu"
+            and torch_tensorrt_is_available()
             and ModelCompiler.TENSOR_RT not in ignore_compilers
         ):
             optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer()
         if (
-            intel_neural_compressor_is_available()
+            device == "cpu"
+            and intel_neural_compressor_is_available()
             and ModelCompiler.INTEL_NEURAL_COMPRESSOR not in ignore_compilers
         ):
             optimizers[
@@ -498,7 +501,7 @@ class TFOptimizerStep(OptimizerStep):
     """
 
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler]
+        self, ignore_compilers: List[ModelCompiler], device: str
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         optimizers = {}
         if ModelCompiler.TFLITE not in ignore_compilers:
@@ -559,9 +562,9 @@ class OnnxOptimizerStep(OptimizerStep):
     """
 
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler]
+        self, ignore_compilers: List[ModelCompiler], device: str
     ) -> Dict[ModelCompiler, BaseOptimizer]:
-        compilers = select_compilers_from_hardware_onnx()
+        compilers = select_compilers_from_hardware_onnx(device)
         optimizers = {
             compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
             for compiler in compilers

@@ -54,7 +54,7 @@ class TensorRTOptimizer(BaseOptimizer):
         input_data: List[Tuple[np.ndarray, ...]] = None,
     ):
         # -- Build phase --
-        nvidia_logger = trt.Logger(trt.Logger.WARNING)
+        nvidia_logger = trt.Logger(trt.Logger.ERROR)
         builder = trt.Builder(nvidia_logger)
         # create network definition
         network = builder.create_network(
@@ -201,7 +201,7 @@ class TensorRTOptimizer(BaseOptimizer):
                     model,
                     model + "_simplified",
                 ]
-                subprocess.run(cmd)
+                subprocess.run(cmd, stdout=subprocess.DEVNULL)
 
             # First try with simplified model
             engine_path = (
@@ -331,34 +331,35 @@ class TensorRTOptimizer(BaseOptimizer):
         except Exception:
             model = torch.jit.trace(torch_model, input_tensors)
 
-        trt_model = torch_tensorrt.compile(
-            model,
-            inputs=[
-                torch_tensorrt.Input(
-                    tensor.shape,
-                    dtype=torch.half
-                    if (
-                        dtype == torch.half
-                        and tensor.dtype not in [torch.int8, torch.int32]
+        with torch_tensorrt.logging.errors():
+            trt_model = torch_tensorrt.compile(
+                model,
+                inputs=[
+                    torch_tensorrt.Input(
+                        tensor.shape,
+                        dtype=torch.half
+                        if (
+                            dtype == torch.half
+                            and tensor.dtype not in [torch.int8, torch.int32]
+                        )
+                        else tensor.dtype,
                     )
-                    else tensor.dtype,
-                )
-                for tensor in input_tensors
-            ],
-            enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
-            calibrator=calibrator
-            if quantization_type is QuantizationType.STATIC
-            else None,
-            workspace_size=1 << 30,
-            device={
-                "device_type": torch_tensorrt.DeviceType.GPU,
-                "gpu_id": 0,
-                "dla_core": 0,
-                "allow_gpu_fallback": False,
-                "disable_tf32": False,
-            },
-            truncate_long_and_double=True,
-        )
+                    for tensor in input_tensors
+                ],
+                enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
+                calibrator=calibrator
+                if quantization_type is QuantizationType.STATIC
+                else None,
+                workspace_size=1 << 30,
+                device={
+                    "device_type": torch_tensorrt.DeviceType.GPU,
+                    "gpu_id": 0,
+                    "dla_core": 0,
+                    "allow_gpu_fallback": False,
+                    "disable_tf32": False,
+                },
+                truncate_long_and_double=True,
+            )
 
         # Delete calibration cache
         if os.path.exists("calibration.cache"):
@@ -377,6 +378,7 @@ class TensorRTOptimizer(BaseOptimizer):
             input_tfms=input_tfms,
             input_data=input_tensors if input_data is not None else None,
             dtype=dtype,
+            device=device,
         )
 
         test_input_data, ys = input_data.get_split("test").get_list(

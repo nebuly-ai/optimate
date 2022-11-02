@@ -91,7 +91,7 @@ class BladeDISCOptimizer(BaseOptimizer):
 
         if quantization_type is not None:
             model, input_tfms = quantize_torch(
-                model, quantization_type, input_tfms, train_input_data
+                model, quantization_type, input_tfms, train_input_data, device
             )
 
         with torch.no_grad():
