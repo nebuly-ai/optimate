@@ -112,7 +112,7 @@ class DataManager:
         if len(self) < MIN_DIM_INPUT_DATA:
             logger.warning(
                 f"Not enough data for splitting the DataManager. "
-                f"You should provide at least {MIN_DIM_INPUT_DATA}. "
+                f"You should provide at least {MIN_DIM_INPUT_DATA} "
                 f"data samples to allow a good split between train "
                 f"and test sets. Compression, calibration and precision "
                 f"checks will use the same data."
