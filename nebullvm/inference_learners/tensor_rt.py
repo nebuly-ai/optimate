@@ -21,7 +21,6 @@ from nebullvm.optional_modules.torch import torch, ScriptModule
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.general import use_gpu
 
 logger = logging.getLogger("nebullvm_logger")
 
@@ -48,6 +47,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         engine: Any,
         input_names: List[str],
         output_names: List[str],
+        device: str,
         cuda_stream: Any = None,
         nvidia_logger: Any = None,
         **kwargs,
@@ -58,7 +58,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         self.output_names = output_names
         self.cuda_stream = cuda_stream
         self.nvidia_logger = nvidia_logger
-        self._set_cuda_env()
+        self._set_cuda_env(device == "gpu")
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         metadata = {
@@ -79,15 +79,15 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         raise NotImplementedError()
 
     @staticmethod
-    def check_env():
-        if not use_gpu():
+    def check_env(use_gpu):
+        if not use_gpu:
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
             )
 
-    def _set_cuda_env(self):
-        self.check_env()
+    def _set_cuda_env(self, use_gpu):
+        self.check_env(use_gpu)
         if self.nvidia_logger is None:
             self.nvidia_logger = trt.Logger(trt.Logger.WARNING)
         if self.cuda_stream is None:
@@ -231,17 +231,24 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_optimized.pt"
 
     def __init__(
-        self, torch_model: ScriptModule, dtype: torch.dtype, **kwargs
+        self,
+        torch_model: ScriptModule,
+        dtype: torch.dtype,
+        device: str,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.model = torch_model.eval()
-        if torch.cuda.is_available():
+        if device == "gpu":
             self.model.cuda()
+            self.use_gpu = True
+        else:
+            self.use_gpu = False
         self.dtype = dtype
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device
-        if torch.cuda.is_available():
+        if self.use_gpu:
             if self.dtype == torch.half:
                 input_tensors = (
                     t.cuda().half() if t.dtype == torch.float32 else t.cuda()

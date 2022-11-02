@@ -125,7 +125,9 @@ class NumpyBenchmark(BaseBenchmark):
         raise NotImplementedError
 
 
-def benchmark(model, input_data, random=False, n_warmup=50, n_runs=1000):
+def benchmark(
+    model, input_data, device, random=False, n_warmup=50, n_runs=1000
+):
     """Performs a Benchmark on the input model regardless of the framework it
     was used for implementing it.
 
@@ -160,10 +162,7 @@ def benchmark(model, input_data, random=False, n_warmup=50, n_runs=1000):
 
     if random:
         model_params = _extract_info_from_data(
-            model,
-            input_data,
-            dl_framework,
-            None,
+            model, input_data, dl_framework, None, device
         )
         input_data = _create_model_inputs(dl_framework, model_params)
     else:

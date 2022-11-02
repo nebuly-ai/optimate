@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
@@ -38,21 +37,18 @@ from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
-from nebullvm.utils.general import use_gpu
+from nebullvm.utils.general import gpu_is_available
 from nebullvm.utils.onnx import (
     get_output_sizes_onnx,
     run_onnx_model,
-    onnx_is_gpu_available,
 )
 from nebullvm.utils.tf import (
     get_outputs_sizes_tf,
     run_tf_model,
-    tensorflow_is_gpu_available,
 )
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     run_torch_model,
-    torch_is_gpu_available,
 )
 
 logger = logging.getLogger("nebullvm_logger")
@@ -114,6 +110,7 @@ def _extract_info_from_data(
     input_data: DataManager,
     dl_framework: DeepLearningFramework,
     dynamic_info: Optional[Dict],
+    device: str,
 ):
     batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
         dl_framework
@@ -124,6 +121,7 @@ def _extract_info_from_data(
         input_sizes=None,
         input_types=None,
         dynamic_axis=dynamic_info,
+        device=device,
     )
     model_params = ModelParams(
         batch_size=batch_size,
@@ -132,7 +130,7 @@ def _extract_info_from_data(
             for size, dtype in zip(input_sizes, input_types)
         ],
         output_sizes=OUTPUT_SIZE_COMPUTATION_DICT[dl_framework](
-            model, input_data[0][0]
+            model, input_data[0][0], device
         ),
         dynamic_info=dynamic_info,
     )
@@ -153,9 +151,9 @@ def _benchmark_original_model(
     model: Any,
     input_data: DataManager,
     dl_framework: DeepLearningFramework,
+    device: str,
     compute_output: bool = False,
 ):
-    device = "cuda" if use_gpu() else "cpu"
     outputs = None
 
     logger.info("Benchmark performance of original model")
@@ -164,13 +162,15 @@ def _benchmark_original_model(
         outputs = [
             tuple(
                 COMPUTE_OUTPUT_FRAMEWORK[dl_framework](
-                    model, list(input_tensors[0])
+                    model, list(input_tensors[0]), device
                 )
             )
             for input_tensors in input_data
         ]
 
     inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
+
+    device = "cuda" if device == "gpu" else "cpu"
     latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](inputs, model, device)
     logger.info(f"Original model latency: {latency} sec/iter")
 
@@ -185,34 +185,32 @@ def _map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
     return ignore_list
 
 
-def _gpu_is_available(dl_framework: DeepLearningFramework):
-    if dl_framework is DeepLearningFramework.PYTORCH:
-        return torch_is_gpu_available()
-    elif dl_framework is DeepLearningFramework.TENSORFLOW:
-        return tensorflow_is_gpu_available()
-    else:
-        return onnx_is_gpu_available()
-
-
-def _set_device(device: Optional[str], dl_framework: DeepLearningFramework):
+def _check_device(
+    device: Optional[str], dl_framework: DeepLearningFramework
+) -> str:
     if device is None:
-        if _gpu_is_available(dl_framework):
-            os.environ["USE_GPU"] = "1"
+        if gpu_is_available(dl_framework):
+            device = "gpu"
         else:
-            os.environ["USE_GPU"] = "0"
+            device = "cpu"
     else:
-        if device == "gpu":
-            if not _gpu_is_available(dl_framework):
+        if device.upper() == "gpu":
+            if not gpu_is_available(dl_framework):
                 logger.warning(
-                    "Selected gpu device but no available gpu found on this "
-                    "platform. Please make sure that the gpu is installed and "
-                    "can be used by your framework."
+                    "Selected GPU device but no available GPU found on this "
+                    "platform. CPU will be used instead. Please make sure "
+                    "that the gpu is installed and can be used by your "
+                    "framework."
                 )
-                os.environ["USE_GPU"] = "0"
+                device = "cpu"
             else:
-                os.environ["USE_GPU"] = "1"
+                device = "gpu"
         else:
-            os.environ["USE_GPU"] = "0"
+            device = "cpu"
+
+    logger.info(f"Running Nebullvm optimization on {device.upper()}")
+
+    return device
 
 
 def optimize_model(
@@ -311,9 +309,11 @@ def optimize_model(
             take as input and it will return `torch.Tensor`s.
     """
     dl_framework = _get_dl_framework(model)
-    _set_device(device, dl_framework)
+    device = _check_device(device, dl_framework)
     optimization_time = OptimizationTime(optimization_time)
-    FEEDBACK_COLLECTOR.start_collection(model, framework=dl_framework)
+    FEEDBACK_COLLECTOR.start_collection(
+        model, framework=dl_framework, device=device
+    )
     if metric_drop_ths is not None and metric_drop_ths <= 0:
         metric_drop_ths = None
     elif metric_drop_ths is not None and metric is None:
@@ -328,7 +328,7 @@ def optimize_model(
             input_names,
             output_structure,
             output_type,
-        ) = convert_hf_model(model, input_data, **kwargs)
+        ) = convert_hf_model(model, input_data, device, **kwargs)
         needs_conversion_to_hf = True
     if _check_input_data(input_data):
         input_data = DataManager(input_data)
@@ -340,13 +340,16 @@ def optimize_model(
         input_data,
         dl_framework,
         dynamic_info,
+        device,
     )
     converter = CrossConverter()
     optimized_models = []
     with TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir) / "fp32"
         tmp_dir.mkdir(parents=True, exist_ok=True)
-        models = converter.convert(model, model_params, tmp_dir, input_data)
+        models = converter.convert(
+            model, model_params, tmp_dir, device, input_data
+        )
 
         ignore_compilers = _map_compilers_and_compressors(
             ignore_compilers, ModelCompiler
@@ -360,6 +363,7 @@ def optimize_model(
             model=model,
             input_data=input_data.get_split("test"),
             dl_framework=dl_framework,
+            device=device,
             compute_output=True,
         )
 
@@ -392,6 +396,7 @@ def optimize_model(
                 ignore_compressors=ignore_compressors,
                 optimization_time=optimization_time,
                 model_outputs=model_outputs,
+                device=device,
             )
             ignore_compilers = output_dict["ignore_compilers"]
             optimized_models.extend(output_dict["optimized_models"])

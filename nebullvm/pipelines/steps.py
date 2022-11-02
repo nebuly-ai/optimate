@@ -249,6 +249,7 @@ class OptimizerStep(Step, ABC):
         optimization_time: OptimizationTime = None,
         pipeline_name: str = None,
         model_outputs: Any = None,
+        device: str = None,
         **kwargs,
     ) -> Dict:
         """Run the OptimizerStep for all the available compilers.
@@ -277,6 +278,7 @@ class OptimizerStep(Step, ABC):
                 framework interface.
             pipeline_name (str): Name of the pipeline.
             model_outputs (Any): Outputs computed by the original model
+            device (str): Device used for running the model.
             kwargs (Dict): Extra keywords that will be ignored.
         """
 
@@ -315,6 +317,7 @@ class OptimizerStep(Step, ABC):
                             model,
                             output_library,
                             model_params,
+                            device,
                             input_tfms.copy(),
                             metric_drop_ths,
                             q_type,
@@ -380,12 +383,13 @@ class OptimizerStep(Step, ABC):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: str,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
-        model_outpust: Any = None,
+        model_outputs: Any = None,
     ) -> BaseInferenceLearner:
         raise NotImplementedError()
 
@@ -445,6 +449,7 @@ class TorchOptimizerStep(OptimizerStep):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: str,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -456,6 +461,7 @@ class TorchOptimizerStep(OptimizerStep):
             optimized_model = optimizer.optimize_from_torch(
                 torch_model=model,
                 model_params=model_params,
+                device=device,
                 metric_drop_ths=metric_drop_ths
                 if quantization_type is not None
                 else None,
@@ -470,6 +476,7 @@ class TorchOptimizerStep(OptimizerStep):
                 model=model,
                 output_library=output_library,
                 model_params=model_params,
+                device=device,
                 metric_drop_ths=metric_drop_ths
                 if quantization_type is not None
                 else None,
@@ -504,6 +511,7 @@ class TFOptimizerStep(OptimizerStep):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: str,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -529,6 +537,7 @@ class TFOptimizerStep(OptimizerStep):
                 model=model,
                 output_library=output_library,
                 model_params=model_params,
+                device=device,
                 metric_drop_ths=metric_drop_ths
                 if quantization_type is not None
                 else None,
@@ -566,6 +575,7 @@ class OnnxOptimizerStep(OptimizerStep):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: str,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -577,6 +587,7 @@ class OnnxOptimizerStep(OptimizerStep):
             model=model,
             output_library=output_library,
             model_params=model_params,
+            device=device,
             metric_drop_ths=metric_drop_ths
             if quantization_type is not None
             else None,

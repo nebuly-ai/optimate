@@ -83,6 +83,24 @@ def intel_neural_compressor_is_available() -> bool:
         return True
 
 
+def torch_is_available() -> bool:
+    try:
+        import torch  # noqa F401
+    except ImportError:
+        return False
+    else:
+        return True
+
+
+def tensorflow_is_available() -> bool:
+    try:
+        import tensorflow  # noqa F401
+    except ImportError:
+        return False
+    else:
+        return True
+
+
 def select_compilers_from_hardware_onnx():
     compilers = []
     if onnx_is_available():

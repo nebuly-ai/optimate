@@ -34,6 +34,7 @@ class BaseConverter(ABC):
         model: Any,
         model_params: ModelParams,
         save_path: Path,
+        device: str,
         input_data: DataManager = None,
     ):
         raise NotImplementedError
@@ -54,6 +55,7 @@ class ONNXConverter(BaseConverter):
         model: Any,
         model_params: ModelParams,
         save_path: Path,
+        device: str,
         input_data: DataManager = None,
     ):
         """Convert the input model in ONNX.
@@ -65,6 +67,7 @@ class ONNXConverter(BaseConverter):
                 dynamic axis information.
             save_path (Path): Path to the directory where saving the onnx
                 model.
+            device (str): Device where the model will be run.
             input_data (DataManager, optional): Custom data provided by user to
                 be used as input for the converter.
 
@@ -78,6 +81,7 @@ class ONNXConverter(BaseConverter):
                 model_params=model_params,
                 output_file_path=save_path / onnx_name,
                 input_data=input_data,
+                device=device,
             )
             return save_path / onnx_name
         elif isinstance(model, tf.Module) and model is not None:
@@ -110,6 +114,7 @@ class CrossConverter(BaseConverter):
         model: Any,
         model_params: ModelParams,
         save_path: Path,
+        device: str,
         input_data: DataManager = None,
     ) -> List[Any]:
         # TODO: Add cross conversion torch-tf
@@ -121,6 +126,7 @@ class CrossConverter(BaseConverter):
                 model_params=model_params,
                 output_file_path=onnx_path,
                 input_data=input_data,
+                device=device,
             )
 
             return (

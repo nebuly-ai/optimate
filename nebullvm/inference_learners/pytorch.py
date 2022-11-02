@@ -19,15 +19,18 @@ from nebullvm.transformations.base import MultiStageTransformation
 class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_scripted.pt"
 
-    def __init__(self, torch_model: ScriptModule, **kwargs):
+    def __init__(self, torch_model: ScriptModule, device: str, **kwargs):
         super().__init__(**kwargs)
         self.model = torch_model.eval()
-        if torch.cuda.is_available():
+        if device == "gpu":
             self.model.cuda()
+            self.use_gpu = True
+        else:
+            self.use_gpu = False
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device
-        if torch.cuda.is_available():
+        if self.use_gpu:
             input_tensors = (t.cuda() for t in input_tensors)
         with torch.no_grad():
             res = self.model(*input_tensors)
@@ -62,10 +65,11 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         cls,
         model: Union[Module, GraphModule],
         network_parameters: ModelParams,
+        device: str,
         input_tfms: Optional[MultiStageTransformation] = None,
         input_data: List[torch.Tensor] = None,
     ):
-        if torch.cuda.is_available():
+        if device == "gpu":
             input_data = [t.cuda() for t in input_data]
 
         if not isinstance(model, torch.fx.GraphModule):
@@ -86,4 +90,5 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
             network_parameters=network_parameters,
             input_tfms=input_tfms,
             input_data=input_data,
+            device=device,
         )

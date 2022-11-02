@@ -7,7 +7,6 @@ import numpy as np
 from nebullvm.base import QuantizationType
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
-from nebullvm.utils.general import use_gpu
 from nebullvm.utils.onnx import get_input_names
 from nebullvm.optional_modules.onnx import (
     onnx,
@@ -65,12 +64,12 @@ def _quantize_dynamic(model_path: str):
     return str(model_quant)
 
 
-def _get_quantization_type_for_static() -> Tuple[QuantType, QuantType]:
+def _get_quantization_type_for_static(use_gpu) -> Tuple[QuantType, QuantType]:
     """Returns the quantization types for activations and weights,
     depending on the underlying hardware
     """
     arch = cpuinfo.get_cpu_info()["arch"].lower()
-    if use_gpu():
+    if use_gpu:
         activation_type = weight_type = QuantType.QInt8
     elif "x86" in arch:
         cpu_raw_data = cpuinfo.get_cpu_info()["brand_raw"].lower()
@@ -86,7 +85,7 @@ def _get_quantization_type_for_static() -> Tuple[QuantType, QuantType]:
 
 
 def _quantize_static(
-    model_path: str, input_data: List[Tuple[np.ndarray, ...]]
+    model_path: str, input_data: List[Tuple[np.ndarray, ...]], use_gpu: bool
 ):
     model_path = Path(model_path)
     model_quant = model_path.parent.parent / "int8_static"
@@ -97,7 +96,7 @@ def _quantize_static(
     cdr = _IterableCalibrationDataReader(
         input_names=input_names, iterable_dataset=inputs
     )
-    activation_type, weight_type = _get_quantization_type_for_static()
+    activation_type, weight_type = _get_quantization_type_for_static(use_gpu)
     quantize_static(
         model_path,
         Path(model_quant),
@@ -127,9 +126,10 @@ def quantize_onnx(
     quantization_type: QuantizationType,
     input_tfms: MultiStageTransformation,
     input_data: List[Tuple[np.ndarray, ...]],
+    use_gpu: bool,
 ):
     if quantization_type is QuantizationType.STATIC:
-        model_path = _quantize_static(model_path, input_data)
+        model_path = _quantize_static(model_path, input_data, use_gpu)
     elif quantization_type is QuantizationType.DYNAMIC:
         model_path = _quantize_dynamic(model_path)
     elif quantization_type is QuantizationType.HALF:

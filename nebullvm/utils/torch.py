@@ -25,9 +25,11 @@ def load_with_torch_fx(
 
 
 def get_outputs_sizes_torch(
-    torch_model: Module, input_tensors: List[torch.Tensor]
+    torch_model: Module,
+    input_tensors: List[torch.Tensor],
+    device: str,
 ) -> List[Tuple[int, ...]]:
-    if torch.cuda.is_available():
+    if device == "gpu":
         input_tensors = [x.cuda() for x in input_tensors]
         torch_model.cuda()
     with torch.no_grad():
@@ -57,10 +59,11 @@ def create_model_inputs_torch(
 def run_torch_model(
     torch_model: Module,
     input_tensors: List[torch.Tensor],
+    device: str,
     dtype: torch.dtype = torch.float,
 ) -> List[torch.Tensor]:
     torch_model.eval()
-    if torch.cuda.is_available():
+    if device == "gpu":
         torch_model.cuda()
         if dtype != torch.half:
             input_tensors = (t.cuda() for t in input_tensors)
@@ -80,3 +83,7 @@ def run_torch_model(
 
 def torch_is_gpu_available():
     return torch.cuda.is_available()
+
+
+def torch_get_device_name():
+    return torch.cuda.get_device_name(0)

@@ -98,9 +98,10 @@ def _quantize_static_torch_fx(
 def _quantize_static(
     model: Union[Module, GraphModule],
     input_data: List[Tuple[torch.Tensor, ...]],
+    device: str,
 ):
     assert (
-        not torch.cuda.is_available()
+        not device == "gpu"
     ), "Quantization for torch is only available on CPU"
 
     backend = (
@@ -118,9 +119,10 @@ def _quantize_static(
 def _quantize_dynamic(
     model: Union[Module, GraphModule],
     input_data: List[Tuple[torch.Tensor, ...]],
+    device: str,
 ):
     assert (
-        not torch.cuda.is_available()
+        not device == "gpu"
     ), "Quantization for torch is only available on CPU"
 
     if isinstance(model, GraphModule):
@@ -138,6 +140,7 @@ def quantize_torch(
     quantization_type: QuantizationType,
     input_tfms: MultiStageTransformation,
     input_data_torch: List[Tuple[torch.Tensor, ...]],
+    device: str,
 ):
     model = copy.deepcopy(model).eval()
 
@@ -150,9 +153,9 @@ def quantize_torch(
         input_tfms.append(HalfPrecisionTransformation())
         return _half_precision(model), input_tfms
     elif quantization_type is QuantizationType.STATIC:
-        return _quantize_static(model, input_data_torch), input_tfms
+        return _quantize_static(model, input_data_torch, device), input_tfms
     elif quantization_type is QuantizationType.DYNAMIC:
-        return _quantize_dynamic(model, input_data_torch), input_tfms
+        return _quantize_dynamic(model, input_data_torch, device), input_tfms
     else:
         raise NotImplementedError(
             f"No quantization implemented for quantization "

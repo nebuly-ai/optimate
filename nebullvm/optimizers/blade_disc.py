@@ -38,6 +38,7 @@ class BladeDISCOptimizer(BaseOptimizer):
         model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: str,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -54,6 +55,7 @@ class BladeDISCOptimizer(BaseOptimizer):
             output_library (DeepLearningFramework): Output framework. At the
                 current stage just PYTORCH is supported.
             model_params (ModelParams): Model parameters.
+            device: (str): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.

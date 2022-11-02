@@ -17,8 +17,13 @@ from nebullvm.base import (
     QuantizationType,
 )
 from nebullvm.config import VERSION
+from nebullvm.utils.compilers import (
+    torch_is_available,
+    tensorflow_is_available,
+)
 from nebullvm.optional_modules.torch import Module
-from nebullvm.utils.general import use_gpu
+from nebullvm.utils.tf import tensorflow_get_gpu_name
+from nebullvm.utils.torch import torch_get_device_name
 
 NEBULLVM_METADATA_PATH = Path.home() / ".nebullvm/collect.json"
 
@@ -48,7 +53,14 @@ def _read_model_size(model: Any):
 
 
 def _get_gpu_name():
-    raise NotImplementedError
+    if torch_is_available():
+        name = torch_get_device_name()
+    elif tensorflow_is_available():
+        name = tensorflow_get_gpu_name()
+    else:
+        name = "Unknown GPU"
+
+    return name
 
 
 class FeedbackCollector:
@@ -70,8 +82,6 @@ class FeedbackCollector:
             "operative_system": platform.system(),
             "ram": f"{round(psutil.virtual_memory().total * 1e-9, 2)} GB",
         }
-        if use_gpu():
-            self._hw_info["gpu"] = _get_gpu_name()
 
     @property
     def is_active(self):
@@ -109,12 +119,16 @@ class FeedbackCollector:
     def _generate_model_id(model_name: str):
         return f"{str(uuid.uuid4())}_{hash(model_name)}"
 
-    def start_collection(self, model: Any, framework: DeepLearningFramework):
+    def start_collection(
+        self, model: Any, framework: DeepLearningFramework, device: str
+    ):
         if isinstance(model, str) or isinstance(model, Path):
             model_name = str(model)
         else:
             model_name = model.__class__.__name__
 
+        if device == "gpu":
+            self._hw_info["gpu"] = _get_gpu_name()
         self._model_id = self._generate_model_id(model_name)
         self._model_info = {
             "model_name": model_name,

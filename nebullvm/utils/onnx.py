@@ -8,7 +8,6 @@ from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.utils.general import use_gpu
 
 
 def convert_to_numpy(tensor: Any):
@@ -48,14 +47,14 @@ def get_output_names(onnx_model: str):
 
 
 def run_onnx_model(
-    onnx_model: str, input_tensors: List[np.ndarray]
+    onnx_model: str, input_tensors: List[np.ndarray], device: str
 ) -> List[np.ndarray]:
     from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 
     model = ort.InferenceSession(
         onnx_model,
         providers=ONNX_PROVIDERS["cuda"]
-        if use_gpu()
+        if device == "gpu"
         else ONNX_PROVIDERS["cpu"],
     )
     inputs = {
@@ -69,9 +68,9 @@ def run_onnx_model(
 
 
 def get_output_sizes_onnx(
-    onnx_model: str, input_tensors: List[np.ndarray]
+    onnx_model: str, input_tensors: List[np.ndarray], device
 ) -> List[Tuple[int, ...]]:
-    res = run_onnx_model(onnx_model, input_tensors)
+    res = run_onnx_model(onnx_model, input_tensors, device)
     sizes = [tuple(output.shape[1:]) for output in res]
     return sizes
 

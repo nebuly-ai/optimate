@@ -43,6 +43,7 @@ def _extract_dynamic_axis(
     dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]],
     input_sizes: List[Tuple[int, ...]],
     batch_size: int,
+    device: str,
     max_data: int = 100,
 ) -> Optional[Dict]:
     dynamic_axis = {"inputs": [{}] * len(input_sizes), "outputs": []}
@@ -54,7 +55,7 @@ def _extract_dynamic_axis(
         inspect_dynamic_size(
             input_tensors, input_sizes, batch_size, dynamic_axis["inputs"]
         )
-        outputs = tuple(run_tf_model(tf_model, input_tensors))
+        outputs = tuple(run_tf_model(tf_model, input_tensors, device))
         if i == 0:
             dynamic_axis["outputs"] = [{}] * len(outputs)
             output_sizes = [tuple(output.shape[1:]) for output in outputs]
@@ -75,6 +76,7 @@ def extract_info_from_tf_data(
     input_sizes: List[Tuple[int, ...]],
     input_types: List[str],
     dynamic_axis: Dict,
+    device: str,
 ):
     input_row = dataset[0][0]
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
@@ -84,7 +86,9 @@ def extract_info_from_tf_data(
     )
     dynamic_axis = ifnone(
         dynamic_axis,
-        _extract_dynamic_axis(tf_model, dataset, input_sizes, batch_size),
+        _extract_dynamic_axis(
+            tf_model, dataset, input_sizes, batch_size, device
+        ),
     )
     return batch_size, input_sizes, input_types, dynamic_axis
 

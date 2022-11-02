@@ -5,7 +5,9 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 
 
 def get_outputs_sizes_tf(
-    tf_model: Union[tf.Module, tf.keras.Model], input_tensors: List[tf.Tensor]
+    tf_model: Union[tf.Module, tf.keras.Model],
+    input_tensors: List[tf.Tensor],
+    device: str,
 ) -> List[Tuple[int, ...]]:
     outputs = tf_model(*input_tensors)
     if isinstance(outputs, tf.Tensor) and outputs is not None:
@@ -32,7 +34,9 @@ def create_model_inputs_tf(
 
 
 def run_tf_model(
-    model: tf.Module, input_tensors: Tuple[tf.Tensor]
+    model: tf.Module,
+    input_tensors: Tuple[tf.Tensor],
+    device: str,
 ) -> Tuple[tf.Tensor]:
     pred = model.predict(input_tensors)
     if isinstance(pred, tf.Module) and pred is not None:
@@ -42,3 +46,13 @@ def run_tf_model(
 
 def tensorflow_is_gpu_available():
     return len(tf.config.list_physical_devices("GPU")) > 0
+
+
+def tensorflow_get_gpu_name():
+    gpu_devices = tf.config.list_physical_devices("GPU")
+    if gpu_devices:
+        details = tf.config.experimental.get_device_details(gpu_devices[0])
+        details.get("device_name", "Unknown GPU")
+        return details["device_name"]
+    else:
+        return "Unknown GPU"

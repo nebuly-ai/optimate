@@ -135,6 +135,7 @@ class TensorRTOptimizer(BaseOptimizer):
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: str,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -149,6 +150,7 @@ class TensorRTOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            device: (str): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -174,7 +176,7 @@ class TensorRTOptimizer(BaseOptimizer):
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        if not torch.cuda.is_available():
+        if not device == "gpu":
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
@@ -236,6 +238,7 @@ class TensorRTOptimizer(BaseOptimizer):
             input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
+            device=device,
         )
 
         test_input_data, ys = input_data.get_split("test").get_list(
@@ -267,6 +270,7 @@ class TensorRTOptimizer(BaseOptimizer):
         self,
         torch_model: Module,
         model_params: ModelParams,
+        device: str,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -278,7 +282,7 @@ class TensorRTOptimizer(BaseOptimizer):
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        if not torch.cuda.is_available():
+        if not device == "gpu":
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."

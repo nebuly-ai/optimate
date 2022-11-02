@@ -87,11 +87,12 @@ def _get_output_structure_from_text(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     tokenizer_args: Dict,
+    device: str,
 ) -> Tuple[OrderedDict, Type]:
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if device == "gpu" else "cpu")
     encoded_input = tokenizer([text], **tokenizer_args).to(device)
     output = model(**encoded_input)
     structure = OrderedDict()
@@ -341,6 +342,7 @@ class _HFDictDataset(Sequence):
 def convert_hf_model(
     model: PreTrainedModel,
     input_data: List,
+    device: str,
     tokenizer: Optional[PreTrainedTokenizer] = None,
     tokenizer_args: Optional[Dict] = None,
     batch_size: int = 1,
@@ -380,6 +382,7 @@ def convert_hf_model(
             model=model,
             tokenizer=tokenizer,
             tokenizer_args=tokenizer_args,
+            device=device,
         )
         input_example = tokenizer(input_data, **tokenizer_args)
         input_data = _HFTextDataset(

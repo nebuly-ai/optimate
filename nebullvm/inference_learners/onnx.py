@@ -25,13 +25,12 @@ from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.general import use_gpu
 
 logger = logging.getLogger("nebullvm_logger")
 
 
-def _running_on_intel_cpu():
-    if use_gpu():
+def _running_on_intel_cpu(use_gpu):
+    if use_gpu:
         return False  # running on GPU
     cpu_info = cpuinfo.get_cpu_info()["brand_raw"].lower()
     if "intel" in cpu_info:
@@ -39,12 +38,12 @@ def _running_on_intel_cpu():
     return False
 
 
-def _get_ort_session_options() -> ort.SessionOptions:
+def _get_ort_session_options(use_gpu) -> ort.SessionOptions:
     sess_options = ort.SessionOptions()
     sess_options.graph_optimization_level = (
         ort.GraphOptimizationLevel.ORT_ENABLE_ALL
     )
-    if use_gpu():
+    if use_gpu:
         sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
         sess_options.inter_op_num_threads = 1
         sess_options.intra_op_num_threads = max(
@@ -75,17 +74,19 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path: Union[str, Path],
         input_names: List[str],
         output_names: List[str],
+        device: str,
         **kwargs,
     ):
         super().__init__(**kwargs)
         onnx_path = str(onnx_path)
         filename = "/".join(onnx_path.split("/")[-1:])
         dir_path = "/".join(onnx_path.split("/")[:-1])
+        use_gpu = device == "gpu"
 
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
-        sess_options = _get_ort_session_options()
+        sess_options = _get_ort_session_options(use_gpu)
 
-        if _running_on_intel_cpu():
+        if _running_on_intel_cpu(use_gpu):
             sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
@@ -94,7 +95,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             onnx_path,
             sess_options=sess_options,
             providers=ONNX_PROVIDERS["cuda"]
-            if use_gpu()
+            if use_gpu
             else ONNX_PROVIDERS["cpu"],
         )
         self._session = ort_session
