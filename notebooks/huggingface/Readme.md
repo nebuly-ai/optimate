@@ -18,7 +18,7 @@ input_dict = tokenizer(text, return_tensors="pt")
 
 # Run nebullvm optimization
 optimized_model = optimize_model(
-  model, input_data=input_data
+  model, input_data=[input_dict]
 )
 
 # Try the optimized model
@@ -31,7 +31,9 @@ res = optimized_model(**input_dict)
 #     "The cat is on the table.",
 # ]
 # tokenizer_args = dict(
-#     return_tensors="pt"
+#     return_tensors="pt",
+#     padding="longest",
+#     truncation=True,
 # )
 # 
 # # Run nebullvm optimization
@@ -41,6 +43,9 @@ res = optimized_model(**input_dict)
 ```
 
 ## Notebooks:
-| Notebook                                                                                                                                                | Description                                                                                                 |                                                                                                                                                                                                                                                                                                             |
-|:--------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Accelerate HuggingFace GPT2 and BERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/pytorch/Accelerate_Hugging_Face_GPT2_and_BERT_with_nebullvm.ipynb)                                                                                                                | Show how to optimize with Nebullvm transformers models such as BERT and GPT2 model loaded from Huggingface. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1z_dbFIfaeED5XcpGcYJkXhE1vxQS4SsO?usp=sharing) |
+| Notebook                                                                                                                                                      | Description                                                               |                                                                                                                                                                                                                                                                                                             |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Accelerate HuggingFace GPT2](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/pytorch/Accelerate_Hugging_Face_GPT2_with_nebullvm.ipynb)    | Show how to optimize with Nebullvm the GPT2 model from Huggingface.       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1P5lSBObFQ7yrMS0FyAEJGA1uBfNyQmXd?usp=sharing) |
+| [Accelerate HuggingFace BERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/pytorch/Accelerate_Hugging_Face_BERT_with_nebullvm.ipynb)    | Show how to optimize with Nebullvm the BERT model from Huggingface.       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12X52EDwElZtr_NoTskbY1S6gBqrdI93d?usp=sharing) |
+| [Accelerate HuggingFace DistilBERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/pytorch/Accelerate_Hugging_Face_DistilBERT_with_nebullvm.ipynb) | Show how to optimize with Nebullvm the DistilBERT model from Huggingface. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1oYAhCn9ZlGISCw4CiCqZRhCj0gR6v9LF?usp=sharing) |
+
