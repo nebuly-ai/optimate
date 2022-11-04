@@ -116,10 +116,13 @@ def _get_output_structure_from_text(
 def _get_output_structure_from_dict(
     input_example: Dict,
     model: PreTrainedModel,
+    device: str,
 ) -> Tuple[OrderedDict, Type]:
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
+    device = torch.device("cuda" if device == "gpu" else "cpu")
+    input_example.to(device)
     output = model(**input_example)
     structure = OrderedDict()
     if isinstance(output, tuple):
@@ -358,6 +361,7 @@ def convert_hf_model(
         output_structure, output_type = _get_output_structure_from_dict(
             input_example=input_example,
             model=model,
+            device=device,
         )
         input_data = _HFDictDataset(
             input_data=input_data,
