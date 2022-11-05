@@ -18,7 +18,6 @@ from nebullvm.config import (
     TENSORFLOW_MODULES,
 )
 from nebullvm.utils.compilers import (
-    onnxruntime_is_available,
     openvino_is_available,
     tensorrt_is_available,
     torch_tensorrt_is_available,
@@ -452,6 +451,7 @@ class ONNXInstaller(BaseInstaller, ABC):
         cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
         subprocess.run(cmd)
         install_onnx_simplifier()
+        install_onnxruntime()
 
     @staticmethod
     def check_framework():
@@ -498,7 +498,6 @@ def auto_install_libraries(
 
 
 COMPILER_INSTALLERS = {
-    "onnxruntime": install_onnxruntime,
     "openvino": install_openvino,
     "tensor_rt": install_tensor_rt,
     "torch_tensor_rt": install_torch_tensor_rt,
@@ -508,7 +507,6 @@ COMPILER_INSTALLERS = {
 
 
 COMPILERS_AVAILABLE = {
-    "onnxruntime": onnxruntime_is_available(),
     "openvino": openvino_is_available(),
     "tensor_rt": tensorrt_is_available(),
     "torch_tensor_rt": torch_tensorrt_is_available(),
