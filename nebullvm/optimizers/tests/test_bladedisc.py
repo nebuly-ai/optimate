@@ -7,6 +7,7 @@ from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
 from nebullvm.optimizers import BladeDISCOptimizer
 from nebullvm.optimizers.tests.utils import get_torch_model
 from nebullvm.utils.compilers import bladedisc_is_available
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -24,7 +25,10 @@ def test_bladedisc(output_library: DeepLearningFramework, dynamic: bool):
     with TemporaryDirectory() as tmp_dir:
         model_path, model_params = get_torch_model(dynamic)
         optimizer = BladeDISCOptimizer()
-        model = optimizer.optimize(model_path, output_library, model_params)
+        device = "gpu" if gpu_is_available() else "cpu"
+        model = optimizer.optimize(
+            model_path, output_library, model_params, device=device
+        )
         assert isinstance(model, BladeDISCInferenceLearner)
 
         # Test save and load functions

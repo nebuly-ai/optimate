@@ -82,6 +82,7 @@ def test_tvm_onnx(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, TVM_INFERENCE_LEARNERS[output_library])
 
@@ -156,6 +157,7 @@ def test_tvm_torch(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
         optimizer = ApacheTVMOptimizer()
+        device = "gpu" if gpu_is_available() else "cpu"
         model = optimizer.optimize_from_torch(
             torch_model=model,
             model_params=model_params,
@@ -165,6 +167,7 @@ def test_tvm_torch(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, TVM_INFERENCE_LEARNERS[output_library])
 

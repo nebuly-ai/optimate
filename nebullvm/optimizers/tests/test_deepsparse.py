@@ -9,6 +9,7 @@ from nebullvm.inference_learners.deepsparse import (
 from nebullvm.optimizers.deepsparse import DeepSparseOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
 from nebullvm.utils.compilers import deepsparse_is_available
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -33,6 +34,7 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
             metric,
         ) = initialize_model(dynamic, None, output_library)
 
+        device = "gpu" if gpu_is_available() else "cpu"
         optimizer = DeepSparseOptimizer()
         model = optimizer.optimize(
             model=model,
@@ -40,6 +42,7 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
             model_params=model_params,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, DEEPSPARSE_INFERENCE_LEARNERS[output_library])
 

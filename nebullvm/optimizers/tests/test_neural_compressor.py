@@ -9,6 +9,7 @@ from nebullvm.inference_learners.neural_compressor import (
 from nebullvm.optimizers.neural_compressor import NeuralCompressorOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
 from nebullvm.utils.compilers import intel_neural_compressor_is_available
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -42,6 +43,8 @@ def test_neural_compressor(
             metric,
         ) = initialize_model(dynamic, None, output_library)
 
+        device = "gpu" if gpu_is_available() else "cpu"
+
         optimizer = NeuralCompressorOptimizer()
         model = optimizer.optimize(
             model=model,
@@ -53,6 +56,7 @@ def test_neural_compressor(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(
             model, NEURAL_COMPRESSOR_INFERENCE_LEARNERS[output_library]

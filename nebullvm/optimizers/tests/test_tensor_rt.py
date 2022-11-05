@@ -89,6 +89,7 @@ def test_tensorrt_onnx(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, NVIDIA_INFERENCE_LEARNERS[output_library])
 
@@ -168,6 +169,7 @@ def test_tensorrt_torch(
             model_outputs,
             metric,
         ) = initialize_model(dynamic, metric, output_library)
+        device = "gpu" if gpu_is_available() else "cpu"
         optimizer = TensorRTOptimizer()
         model = optimizer.optimize_from_torch(
             torch_model=model,
@@ -178,6 +180,7 @@ def test_tensorrt_torch(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, PytorchTensorRTInferenceLearner)
 

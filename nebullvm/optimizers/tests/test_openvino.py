@@ -92,6 +92,7 @@ def test_openvino(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, OPENVINO_INFERENCE_LEARNERS[output_library])
 
