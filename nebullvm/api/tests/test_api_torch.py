@@ -148,13 +148,13 @@ def test_torch_openvino():
             compiler for compiler in COMPILER_LIST if compiler != "openvino"
         ],
         ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
+        device="cpu",
     )
 
     # Try the optimized model
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     x = torch.randn(1, 3, 256, 256)
     model.eval()
-    res_original = model(x.to(device))
+    res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
     assert isinstance(optimized_model, PytorchOpenVinoInferenceLearner)

@@ -225,8 +225,11 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             metadata["input_tfms"] = MultiStageTransformation.from_dict(
                 input_tfms
             )
+        device = "gpu"
         return cls.from_engine_path(
-            engine_path=path / NVIDIA_FILENAMES["engine"], **metadata
+            engine_path=path / NVIDIA_FILENAMES["engine"],
+            device=device,
+            **metadata,
         )
 
 
@@ -283,6 +286,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         dtype = (
             torch.float32 if metadata.dtype == "torch.float32" else torch.half
         )
+        device = "gpu"
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),
@@ -290,6 +294,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
             if metadata.input_tfms is not None
             else None,
             dtype=dtype,
+            device=device,
         )
 
 

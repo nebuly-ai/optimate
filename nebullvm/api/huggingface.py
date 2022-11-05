@@ -123,6 +123,7 @@ def _get_output_structure_from_dict(
     """
     device = torch.device("cuda" if device == "gpu" else "cpu")
     input_example.to(device)
+    model.to(device)
     output = model(**input_example)
     structure = OrderedDict()
     if isinstance(output, tuple):

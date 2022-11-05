@@ -140,6 +140,7 @@ def test_tensorflow_openvino():
             compiler for compiler in COMPILER_LIST if compiler != "openvino"
         ],
         ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
+        device="cpu",
     )
 
     # Try the optimized model
