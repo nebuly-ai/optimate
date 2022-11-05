@@ -4,6 +4,7 @@ This folder contains notebooks showing how to use nebullvm to optimize several m
 
 The following frameworks are supported:
 - PyTorch
+- HuggingFace
 - Tensorflow
 - ONNX
 

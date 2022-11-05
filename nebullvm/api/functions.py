@@ -33,6 +33,7 @@ from nebullvm.measure import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import Module
+from nebullvm.optional_modules.utils import check_dependencies
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
@@ -310,6 +311,7 @@ def optimize_model(
     """
     dl_framework = _get_dl_framework(model)
     device = _check_device(device, dl_framework)
+    check_dependencies(device)
     optimization_time = OptimizationTime(optimization_time)
     FEEDBACK_COLLECTOR.start_collection(
         model, framework=dl_framework, device=device

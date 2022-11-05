@@ -1,11 +1,7 @@
-import logging
-
 from nebullvm.utils.logger import (
     save_root_logger_state,
     load_root_logger_state,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 logger_state = save_root_logger_state()
 
@@ -21,12 +17,6 @@ try:
         Pruning,
     )
 except ImportError:
-    logger.warning(
-        "Missing Library: "
-        "neural_compressor module is not installed on this platform. "
-        "Please install it if you want to include it in the "
-        "optimization pipeline."
-    )
     _cfg_to_qconfig = _cfgs_to_fx_cfgs = None
     MixedPrecision = Quantization = Pruning = object
 except ValueError:

@@ -10,15 +10,6 @@ def onnxruntime_is_available() -> bool:
         return False
 
 
-def onnx_is_available() -> bool:
-    try:
-        import onnx  # noqa F401
-
-        return True
-    except ImportError:
-        return False
-
-
 def tvm_is_available() -> bool:
     try:
         import tvm  # noqa F401
@@ -83,25 +74,9 @@ def intel_neural_compressor_is_available() -> bool:
         return True
 
 
-def torch_is_available() -> bool:
-    try:
-        import torch  # noqa F401
-    except ImportError:
-        return False
-    else:
-        return True
-
-
-def tensorflow_is_available() -> bool:
-    try:
-        import tensorflow  # noqa F401
-    except ImportError:
-        return False
-    else:
-        return True
-
-
 def select_compilers_from_hardware_onnx(device: str):
+    from nebullvm.optional_modules.utils import onnx_is_available
+
     compilers = []
     if onnx_is_available():
         if onnxruntime_is_available():
@@ -112,4 +87,35 @@ def select_compilers_from_hardware_onnx(device: str):
             compilers.append(ModelCompiler.TENSOR_RT)
         if device == "cpu" and openvino_is_available():
             compilers.append(ModelCompiler.OPENVINO)
+    return compilers
+
+
+def select_compilers_from_hardware_torch(device: str):
+    from nebullvm.optional_modules.utils import torch_is_available
+
+    compilers = []
+    if torch_is_available():
+        compilers.append(ModelCompiler.TORCHSCRIPT)
+        if tvm_is_available():
+            compilers.append(ModelCompiler.APACHE_TVM)
+        if bladedisc_is_available():
+            compilers.append(ModelCompiler.BLADEDISC)
+
+        if device == "cpu":
+            if deepsparse_is_available():
+                compilers.append(ModelCompiler.DEEPSPARSE)
+            if intel_neural_compressor_is_available():
+                compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
+        elif device == "gpu":
+            if torch_tensorrt_is_available:
+                compilers.append(ModelCompiler.TENSOR_RT)
+    return compilers
+
+
+def select_compilers_from_hardware_tensorflow(device: str):
+    from nebullvm.optional_modules.utils import tensorflow_is_available
+
+    compilers = []
+    if tensorflow_is_available():
+        compilers.append(ModelCompiler.TFLITE)
     return compilers

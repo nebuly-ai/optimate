@@ -1,8 +1,3 @@
-import logging
-
-logger = logging.getLogger("nebullvm_logger")
-
-
 class Onnxruntime:
     pass
 
@@ -16,12 +11,6 @@ try:
         CalibrationDataReader,
     )
 except ImportError:
-    logger.warning(
-        "Missing Library: "
-        "onnxruntime module is not installed on this platform. "
-        "Please install it if you want to include it in the "
-        "optimization pipeline."
-    )
     onnxruntime = Onnxruntime
     setattr(onnxruntime, "SessionOptions", None)
     QuantType = quantize_static = quantize_dynamic = None

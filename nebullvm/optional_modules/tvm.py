@@ -1,7 +1,3 @@
-import logging
-
-logger = logging.getLogger("nebullvm_logger")
-
 try:
     import tvm
     from tvm import IRModule
@@ -13,13 +9,6 @@ try:
     from tvm.contrib.graph_executor import GraphModule
     from tvm.runtime import Module
 except ImportError:
-    logger.warning(
-        "Missing Library: "
-        "tvm module is not installed on this platform. "
-        "Please install it if you want to include it in the "
-        "optimization pipeline."
-    )
-
     tvm = (
         IRModule
     ) = (

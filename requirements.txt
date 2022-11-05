@@ -4,5 +4,4 @@ py-cpuinfo==8.0.0
 PyYAML>=6.0
 psutil>=5.0.0
 requests>=2.26.1
-torch>=1.10.0
 tqdm>=4.36.0

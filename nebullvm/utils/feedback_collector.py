@@ -17,11 +17,11 @@ from nebullvm.base import (
     QuantizationType,
 )
 from nebullvm.config import VERSION
-from nebullvm.utils.compilers import (
+from nebullvm.optional_modules.torch import Module
+from nebullvm.optional_modules.utils import (
     torch_is_available,
     tensorflow_is_available,
 )
-from nebullvm.optional_modules.torch import Module
 from nebullvm.utils.tf import tensorflow_get_gpu_name
 from nebullvm.utils.torch import torch_get_device_name
 

@@ -10,13 +10,26 @@ from typing import Optional, List
 import cpuinfo
 import torch
 
+from nebullvm.base import DeepLearningFramework
 from nebullvm.config import (
     LIBRARIES_GPU,
     ONNX_MODULES,
     TORCH_MODULES,
     TENSORFLOW_MODULES,
 )
-from nebullvm.utils.general import check_module_version, is_python_version_3_10
+from nebullvm.utils.compilers import (
+    onnxruntime_is_available,
+    openvino_is_available,
+    tensorrt_is_available,
+    torch_tensorrt_is_available,
+    deepsparse_is_available,
+    intel_neural_compressor_is_available,
+)
+from nebullvm.utils.general import (
+    check_module_version,
+    is_python_version_3_10,
+    gpu_is_available,
+)
 
 logger = logging.getLogger("nebullvm_logger")
 
@@ -54,7 +67,7 @@ def install_tvm(working_dir: str = None):
     )
     installation_file = str(path / "install_tvm.sh")
     hardware_config = get_cpu_arch()
-    if torch.cuda.is_available():
+    if gpu_is_available():
         hardware_config = f"{hardware_config}_cuda"
     env_dict = {
         "CONFIG_PATH": str(
@@ -79,7 +92,7 @@ def install_tvm(working_dir: str = None):
 def install_bladedisc():
     """Helper function for installing BladeDisc."""
     has_cuda = False
-    if torch.cuda.is_available():
+    if gpu_is_available():
         has_cuda = True
 
     path = Path(__file__).parent
@@ -99,7 +112,7 @@ def install_torch_tensor_rt():
 
     The function will install the software only if a cuda driver is available.
     """
-    if not torch.cuda.is_available():
+    if not gpu_is_available():
         raise RuntimeError(
             "Torch-TensorRT can run just on Nvidia machines. "
             "No available cuda driver has been found."
@@ -162,7 +175,7 @@ def install_tensor_rt():
 
     The function will install the software only if a cuda driver is available.
     """
-    if not torch.cuda.is_available():
+    if not gpu_is_available():
         raise RuntimeError(
             "TensorRT can run just on Nvidia machines. "
             "No available cuda driver has been found."
@@ -228,7 +241,7 @@ def install_openvino(with_optimization: bool = True):
 def install_onnxruntime():
     """Helper function for installing the right version of onnxruntime."""
     distribution_name = "onnxruntime"
-    if torch.cuda.is_available():
+    if gpu_is_available():
         distribution_name = f"{distribution_name}-gpu"
     if _get_os() == "Darwin" and get_cpu_arch() == "arm":
         cmd = ["conda", "install", "-y", distribution_name]
@@ -319,18 +332,27 @@ class BaseInstaller(ABC):
     def __init__(self, module_list: List[str]):
         self.modules = module_list
 
-    def install_compilers(self, include_libraries: Optional[List[str]] = None):
+    def install_compilers(
+        self,
+        dl_framework: DeepLearningFramework,
+        include_libraries: Optional[List[str]] = None,
+    ):
         for library in self.modules:
             if (
                 isinstance(include_libraries, List)
                 and library not in include_libraries
-            ) or (not torch.cuda.is_available() and library in LIBRARIES_GPU):
+            ) or (
+                not gpu_is_available(dl_framework) and library in LIBRARIES_GPU
+            ):
                 continue
 
             logger.info(f"Trying to install {library} on the platform...")
 
             try:
-                install_ok = COMPILER_INSTALLERS[library]()
+                if not COMPILERS_AVAILABLE[library]:
+                    install_ok = COMPILER_INSTALLERS[library]()
+                else:
+                    install_ok = True
             except Exception:
                 install_ok = False
 
@@ -429,6 +451,7 @@ class ONNXInstaller(BaseInstaller, ABC):
     def install_dependencies(include_frameworks: List[str]):
         cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
         subprocess.run(cmd)
+        install_onnx_simplifier()
 
     @staticmethod
     def check_framework():
@@ -462,12 +485,16 @@ class ONNXInstaller(BaseInstaller, ABC):
 def auto_install_libraries(
     include_frameworks: List, include_compilers: Optional[List[str]] = None
 ):
+    logger.info("Running auto install of nebullvm dependencies")
+
     for framework in include_frameworks:
         framework_installer = INSTALLERS[framework](MODULES[framework])
         if not framework_installer.check_framework():
             framework_installer.install_framework()
         framework_installer.install_dependencies(include_frameworks)
-        framework_installer.install_compilers(include_compilers)
+        framework_installer.install_compilers(
+            FRAMEWORKS[framework], include_compilers
+        )
 
 
 COMPILER_INSTALLERS = {
@@ -477,8 +504,18 @@ COMPILER_INSTALLERS = {
     "torch_tensor_rt": install_torch_tensor_rt,
     "deepsparse": install_deepsparse,
     "intel_neural_compressor": install_intel_neural_compressor,
-    "onnx_simplifier": install_onnx_simplifier,
 }
+
+
+COMPILERS_AVAILABLE = {
+    "onnxruntime": onnxruntime_is_available(),
+    "openvino": openvino_is_available(),
+    "tensor_rt": tensorrt_is_available(),
+    "torch_tensor_rt": torch_tensorrt_is_available(),
+    "deepsparse": deepsparse_is_available(),
+    "intel_neural_compressor": intel_neural_compressor_is_available(),
+}
+
 
 INSTALLERS = {
     "onnx": ONNXInstaller,
@@ -490,4 +527,10 @@ MODULES = {
     "onnx": ONNX_MODULES,
     "torch": TORCH_MODULES,
     "tensorflow": TENSORFLOW_MODULES,
+}
+
+FRAMEWORKS = {
+    "torch": DeepLearningFramework.PYTORCH,
+    "tensorflow": DeepLearningFramework.TENSORFLOW,
+    "onnx": DeepLearningFramework.NUMPY,
 }

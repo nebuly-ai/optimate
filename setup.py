@@ -8,7 +8,6 @@ REQUIREMENTS = [
     "PyYAML>=6.0",
     "psutil>=5.0.0",
     "requests>=2.26.0",
-    "torch>=1.10.0",
     "tqdm>=4.36.0",
     "packaging>=21.3",
 ]

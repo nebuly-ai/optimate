@@ -26,25 +26,17 @@ from nebullvm.inference_learners import (
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import (
     BaseOptimizer,
-    ApacheTVMOptimizer,
     COMPILER_TO_OPTIMIZER_MAP,
-    DeepSparseOptimizer,
 )
-from nebullvm.optimizers.blade_disc import BladeDISCOptimizer
-from nebullvm.optimizers.neural_compressor import NeuralCompressorOptimizer
-from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
-from nebullvm.optimizers.tensor_rt import TensorRTOptimizer
-from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
 from nebullvm.optional_modules.torch import Module
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.compilers import (
-    tvm_is_available,
     select_compilers_from_hardware_onnx,
     deepsparse_is_available,
-    bladedisc_is_available,
-    torch_tensorrt_is_available,
     intel_neural_compressor_is_available,
+    select_compilers_from_hardware_tensorflow,
+    select_compilers_from_hardware_torch,
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
@@ -411,39 +403,12 @@ class TorchOptimizerStep(OptimizerStep):
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler], device: str
     ) -> Dict[ModelCompiler, BaseOptimizer]:
-        optimizers = {}
-        if ModelCompiler.TORCHSCRIPT not in ignore_compilers:
-            optimizers[ModelCompiler.TORCHSCRIPT] = PytorchBackendOptimizer()
-        if (
-            tvm_is_available()
-            and ModelCompiler.APACHE_TVM not in ignore_compilers
-        ):
-            optimizers[ModelCompiler.APACHE_TVM] = ApacheTVMOptimizer()
-        if (
-            device == "cpu"
-            and deepsparse_is_available()
-            and ModelCompiler.DEEPSPARSE not in ignore_compilers
-        ):
-            optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer()
-        if (
-            bladedisc_is_available()
-            and ModelCompiler.BLADEDISC not in ignore_compilers
-        ):
-            optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer()
-        if (
-            device == "gpu"
-            and torch_tensorrt_is_available()
-            and ModelCompiler.TENSOR_RT not in ignore_compilers
-        ):
-            optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer()
-        if (
-            device == "cpu"
-            and intel_neural_compressor_is_available()
-            and ModelCompiler.INTEL_NEURAL_COMPRESSOR not in ignore_compilers
-        ):
-            optimizers[
-                ModelCompiler.INTEL_NEURAL_COMPRESSOR
-            ] = NeuralCompressorOptimizer()
+        compilers = select_compilers_from_hardware_torch(device)
+        optimizers = {
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
+            for compiler in compilers
+            if compiler not in ignore_compilers
+        }
         return optimizers
 
     def _run_optimizer(
@@ -503,9 +468,12 @@ class TFOptimizerStep(OptimizerStep):
     def _get_optimizers(
         self, ignore_compilers: List[ModelCompiler], device: str
     ) -> Dict[ModelCompiler, BaseOptimizer]:
-        optimizers = {}
-        if ModelCompiler.TFLITE not in ignore_compilers:
-            optimizers[ModelCompiler.TFLITE] = TensorflowBackendOptimizer()
+        compilers = select_compilers_from_hardware_tensorflow(device)
+        optimizers = {
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
+            for compiler in compilers
+            if compiler not in ignore_compilers
+        }
         return optimizers
 
     def _run_optimizer(

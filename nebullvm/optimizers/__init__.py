@@ -9,6 +9,7 @@ from nebullvm.optimizers.neural_compressor import (
 )  # noqa F401
 from nebullvm.optimizers.onnx import ONNXOptimizer  # noqa F401
 from nebullvm.optimizers.openvino import OpenVinoOptimizer  # noqa F401
+from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tensor_rt import TensorRTOptimizer  # noqa F401
 from nebullvm.optimizers.tvm import ApacheTVMOptimizer  # noqa F401
 
@@ -22,5 +23,6 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.ONNX_RUNTIME: ONNXOptimizer,
     ModelCompiler.DEEPSPARSE: DeepSparseOptimizer,
     ModelCompiler.BLADEDISC: BladeDISCOptimizer,
+    ModelCompiler.TORCHSCRIPT: PytorchBackendOptimizer,
     ModelCompiler.INTEL_NEURAL_COMPRESSOR: NeuralCompressorOptimizer,
 }
