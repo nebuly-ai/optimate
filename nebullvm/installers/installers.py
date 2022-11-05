@@ -45,7 +45,10 @@ def _get_os():
     return platform.system()
 
 
-def install_tvm(working_dir: str = None):
+def install_tvm(
+    working_dir: str = None,
+    dl_framework: DeepLearningFramework = DeepLearningFramework.PYTORCH,
+):
     """Helper function for installing ApacheTVM.
 
     This function needs some prerequisites for running, as a valid `git`
@@ -54,6 +57,8 @@ def install_tvm(working_dir: str = None):
     Args:
         working_dir (str, optional): The directory where the tvm repo will be
             cloned and installed.
+        dl_framework: (DeepLearningFramework, optional): Deep learning
+            framework.
     """
     path = Path(__file__).parent
     # install pre-requisites
@@ -66,7 +71,7 @@ def install_tvm(working_dir: str = None):
     )
     installation_file = str(path / "install_tvm.sh")
     hardware_config = get_cpu_arch()
-    if gpu_is_available():
+    if gpu_is_available(dl_framework):
         hardware_config = f"{hardware_config}_cuda"
     env_dict = {
         "CONFIG_PATH": str(
@@ -88,10 +93,12 @@ def install_tvm(working_dir: str = None):
     return True
 
 
-def install_bladedisc():
+def install_bladedisc(
+    dl_framework: DeepLearningFramework = DeepLearningFramework.PYTORCH,
+):
     """Helper function for installing BladeDisc."""
     has_cuda = False
-    if gpu_is_available():
+    if gpu_is_available(dl_framework):
         has_cuda = True
 
     path = Path(__file__).parent
@@ -106,12 +113,14 @@ def install_bladedisc():
     return True
 
 
-def install_torch_tensor_rt():
+def install_torch_tensor_rt(
+    dl_framework: DeepLearningFramework = DeepLearningFramework.PYTORCH,
+):
     """Helper function for installing Torch-TensorRT.
 
     The function will install the software only if a cuda driver is available.
     """
-    if not gpu_is_available():
+    if not gpu_is_available(dl_framework):
         raise RuntimeError(
             "Torch-TensorRT can run just on Nvidia machines. "
             "No available cuda driver has been found."
@@ -169,12 +178,14 @@ def install_tf2onnx():
     return True
 
 
-def install_tensor_rt():
+def install_tensor_rt(
+    dl_framework: DeepLearningFramework = DeepLearningFramework.PYTORCH,
+):
     """Helper function for installing TensorRT.
 
     The function will install the software only if a cuda driver is available.
     """
-    if not gpu_is_available():
+    if not gpu_is_available(dl_framework):
         raise RuntimeError(
             "TensorRT can run just on Nvidia machines. "
             "No available cuda driver has been found."
@@ -192,7 +203,9 @@ def install_tensor_rt():
     return True
 
 
-def install_openvino(with_optimization: bool = True):
+def install_openvino(
+    with_optimization: bool = True, dl_framework: DeepLearningFramework = None
+):
     """Helper function for installing the OpenVino compiler.
 
     This function just works on intel machines.
@@ -201,6 +214,8 @@ def install_openvino(with_optimization: bool = True):
         with_optimization (bool): Flag for installing the full openvino engine
             or limiting the installation to the tools need for inference
             models.
+        dl_framework: (DeepLearningFramework, optional): Deep learning
+            framework.
     """
     processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
     if "intel" not in processor:
@@ -237,10 +252,12 @@ def install_openvino(with_optimization: bool = True):
     return True
 
 
-def install_onnxruntime():
+def install_onnxruntime(
+    dl_framework: DeepLearningFramework = DeepLearningFramework.NUMPY,
+):
     """Helper function for installing the right version of onnxruntime."""
     distribution_name = "onnxruntime"
-    if gpu_is_available():
+    if gpu_is_available(dl_framework):
         distribution_name = f"{distribution_name}-gpu"
     if _get_os() == "Darwin" and get_cpu_arch() == "arm":
         cmd = ["conda", "install", "-y", distribution_name]
@@ -259,7 +276,7 @@ def install_onnxruntime():
     return True
 
 
-def install_deepsparse():
+def install_deepsparse(dl_framework: DeepLearningFramework = None):
     """Helper function for installing DeepSparse."""
     python_minor_version = sys.version_info.minor
 
@@ -287,7 +304,9 @@ def install_deepsparse():
     return True
 
 
-def install_intel_neural_compressor():
+def install_intel_neural_compressor(
+    dl_framework: DeepLearningFramework = None,
+):
     """Helper function for installing Intel Neural Compressor."""
 
     processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
@@ -348,8 +367,10 @@ class BaseInstaller(ABC):
             logger.info(f"Trying to install {library} on the platform...")
 
             try:
-                if not COMPILERS_AVAILABLE[library]:
-                    install_ok = COMPILER_INSTALLERS[library]()
+                if not COMPILERS_AVAILABLE[library]():
+                    install_ok = COMPILER_INSTALLERS[library](
+                        dl_framework=dl_framework
+                    )
                 else:
                     install_ok = True
             except Exception:
@@ -507,11 +528,11 @@ COMPILER_INSTALLERS = {
 
 
 COMPILERS_AVAILABLE = {
-    "openvino": openvino_is_available(),
-    "tensor_rt": tensorrt_is_available(),
-    "torch_tensor_rt": torch_tensorrt_is_available(),
-    "deepsparse": deepsparse_is_available(),
-    "intel_neural_compressor": intel_neural_compressor_is_available(),
+    "openvino": openvino_is_available,
+    "tensor_rt": tensorrt_is_available,
+    "torch_tensor_rt": torch_tensorrt_is_available,
+    "deepsparse": deepsparse_is_available,
+    "intel_neural_compressor": intel_neural_compressor_is_available,
 }
 
 
