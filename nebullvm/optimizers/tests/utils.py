@@ -18,6 +18,7 @@ from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.measure import compute_relative_difference
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.general import gpu_is_available
 
 INPUT_SHAPE = (3, 256, 256)
 OUTPUT_SHAPE = (2,)
@@ -143,6 +144,7 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
 
     text = "Short text you wish to process"
     encoded_input = tokenizer(text, return_tensors="pt")
+    device = "gpu" if gpu_is_available() else "cpu"
 
     (
         model,
@@ -160,6 +162,7 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
         input_data.get_split("test"),
         dl_framework,
         compute_output=True,
+        device=device,
     )
 
     model_path = os.path.join(temp_dir, "test_model.onnx")
@@ -189,6 +192,7 @@ def initialize_model(
     metric: str,
     output_library: DeepLearningFramework,
 ):
+    device = "gpu" if gpu_is_available() else "cpu"
     batch_size = DYNAMIC_BATCH_SIZE if dynamic else STATIC_BATCH_SIZE
 
     if output_library == DeepLearningFramework.PYTORCH:
@@ -239,6 +243,7 @@ def initialize_model(
         input_data.get_split("test"),
         output_library,
         compute_output=True,
+        device=device,
     )
 
     if metric is not None:
