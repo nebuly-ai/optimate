@@ -186,17 +186,15 @@ def _map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
     return ignore_list
 
 
-def _check_device(
-    device: Optional[str], dl_framework: DeepLearningFramework
-) -> str:
+def _check_device(device: Optional[str]) -> str:
     if device is None:
-        if gpu_is_available(dl_framework):
+        if gpu_is_available():
             device = "gpu"
         else:
             device = "cpu"
     else:
         if device.lower() == "gpu":
-            if not gpu_is_available(dl_framework):
+            if not gpu_is_available():
                 logger.warning(
                     "Selected GPU device but no available GPU found on this "
                     "platform. CPU will be used instead. Please make sure "
@@ -309,9 +307,9 @@ def optimize_model(
             with `model.forward(input)` and `model(input)`), i.e. it will
             take as input and it will return `torch.Tensor`s.
     """
-    dl_framework = _get_dl_framework(model)
-    device = _check_device(device, dl_framework)
+    device = _check_device(device)
     check_dependencies(device)
+    dl_framework = _get_dl_framework(model)
     optimization_time = OptimizationTime(optimization_time)
     FEEDBACK_COLLECTOR.start_collection(
         model, framework=dl_framework, device=device
