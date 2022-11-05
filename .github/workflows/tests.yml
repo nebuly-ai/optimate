@@ -5,7 +5,7 @@ on:
     branches:
       - "main"
       - "dev"
-      - "change_install_method"
+      - "pytorch_optional"
   pull_request:
     branches:
       - "main"
