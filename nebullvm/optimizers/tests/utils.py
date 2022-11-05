@@ -110,7 +110,8 @@ def get_onnx_model(temp_dir: str, dynamic: bool = False):
         model, model_params = _build_dynamic_model()
     else:
         model, model_params = _build_static_model()
-    convert_torch_to_onnx(model, model_params, model_path)
+    device = "gpu" if gpu_is_available() else "cpu"
+    convert_torch_to_onnx(model, model_params, model_path, device)
     return model_path, model_params
 
 
@@ -152,7 +153,7 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
         input_names,
         output_structure,
         output_type,
-    ) = convert_hf_model(model, [encoded_input])
+    ) = convert_hf_model(model, [encoded_input], device=device)
 
     input_data = DataManager(input_data)
     input_data.split(TRAIN_TEST_SPLIT_RATIO)
@@ -168,13 +169,11 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
     model_path = os.path.join(temp_dir, "test_model.onnx")
 
     model_params = _extract_info_from_data(
-        model,
-        input_data,
-        dl_framework,
-        None,
+        model, input_data, dl_framework, None, device
     )
 
-    convert_torch_to_onnx(model, model_params, model_path, input_data)
+    device = "gpu" if gpu_is_available() else "cpu"
+    convert_torch_to_onnx(model, model_params, model_path, device, input_data)
 
     return (
         model_path,

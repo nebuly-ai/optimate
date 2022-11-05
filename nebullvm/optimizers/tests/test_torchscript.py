@@ -81,6 +81,7 @@ def test_torchscript(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
 
+        device = "gpu" if torch.cuda.is_available() else "cpu"
         optimizer = PytorchBackendOptimizer()
         model = optimizer.optimize(
             model=model,
@@ -92,6 +93,7 @@ def test_torchscript(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, PytorchBackendInferenceLearner)
 

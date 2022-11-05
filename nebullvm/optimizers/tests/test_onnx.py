@@ -9,6 +9,7 @@ from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
 from nebullvm.optimizers.onnx import ONNXOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -79,7 +80,8 @@ def test_onnxruntime(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        convert_torch_to_onnx(model, model_params, model_path)
+        device = "gpu" if gpu_is_available() else "cpu"
+        convert_torch_to_onnx(model, model_params, model_path, device=device)
 
         # Test onnx external data format (large models)
         if external_data:
@@ -102,6 +104,7 @@ def test_onnxruntime(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, ONNX_INFERENCE_LEARNERS[output_library])
 

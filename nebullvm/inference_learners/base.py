@@ -26,6 +26,7 @@ class BaseInferenceLearner(ABC):
     network_parameters: ModelParams
     input_tfms: Optional[MultiStageTransformation] = None
     input_data: InitVar[List[Any]] = None
+    device: str = None
 
     def __post_init__(self, input_data):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
@@ -208,6 +209,7 @@ class LearnerMetadata:
     NAME: str = LEARNER_METADATA_FILENAME
     class_name: str
     module_name: str
+    device: str
 
     def __init__(
         self,
@@ -258,6 +260,7 @@ class LearnerMetadata:
             module_name=model.__module__,
             network_parameters=model.network_parameters,
             input_tfms=model.input_tfms,
+            device=model.device,
             **kwargs,
         )
 

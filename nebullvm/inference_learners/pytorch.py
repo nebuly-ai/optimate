@@ -24,13 +24,11 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         self.model = torch_model.eval()
         if device == "gpu":
             self.model.cuda()
-            self.use_gpu = True
-        else:
-            self.use_gpu = False
+        self.device = device
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device
-        if self.use_gpu:
+        if self.device == "gpu":
             input_tensors = (t.cuda() for t in input_tensors)
         with torch.no_grad():
             res = self.model(*input_tensors)
@@ -58,6 +56,7 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
             input_tfms=MultiStageTransformation.from_dict(metadata.input_tfms)
             if metadata.input_tfms is not None
             else None,
+            device=metadata.device,
         )
 
     @classmethod

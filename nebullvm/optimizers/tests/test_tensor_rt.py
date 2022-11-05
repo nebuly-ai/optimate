@@ -12,6 +12,7 @@ from nebullvm.inference_learners.tensor_rt import (
 from nebullvm.inference_learners.tensor_rt import NVIDIA_INFERENCE_LEARNERS
 from nebullvm.optimizers import TensorRTOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -75,7 +76,8 @@ def test_tensorrt_onnx(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        convert_torch_to_onnx(model, model_params, model_path)
+        device = "gpu" if gpu_is_available() else "cpu"
+        convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = TensorRTOptimizer()
         model = optimizer.optimize(
             model=model_path,

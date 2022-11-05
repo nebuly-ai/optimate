@@ -11,6 +11,7 @@ from nebullvm.optimizers.onnx import ONNXOptimizer  # noqa F401
 from nebullvm.optimizers.openvino import OpenVinoOptimizer  # noqa F401
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tensor_rt import TensorRTOptimizer  # noqa F401
+from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
 from nebullvm.optimizers.tvm import ApacheTVMOptimizer  # noqa F401
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]
@@ -25,4 +26,5 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[BaseOptimizer]] = {
     ModelCompiler.BLADEDISC: BladeDISCOptimizer,
     ModelCompiler.TORCHSCRIPT: PytorchBackendOptimizer,
     ModelCompiler.INTEL_NEURAL_COMPRESSOR: NeuralCompressorOptimizer,
+    ModelCompiler.TFLITE: TensorflowBackendOptimizer,
 }

@@ -81,12 +81,12 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = str(onnx_path)
         filename = "/".join(onnx_path.split("/")[-1:])
         dir_path = "/".join(onnx_path.split("/")[:-1])
-        use_gpu = device == "gpu"
+        self.device = device
 
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
-        sess_options = _get_ort_session_options(use_gpu)
+        sess_options = _get_ort_session_options(self.device == "gpu")
 
-        if _running_on_intel_cpu(use_gpu):
+        if _running_on_intel_cpu(self.device == "gpu"):
             sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
@@ -95,7 +95,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             onnx_path,
             sess_options=sess_options,
             providers=ONNX_PROVIDERS["cuda"]
-            if use_gpu
+            if self.device == "gpu"
             else ONNX_PROVIDERS["cpu"],
         )
         self._session = ort_session
@@ -164,6 +164,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = path / ONNX_FILENAMES["model_name"]
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
+        device = metadata.device
         if input_tfms is not None:
             input_tfms = MultiStageTransformation.from_dict(
                 metadata.input_tfms
@@ -174,6 +175,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             onnx_path=onnx_path,
             input_names=metadata["input_names"],
             output_names=metadata["output_names"],
+            device=device,
         )
 
     def _predict_arrays(self, input_arrays: Generator[np.ndarray, None, None]):

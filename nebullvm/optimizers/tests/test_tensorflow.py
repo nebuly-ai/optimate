@@ -9,6 +9,7 @@ from nebullvm.inference_learners.tensorflow import (
 )
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -63,6 +64,7 @@ def test_tensorflow(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
 
+        device = "gpu" if gpu_is_available() else "cpu"
         optimizer = TensorflowBackendOptimizer()
         model = optimizer.optimize(
             model=model,
@@ -74,6 +76,7 @@ def test_tensorflow(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
 
         if quantization_type is None:

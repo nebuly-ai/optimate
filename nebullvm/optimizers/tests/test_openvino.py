@@ -11,7 +11,7 @@ from nebullvm.inference_learners.openvino import (
 )
 from nebullvm.optimizers.openvino import OpenVinoOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
-from nebullvm.utils.general import is_python_version_3_10
+from nebullvm.utils.general import is_python_version_3_10, gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -79,7 +79,8 @@ def test_openvino(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        convert_torch_to_onnx(model, model_params, model_path)
+        device = "gpu" if gpu_is_available() else "cpu"
+        convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = OpenVinoOptimizer()
         model = optimizer.optimize(
             model=model_path,
