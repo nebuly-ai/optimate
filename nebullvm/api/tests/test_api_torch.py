@@ -6,6 +6,7 @@ import torchvision.models as models
 
 from nebullvm.api.functions import optimize_model
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
+from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
 from nebullvm.inference_learners.onnx import PytorchONNXInferenceLearner
 from nebullvm.inference_learners.openvino import (
     PytorchOpenVinoInferenceLearner,
@@ -214,5 +215,5 @@ def test_torch_bladedisc():
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
-    assert isinstance(optimized_model, PytorchApacheTVMInferenceLearner)
+    assert isinstance(optimized_model, BladeDISCInferenceLearner)
     assert torch.max(abs((res_original - res_optimized))) < 1e-2

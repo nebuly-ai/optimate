@@ -61,7 +61,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        target = self._get_target()
+        target = self._get_target(device)
         mod, params = self._build_tvm_model_from_torch(
             torch_model, model_params, device
         )
@@ -173,7 +173,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             f"q_type: {quantization_type}."
         )
         check_quantization(quantization_type, metric_drop_ths)
-        target = self._get_target()
+        target = self._get_target(device)
         mod, params = self._build_tvm_model_from_onnx(model, model_params)
         if quantization_type is not None:
             if quantization_type is QuantizationType.HALF:

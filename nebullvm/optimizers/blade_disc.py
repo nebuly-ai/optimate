@@ -114,6 +114,7 @@ class BladeDISCOptimizer(BaseOptimizer):
             input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
+            device=device,
         )
 
         test_input_data, ys = input_data.get_split("test").get_list(

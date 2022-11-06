@@ -15,6 +15,7 @@ class BladeDISCInferenceLearner(PytorchBackendInferenceLearner):
         cls,
         model: ScriptModule,
         network_parameters: ModelParams,
+        device: str,
         input_tfms: Optional[MultiStageTransformation] = None,
         input_data: DataManager = None,
     ):
@@ -23,4 +24,5 @@ class BladeDISCInferenceLearner(PytorchBackendInferenceLearner):
             network_parameters=network_parameters,
             input_tfms=input_tfms,
             input_data=input_data,
+            device=device,
         )

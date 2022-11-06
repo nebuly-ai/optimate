@@ -386,14 +386,16 @@ class PytorchInstaller(BaseInstaller, ABC):
         except ImportError:
             return False
 
-        if not check_module_version(torch, min_version="1.12.0"):
+        if not check_module_version(
+            torch, min_version="1.12.0", max_version="1.12.1"
+        ):
             return False
 
         return True
 
     @staticmethod
     def install_framework():
-        cmd = ["pip3", "install", "torch>=1.10.0"]
+        cmd = ["pip3", "install", "torch>=1.10.0, <1.13.0"]
         subprocess.run(cmd)
 
         try:
