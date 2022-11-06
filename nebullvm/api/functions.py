@@ -417,8 +417,16 @@ def optimize_model(
     logger.info("[ Nebullvm results ]")
     logger.info("Original model latency: {:.4f} sec/iter".format(orig_latency))
     logger.info(
+        "Original model throughput: {:.4f} iter/sec".format(1 / orig_latency)
+    )
+    logger.info(
         "Optimized model latency: {:.4f} sec/iter".format(
             optimized_models[0][1]
+        )
+    )
+    logger.info(
+        "Optimized model throughput: {:.4f} iter/sec".format(
+            1 / optimized_models[0][1]
         )
     )
     logger.info(f"Optimized model metric drop: {optimized_models[0][2]}")
