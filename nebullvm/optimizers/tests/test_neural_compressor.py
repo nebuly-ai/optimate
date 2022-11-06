@@ -46,7 +46,7 @@ def test_neural_compressor(
         device = "gpu" if gpu_is_available() else "cpu"
 
         optimizer = NeuralCompressorOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,

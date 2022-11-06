@@ -89,7 +89,7 @@ def test_bladedisc(
         device = "gpu" if torch.cuda.is_available() else "cpu"
 
         optimizer = BladeDISCOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,

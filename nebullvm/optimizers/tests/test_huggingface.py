@@ -27,7 +27,7 @@ def test_huggingface(output_library: DeepLearningFramework):
 
         device = "gpu" if gpu_is_available() else "cpu"
         optimizer = HuggingFaceOptimizer({})
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model,
             output_library,
             model_params,

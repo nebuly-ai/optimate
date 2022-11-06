@@ -66,7 +66,7 @@ def test_tensorflow(
 
         device = "gpu" if gpu_is_available() else "cpu"
         optimizer = TensorflowBackendOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,

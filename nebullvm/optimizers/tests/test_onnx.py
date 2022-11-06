@@ -94,7 +94,7 @@ def test_onnxruntime(
             )
 
         optimizer = ONNXOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model_path,
             output_library=output_library,
             model_params=model_params,

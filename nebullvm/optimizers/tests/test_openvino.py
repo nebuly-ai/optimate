@@ -82,7 +82,7 @@ def test_openvino(
         device = "gpu" if gpu_is_available() else "cpu"
         convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = OpenVinoOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model_path,
             output_library=output_library,
             model_params=model_params,

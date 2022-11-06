@@ -72,7 +72,7 @@ def test_tvm_onnx(
         device = "gpu" if gpu_is_available() else "cpu"
         convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = ApacheTVMOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model_path,
             output_library=output_library,
             model_params=model_params,
@@ -158,7 +158,7 @@ def test_tvm_torch(
         ) = initialize_model(dynamic, metric, output_library)
         optimizer = ApacheTVMOptimizer()
         device = "gpu" if gpu_is_available() else "cpu"
-        model = optimizer.optimize_from_torch(
+        model, metric_drop = optimizer.optimize_from_torch(
             torch_model=model,
             model_params=model_params,
             input_tfms=input_tfms,

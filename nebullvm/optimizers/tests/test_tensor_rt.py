@@ -79,7 +79,7 @@ def test_tensorrt_onnx(
         device = "gpu" if gpu_is_available() else "cpu"
         convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = TensorRTOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model_path,
             output_library=output_library,
             model_params=model_params,
@@ -171,7 +171,7 @@ def test_tensorrt_torch(
         ) = initialize_model(dynamic, metric, output_library)
         device = "gpu" if gpu_is_available() else "cpu"
         optimizer = TensorRTOptimizer()
-        model = optimizer.optimize_from_torch(
+        model, metric_drop = optimizer.optimize_from_torch(
             torch_model=model,
             model_params=model_params,
             input_tfms=input_tfms,

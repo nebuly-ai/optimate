@@ -83,7 +83,7 @@ def test_torchscript(
 
         device = "gpu" if torch.cuda.is_available() else "cpu"
         optimizer = PytorchBackendOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,

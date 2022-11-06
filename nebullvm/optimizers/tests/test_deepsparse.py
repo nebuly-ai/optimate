@@ -36,7 +36,7 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
 
         device = "gpu" if gpu_is_available() else "cpu"
         optimizer = DeepSparseOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,
