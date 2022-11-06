@@ -11,44 +11,44 @@ on:
       - "main"
 
 jobs:
-  test_on_ubuntu_gpu:
-    runs-on: self-hosted
-
-    strategy:
-      matrix:
-        # Run in all these versions of Python
-        python-version: [ 3.9 ]
-
-    steps:
-      # Checkout the latest code from the repo
-      - name: Checkout repo
-        uses: actions/checkout@v2
-        # Setup which version of Python to use
-      - name: Set Up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-        # Display the Python version being used
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-        # Install nebullvm
-      - name: Install nebullvm
-        run: |
-          python -m pip install --upgrade pip
-          pip uninstall -y nebullvm
-          pip install .
-        # Install compilers except tvm
-      - name: Install deep learning compilers
-        run: python -c "from nebullvm.installers.installers import auto_install_libraries; auto_install_libraries(include_frameworks=['torch', 'onnx', 'tensorflow'])"
-        # Install requirements for testing
-      - name: Install requirements for testing
-        run: pip install -r "requirements-dev.txt"
-        # Run the tests ignoring tvm
-      - name: Run tests
-        run: |
-          cd nebullvm
-          pytest compressors
-          pytest
+#  test_on_ubuntu_gpu:
+#    runs-on: self-hosted
+#
+#    strategy:
+#      matrix:
+#        # Run in all these versions of Python
+#        python-version: [ 3.9 ]
+#
+#    steps:
+#      # Checkout the latest code from the repo
+#      - name: Checkout repo
+#        uses: actions/checkout@v2
+#        # Setup which version of Python to use
+#      - name: Set Up Python ${{ matrix.python-version }}
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#        # Display the Python version being used
+#      - name: Display Python version
+#        run: python -c "import sys; print(sys.version)"
+#        # Install nebullvm
+#      - name: Install nebullvm
+#        run: |
+#          python -m pip install --upgrade pip
+#          pip uninstall -y nebullvm
+#          pip install .
+#        # Install compilers except tvm
+#      - name: Install deep learning compilers
+#        run: python -c "from nebullvm.installers.installers import auto_install_libraries; auto_install_libraries(include_frameworks=['torch', 'onnx', 'tensorflow'])"
+#        # Install requirements for testing
+#      - name: Install requirements for testing
+#        run: pip install -r "requirements-dev.txt"
+#        # Run the tests ignoring tvm
+#      - name: Run tests
+#        run: |
+#          cd nebullvm
+#          pytest compressors
+#          pytest
   test_on_ubuntu_cpu:
     runs-on: ubuntu-latest
 

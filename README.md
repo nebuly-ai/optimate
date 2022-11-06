@@ -23,6 +23,7 @@ The core `nebullvm` workflow consists of 3 steps:
 
 
 # Installation
+
 Install nebullvm and its base requirements:
 ```
 pip install nebullvm
@@ -33,7 +34,11 @@ from nebullvm.installers import auto_install_libraries
 
 auto_install_libraries(include_frameworks=["torch", "onnx", "tensorflow"])
 ```
-For more details on the installation step, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation)
+For more details on the installation step, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation).
+> :warning: **Windows** installation is not supported for now.
+
+> :warning: For **MacOS** with **ARM processors**, please use a conda environment.
+
 
 # API quick view
 

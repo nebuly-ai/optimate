@@ -1,7 +1,7 @@
 import logging
 
 from collections.abc import Callable
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import (
@@ -45,7 +45,7 @@ class BladeDISCOptimizer(BaseOptimizer):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[BladeDISCInferenceLearner]:
+    ) -> Optional[Tuple[BladeDISCInferenceLearner, float]]:
         """Optimize the input model using pytorch built-in techniques.
 
         Args:
@@ -121,7 +121,7 @@ class BladeDISCOptimizer(BaseOptimizer):
             with_ys=True
         )
 
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -141,4 +141,4 @@ class BladeDISCOptimizer(BaseOptimizer):
                     "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

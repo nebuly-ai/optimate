@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Callable, Any, Tuple
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
@@ -46,7 +46,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[ONNXInferenceLearner]:
+    ) -> Optional[Tuple[ONNXInferenceLearner, float]]:
         logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
@@ -76,7 +76,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
         test_input_data, ys = input_data.get_split("test").get_list(
             with_ys=True
         )
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -96,7 +96,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
                     "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop
 
     @staticmethod
     def get_accepted_types() -> List[str]:

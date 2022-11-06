@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple
 
 from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
@@ -37,7 +37,7 @@ class DeepSparseOptimizer(BaseOptimizer):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[DeepSparseInferenceLearner]:
+    ) -> Optional[Tuple[DeepSparseInferenceLearner, float]]:
         logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
@@ -66,7 +66,7 @@ class DeepSparseOptimizer(BaseOptimizer):
             with_ys=True
         )
 
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -86,4 +86,4 @@ class DeepSparseOptimizer(BaseOptimizer):
                     "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

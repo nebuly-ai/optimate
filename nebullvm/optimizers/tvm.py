@@ -56,7 +56,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[ApacheTVMInferenceLearner]:
+    ) -> Optional[Tuple[ApacheTVMInferenceLearner, float]]:
         logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
@@ -106,7 +106,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         test_input_data, ys = input_data.get_split("test").get_list(
             with_ys=True
         )
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -126,7 +126,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                     "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop
 
     def optimize(
         self,
@@ -140,7 +140,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[ApacheTVMInferenceLearner]:
+    ) -> Optional[Tuple[ApacheTVMInferenceLearner, float]]:
         """Optimize the input model with Apache TVM.
 
         Args:
@@ -210,7 +210,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         test_input_data, ys = input_data.get_split("test").get_list(
             with_ys=True
         )
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -230,7 +230,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                     "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop
 
     @staticmethod
     def _build_tvm_model_from_torch(

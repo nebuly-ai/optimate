@@ -414,9 +414,14 @@ def optimize_model(
 
     optimal_model = optimized_models[0][0]
 
-    logger.info("--- Nebullvm results ---")
-    logger.info(f"Original model latency: {orig_latency} sec/iter")
-    logger.info(f"Optimized model latency: {optimized_models[0][1]} sec/iter")
+    logger.info("[ Nebullvm results ]")
+    logger.info("Original model latency: {:.4f} sec/iter".format(orig_latency))
+    logger.info(
+        "Optimized model latency: {:.4f} sec/iter".format(
+            optimized_models[0][1]
+        )
+    )
+    logger.info(f"Optimized model metric drop: {optimized_models[0][2]}")
     logger.info(
         "Estimated speedup: {:.2f}x".format(
             orig_latency / optimized_models[0][1]

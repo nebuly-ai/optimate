@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 import subprocess
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
@@ -37,7 +37,7 @@ class OpenVinoOptimizer(BaseOptimizer):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[OpenVinoInferenceLearner]:
+    ) -> Optional[Tuple[OpenVinoInferenceLearner, float]]:
         """Optimize the onnx model with OpenVino.
 
         Args:
@@ -127,7 +127,7 @@ class OpenVinoOptimizer(BaseOptimizer):
             with_ys=True
         )
 
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -147,4 +147,4 @@ class OpenVinoOptimizer(BaseOptimizer):
                     "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

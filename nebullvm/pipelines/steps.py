@@ -22,7 +22,9 @@ from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.inference_learners import (
     BaseInferenceLearner,
     PytorchBaseInferenceLearner,
+    TensorflowBaseInferenceLearner,
 )
+from nebullvm.inference_learners.base import NumpyBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import (
     BaseOptimizer,
@@ -285,8 +287,8 @@ class OptimizerStep(Step, ABC):
             models.items()
         ):
             logger.info(
-                f"--- Optimizing output of compressor "
-                f"{i+1}/{len(models)}: {prev_tech} ---"
+                f"Optimizing output of compressor "
+                f"{i+1}/{len(models)}: {prev_tech}"
             )
             if model is None:
                 continue
@@ -301,10 +303,10 @@ class OptimizerStep(Step, ABC):
             else:
                 q_types = [None]
             for j, (compiler, optimizer) in enumerate(optimizers.items()):
-                logger.info(f"------ OPTIMIZER {j+1}/{len(optimizers)} ------")
+                logger.info(f"[ OPTIMIZER {j+1}/{len(optimizers)} ]")
                 for q_type in q_types:
                     try:
-                        optimized_model = self._run_optimizer(
+                        optimized_model, metric_drop = self._run_optimizer(
                             optimizer,
                             model,
                             output_library,
@@ -326,7 +328,9 @@ class OptimizerStep(Step, ABC):
                             )
                         else:
                             latency = np.inf
-                        optimized_models.append((optimized_model, latency))
+                        optimized_models.append(
+                            (optimized_model, latency, metric_drop)
+                        )
                         if (
                             compiler not in ignore_compilers
                             and optimization_time
@@ -382,7 +386,7 @@ class OptimizerStep(Step, ABC):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> BaseInferenceLearner:
+    ) -> Tuple[BaseInferenceLearner, float]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -424,9 +428,9 @@ class TorchOptimizerStep(OptimizerStep):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> PytorchBaseInferenceLearner:
+    ) -> Tuple[PytorchBaseInferenceLearner, float]:
         if hasattr(optimizer, "optimize_from_torch"):
-            optimized_model = optimizer.optimize_from_torch(
+            optimized_model, metric_drop = optimizer.optimize_from_torch(
                 torch_model=model,
                 model_params=model_params,
                 device=device,
@@ -440,7 +444,7 @@ class TorchOptimizerStep(OptimizerStep):
                 model_outputs=model_outputs,
             )
         else:
-            optimized_model = optimizer.optimize(
+            optimized_model, metric_drop = optimizer.optimize(
                 model=model,
                 output_library=output_library,
                 model_params=model_params,
@@ -454,7 +458,7 @@ class TorchOptimizerStep(OptimizerStep):
                 input_data=input_data,
                 model_outputs=model_outputs,
             )
-        return optimized_model
+        return optimized_model, metric_drop
 
 
 class TFOptimizerStep(OptimizerStep):
@@ -489,9 +493,9 @@ class TFOptimizerStep(OptimizerStep):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> PytorchBaseInferenceLearner:
+    ) -> Tuple[TensorflowBaseInferenceLearner, float]:
         if hasattr(optimizer, "optimize_from_tf"):
-            optimized_model = optimizer.optimize_from_tf(
+            optimized_model, metric_drop = optimizer.optimize_from_tf(
                 torch_model=model,
                 model_params=model_params,
                 metric_drop_ths=metric_drop_ths
@@ -504,7 +508,7 @@ class TFOptimizerStep(OptimizerStep):
                 model_outputs=model_outputs,
             )
         else:
-            optimized_model = optimizer.optimize(
+            optimized_model, metric_drop = optimizer.optimize(
                 model=model,
                 output_library=output_library,
                 model_params=model_params,
@@ -518,7 +522,7 @@ class TFOptimizerStep(OptimizerStep):
                 input_data=input_data,
                 model_outputs=model_outputs,
             )
-        return optimized_model
+        return optimized_model, metric_drop
 
 
 class OnnxOptimizerStep(OptimizerStep):
@@ -553,8 +557,8 @@ class OnnxOptimizerStep(OptimizerStep):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> PytorchBaseInferenceLearner:
-        optimized_model = optimizer.optimize(
+    ) -> Tuple[NumpyBaseInferenceLearner, float]:
+        optimized_model, metric_drop = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,
@@ -568,7 +572,7 @@ class OnnxOptimizerStep(OptimizerStep):
             input_data=input_data,
             model_outputs=model_outputs,
         )
-        return optimized_model
+        return optimized_model, metric_drop
 
 
 class Pipeline(Step):

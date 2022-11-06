@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Callable
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
@@ -39,7 +39,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[PytorchBackendInferenceLearner]:
+    ) -> Optional[Tuple[PytorchBackendInferenceLearner, float]]:
         """Optimize the input model using pytorch built-in techniques.
 
         Args:
@@ -101,7 +101,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
             with_ys=True
         )
 
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -121,4 +121,4 @@ class PytorchBackendOptimizer(BaseOptimizer):
                     "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

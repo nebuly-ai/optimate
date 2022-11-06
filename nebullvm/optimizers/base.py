@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple
 
 from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
 from nebullvm.inference_learners.base import BaseInferenceLearner
@@ -23,5 +23,5 @@ class BaseOptimizer(ABC):
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[BaseInferenceLearner]:
+    ) -> Optional[Tuple[BaseInferenceLearner, float]]:
         raise NotImplementedError
