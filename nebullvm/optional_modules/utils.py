@@ -10,7 +10,7 @@ from nebullvm.utils.compilers import (
     tensorrt_is_available,
     torch_tensorrt_is_available,
 )
-from nebullvm.utils.general import check_module_version
+from nebullvm.utils.general import check_module_version, gpu_is_available
 
 logger = logging.getLogger("nebullvm_logger")
 
@@ -18,6 +18,14 @@ logger = logging.getLogger("nebullvm_logger")
 def torch_is_available() -> bool:
     try:
         import torch  # noqa F401
+
+        if not torch.cuda.is_available() and gpu_is_available():
+            logger.warning(
+                "Installed PyTorch does not have cuda support. "
+                "Please ensure that torch.cuda.is_available() "
+                "returns True by installing the proper version "
+                "of PyTorch. "
+            )
 
         if not check_module_version(torch, min_version="1.10.0"):
             logger.warning(
