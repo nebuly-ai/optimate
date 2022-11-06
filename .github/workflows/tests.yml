@@ -37,17 +37,12 @@ jobs:
           python -m pip install --upgrade pip
           pip uninstall -y nebullvm
           pip install .
-        # Install requirements for testing
-      - name: Install requirements for testing
-        run: pip install -r "requirements-dev.txt"
         # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -c "from nebullvm.installers.installers import auto_install_libraries; auto_install_libraries(include_frameworks=['torch', 'onnx', 'tensorflow'])"
-        #        # Install tvm
-        #      - name: Install tvm
-        #        run: |
-        #          pip install apache-tvm
-        #          pip install xgboost
+        # Install requirements for testing
+      - name: Install requirements for testing
+        run: pip install -r "requirements-dev.txt"
         # Run the tests ignoring tvm
       - name: Run tests
         run: |
@@ -85,11 +80,9 @@ jobs:
         # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -c "from nebullvm.installers.installers import auto_install_libraries; auto_install_libraries(include_frameworks=['torch', 'onnx', 'tensorflow'])"
-        #        # Install tvm
-        #      - name: Install tvm
-        #        run: |
-        #          pip install apache-tvm
-        #          pip install xgboost
+        # Install requirements for testing
+      - name: Install requirements for testing
+        run: pip install -r "requirements-dev.txt"
         # Run the tests ignoring tvm
       - name: Run tests
         run: |
