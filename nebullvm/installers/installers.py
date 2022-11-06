@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Optional, List
 
 import cpuinfo
-import torch
 
 from nebullvm.config import (
     LIBRARIES_GPU,
@@ -16,6 +15,7 @@ from nebullvm.config import (
     TORCH_MODULES,
     TENSORFLOW_MODULES,
 )
+from nebullvm.optional_modules.torch import torch
 from nebullvm.utils.compilers import (
     openvino_is_available,
     tensorrt_is_available,
