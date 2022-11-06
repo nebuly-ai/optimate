@@ -428,13 +428,11 @@ class TensorflowInstaller(BaseInstaller, ABC):
 
     @staticmethod
     def install_framework():
-        # Tensorflow 2.10 for now it's not supported
-        # tf2onnx library does not support flatbuffers >= 2.x
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0,<2.10"]
+            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0"]
             subprocess.run(cmd)
         else:
-            cmd = ["pip3", "install", "tensorflow>=2.7.0,<2.10"]
+            cmd = ["pip3", "install", "tensorflow>=2.7.0"]
             subprocess.run(cmd)
 
         try:

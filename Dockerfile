@@ -19,7 +19,7 @@ RUN apt-get install -y sudo wget
 RUN pip3 install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu116
 
 # Install tensorflow
-RUN pip3 install "tensorflow<2.10"
+RUN pip3 install "tensorflow"
 
 # Install nebullvm
 ARG NEBULLVM_VERSION=latest
