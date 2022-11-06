@@ -446,10 +446,10 @@ class TensorflowInstaller(BaseInstaller, ABC):
 class ONNXInstaller(BaseInstaller, ABC):
     @staticmethod
     def install_dependencies(include_frameworks: List[str]):
+        install_onnxruntime()
         cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
         subprocess.run(cmd)
         install_onnx_simplifier()
-        install_onnxruntime()
 
     @staticmethod
     def check_framework():
