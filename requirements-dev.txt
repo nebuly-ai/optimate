@@ -1,3 +1,3 @@
 pytest
-torchvision
+torchvision<0.14
 sentencepiece
