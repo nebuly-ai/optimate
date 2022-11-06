@@ -4,7 +4,7 @@ import pytest
 import torch
 import torchvision.models as models
 
-from nebullvm.api.functions import optimize_model
+from nebullvm import optimize_model
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
 from nebullvm.inference_learners.onnx import PytorchONNXInferenceLearner

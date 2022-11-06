@@ -21,32 +21,36 @@ The core `nebullvm` workflow consists of 3 steps:
 - [x]  **Search**: `nebullvm` automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
 - [x]  **Serve**: finally, `nebullvm` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
 
+
+# Installation
+Install nebullvm and its base requirements:
+```
+pip install nebullvm
+```
+Install the deep learning compilers:
+```python
+from nebullvm.installers import auto_install_libraries
+
+auto_install_libraries(include_frameworks=["torch", "onnx", "tensorflow"])
+```
+For more details on the installation step, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation)
+
 # API quick view
 
 Only a single line of code is needed to get your accelerated model:
 
 ```python
-import torch
-import torchvision.models as models
-from nebullvm.api.functions import optimize_model
+from nebullvm import optimize_model
 
-# Load a resnet as example
-model = models.resnet50()
-
-# Provide an input data for the model
-input_data = [((torch.randn(1, 3, 256, 256), ), torch.tensor([0]))]
-
-# Run nebullvm optimization in one line of code
-optimized_model = optimize_model(
-    model, input_data=input_data, optimization_time="constrained"
-)
-
-# Try the optimized model
-x = torch.randn(1, 3, 256, 256)
-res = optimized_model(x)
+optimized_model = optimize_model(model, input_data=input_data)
 ```
+You can find a complete example for all the supported deep learning frameworks: 
+[PyTorch](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/pytorch#pytorch-api-quick-view), 
+[HuggingFace](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/huggingface#huggingface-api-quick-view), 
+[TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/tensorflow#tensorflow-api-quick-view), 
+[ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/onnx#onnx-api-quick-view).
 
-For more details, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation) and [Get started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started).
+For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started) and [Advanced Options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/advanced-options).
 
 # **How it works**
 

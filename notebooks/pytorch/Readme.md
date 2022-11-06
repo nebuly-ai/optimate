@@ -7,7 +7,7 @@ This section contains all the available notebooks that show how to leverage nebu
 ``` python
 import torch
 import torchvision.models as models
-from nebullvm.api.functions import optimize_model
+from nebullvm import optimize_model
 
 # Load a resnet as example
 model = models.resnet50()

@@ -5,7 +5,7 @@ import tensorflow as tf
 import torch
 from tensorflow.keras.applications.resnet50 import ResNet50
 
-from nebullvm.api.functions import optimize_model
+from nebullvm import optimize_model
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.inference_learners.onnx import TensorflowONNXInferenceLearner
 from nebullvm.inference_learners.openvino import (
