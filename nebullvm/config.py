@@ -1,11 +1,8 @@
-import os
-
 from nebullvm.optional_modules.torch import torch
 
 
 VERSION = "0.4.4"
 LEARNER_METADATA_FILENAME = "metadata.json"
-NO_COMPILER_INSTALLATION = int(os.getenv("NO_COMPILER_INSTALLATION", "0")) > 0
 ONNX_OPSET_VERSION = 13
 NEBULLVM_DEBUG_FILE = "nebullvm_debug.json"
 
