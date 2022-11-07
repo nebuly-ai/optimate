@@ -23,6 +23,13 @@ optimized_model = optimize_model(
 # Try the optimized model
 x = tf.random.normal([1, 224, 224, 3])
 res_original = model.predict(x)
+
+## Warmup the model
+## This step is necessary before the latency computation of the 
+## optimized model in order to get reliable results.
+# for _ in range(10):
+#   optimized_model.predict(x)
+
 res_optimized = optimized_model.predict(x)[0]
 ```
 

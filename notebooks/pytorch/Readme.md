@@ -22,6 +22,13 @@ optimized_model = optimize_model(
 
 # Try the optimized model
 x = torch.randn(1, 3, 256, 256)
+
+## Warmup the model
+## This step is necessary before the latency computation of the 
+## optimized model in order to get reliable results.
+# for _ in range(10):
+#   optimized_model(x)
+
 res = optimized_model(x)
 ```
 

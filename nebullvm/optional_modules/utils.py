@@ -1,3 +1,4 @@
+import cpuinfo
 import logging
 
 from nebullvm.utils.compilers import (
@@ -120,6 +121,8 @@ def check_dependencies(device: str):
     missing_optional_compilers = []
     missing_dependencies = []
 
+    processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
+
     if not onnx_is_available():
         missing_frameworks.append("onnx")
 
@@ -138,7 +141,7 @@ def check_dependencies(device: str):
             elif not _polygraphy_is_available():
                 missing_dependencies.append("polygraphy")
     if device == "cpu":
-        if not openvino_is_available():
+        if not openvino_is_available() and "intel" in processor:
             missing_suggested_compilers.append("openvino")
 
     if torch_is_available():
@@ -149,9 +152,12 @@ def check_dependencies(device: str):
             missing_optional_compilers.append("torch_blade")
 
         if device == "cpu":
-            if not deepsparse_is_available():
+            if not deepsparse_is_available() and "intel" in processor:
                 missing_suggested_compilers.append("deepsparse")
-            if not intel_neural_compressor_is_available():
+            if (
+                not intel_neural_compressor_is_available()
+                and "intel" in processor
+            ):
                 missing_suggested_compilers.append("neural_compressor")
         elif device == "gpu":
             if not torch_tensorrt_is_available:

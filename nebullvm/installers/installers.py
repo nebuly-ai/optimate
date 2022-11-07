@@ -117,9 +117,11 @@ def install_torch_tensor_rt():
             "Torch-TensorRT can run just on Nvidia machines. "
             "No available cuda driver has been found."
         )
-    elif not check_module_version(torch, min_version="1.12.0"):
+    elif not check_module_version(
+        torch, min_version="1.12.0", max_version="1.12.1"
+    ):
         raise RuntimeError(
-            "Torch-TensorRT can be installed only from Pytorch 1.12. "
+            "Torch-TensorRT can be installed only for Pytorch 1.12. "
             "Please update your Pytorch version."
         )
 
@@ -384,12 +386,26 @@ class PytorchInstaller(BaseInstaller, ABC):
         try:
             import torch  # noqa F401
         except ImportError:
-            return False
+            raise ImportError(
+                "No PyTorch found in your python environment. Please install "
+                "it from https://pytorch.org/get-started/locally/. We suggest "
+                "to install v1.12.1 because v1.13 is not yet fully supported "
+                "by all the compilers. You can find it here: "
+                "https://pytorch.org/get-started/previous-versions/."
+            )
 
-        if not check_module_version(
-            torch, min_version="1.12.0", max_version="1.12.1"
-        ):
-            return False
+        if not check_module_version(torch, min_version="1.12.0"):
+            logger.warning(
+                "You are using an old version of PyTorch, please update it "
+                "in order to get the best optimization results."
+            )
+
+        if check_module_version(torch, min_version="1.13.0"):
+            logger.warning(
+                "You are using PyTorch 1.13, some compilers are still not "
+                "compatible with this version. Please use v1.12.1 for "
+                "having the best possible result."
+            )
 
         return True
 

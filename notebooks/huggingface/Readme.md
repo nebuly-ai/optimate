@@ -21,6 +21,12 @@ optimized_model = optimize_model(
   model, input_data=[input_dict]
 )
 
+## Warmup the model
+## This step is necessary before the latency computation of the 
+## optimized model in order to get reliable results.
+# for _ in range(10):
+#   optimized_model(**input_dict)
+
 # Try the optimized model
 res = optimized_model(**input_dict)
 
