@@ -184,7 +184,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         self._synchronize_stream()
 
     def get_size(self):
-        return len(pickle.dumps(self.engine.serialize(), -1))
+        return self.engine.serialize().nbytes
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
