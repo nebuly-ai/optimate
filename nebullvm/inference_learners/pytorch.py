@@ -41,21 +41,20 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
             return tuple(out.to(device) for out in res)
 
     def get_size(self):
-        if hasattr(self.model, "core_model"):
-            return len(pickle.dumps(self.model.core_model, -1))
-        else:
-            try:
+        try:
+            if hasattr(self.model, "core_model"):
+                return len(pickle.dumps(self.model.core_model, -1))
+            else:
                 # Normal torch model
                 return len(pickle.dumps(self.model, -1))
-            except RuntimeError:
-                # FX model
-                with TemporaryDirectory() as tmp_dir:
-                    self.save(tmp_dir)
-                    return sum(
-                        os.path.getsize(Path(tmp_dir) / f)
-                        for f in os.listdir(Path(tmp_dir))
-                        if os.path.isfile(Path(tmp_dir) / f)
-                    )
+        except RuntimeError:
+            with TemporaryDirectory() as tmp_dir:
+                self.save(tmp_dir)
+                return sum(
+                    os.path.getsize(Path(tmp_dir) / f)
+                    for f in os.listdir(Path(tmp_dir))
+                    if os.path.isfile(Path(tmp_dir) / f)
+                )
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path)
