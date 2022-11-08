@@ -25,7 +25,7 @@ RUN pip3 install "tensorflow"
 ARG NEBULLVM_VERSION=latest
 RUN if [ "$NEBULLVM_VERSION" = "latest" ] ; then \
         # pip install nebullvm ; \
-        pip install git+https://github.com/valeriosofi/nebullvm.git@dev ; \
+        pip install git+https://github.com/nebuly-ai/nebullvm.git ; \
     else \
         pip install nebullvm==${NEBULLVM_VERSION} ; \
     fi

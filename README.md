@@ -44,7 +44,10 @@ Install the deep learning compilers:
 ```python
 from nebullvm.installers import auto_install_libraries
 
-auto_install_libraries(include_frameworks=["torch", "onnx", "tensorflow"])
+auto_install_libraries(
+    include_frameworks=["torch", "onnx", "tensorflow"], 
+    include_compilers="all",
+)
 ```
 For more details on the installation step, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation).
 
@@ -58,7 +61,7 @@ from nebullvm import optimize_model
 
 optimized_model = optimize_model(model, input_data=input_data)
 ```
-You can find a complete example for all the supported deep learning frameworks: 
+Checkout how to define the `model` and `input_data` parameters depending on which framework you want to use: 
 [PyTorch](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/pytorch#pytorch-api-quick-view), 
 [HuggingFace](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/huggingface#huggingface-api-quick-view), 
 [TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/tensorflow#tensorflow-api-quick-view), 

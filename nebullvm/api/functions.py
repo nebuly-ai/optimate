@@ -417,39 +417,31 @@ def optimize_model(
         return None
 
     optimal_model = optimized_models[0][0]
+    opt_metric_drop = (
+        optimized_models[0][2] if optimized_models[0][2] > 1e-4 else 0
+    )
 
-    logger.info("[ Nebullvm results ]")
-    logger.info("Original model latency: {:.4f} sec/iter".format(orig_latency))
+    logger.info(
+        (
+            f"\n[ Nebullvm results ]\n"
+            f"Optimization device: {device}"
+            f"Original model latency: {orig_latency:.4f} sec/batch\n"
+            f"Original model throughput: "
+            f"{(1 / orig_latency)*model_params.batch_size:.2f} data/sec\n"
+            f"Original model size: "
+            f"{len(pickle.dumps(models[0], -1)) / 1e6:.2f} MB\n"
+            f"Optimized model latency: {optimized_models[0][1]:.4f} "
+            f"sec/batch\n"
+            f"Optimized model throughput: {1 / optimized_models[0][1]:.2f} "
+            f"data/sec\n"
+            f"Optimized model size: "
+            f"{optimized_models[0][0].get_size() / 1e6:.2f} MB\n"
+            f"Optimized model metric drop: {opt_metric_drop}\n"
+            f"Estimated speedup: {orig_latency / optimized_models[0][1]}x"
+        )
+    )
 
-    logger.info(
-        "Original model throughput: {:.4f} iter/sec".format(1 / orig_latency)
-    )
-    logger.info(
-        "Original model size: {:.3f} MB".format(
-            len(pickle.dumps(models[0], -1)) / 1e6
-        )
-    )
-    logger.info(
-        "Optimized model latency: {:.4f} sec/iter".format(
-            optimized_models[0][1]
-        )
-    )
-    logger.info(
-        "Optimized model throughput: {:.4f} iter/sec".format(
-            1 / optimized_models[0][1]
-        )
-    )
-    logger.info(
-        "Optimized model size: {:.3f} MB".format(
-            optimized_models[0][0].get_size() / 1e6
-        )
-    )
-    logger.info(f"Optimized model metric drop: {optimized_models[0][2]}")
-    logger.info(
-        "Estimated speedup: {:.2f}x".format(
-            orig_latency / optimized_models[0][1]
-        )
-    )
+    # TODO: add name of metric
 
     if needs_conversion_to_hf:
         from nebullvm.api.huggingface import HuggingFaceInferenceLearner

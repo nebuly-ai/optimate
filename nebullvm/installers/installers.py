@@ -498,7 +498,7 @@ class ONNXInstaller(BaseInstaller, ABC):
 
 def auto_install_libraries(
     include_frameworks: List[str],
-    include_compilers: Optional[List[str]] = None,
+    include_compilers: Optional[List[str]] = "all",
 ):
     logger.info("Running auto install of nebullvm dependencies")
 

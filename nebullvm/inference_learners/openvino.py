@@ -37,7 +37,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
     """Model optimized using OpenVINO.
 
     The class cannot be directly instantiated, but implements all the core
-    methods needed for using ApacheTVM at inference time.
+    methods needed for using OpenVINO at inference time.
 
     Attributes:
         network_parameters (ModelParams): The model parameters as batch
