@@ -1,8 +1,9 @@
 import json
 import logging
-import pickle
+import os
 from abc import ABC
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
 
 import numpy as np
@@ -257,7 +258,13 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         self.dtype = dtype
 
     def get_size(self):
-        return len(pickle.dumps(self.model, -1))
+        with TemporaryDirectory() as tmp_dir:
+            self.save(tmp_dir)
+            return sum(
+                os.path.getsize(Path(tmp_dir) / f)
+                for f in os.listdir(Path(tmp_dir))
+                if os.path.isfile(Path(tmp_dir) / f)
+            )
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device

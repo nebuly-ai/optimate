@@ -441,12 +441,10 @@ def optimize_model(
     )
     logger.info(
         "Optimized model size: {:.3f} MB".format(
-            len(pickle.dumps(models[0], -1)) / 1e6
+            optimized_models[0][0].get_size() / 1e6
         )
     )
-    logger.info(
-        f"Optimized model metric drop: {optimized_models[0][0].get_size()}"
-    )
+    logger.info(f"Optimized model metric drop: {optimized_models[0][2]}")
     logger.info(
         "Estimated speedup: {:.2f}x".format(
             orig_latency / optimized_models[0][1]
