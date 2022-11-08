@@ -2,6 +2,7 @@ import os
 import shutil
 from abc import ABC
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
 
 import numpy as np
@@ -65,7 +66,13 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     def get_size(self):
-        return os.path.getsize(self.engine_path)
+        with TemporaryDirectory() as tmp_dir:
+            self.save(tmp_dir)
+            return sum(
+                os.path.getsize(Path(tmp_dir) / f)
+                for f in os.listdir(Path(tmp_dir))
+                if os.path.isfile(Path(tmp_dir) / f)
+            )
 
     def _predict_array(
         self, input_arrays: Generator[np.ndarray, None, None]
