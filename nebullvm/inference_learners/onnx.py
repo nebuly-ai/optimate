@@ -102,6 +102,13 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         self.input_names = input_names
         self.output_names = output_names
 
+    def get_size(self):
+        return sum(
+            os.path.getsize(self.onnx_path.parents[0] / f)
+            for f in os.listdir(self.onnx_path.parents[0])
+            if os.path.isfile(self.onnx_path.parents[0] / f)
+        )
+
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
 

@@ -1,4 +1,5 @@
 import logging
+import pickle
 from abc import ABC
 from pathlib import Path
 from typing import Union, Tuple, Dict, Type
@@ -44,6 +45,11 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         super().__init__(**kwargs)
         self.model = model
         self.model_quant = model_quant
+
+    def get_size(self):
+        return len(pickle.dumps(self.model_quant, -1)) + len(
+            pickle.dumps(self.model, -1)
+        )
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.

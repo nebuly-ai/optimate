@@ -1,5 +1,6 @@
 import json
 import logging
+import pickle
 from abc import ABC
 from pathlib import Path
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
@@ -182,6 +183,9 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         context.execute_async_v2(buffers, self.stream_ptr)
         self._synchronize_stream()
 
+    def get_size(self):
+        return len(pickle.dumps(self.engine.serialize(), -1))
+
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
 
@@ -251,6 +255,9 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         else:
             self.use_gpu = False
         self.dtype = dtype
+
+    def get_size(self):
+        return len(pickle.dumps(self.model, -1))
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device

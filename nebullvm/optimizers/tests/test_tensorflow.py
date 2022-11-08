@@ -93,6 +93,8 @@ def test_tensorflow(
             loaded_model = TFLiteBackendInferenceLearner.load(tmp_dir)
             assert isinstance(loaded_model, TFLiteBackendInferenceLearner)
 
+        assert isinstance(model.get_size(), int)
+
         inputs_example = list(model.get_inputs_example())
         res = model.predict(*inputs_example)
         assert res is not None

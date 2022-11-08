@@ -102,6 +102,8 @@ def test_torchscript(
         loaded_model = PytorchBackendInferenceLearner.load(tmp_dir)
         assert isinstance(loaded_model, PytorchBackendInferenceLearner)
 
+        assert isinstance(model.get_size(), int)
+
         inputs_example = list(model.get_inputs_example())
         res = model(*inputs_example)
         assert res is not None

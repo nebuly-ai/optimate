@@ -173,6 +173,9 @@ class BaseInferenceLearner(ABC):
         """
         raise NotImplementedError()
 
+    def get_size(self):
+        raise NotImplementedError()
+
     @abstractmethod
     def get_inputs_example(self):
         """The function returns an example of the input for the optimized

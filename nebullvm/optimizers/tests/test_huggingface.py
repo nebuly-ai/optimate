@@ -44,6 +44,7 @@ def test_huggingface(output_library: DeepLearningFramework):
         )
 
         assert isinstance(model, HuggingFaceInferenceLearner)
+        assert isinstance(model.get_size(), int)
 
         # Test save and load functions
         model.save(tmp_dir)

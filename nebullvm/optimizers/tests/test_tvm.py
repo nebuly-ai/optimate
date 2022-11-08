@@ -91,6 +91,8 @@ def test_tvm_onnx(
         loaded_model = TVM_INFERENCE_LEARNERS[output_library].load(tmp_dir)
         assert isinstance(loaded_model, TVM_INFERENCE_LEARNERS[output_library])
 
+        assert isinstance(model.get_size(), int)
+
         inputs_example = model.get_inputs_example()
         res = model(*inputs_example)
         assert res is not None
@@ -175,6 +177,8 @@ def test_tvm_torch(
         model.save(tmp_dir)
         loaded_model = TVM_INFERENCE_LEARNERS[output_library].load(tmp_dir)
         assert isinstance(loaded_model, TVM_INFERENCE_LEARNERS[output_library])
+
+        assert isinstance(model.get_size(), int)
 
         inputs_example = model.get_inputs_example()
         res = model(*inputs_example)

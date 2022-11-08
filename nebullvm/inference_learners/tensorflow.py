@@ -1,3 +1,4 @@
+import pickle
 import shutil
 from pathlib import Path
 from typing import Tuple, Union, Dict, Type
@@ -30,6 +31,9 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
         self.model.save(path / TENSORFLOW_BACKEND_FILENAMES["tf_model"])
+
+    def get_size(self):
+        return len(pickle.dumps(self.model, -1))
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):

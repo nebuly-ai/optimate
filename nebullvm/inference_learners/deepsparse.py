@@ -56,6 +56,9 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
         self.input_names = input_names
         self.output_names = output_names
 
+    def get_size(self):
+        return os.path.getsize(self.onnx_path)
+
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
 

@@ -1,4 +1,5 @@
 import logging
+import pickle
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
@@ -291,9 +292,12 @@ def optimize_model(
             parameters needed for defining the CompressionStep in the pipeline.
             Default: None.
         ignore_compilers (List, optional): List containing the compilers to be
-            ignored during the OptimizerStep. Default: None.
+            ignored during the OptimizerStep. The compiler name should be one
+            among tvm, tensor RT, openvino, onnxruntime, deepsparse, tflite,
+            bladedisc, torchscript, intel_neural_compressor. Default: None.
         ignore_compressors (List, optional): List containing the compressors
-            to be ignored during the CompressionStep. Default: None.
+            to be ignored during the CompressionStep. The compiler name should
+            be one among . Default: None.
         store_latencies (bool, optional): Parameter that allows to save the
             latency for each compiler used by nebullvm. Default: False.
         device (str, optional): Device used, can be 'cpu' or 'gpu'. If not
@@ -416,8 +420,14 @@ def optimize_model(
 
     logger.info("[ Nebullvm results ]")
     logger.info("Original model latency: {:.4f} sec/iter".format(orig_latency))
+
     logger.info(
         "Original model throughput: {:.4f} iter/sec".format(1 / orig_latency)
+    )
+    logger.info(
+        "Original model size: {:.3f} MB".format(
+            len(pickle.dumps(models[0], -1)) / 1e6
+        )
     )
     logger.info(
         "Optimized model latency: {:.4f} sec/iter".format(
@@ -429,7 +439,14 @@ def optimize_model(
             1 / optimized_models[0][1]
         )
     )
-    logger.info(f"Optimized model metric drop: {optimized_models[0][2]}")
+    logger.info(
+        "Optimized model size: {:.3f} MB".format(
+            len(pickle.dumps(models[0], -1)) / 1e6
+        )
+    )
+    logger.info(
+        f"Optimized model metric drop: {optimized_models[0][0].get_size()}"
+    )
     logger.info(
         "Estimated speedup: {:.2f}x".format(
             orig_latency / optimized_models[0][1]

@@ -45,6 +45,7 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
             device=device,
         )
         assert isinstance(model, DEEPSPARSE_INFERENCE_LEARNERS[output_library])
+        assert isinstance(model.get_size(), int)
 
         # Test save and load functions
         model.save(tmp_dir)

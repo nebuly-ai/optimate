@@ -102,6 +102,7 @@ def test_bladedisc(
             device=device,
         )
         assert isinstance(model, BladeDISCInferenceLearner)
+        assert isinstance(model.get_size(), int)
 
         # Test save and load functions
         model.save(tmp_dir)

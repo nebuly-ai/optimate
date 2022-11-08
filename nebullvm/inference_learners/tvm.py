@@ -1,3 +1,4 @@
+import os
 import shutil
 from abc import ABC
 from pathlib import Path
@@ -62,6 +63,9 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             if engine_path is not None
             else engine_path
         )
+
+    def get_size(self):
+        return os.path.getsize(self.engine_path)
 
     def _predict_array(
         self, input_arrays: Generator[np.ndarray, None, None]

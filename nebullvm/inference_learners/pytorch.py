@@ -1,3 +1,4 @@
+import pickle
 from pathlib import Path
 from typing import Tuple, Union, Optional, List
 
@@ -36,6 +37,9 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
                 res = res.to(device)
                 return (res,)
             return tuple(out.to(device) for out in res)
+
+    def get_size(self):
+        return len(pickle.dumps(self.model, -1))
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path)

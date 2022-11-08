@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import shutil
 from abc import ABC
 from pathlib import Path
@@ -100,6 +101,9 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         return cls.from_model_name(
             model_name=model_name, model_weights=model_weights, **metadata
         )
+
+    def get_size(self):
+        return os.path.getsize(self.weights_file)
 
     @classmethod
     def from_model_name(
