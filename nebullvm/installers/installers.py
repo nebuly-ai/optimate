@@ -118,7 +118,7 @@ def install_torch_tensor_rt():
             "No available cuda driver has been found."
         )
     elif not check_module_version(
-        torch, min_version="1.12.0", max_version="1.12.1"
+        torch, min_version="1.12.0", max_version="1.12.1+cu116"
     ):
         raise RuntimeError(
             "Torch-TensorRT can be installed only for Pytorch 1.12. "
