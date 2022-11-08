@@ -1,3 +1,4 @@
+import os
 import pickle
 import shutil
 from pathlib import Path
@@ -18,6 +19,9 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         self.model = tf_model
         self.device = device
 
+    def get_size(self):
+        return len(pickle.dumps(self.model, -1))
+
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         with tf.device(self.device):
             res = self.model.predict(input_tensors)
@@ -31,9 +35,6 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
         self.model.save(path / TENSORFLOW_BACKEND_FILENAMES["tf_model"])
-
-    def get_size(self):
-        return len(pickle.dumps(self.model, -1))
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -59,6 +60,9 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
         self._tflite_file = self._store_file(tflite_file)
         self.interpreter = tf.lite.Interpreter(tflite_file)
         self.device = device
+
+    def get_size(self):
+        return os.path.getsize(self._tflite_file)
 
     def run(self, *input_tensors: tf.Tensor):
         input_details = self.interpreter.get_input_details()

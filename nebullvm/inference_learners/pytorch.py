@@ -1,5 +1,7 @@
+import os
 import pickle
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Tuple, Union, Optional, List
 
 from nebullvm.base import ModelParams
@@ -39,7 +41,21 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
             return tuple(out.to(device) for out in res)
 
     def get_size(self):
-        return len(pickle.dumps(self.model, -1))
+        if hasattr(self.model, "core_model"):
+            return len(pickle.dumps(self.model.core_model, -1))
+        else:
+            try:
+                # Normal torch model
+                return len(pickle.dumps(self.model, -1))
+            except RuntimeError:
+                # FX model
+                with TemporaryDirectory() as tmp_dir:
+                    self.save(tmp_dir)
+                    return sum(
+                        os.path.getsize(Path(tmp_dir) / f)
+                        for f in os.listdir(Path(tmp_dir))
+                        if os.path.isfile(Path(tmp_dir) / f)
+                    )
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path)

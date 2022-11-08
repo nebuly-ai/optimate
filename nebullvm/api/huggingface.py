@@ -208,6 +208,9 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
     def _save_wrapper_extra_info(self):
         pass
 
+    def get_size(self):
+        return self.core_inference_learner.get_size()
+
     @staticmethod
     def _load_wrapper_extra_info(builder_inputs: Dict) -> Dict:
         return builder_inputs
