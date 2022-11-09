@@ -13,6 +13,7 @@ from typing import (
 
 import numpy as np
 
+from nebullvm.base import Device
 from nebullvm.inference_learners import (
     InferenceLearnerWrapper,
     PytorchBaseInferenceLearner,
@@ -87,12 +88,12 @@ def _get_output_structure_from_text(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     tokenizer_args: Dict,
-    device: str,
+    device: Device,
 ) -> Tuple[OrderedDict, Type]:
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-    device = torch.device("cuda" if device == "gpu" else "cpu")
+    device = torch.device("cuda" if device is Device.GPU else "cpu")
     encoded_input = tokenizer([text], **tokenizer_args).to(device)
     output = model(**encoded_input)
     structure = OrderedDict()
@@ -116,12 +117,12 @@ def _get_output_structure_from_text(
 def _get_output_structure_from_dict(
     input_example: Dict,
     model: PreTrainedModel,
-    device: str,
+    device: Device,
 ) -> Tuple[OrderedDict, Type]:
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-    device = torch.device("cuda" if device == "gpu" else "cpu")
+    device = torch.device("cuda" if device is Device.GPU else "cpu")
     input_example.to(device)
     model.to(device)
     output = model(**input_example)
@@ -349,7 +350,7 @@ class _HFDictDataset(Sequence):
 def convert_hf_model(
     model: PreTrainedModel,
     input_data: List,
-    device: str,
+    device: Device,
     tokenizer: Optional[PreTrainedTokenizer] = None,
     tokenizer_args: Optional[Dict] = None,
     batch_size: int = 1,

@@ -8,7 +8,7 @@ from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
 
 import numpy as np
 
-from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.base import ModelParams, DeepLearningFramework, Device
 from nebullvm.config import NVIDIA_FILENAMES
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -49,7 +49,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         engine: Any,
         input_names: List[str],
         output_names: List[str],
-        device: str,
+        device: Device,
         cuda_stream: Any = None,
         nvidia_logger: Any = None,
         **kwargs,
@@ -60,7 +60,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         self.output_names = output_names
         self.cuda_stream = cuda_stream
         self.nvidia_logger = nvidia_logger
-        self._set_cuda_env(device == "gpu")
+        self._set_cuda_env(device is Device.GPU)
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         metadata = {
@@ -102,7 +102,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         engine_path: Union[str, Path],
         input_names: List[str],
         output_names: List[str],
-        device: str,
+        device: Device,
         nvidia_logger: Any = None,
         cuda_stream: Any = None,
         input_tfms: MultiStageTransformation = None,
@@ -120,7 +120,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
                 tensors.
             output_names (List[str]): Names associated to the model output
                 tensors.
-            device: (str): Device where the model wil be run.
+            device: (Device): Device where the model wil be run.
             cuda_stream (any, optional): Stream used for communication with
                 Nvidia GPUs.
             nvidia_logger (any, optional): Logger used by the Nvidia service
@@ -230,7 +230,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             metadata["input_tfms"] = MultiStageTransformation.from_dict(
                 input_tfms
             )
-        device = "gpu"
+        device = Device.GPU
         return cls.from_engine_path(
             engine_path=path / NVIDIA_FILENAMES["engine"],
             device=device,
@@ -245,12 +245,12 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         self,
         torch_model: ScriptModule,
         dtype: torch.dtype,
-        device: str,
+        device: Device,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.model = torch_model.eval()
-        if device == "gpu":
+        if device is Device.GPU:
             self.model.cuda()
             self.use_gpu = True
         else:
@@ -300,7 +300,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         dtype = (
             torch.float32 if metadata.dtype == "torch.float32" else torch.half
         )
-        device = "gpu"
+        device = Device.GPU
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),

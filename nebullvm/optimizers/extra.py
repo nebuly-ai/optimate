@@ -1,7 +1,12 @@
 import logging
 from typing import Dict, List, Optional, Callable, Any, Tuple
 
-from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.base import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.onnx import (
     ONNXInferenceLearner,
@@ -39,7 +44,7 @@ class HuggingFaceOptimizer(BaseOptimizer):
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,

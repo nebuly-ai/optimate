@@ -12,7 +12,7 @@ from nebullvm.api.functions import (
     _benchmark_original_model,
 )
 from nebullvm.api.huggingface import convert_hf_model
-from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.base import ModelParams, DeepLearningFramework, Device
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.measure import compute_relative_difference
@@ -110,7 +110,7 @@ def get_onnx_model(temp_dir: str, dynamic: bool = False):
         model, model_params = _build_dynamic_model()
     else:
         model, model_params = _build_static_model()
-    device = "gpu" if gpu_is_available() else "cpu"
+    device = Device.GPU if gpu_is_available() else Device.CPU
     convert_torch_to_onnx(model, model_params, model_path, device)
     return model_path, model_params
 
@@ -145,7 +145,7 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
 
     text = "Short text you wish to process"
     encoded_input = tokenizer(text, return_tensors="pt")
-    device = "gpu" if gpu_is_available() else "cpu"
+    device = Device.GPU if gpu_is_available() else Device.CPU
 
     (
         model,
@@ -172,7 +172,7 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
         model, input_data, dl_framework, None, device
     )
 
-    device = "gpu" if gpu_is_available() else "cpu"
+    device = Device.GPU if gpu_is_available() else Device.CPU
     convert_torch_to_onnx(model, model_params, model_path, device, input_data)
 
     return (
@@ -191,7 +191,7 @@ def initialize_model(
     metric: str,
     output_library: DeepLearningFramework,
 ):
-    device = "gpu" if gpu_is_available() else "cpu"
+    device = Device.GPU if gpu_is_available() else Device.CPU
     batch_size = DYNAMIC_BATCH_SIZE if dynamic else STATIC_BATCH_SIZE
 
     if output_library == DeepLearningFramework.PYTORCH:

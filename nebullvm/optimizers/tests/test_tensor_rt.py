@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.tensor_rt import (
     PytorchTensorRTInferenceLearner,
@@ -76,7 +76,7 @@ def test_tensorrt_onnx(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = TensorRTOptimizer()
         model, metric_drop = optimizer.optimize(
@@ -171,7 +171,7 @@ def test_tensorrt_torch(
             model_outputs,
             metric,
         ) = initialize_model(dynamic, metric, output_library)
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         optimizer = TensorRTOptimizer()
         model, metric_drop = optimizer.optimize_from_torch(
             torch_model=model,

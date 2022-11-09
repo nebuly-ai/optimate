@@ -2,7 +2,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
@@ -64,7 +64,7 @@ def test_tensorflow(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
 
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         optimizer = TensorflowBackendOptimizer()
         model, metric_drop = optimizer.optimize(
             model=model,

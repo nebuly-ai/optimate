@@ -6,7 +6,12 @@ from typing import List, Tuple, Optional, Callable, Any
 
 import numpy as np
 
-from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.base import (
+    DeepLearningFramework,
+    ModelParams,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import (
     NVIDIA_FILENAMES,
     TORCH_TENSORRT_PRECISIONS,
@@ -135,7 +140,7 @@ class TensorRTOptimizer(BaseOptimizer):
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -150,7 +155,7 @@ class TensorRTOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
-            device: (str): Device where the model will be run.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -176,7 +181,7 @@ class TensorRTOptimizer(BaseOptimizer):
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        if not device == "gpu":
+        if device is not Device.GPU:
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
@@ -270,7 +275,7 @@ class TensorRTOptimizer(BaseOptimizer):
         self,
         torch_model: Module,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -282,7 +287,7 @@ class TensorRTOptimizer(BaseOptimizer):
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        if not device == "gpu":
+        if device is not Device.GPU:
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."

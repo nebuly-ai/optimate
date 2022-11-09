@@ -2,7 +2,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
 )
@@ -43,7 +43,7 @@ def test_neural_compressor(
             metric,
         ) = initialize_model(dynamic, None, output_library)
 
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
 
         optimizer = NeuralCompressorOptimizer()
         model, metric_drop = optimizer.optimize(

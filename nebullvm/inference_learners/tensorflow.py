@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from typing import Tuple, Union, Dict, Type
 
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
 from nebullvm.inference_learners import (
     TensorflowBaseInferenceLearner,
@@ -14,7 +14,7 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 
 
 class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
-    def __init__(self, tf_model: tf.Module, device: str, **kwargs):
+    def __init__(self, tf_model: tf.Module, device: Device, **kwargs):
         super(TensorflowBackendInferenceLearner, self).__init__(**kwargs)
         self.model = tf_model
         self.device = device
@@ -23,7 +23,7 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         return len(pickle.dumps(self.model, -1))
 
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
-        with tf.device(self.device):
+        with tf.device(self.device.value):
             res = self.model.predict(input_tensors)
         if not isinstance(res, tuple):
             return (res,)
@@ -55,7 +55,7 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
 
 class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
-    def __init__(self, tflite_file: str, device: str, **kwargs):
+    def __init__(self, tflite_file: str, device: Device, **kwargs):
         super(TFLiteBackendInferenceLearner, self).__init__(**kwargs)
         self._tflite_file = self._store_file(tflite_file)
         self.interpreter = tf.lite.Interpreter(tflite_file)

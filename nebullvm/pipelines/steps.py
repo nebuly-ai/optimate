@@ -14,6 +14,7 @@ from nebullvm.base import (
     ModelCompiler,
     ModelCompressor,
     OptimizationTime,
+    Device,
 )
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.compressors.intel import TorchIntelPruningCompressor
@@ -243,7 +244,7 @@ class OptimizerStep(Step, ABC):
         optimization_time: OptimizationTime = None,
         pipeline_name: str = None,
         model_outputs: Any = None,
-        device: str = None,
+        device: Device = None,
         **kwargs,
     ) -> Dict:
         """Run the OptimizerStep for all the available compilers.
@@ -272,7 +273,7 @@ class OptimizerStep(Step, ABC):
                 framework interface.
             pipeline_name (str): Name of the pipeline.
             model_outputs (Any): Outputs computed by the original model
-            device (str): Device used for running the model.
+            device (Device): Device used for running the model.
             kwargs (Dict): Extra keywords that will be ignored.
         """
 
@@ -379,7 +380,7 @@ class OptimizerStep(Step, ABC):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -391,7 +392,7 @@ class OptimizerStep(Step, ABC):
 
     @abstractmethod
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler], device: str
+        self, ignore_compilers: List[ModelCompiler], device: Device
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         raise NotImplementedError()
 
@@ -405,7 +406,7 @@ class TorchOptimizerStep(OptimizerStep):
     """
 
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler], device: str
+        self, ignore_compilers: List[ModelCompiler], device: Device
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         compilers = select_compilers_from_hardware_torch(device)
         optimizers = {
@@ -421,7 +422,7 @@ class TorchOptimizerStep(OptimizerStep):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -470,7 +471,7 @@ class TFOptimizerStep(OptimizerStep):
     """
 
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler], device: str
+        self, ignore_compilers: List[ModelCompiler], device: Device
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         compilers = select_compilers_from_hardware_tensorflow(device)
         optimizers = {
@@ -486,7 +487,7 @@ class TFOptimizerStep(OptimizerStep):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -534,7 +535,7 @@ class OnnxOptimizerStep(OptimizerStep):
     """
 
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler], device: str
+        self, ignore_compilers: List[ModelCompiler], device: Device
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         compilers = select_compilers_from_hardware_onnx(device)
         optimizers = {
@@ -550,7 +551,7 @@ class OnnxOptimizerStep(OptimizerStep):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,

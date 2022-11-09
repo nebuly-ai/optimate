@@ -5,15 +5,12 @@ import subprocess
 import sys
 from abc import ABC
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Union
 
 import cpuinfo
 
 from nebullvm.config import (
     LIBRARIES_GPU,
-    ONNX_MODULES,
-    TORCH_MODULES,
-    TENSORFLOW_MODULES,
 )
 from nebullvm.optional_modules.torch import torch
 from nebullvm.utils.compilers import (
@@ -84,7 +81,7 @@ def install_tvm(
     try:
         import tvm  # noqa F401
     except ImportError:
-        return False
+        return True
 
     return True
 
@@ -251,7 +248,7 @@ def install_onnxruntime():
         cmd = ["pip3", "install", distribution_name]
     subprocess.run(cmd)
     # install requirements for onnxruntime.transformers
-    cmd = ["pip3", "install", "coloredlogs", "sympy", "transformers"]
+    cmd = ["pip3", "install", "coloredlogs", "sympy"]
     subprocess.run(cmd)
 
     try:
@@ -336,7 +333,7 @@ class BaseInstaller(ABC):
 
     def install_compilers(
         self,
-        include_libraries: Optional[List[str]] = None,
+        include_libraries: Union[List[str], str] = "all",
     ):
         for library in self.modules:
             if (
@@ -376,7 +373,7 @@ class BaseInstaller(ABC):
         raise NotImplementedError
 
 
-class PytorchInstaller(BaseInstaller, ABC):
+class PytorchInstaller(BaseInstaller):
     @staticmethod
     def install_dependencies(include_frameworks: List[str]):
         return
@@ -422,7 +419,7 @@ class PytorchInstaller(BaseInstaller, ABC):
         return True
 
 
-class TensorflowInstaller(BaseInstaller, ABC):
+class TensorflowInstaller(BaseInstaller):
     @staticmethod
     def install_dependencies(include_frameworks: List[str]):
         if "onnx" in include_frameworks:
@@ -459,7 +456,7 @@ class TensorflowInstaller(BaseInstaller, ABC):
         return True
 
 
-class ONNXInstaller(BaseInstaller, ABC):
+class ONNXInstaller(BaseInstaller):
     @staticmethod
     def install_dependencies(include_frameworks: List[str]):
         install_onnxruntime()
@@ -496,18 +493,31 @@ class ONNXInstaller(BaseInstaller, ABC):
         return True
 
 
-def auto_install_libraries(
-    include_frameworks: List[str],
-    include_compilers: Optional[List[str]] = "all",
-):
-    logger.info("Running auto install of nebullvm dependencies")
+class HuggingFaceInstaller(BaseInstaller):
+    @staticmethod
+    def install_dependencies(include_frameworks: List[str]):
+        pass
 
-    for framework in include_frameworks:
-        framework_installer = INSTALLERS[framework](MODULES[framework])
-        if not framework_installer.check_framework():
-            framework_installer.install_framework()
-        framework_installer.install_dependencies(include_frameworks)
-        framework_installer.install_compilers(include_compilers)
+    @staticmethod
+    def check_framework():
+        try:
+            import transformers  # noqa F401
+        except ImportError:
+            return False
+
+        return True
+
+    @staticmethod
+    def install_framework():
+        cmd = ["pip3", "install", "transformers"]
+        subprocess.run(cmd)
+
+        try:
+            import transformers  # noqa F401
+        except ImportError:
+            return False
+
+        return True
 
 
 COMPILER_INSTALLERS = {
@@ -518,24 +528,10 @@ COMPILER_INSTALLERS = {
     "intel_neural_compressor": install_intel_neural_compressor,
 }
 
-
 COMPILERS_AVAILABLE = {
     "openvino": openvino_is_available,
     "tensor_rt": tensorrt_is_available,
     "torch_tensor_rt": torch_tensorrt_is_available,
     "deepsparse": deepsparse_is_available,
     "intel_neural_compressor": intel_neural_compressor_is_available,
-}
-
-
-INSTALLERS = {
-    "onnx": ONNXInstaller,
-    "torch": PytorchInstaller,
-    "tensorflow": TensorflowInstaller,
-}
-
-MODULES = {
-    "onnx": ONNX_MODULES,
-    "torch": TORCH_MODULES,
-    "tensorflow": TENSORFLOW_MODULES,
 }

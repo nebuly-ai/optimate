@@ -1,6 +1,6 @@
 from typing import Optional
 
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.inference_learners.pytorch import (
     PytorchBackendInferenceLearner,
 )
@@ -15,7 +15,7 @@ class BladeDISCInferenceLearner(PytorchBackendInferenceLearner):
         cls,
         model: ScriptModule,
         network_parameters: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: Optional[MultiStageTransformation] = None,
         input_data: DataManager = None,
     ):

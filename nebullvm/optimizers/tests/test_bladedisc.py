@@ -3,12 +3,13 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.inference_learners.blade_disc import BladeDISCInferenceLearner
 from nebullvm.installers.installers import _get_os, get_cpu_arch
 from nebullvm.optimizers import BladeDISCOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
 from nebullvm.utils.compilers import bladedisc_is_available
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -86,7 +87,7 @@ def test_bladedisc(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
 
-        device = "gpu" if torch.cuda.is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
 
         optimizer = BladeDISCOptimizer()
         model, metric_drop = optimizer.optimize(

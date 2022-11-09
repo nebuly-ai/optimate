@@ -143,11 +143,11 @@ def test_onnx_tensorrt():
 @pytest.mark.skipif(
     is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
 )
+@pytest.mark.skipif(
+    "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
+    reason="Openvino is only available for intel processors.",
+)
 def test_onnx_openvino():
-    processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
-    if "intel" not in processor:
-        return
-
     with TemporaryDirectory() as tmp_dir:
         model = models.resnet18()
         input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]

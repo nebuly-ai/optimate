@@ -2,7 +2,12 @@ import logging
 from collections.abc import Callable
 from typing import Optional, Any, Tuple
 
-from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.base import (
+    DeepLearningFramework,
+    ModelParams,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
 from nebullvm.measure import compute_relative_difference
@@ -32,7 +37,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
         model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -49,7 +54,7 @@ class PytorchBackendOptimizer(BaseOptimizer):
             output_library (DeepLearningFramework): Output framework. At the
                 current stage just PYTORCH is supported.
             model_params (ModelParams): Model parameters.
-            device: (str): Device where the model will be run.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.

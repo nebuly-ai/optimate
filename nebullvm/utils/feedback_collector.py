@@ -15,6 +15,7 @@ from nebullvm.base import (
     DeepLearningFramework,
     ModelCompiler,
     QuantizationType,
+    Device,
 )
 from nebullvm.config import VERSION
 from nebullvm.optional_modules.torch import Module
@@ -120,14 +121,14 @@ class FeedbackCollector:
         return f"{str(uuid.uuid4())}_{hash(model_name)}"
 
     def start_collection(
-        self, model: Any, framework: DeepLearningFramework, device: str
+        self, model: Any, framework: DeepLearningFramework, device: Device
     ):
         if isinstance(model, str) or isinstance(model, Path):
             model_name = str(model)
         else:
             model_name = model.__class__.__name__
 
-        if device == "gpu":
+        if device is Device.GPU:
             self._hw_info["gpu"] = _get_gpu_name()
         self._model_id = self._generate_model_id(model_name)
         self._model_info = {

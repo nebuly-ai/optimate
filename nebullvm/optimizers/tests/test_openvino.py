@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import cpuinfo
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
@@ -79,7 +79,7 @@ def test_openvino(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = OpenVinoOptimizer()
         model, metric_drop = optimizer.optimize(

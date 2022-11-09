@@ -8,7 +8,7 @@ from typing import Union, List, Generator, Tuple, Dict, Type
 import cpuinfo
 import numpy as np
 
-from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.base import DeepLearningFramework, ModelParams, Device
 from nebullvm.config import (
     ONNX_FILENAMES,
     ONNX_PROVIDERS,
@@ -74,7 +74,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path: Union[str, Path],
         input_names: List[str],
         output_names: List[str],
-        device: str,
+        device: Device,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -84,9 +84,9 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         self.device = device
 
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
-        sess_options = _get_ort_session_options(self.device == "gpu")
+        sess_options = _get_ort_session_options(self.device is Device.GPU)
 
-        if _running_on_intel_cpu(self.device == "gpu"):
+        if _running_on_intel_cpu(self.device is Device.GPU):
             sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
@@ -95,7 +95,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             onnx_path,
             sess_options=sess_options,
             providers=ONNX_PROVIDERS["cuda"]
-            if self.device == "gpu"
+            if self.device is Device.GPU
             else ONNX_PROVIDERS["cpu"],
         )
         self._session = ort_session

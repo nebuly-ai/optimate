@@ -3,7 +3,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional, Callable, Any, Tuple
 
-from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.base import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.converters import ONNXConverter
 from nebullvm.inference_learners.deepsparse import (
@@ -30,7 +35,7 @@ class DeepSparseOptimizer(BaseOptimizer):
         model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,

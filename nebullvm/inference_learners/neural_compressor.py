@@ -11,8 +11,8 @@ from nebullvm.inference_learners.base import (
     PytorchBaseInferenceLearner,
 )
 from nebullvm.optional_modules.neural_compressor import (
-    _cfgs_to_fx_cfgs,
-    _cfg_to_qconfig,
+    cfgs_to_fx_cfgs,
+    cfg_to_qconfig,
 )
 from nebullvm.optional_modules.torch import (
     torch,
@@ -97,8 +97,8 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         state_dict = torch.load(path_quant_model)
 
         tune_cfg = state_dict.pop("best_configure")
-        op_cfgs = _cfg_to_qconfig(tune_cfg, tune_cfg["approach"])
-        fx_op_cfgs = _cfgs_to_fx_cfgs(op_cfgs, tune_cfg["approach"])
+        op_cfgs = cfg_to_qconfig(tune_cfg, tune_cfg["approach"])
+        fx_op_cfgs = cfgs_to_fx_cfgs(op_cfgs, tune_cfg["approach"])
         prepare_custom_config_dict = None
         convert_custom_config_dict = None
 

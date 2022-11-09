@@ -3,7 +3,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.tvm import TVM_INFERENCE_LEARNERS
 from nebullvm.optimizers import ApacheTVMOptimizer
@@ -69,7 +69,7 @@ def test_tvm_onnx(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = ApacheTVMOptimizer()
         model, metric_drop = optimizer.optimize(
@@ -159,7 +159,7 @@ def test_tvm_torch(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
         optimizer = ApacheTVMOptimizer()
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         model, metric_drop = optimizer.optimize_from_torch(
             torch_model=model,
             model_params=model_params,

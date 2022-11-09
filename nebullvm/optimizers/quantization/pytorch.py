@@ -2,7 +2,7 @@ import copy
 import logging
 from typing import List, Tuple, Union
 
-from nebullvm.base import QuantizationType
+from nebullvm.base import QuantizationType, Device
 from nebullvm.optional_modules.torch import (
     torch,
     QuantStub,
@@ -98,10 +98,10 @@ def _quantize_static_torch_fx(
 def _quantize_static(
     model: Union[Module, GraphModule],
     input_data: List[Tuple[torch.Tensor, ...]],
-    device: str,
+    device: Device,
 ):
     assert (
-        not device == "gpu"
+        device is not Device.GPU
     ), "Quantization for torch is only available on CPU"
 
     backend = (
@@ -119,10 +119,10 @@ def _quantize_static(
 def _quantize_dynamic(
     model: Union[Module, GraphModule],
     input_data: List[Tuple[torch.Tensor, ...]],
-    device: str,
+    device: Device,
 ):
     assert (
-        not device == "gpu"
+        device is not Device.GPU
     ), "Quantization for torch is only available on CPU"
 
     if isinstance(model, GraphModule):
@@ -140,7 +140,7 @@ def quantize_torch(
     quantization_type: QuantizationType,
     input_tfms: MultiStageTransformation,
     input_data_torch: List[Tuple[torch.Tensor, ...]],
-    device: str,
+    device: Device,
 ):
     model = copy.deepcopy(model).eval()
 

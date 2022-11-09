@@ -2,7 +2,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from nebullvm.base import DeepLearningFramework
+from nebullvm.base import DeepLearningFramework, Device
 from nebullvm.inference_learners.deepsparse import (
     DEEPSPARSE_INFERENCE_LEARNERS,
 )
@@ -34,7 +34,7 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
             metric,
         ) = initialize_model(dynamic, None, output_library)
 
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         optimizer = DeepSparseOptimizer()
         model, metric_drop = optimizer.optimize(
             model=model,

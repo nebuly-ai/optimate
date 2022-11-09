@@ -9,7 +9,7 @@ from typing import Union, Dict, Any, List, Optional
 
 import numpy as np
 
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.config import LEARNER_METADATA_FILENAME
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
@@ -26,7 +26,7 @@ class BaseInferenceLearner(ABC):
     network_parameters: ModelParams
     input_tfms: Optional[MultiStageTransformation] = None
     input_data: InitVar[List[Any]] = None
-    device: str = None
+    device: Device = None
 
     def __post_init__(self, input_data):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
@@ -212,7 +212,7 @@ class LearnerMetadata:
     NAME: str = LEARNER_METADATA_FILENAME
     class_name: str
     module_name: str
-    device: str
+    device: Device
 
     def __init__(
         self,
@@ -263,7 +263,7 @@ class LearnerMetadata:
             module_name=model.__module__,
             network_parameters=model.network_parameters,
             input_tfms=model.input_tfms,
-            device=model.device,
+            device=model.device.value if model.device is not None else None,
             **kwargs,
         )
 

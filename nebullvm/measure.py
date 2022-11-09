@@ -4,6 +4,7 @@ from typing import Tuple, List, Union, Any
 
 import numpy as np
 
+from nebullvm.base import Device
 from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
@@ -21,7 +22,7 @@ logger = logging.getLogger("nebullvm_logger")
 def compute_torch_latency(
     xs: List[Tuple[torch.Tensor]],
     model: Module,
-    device: str,
+    device: Device,
     steps: int = 100,
     warmup_steps: int = 10,
 ) -> Tuple[float, List[float]]:
@@ -31,7 +32,7 @@ def compute_torch_latency(
         xs (List[Tuple[torch.Tensor]]): List of tuples containing the
             input tensors (a single batch for the model).
         model (Module): Torch model.
-        device (str): Device where computing the latency.
+        device (Device): Device where computing the latency.
         steps (int, optional): Number of input data to be used to compute the
             latency of the model. It must be a number <= len(xs). Default: 100.
         warmup_steps (int, optional): Number of input data to be used to warm
@@ -41,6 +42,7 @@ def compute_torch_latency(
         Float: Average latency.
         List[Float]: List of latencies obtained.
     """
+    device = "cuda" if device is Device.GPU else "cpu"
     xs = [tuple(t.to(device) for t in tensors) for tensors in xs]
     model = model.to(device).eval()
     latencies = []
@@ -58,7 +60,7 @@ def compute_torch_latency(
 def compute_tf_latency(
     xs: List[Tuple[tf.Tensor]],
     model: Union[tf.Module, tf.keras.Model],
-    device: str,
+    device: Device,
     steps: int = 100,
     warmup_steps: int = 10,
 ) -> Tuple[float, List[float]]:
@@ -68,7 +70,7 @@ def compute_tf_latency(
         xs (List[Tuple[tf.Tensor]]): List of tuples containing the
             input tensors (a single batch for the model).
         model (Module or keras.Model): TF model.
-        device (str): Device where computing the latency.
+        device (Device): Device where computing the latency.
         steps (int, optional): Number of input data to be used to compute the
             latency of the model. It must be a number <= len(xs). Default: 100.
         warmup_steps (int, optional): Number of input data to be used to warm
@@ -79,8 +81,7 @@ def compute_tf_latency(
         List[Float]: List of latencies obtained.
     """
     latencies = []
-    device = "gpu" if device == "cuda" else "cpu"
-    with tf.device(device):
+    with tf.device(device.value):
         for i in range(warmup_steps):
             _ = model(xs[i])
         for i in range(steps):
@@ -94,7 +95,7 @@ def compute_tf_latency(
 def compute_onnx_latency(
     xs: List[Tuple[np.array]],
     model: str,
-    device: str,
+    device: Device,
     steps: int = 100,
     warmup_steps: int = 10,
 ) -> Tuple[float, List[float]]:
@@ -104,7 +105,7 @@ def compute_onnx_latency(
         xs (List[Tuple[np.array]]): List of tuples containing the
             inputs (a single batch for the model).
         model (str): ONNX model path.
-        device (str): Device where computing the latency.
+        device (Device): Device where computing the latency.
         steps (int, optional): Number of input data to be used to compute the
             latency of the model. It must be a number <= len(xs). Default: 100.
         warmup_steps (int, optional): Number of input data to be used to warm
@@ -122,7 +123,7 @@ def compute_onnx_latency(
     model = ort.InferenceSession(
         model,
         providers=ONNX_PROVIDERS["cuda"]
-        if device == "cuda"
+        if device is Device.GPU
         else ONNX_PROVIDERS["cpu"],
     )
 

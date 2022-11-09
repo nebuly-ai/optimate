@@ -3,11 +3,12 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
 from nebullvm.installers.installers import get_cpu_arch, _get_os
 from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -81,7 +82,7 @@ def test_torchscript(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
 
-        device = "gpu" if torch.cuda.is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         optimizer = PytorchBackendOptimizer()
         model, metric_drop = optimizer.optimize(
             model=model,

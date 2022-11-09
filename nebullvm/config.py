@@ -87,5 +87,6 @@ TORCH_MODULES = [
 ]
 
 TENSORFLOW_MODULES = []
+HUGGING_FACE_MODULES = []
 
 LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt"]

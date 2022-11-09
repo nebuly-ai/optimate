@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Union
 
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.config import ONNX_OPSET_VERSION
 from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.utils.data import DataManager
@@ -18,7 +18,7 @@ def convert_torch_to_onnx(
     torch_model: Module,
     model_params: ModelParams,
     output_file_path: Union[str, Path],
-    device: str,
+    device: Device,
     input_data: DataManager = None,
 ):
     """Function importing a custom model in pytorch and converting it in ONNX
@@ -29,7 +29,7 @@ def convert_torch_to_onnx(
             dynamic axis information.
         output_file_path (str or Path): Path where storing the output
             ONNX file.
-        device (str): Device where the model will be run.
+        device (Device): Device where the model will be run.
         input_data (DataManager, optional): Custom data provided by user to be
         used as input for the converter.
     """
@@ -57,7 +57,7 @@ def convert_torch_to_onnx(
 
     try:
         # try conversion with model on gpu
-        if device == "gpu":
+        if device is Device.GPU:
             input_tensors = [x.cpu() for x in input_tensors]
             torch_model.cpu()
 
@@ -82,13 +82,13 @@ def convert_torch_to_onnx(
         )
 
         # Put again model on gpu
-        if device == "gpu":
+        if device is Device.GPU:
             torch_model.cuda()
 
         return output_file_path
     except Exception:
         # try conversion with model on gpu
-        if device == "gpu":
+        if device is Device.GPU:
             input_tensors = [x.cuda() for x in input_tensors]
             torch_model.cuda()
 

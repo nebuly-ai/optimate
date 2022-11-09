@@ -3,7 +3,12 @@ import os
 import uuid
 from typing import Tuple, Dict, Optional, Callable, Any
 
-from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.base import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import (
     AUTO_TVM_TUNING_OPTION,
     AUTO_TVM_PARAMS,
@@ -49,7 +54,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         self,
         torch_model: Module,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -133,7 +138,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -148,7 +153,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
-            device: (str): Device where the model will be run.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
@@ -234,7 +239,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
 
     @staticmethod
     def _build_tvm_model_from_torch(
-        torch_model: Module, model_params: ModelParams, device: str
+        torch_model: Module, model_params: ModelParams, device: Device
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {
             f"input_{i}": (
@@ -248,7 +253,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 model_params.batch_size, model_params.input_infos
             )
         )
-        if device != "gpu":
+        if device is not Device.GPU:
             inputs = tuple(input_.cpu() for input_ in inputs)
             torch_model.cpu()
         with torch.no_grad():
@@ -297,7 +302,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
 
     @staticmethod
     def _get_target(device) -> str:
-        if device == "gpu":
+        if device is Device.GPU:
             return str(tvm.target.cuda())
         else:
             return "llvm"  # run on CPU

@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import onnx
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
 from nebullvm.optimizers.onnx import ONNXOptimizer
@@ -80,7 +80,7 @@ def test_onnxruntime(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         convert_torch_to_onnx(model, model_params, model_path, device=device)
 
         # Test onnx external data format (large models)

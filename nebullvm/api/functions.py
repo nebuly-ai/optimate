@@ -13,9 +13,6 @@ from typing import (
     Optional,
 )
 
-from nebullvm.api.frontend.onnx import extract_info_from_np_data
-from nebullvm.api.frontend.tf import extract_info_from_tf_data
-from nebullvm.api.frontend.torch import extract_info_from_torch_data
 from nebullvm.api.huggingface import convert_hf_model, is_dict_type
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
 from nebullvm.base import (
@@ -24,6 +21,7 @@ from nebullvm.base import (
     ModelCompiler,
     ModelCompressor,
     OptimizationTime,
+    Device,
 )
 from nebullvm.config import QUANTIZATION_DATA_NUM, TRAIN_TEST_SPLIT_RATIO
 from nebullvm.converters.converters import CrossConverter
@@ -43,14 +41,17 @@ from nebullvm.utils.general import gpu_is_available
 from nebullvm.utils.onnx import (
     get_output_sizes_onnx,
     run_onnx_model,
+    extract_info_from_np_data,
 )
 from nebullvm.utils.tf import (
     get_outputs_sizes_tf,
     run_tf_model,
+    extract_info_from_tf_data,
 )
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     run_torch_model,
+    extract_info_from_torch_data,
 )
 
 logger = logging.getLogger("nebullvm_logger")
@@ -112,7 +113,7 @@ def _extract_info_from_data(
     input_data: DataManager,
     dl_framework: DeepLearningFramework,
     dynamic_info: Optional[Dict],
-    device: str,
+    device: Device,
 ):
     batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
         dl_framework
@@ -153,7 +154,7 @@ def _benchmark_original_model(
     model: Any,
     input_data: DataManager,
     dl_framework: DeepLearningFramework,
-    device: str,
+    device: Device,
     compute_output: bool = False,
 ):
     outputs = None
@@ -171,8 +172,6 @@ def _benchmark_original_model(
         ]
 
     inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
-
-    device = "cuda" if device == "gpu" else "cpu"
     latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](inputs, model, device)
     logger.info(f"Original model latency: {latency} sec/iter")
 
@@ -187,12 +186,12 @@ def _map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
     return ignore_list
 
 
-def _check_device(device: Optional[str]) -> str:
+def _check_device(device: Optional[str]) -> Device:
     if device is None:
         if gpu_is_available():
-            device = "gpu"
+            device = Device.GPU
         else:
-            device = "cpu"
+            device = Device.CPU
     else:
         if device.lower() == "gpu":
             if not gpu_is_available():
@@ -202,13 +201,13 @@ def _check_device(device: Optional[str]) -> str:
                     "that the gpu is installed and can be used by your "
                     "framework."
                 )
-                device = "cpu"
+                device = Device.CPU
             else:
-                device = "gpu"
+                device = Device.GPU
         else:
-            device = "cpu"
+            device = Device.CPU
 
-    logger.info(f"Running Nebullvm optimization on {device.upper()}")
+    logger.info(f"Running Nebullvm optimization on {device.name}")
 
     return device
 
@@ -418,13 +417,19 @@ def optimize_model(
 
     optimal_model = optimized_models[0][0]
     opt_metric_drop = (
-        optimized_models[0][2] if optimized_models[0][2] > 1e-4 else 0
+        f"{optimized_models[0][2]:.4f}"
+        if optimized_models[0][2] > 1e-4
+        else "0"
+    )
+
+    metric_name = (
+        "compute_relative_difference" if metric is None else metric.__name__
     )
 
     logger.info(
         (
             f"\n[ Nebullvm results ]\n"
-            f"Optimization device: {device}"
+            f"Optimization device: {device.name}\n"
             f"Original model latency: {orig_latency:.4f} sec/batch\n"
             f"Original model throughput: "
             f"{(1 / orig_latency)*model_params.batch_size:.2f} data/sec\n"
@@ -436,12 +441,10 @@ def optimize_model(
             f"data/sec\n"
             f"Optimized model size: "
             f"{optimized_models[0][0].get_size() / 1e6:.2f} MB\n"
-            f"Optimized model metric drop: {opt_metric_drop}\n"
-            f"Estimated speedup: {orig_latency / optimized_models[0][1]}x"
+            f"Optimized model metric drop: {opt_metric_drop} ({metric_name})\n"
+            f"Estimated speedup: {orig_latency / optimized_models[0][1]:.2f}x"
         )
     )
-
-    # TODO: add name of metric
 
     if needs_conversion_to_hf:
         from nebullvm.api.huggingface import HuggingFaceInferenceLearner

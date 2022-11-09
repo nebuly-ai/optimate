@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Tuple, Union, Optional, List
 
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.inference_learners import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
@@ -22,16 +22,16 @@ from nebullvm.transformations.base import MultiStageTransformation
 class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_scripted.pt"
 
-    def __init__(self, torch_model: ScriptModule, device: str, **kwargs):
+    def __init__(self, torch_model: ScriptModule, device: Device, **kwargs):
         super().__init__(**kwargs)
         self.model = torch_model.eval()
-        if device == "gpu":
+        if device is Device.GPU:
             self.model.cuda()
         self.device = device
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device
-        if self.device == "gpu":
+        if self.device is Device.GPU:
             input_tensors = (t.cuda() for t in input_tensors)
         with torch.no_grad():
             res = self.model(*input_tensors)
@@ -83,11 +83,11 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         cls,
         model: Union[Module, GraphModule],
         network_parameters: ModelParams,
-        device: str,
+        device: Device,
         input_tfms: Optional[MultiStageTransformation] = None,
         input_data: List[torch.Tensor] = None,
     ):
-        if device == "gpu":
+        if device is Device.GPU:
             input_data = [t.cuda() for t in input_data]
 
         if not isinstance(model, torch.fx.GraphModule):

@@ -1,4 +1,4 @@
-from nebullvm.base import ModelCompiler
+from nebullvm.base import ModelCompiler, Device
 
 
 def onnxruntime_is_available() -> bool:
@@ -74,7 +74,7 @@ def intel_neural_compressor_is_available() -> bool:
         return True
 
 
-def select_compilers_from_hardware_onnx(device: str):
+def select_compilers_from_hardware_onnx(device: Device):
     from nebullvm.optional_modules.utils import onnx_is_available
 
     compilers = []
@@ -83,14 +83,14 @@ def select_compilers_from_hardware_onnx(device: str):
             compilers.append(ModelCompiler.ONNX_RUNTIME)
         if tvm_is_available():
             compilers.append(ModelCompiler.APACHE_TVM)
-        if device == "gpu" and tensorrt_is_available():
+        if device is Device.GPU and tensorrt_is_available():
             compilers.append(ModelCompiler.TENSOR_RT)
-        if device == "cpu" and openvino_is_available():
+        if device is Device.CPU and openvino_is_available():
             compilers.append(ModelCompiler.OPENVINO)
     return compilers
 
 
-def select_compilers_from_hardware_torch(device: str):
+def select_compilers_from_hardware_torch(device: Device):
     from nebullvm.optional_modules.utils import torch_is_available
 
     compilers = []
@@ -101,18 +101,18 @@ def select_compilers_from_hardware_torch(device: str):
         if bladedisc_is_available():
             compilers.append(ModelCompiler.BLADEDISC)
 
-        if device == "cpu":
+        if device is Device.CPU:
             if deepsparse_is_available():
                 compilers.append(ModelCompiler.DEEPSPARSE)
             if intel_neural_compressor_is_available():
                 compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
-        elif device == "gpu":
+        elif device is Device.GPU:
             if torch_tensorrt_is_available:
                 compilers.append(ModelCompiler.TENSOR_RT)
     return compilers
 
 
-def select_compilers_from_hardware_tensorflow(device: str):
+def select_compilers_from_hardware_tensorflow(device: Device):
     from nebullvm.optional_modules.utils import tensorflow_is_available
 
     compilers = []

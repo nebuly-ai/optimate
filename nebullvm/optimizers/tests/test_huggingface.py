@@ -3,7 +3,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from nebullvm.api.huggingface import HuggingFaceInferenceLearner
-from nebullvm.base import DeepLearningFramework
+from nebullvm.base import DeepLearningFramework, Device
 from nebullvm.optimizers.extra import HuggingFaceOptimizer
 from nebullvm.optimizers.tests.utils import get_huggingface_model
 from nebullvm.utils.general import gpu_is_available
@@ -25,7 +25,7 @@ def test_huggingface(output_library: DeepLearningFramework):
             model_outputs,
         ) = get_huggingface_model(tmp_dir, output_library)
 
-        device = "gpu" if gpu_is_available() else "cpu"
+        device = Device.GPU if gpu_is_available() else Device.CPU
         optimizer = HuggingFaceOptimizer({})
         model, metric_drop = optimizer.optimize(
             model,

@@ -9,7 +9,6 @@ from nebullvm.installers.installers import (
     install_deepsparse,
     install_torch_tensor_rt,
     install_intel_neural_compressor,
-    auto_install_libraries,
 )
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]
