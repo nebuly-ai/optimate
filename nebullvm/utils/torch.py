@@ -1,10 +1,8 @@
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union, Sequence
 
-from torch.utils.data import DataLoader
-
 from nebullvm.base import DataType, InputInfo, Device
-from nebullvm.optional_modules.torch import torch, Module
+from nebullvm.optional_modules.torch import torch, Module, DataLoader
 from nebullvm.utils.data import DataManager
 
 FX_MODULE_NAME = "NebullvmFxModule"
