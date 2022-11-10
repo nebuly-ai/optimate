@@ -1,4 +1,5 @@
 import logging
+import os
 import pickle
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -354,6 +355,12 @@ def optimize_model(
             model, model_params, tmp_dir, device, input_data
         )
 
+        original_model_size = (
+            os.path.getsize(models[0])
+            if isinstance(models[0], str)
+            else len(pickle.dumps(models[0], -1))
+        )
+
         ignore_compilers = _map_compilers_and_compressors(
             ignore_compilers, ModelCompiler
         )
@@ -434,7 +441,7 @@ def optimize_model(
             f"Original model throughput: "
             f"{(1 / orig_latency)*model_params.batch_size:.2f} data/sec\n"
             f"Original model size: "
-            f"{len(pickle.dumps(models[0], -1)) / 1e6:.2f} MB\n"
+            f"{original_model_size / 1e6:.2f} MB\n"
             f"Optimized model latency: {optimized_models[0][1]:.4f} "
             f"sec/batch\n"
             f"Optimized model throughput: {1 / optimized_models[0][1]:.2f} "
