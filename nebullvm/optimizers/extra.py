@@ -1,10 +1,12 @@
 import logging
-from logging import Logger
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Callable, Any, Tuple
 
-from onnxruntime.transformers.optimizer import MODEL_TYPES
-
-from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.base import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.onnx import (
     ONNXInferenceLearner,
@@ -13,6 +15,7 @@ from nebullvm.inference_learners.onnx import (
 from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.utils import check_precision
+from nebullvm.optional_modules.onnxruntime import optimizer, MODEL_TYPES
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
@@ -20,18 +23,7 @@ from nebullvm.utils.onnx import (
     get_output_names,
 )
 
-try:
-    from onnxruntime.transformers import optimizer
-except ImportError:
-    import warnings
-
-    warnings.warn(
-        "No valid onnxruntime installation found. Trying to install it..."
-    )
-    from nebullvm.installers.installers import install_onnxruntime
-
-    install_onnxruntime()
-    from onnxruntime.transformers import optimizer
+logger = logging.getLogger("nebullvm_logger")
 
 
 class HuggingFaceOptimizer(BaseOptimizer):
@@ -40,9 +32,8 @@ class HuggingFaceOptimizer(BaseOptimizer):
         hugging_face_params: Dict,
         metric_drop_ths: float = None,
         metric: Callable = None,
-        logger: Logger = None,
     ):
-        super(HuggingFaceOptimizer, self).__init__(logger)
+        super(HuggingFaceOptimizer, self).__init__()
         self.hf_params = hugging_face_params
         self.perf_loss_ths = metric_drop_ths
         self.perf_metric = metric
@@ -53,14 +44,15 @@ class HuggingFaceOptimizer(BaseOptimizer):
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[ONNXInferenceLearner]:
-        self._log(
+    ) -> Optional[Tuple[ONNXInferenceLearner, float]]:
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -83,12 +75,13 @@ class HuggingFaceOptimizer(BaseOptimizer):
             input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
+            device=device,
         )
 
         test_input_data, ys = input_data.get_split("test").get_list(
             with_ys=True
         )
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -102,14 +95,13 @@ class HuggingFaceOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with huggingface gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop
 
     @staticmethod
     def get_accepted_types() -> List[str]:

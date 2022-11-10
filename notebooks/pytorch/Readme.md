@@ -7,7 +7,7 @@ This section contains all the available notebooks that show how to leverage nebu
 ``` python
 import torch
 import torchvision.models as models
-from nebullvm.api.functions import optimize_model
+from nebullvm import optimize_model
 
 # Load a resnet as example
 model = models.resnet50()
@@ -22,6 +22,13 @@ optimized_model = optimize_model(
 
 # Try the optimized model
 x = torch.randn(1, 3, 256, 256)
+
+## Warmup the model
+## This step is necessary before the latency computation of the 
+## optimized model in order to get reliable results.
+# for _ in range(10):
+#   optimized_model(x)
+
 res = optimized_model(x)
 ```
 

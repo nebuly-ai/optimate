@@ -1,44 +1,24 @@
+import logging
 import os
 import shutil
-import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Union, List, Generator, Tuple, Dict, Type
 
 import numpy as np
-import torch
 
 from nebullvm.base import DeepLearningFramework, ModelParams
-from nebullvm.config import ONNX_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.config import ONNX_FILENAMES
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
 )
-from nebullvm.installers.installers import install_deepsparse, get_cpu_arch
+from nebullvm.optional_modules.deepsparse import cpu, compile_model
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import MultiStageTransformation
 
-try:
-    from deepsparse import compile_model, cpu
-except ImportError:
-    import platform
-
-    os_ = platform.system()
-    if (
-        os_ != "Darwin"
-        and get_cpu_arch() != "arm"
-        and not NO_COMPILER_INSTALLATION
-    ):
-        warnings.warn(
-            "No deepsparse installation found. Trying to install it..."
-        )
-        install_deepsparse()
-        from deepsparse import compile_model, cpu
-    else:
-        warnings.warn(
-            "No valid deepsparse installation found. "
-            "The compiler won't be used in the following."
-        )
+logger = logging.getLogger("nebullvm_logger")
 
 
 class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
@@ -76,6 +56,9 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
         self.input_names = input_names
         self.output_names = output_names
 
+    def get_size(self):
+        return os.path.getsize(self.onnx_path)
+
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
 
@@ -112,7 +95,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
             DeepSparseInferenceLearner: The optimized model.
         """
         if len(kwargs) > 0:
-            warnings.warn(
+            logger.warning(
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )

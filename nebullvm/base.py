@@ -128,3 +128,8 @@ class QuantizationType(Enum):
 class OptimizationTime(Enum):
     CONSTRAINED = "constrained"
     UNCONSTRAINED = "unconstrained"
+
+
+class Device(Enum):
+    CPU = "cpu"
+    GPU = "gpu"

@@ -2,13 +2,14 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
 )
 from nebullvm.optimizers.neural_compressor import NeuralCompressorOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
 from nebullvm.utils.compilers import intel_neural_compressor_is_available
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -42,8 +43,10 @@ def test_neural_compressor(
             metric,
         ) = initialize_model(dynamic, None, output_library)
 
+        device = Device.GPU if gpu_is_available() else Device.CPU
+
         optimizer = NeuralCompressorOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,
@@ -53,6 +56,7 @@ def test_neural_compressor(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(
             model, NEURAL_COMPRESSOR_INFERENCE_LEARNERS[output_library]
@@ -66,6 +70,8 @@ def test_neural_compressor(
         assert isinstance(
             loaded_model, NEURAL_COMPRESSOR_INFERENCE_LEARNERS[output_library]
         )
+
+        assert isinstance(model.get_size(), int)
 
         inputs_example = model.get_inputs_example()
         res = model(*inputs_example)

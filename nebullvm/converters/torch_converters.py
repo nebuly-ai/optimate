@@ -1,26 +1,25 @@
 import logging
-from logging import Logger
 from pathlib import Path
 from typing import Union
 
-import torch
-from torch.nn import Module
-
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.config import ONNX_OPSET_VERSION
+from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
 )
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 def convert_torch_to_onnx(
     torch_model: Module,
     model_params: ModelParams,
     output_file_path: Union[str, Path],
+    device: Device,
     input_data: DataManager = None,
-    logger: Logger = None,
 ):
     """Function importing a custom model in pytorch and converting it in ONNX
 
@@ -30,9 +29,9 @@ def convert_torch_to_onnx(
             dynamic axis information.
         output_file_path (str or Path): Path where storing the output
             ONNX file.
+        device (Device): Device where the model will be run.
         input_data (DataManager, optional): Custom data provided by user to be
         used as input for the converter.
-        logger (Logger, optional): logger object.
     """
 
     if input_data is not None:
@@ -42,7 +41,7 @@ def convert_torch_to_onnx(
             model_params.batch_size, model_params.input_infos
         )
 
-    output_sizes = get_outputs_sizes_torch(torch_model, input_tensors)
+    output_sizes = get_outputs_sizes_torch(torch_model, input_tensors, device)
 
     input_names = [f"input_{i}" for i in range(len(input_tensors))]
     output_names = [f"output_{i}" for i in range(len(output_sizes))]
@@ -58,7 +57,7 @@ def convert_torch_to_onnx(
 
     try:
         # try conversion with model on gpu
-        if torch.cuda.is_available():
+        if device is Device.GPU:
             input_tensors = [x.cpu() for x in input_tensors]
             torch_model.cpu()
 
@@ -83,13 +82,13 @@ def convert_torch_to_onnx(
         )
 
         # Put again model on gpu
-        if torch.cuda.is_available():
+        if device is Device.GPU:
             torch_model.cuda()
 
         return output_file_path
     except Exception:
         # try conversion with model on gpu
-        if torch.cuda.is_available():
+        if device is Device.GPU:
             input_tensors = [x.cuda() for x in input_tensors]
             torch_model.cuda()
 
@@ -117,22 +116,14 @@ def convert_torch_to_onnx(
 
                 return output_file_path
             except Exception:
-                warning_msg = (
+                logger.warning(
                     "Exception raised during conversion from torch"
                     " to onnx model. ONNX pipeline will be unavailable."
                 )
-                if logger is not None:
-                    logger.warning(warning_msg)
-                else:
-                    logging.warning(warning_msg)
                 return None
         else:
-            warning_msg = (
+            logger.warning(
                 "Exception raised during conversion from torch"
                 " to onnx model. ONNX pipeline will be unavailable."
             )
-            if logger is not None:
-                logger.warning(warning_msg)
-            else:
-                logging.warning(warning_msg)
             return None

@@ -1,7 +1,6 @@
 from typing import Any
 
-import torch
-
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import BaseTransformation
 
 

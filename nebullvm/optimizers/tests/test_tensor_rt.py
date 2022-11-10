@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.tensor_rt import (
     PytorchTensorRTInferenceLearner,
@@ -12,6 +12,7 @@ from nebullvm.inference_learners.tensor_rt import (
 from nebullvm.inference_learners.tensor_rt import NVIDIA_INFERENCE_LEARNERS
 from nebullvm.optimizers import TensorRTOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -75,9 +76,10 @@ def test_tensorrt_onnx(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        convert_torch_to_onnx(model, model_params, model_path)
+        device = Device.GPU if gpu_is_available() else Device.CPU
+        convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = TensorRTOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model_path,
             output_library=output_library,
             model_params=model_params,
@@ -87,6 +89,7 @@ def test_tensorrt_onnx(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, NVIDIA_INFERENCE_LEARNERS[output_library])
 
@@ -96,6 +99,8 @@ def test_tensorrt_onnx(
         assert isinstance(
             loaded_model, NVIDIA_INFERENCE_LEARNERS[output_library]
         )
+
+        assert isinstance(model.get_size(), int)
 
         inputs_example = list(model.get_inputs_example())
         res = model(*inputs_example)
@@ -166,8 +171,9 @@ def test_tensorrt_torch(
             model_outputs,
             metric,
         ) = initialize_model(dynamic, metric, output_library)
+        device = Device.GPU if gpu_is_available() else Device.CPU
         optimizer = TensorRTOptimizer()
-        model = optimizer.optimize_from_torch(
+        model, metric_drop = optimizer.optimize_from_torch(
             torch_model=model,
             model_params=model_params,
             input_tfms=input_tfms,
@@ -176,6 +182,7 @@ def test_tensorrt_torch(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, PytorchTensorRTInferenceLearner)
 
@@ -183,6 +190,8 @@ def test_tensorrt_torch(
         model.save(tmp_dir)
         loaded_model = PytorchTensorRTInferenceLearner.load(tmp_dir)
         assert isinstance(loaded_model, PytorchTensorRTInferenceLearner)
+
+        assert isinstance(model.get_size(), int)
 
         inputs_example = list(model.get_inputs_example())
         res = model(*inputs_example)

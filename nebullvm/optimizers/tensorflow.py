@@ -1,8 +1,13 @@
 import logging
 from tempfile import TemporaryDirectory
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, Tuple
 
-from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.base import (
+    DeepLearningFramework,
+    ModelParams,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
@@ -15,9 +20,11 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class TensorflowBackendOptimizer(BaseOptimizer):
@@ -26,9 +33,6 @@ class TensorflowBackendOptimizer(BaseOptimizer):
     For avoiding un-wanted modification to the input model models are copied
     before being optimized.
 
-    Attributes:
-        logger (Logger, optional): Optional logger for logging optimization
-            information.
     """
 
     def optimize(
@@ -36,13 +40,14 @@ class TensorflowBackendOptimizer(BaseOptimizer):
         model: tf.Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[TensorflowBackendInferenceLearner]:
+    ) -> Optional[Tuple[TensorflowBackendInferenceLearner, float]]:
         """Optimize the input model using pytorch built-in techniques.
 
         Args:
@@ -52,6 +57,7 @@ class TensorflowBackendOptimizer(BaseOptimizer):
             output_library (DeepLearningFramework): Output framework. At the
                 current stage just TENSORFLOW is supported.
             model_params (ModelParams): Model parameters.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -73,7 +79,7 @@ class TensorflowBackendOptimizer(BaseOptimizer):
             TensorflowBackendInferenceLearner or TFLiteBackendInferenceLearner:
                 Model optimized for inference.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -106,12 +112,13 @@ class TensorflowBackendOptimizer(BaseOptimizer):
                 input_data=list(input_data.get_list(1)[0])
                 if input_data is not None
                 else None,
+                device=device,
             )
 
             test_input_data, ys = input_data.get_split("test").get_list(
                 with_ys=True
             )
-            is_valid = check_precision(
+            is_valid, metric_drop = check_precision(
                 learner,
                 test_input_data,
                 model_outputs,
@@ -125,11 +132,10 @@ class TensorflowBackendOptimizer(BaseOptimizer):
             )
             if not is_valid:
                 if quantization_type is None:
-                    self._log(
+                    logger.warning(
                         "The model optimized with Tensorflow backend gives a "
                         "different result compared with the original model. "
-                        "This compiler will be skipped.",
-                        level=logging.WARNING,
+                        "This compiler will be skipped."
                     )
                 return None
-        return learner
+        return learner, metric_drop

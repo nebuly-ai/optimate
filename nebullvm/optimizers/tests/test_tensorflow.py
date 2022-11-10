@@ -2,13 +2,14 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
 from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -63,8 +64,9 @@ def test_tensorflow(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
 
+        device = Device.GPU if gpu_is_available() else Device.CPU
         optimizer = TensorflowBackendOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,
@@ -74,6 +76,7 @@ def test_tensorflow(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
 
         if quantization_type is None:
@@ -89,6 +92,8 @@ def test_tensorflow(
         else:
             loaded_model = TFLiteBackendInferenceLearner.load(tmp_dir)
             assert isinstance(loaded_model, TFLiteBackendInferenceLearner)
+
+        assert isinstance(model.get_size(), int)
 
         inputs_example = list(model.get_inputs_example())
         res = model.predict(*inputs_example)

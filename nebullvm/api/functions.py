@@ -1,13 +1,19 @@
 import logging
+import os
+import pickle
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Iterable, Sequence, Union, Dict, Callable, List
+from typing import (
+    Any,
+    Iterable,
+    Sequence,
+    Union,
+    Dict,
+    Callable,
+    List,
+    Optional,
+)
 
-import torch.nn
-
-from nebullvm.api.frontend.onnx import extract_info_from_np_data
-from nebullvm.api.frontend.tf import extract_info_from_tf_data
-from nebullvm.api.frontend.torch import extract_info_from_torch_data
 from nebullvm.api.huggingface import convert_hf_model, is_dict_type
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
 from nebullvm.base import (
@@ -16,6 +22,7 @@ from nebullvm.base import (
     ModelCompiler,
     ModelCompressor,
     OptimizationTime,
+    Device,
 )
 from nebullvm.config import QUANTIZATION_DATA_NUM, TRAIN_TEST_SPLIT_RATIO
 from nebullvm.converters.converters import CrossConverter
@@ -24,39 +31,46 @@ from nebullvm.measure import (
     compute_tf_latency,
     compute_onnx_latency,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import Module
+from nebullvm.optional_modules.utils import check_dependencies
 from nebullvm.pipelines.steps import build_pipeline_from_model
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
+from nebullvm.utils.general import gpu_is_available
 from nebullvm.utils.onnx import (
     get_output_sizes_onnx,
     run_onnx_model,
+    extract_info_from_np_data,
 )
-from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import (
     get_outputs_sizes_tf,
     run_tf_model,
+    extract_info_from_tf_data,
 )
 from nebullvm.utils.torch import (
     get_outputs_sizes_torch,
     run_torch_model,
+    extract_info_from_torch_data,
 )
 
-
-logging.basicConfig(
-    format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p"
-)
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("nebullvm_logger")
 
 
 def _get_dl_framework(model: Any):
-    if isinstance(model, torch.nn.Module):
+    if isinstance(model, Module):
         return DeepLearningFramework.PYTORCH
     elif isinstance(model, tf.Module) and model is not None:
         return DeepLearningFramework.TENSORFLOW
     elif isinstance(model, str):
-        return DeepLearningFramework.NUMPY
+        if Path(model).is_file():
+            return DeepLearningFramework.NUMPY
+        else:
+            raise FileNotFoundError(
+                f"No file '{model}' found, please provide a valid path to "
+                f"a model."
+            )
     else:
         raise TypeError(f"Model type {type(model)} not supported.")
 
@@ -99,7 +113,8 @@ def _extract_info_from_data(
     model: Any,
     input_data: DataManager,
     dl_framework: DeepLearningFramework,
-    dynamic_info: Dict,
+    dynamic_info: Optional[Dict],
+    device: Device,
 ):
     batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
         dl_framework
@@ -110,6 +125,7 @@ def _extract_info_from_data(
         input_sizes=None,
         input_types=None,
         dynamic_axis=dynamic_info,
+        device=device,
     )
     model_params = ModelParams(
         batch_size=batch_size,
@@ -118,7 +134,7 @@ def _extract_info_from_data(
             for size, dtype in zip(input_sizes, input_types)
         ],
         output_sizes=OUTPUT_SIZE_COMPUTATION_DICT[dl_framework](
-            model, input_data[0][0]
+            model, input_data[0][0], device
         ),
         dynamic_info=dynamic_info,
     )
@@ -139,16 +155,18 @@ def _benchmark_original_model(
     model: Any,
     input_data: DataManager,
     dl_framework: DeepLearningFramework,
+    device: Device,
     compute_output: bool = False,
 ):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     outputs = None
+
+    logger.info("Benchmark performance of original model")
 
     if compute_output:
         outputs = [
             tuple(
                 COMPUTE_OUTPUT_FRAMEWORK[dl_framework](
-                    model, list(input_tensors[0])
+                    model, list(input_tensors[0]), device
                 )
             )
             for input_tensors in input_data
@@ -156,6 +174,7 @@ def _benchmark_original_model(
 
     inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
     latency, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](inputs, model, device)
+    logger.info(f"Original model latency: {latency} sec/iter")
 
     return outputs, latency
 
@@ -166,6 +185,32 @@ def _map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
     else:
         ignore_list = [enum_class(element) for element in ignore_list]
     return ignore_list
+
+
+def _check_device(device: Optional[str]) -> Device:
+    if device is None:
+        if gpu_is_available():
+            device = Device.GPU
+        else:
+            device = Device.CPU
+    else:
+        if device.lower() == "gpu":
+            if not gpu_is_available():
+                logger.warning(
+                    "Selected GPU device but no available GPU found on this "
+                    "platform. CPU will be used instead. Please make sure "
+                    "that the gpu is installed and can be used by your "
+                    "framework."
+                )
+                device = Device.CPU
+            else:
+                device = Device.GPU
+        else:
+            device = Device.CPU
+
+    logger.info(f"Running Nebullvm optimization on {device.name}")
+
+    return device
 
 
 def optimize_model(
@@ -179,6 +224,7 @@ def optimize_model(
     ignore_compilers: List[str] = None,
     ignore_compressors: List[str] = None,
     store_latencies: bool = False,
+    device: Optional[str] = None,
     **kwargs,
 ):
     """Optimize the input model regardless of the framework it was used for
@@ -246,11 +292,16 @@ def optimize_model(
             parameters needed for defining the CompressionStep in the pipeline.
             Default: None.
         ignore_compilers (List, optional): List containing the compilers to be
-            ignored during the OptimizerStep. Default: None.
+            ignored during the OptimizerStep. The compiler name should be one
+            among tvm, tensor RT, openvino, onnxruntime, deepsparse, tflite,
+            bladedisc, torchscript, intel_neural_compressor. Default: None.
         ignore_compressors (List, optional): List containing the compressors
-            to be ignored during the CompressionStep. Default: None.
+            to be ignored during the CompressionStep. The compiler name should
+            be one among . Default: None.
         store_latencies (bool, optional): Parameter that allows to save the
             latency for each compiler used by nebullvm. Default: False.
+        device (str, optional): Device used, can be 'cpu' or 'gpu'. If not
+            set, gpu will be used if available, otherwise cpu. Default: None
 
     Returns:
         InferenceLearner: Optimized version of the input model having the same
@@ -260,9 +311,13 @@ def optimize_model(
             with `model.forward(input)` and `model(input)`), i.e. it will
             take as input and it will return `torch.Tensor`s.
     """
+    device = _check_device(device)
+    check_dependencies(device)
     dl_framework = _get_dl_framework(model)
     optimization_time = OptimizationTime(optimization_time)
-    FEEDBACK_COLLECTOR.start_collection(model, framework=dl_framework)
+    FEEDBACK_COLLECTOR.start_collection(
+        model, framework=dl_framework, device=device
+    )
     if metric_drop_ths is not None and metric_drop_ths <= 0:
         metric_drop_ths = None
     elif metric_drop_ths is not None and metric is None:
@@ -277,7 +332,7 @@ def optimize_model(
             input_names,
             output_structure,
             output_type,
-        ) = convert_hf_model(model, input_data, **kwargs)
+        ) = convert_hf_model(model, input_data, device, **kwargs)
         needs_conversion_to_hf = True
     if _check_input_data(input_data):
         input_data = DataManager(input_data)
@@ -289,13 +344,22 @@ def optimize_model(
         input_data,
         dl_framework,
         dynamic_info,
+        device,
     )
-    converter = CrossConverter(logger=logger)
+    converter = CrossConverter()
     optimized_models = []
     with TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir) / "fp32"
         tmp_dir.mkdir(parents=True, exist_ok=True)
-        models = converter.convert(model, model_params, tmp_dir, input_data)
+        models = converter.convert(
+            model, model_params, tmp_dir, device, input_data
+        )
+
+        original_model_size = (
+            os.path.getsize(models[0])
+            if isinstance(models[0], str)
+            else len(pickle.dumps(models[0], -1))
+        )
 
         ignore_compilers = _map_compilers_and_compressors(
             ignore_compilers, ModelCompiler
@@ -309,6 +373,7 @@ def optimize_model(
             model=model,
             input_data=input_data.get_split("test"),
             dl_framework=dl_framework,
+            device=device,
             compute_output=True,
         )
 
@@ -328,7 +393,6 @@ def optimize_model(
                 optimization_time,
                 metric_drop_ths,
                 config_file,
-                logger=logger,
             )
             output_dict = pipeline.run(
                 model=model,
@@ -342,6 +406,7 @@ def optimize_model(
                 ignore_compressors=ignore_compressors,
                 optimization_time=optimization_time,
                 model_outputs=model_outputs,
+                device=device,
             )
             ignore_compilers = output_dict["ignore_compilers"]
             optimized_models.extend(output_dict["optimized_models"])
@@ -358,6 +423,35 @@ def optimize_model(
         return None
 
     optimal_model = optimized_models[0][0]
+    opt_metric_drop = (
+        f"{optimized_models[0][2]:.4f}"
+        if optimized_models[0][2] > 1e-4
+        else "0"
+    )
+
+    metric_name = (
+        "compute_relative_difference" if metric is None else metric.__name__
+    )
+
+    logger.info(
+        (
+            f"\n[ Nebullvm results ]\n"
+            f"Optimization device: {device.name}\n"
+            f"Original model latency: {orig_latency:.4f} sec/batch\n"
+            f"Original model throughput: "
+            f"{(1 / orig_latency)*model_params.batch_size:.2f} data/sec\n"
+            f"Original model size: "
+            f"{original_model_size / 1e6:.2f} MB\n"
+            f"Optimized model latency: {optimized_models[0][1]:.4f} "
+            f"sec/batch\n"
+            f"Optimized model throughput: {1 / optimized_models[0][1]:.2f} "
+            f"data/sec\n"
+            f"Optimized model size: "
+            f"{optimized_models[0][0].get_size() / 1e6:.2f} MB\n"
+            f"Optimized model metric drop: {opt_metric_drop} ({metric_name})\n"
+            f"Estimated speedup: {orig_latency / optimized_models[0][1]:.2f}x"
+        )
+    )
 
     if needs_conversion_to_hf:
         from nebullvm.api.huggingface import HuggingFaceInferenceLearner

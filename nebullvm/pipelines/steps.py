@@ -1,12 +1,10 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from logging import Logger
 from typing import Dict, List, Any, Callable, Tuple, Optional
 
 import cpuinfo
 import numpy as np
-import torch.nn
 from tqdm import tqdm
 
 from nebullvm.base import (
@@ -16,6 +14,7 @@ from nebullvm.base import (
     ModelCompiler,
     ModelCompressor,
     OptimizationTime,
+    Device,
 )
 from nebullvm.compressors.base import BaseCompressor
 from nebullvm.compressors.intel import TorchIntelPruningCompressor
@@ -24,43 +23,33 @@ from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.inference_learners import (
     BaseInferenceLearner,
     PytorchBaseInferenceLearner,
+    TensorflowBaseInferenceLearner,
 )
+from nebullvm.inference_learners.base import NumpyBaseInferenceLearner
 from nebullvm.measure import compute_optimized_running_time
 from nebullvm.optimizers import (
     BaseOptimizer,
-    ApacheTVMOptimizer,
     COMPILER_TO_OPTIMIZER_MAP,
-    DeepSparseOptimizer,
 )
-from nebullvm.optimizers.blade_disc import BladeDISCOptimizer
-from nebullvm.optimizers.neural_compressor import NeuralCompressorOptimizer
-from nebullvm.optimizers.pytorch import PytorchBackendOptimizer
-from nebullvm.optimizers.tensor_rt import TensorRTOptimizer
-from nebullvm.optimizers.tensorflow import TensorflowBackendOptimizer
+from nebullvm.optional_modules.torch import Module
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.compilers import (
-    tvm_is_available,
     select_compilers_from_hardware_onnx,
     deepsparse_is_available,
-    bladedisc_is_available,
-    torch_tensorrt_is_available,
     intel_neural_compressor_is_available,
+    select_compilers_from_hardware_tensorflow,
+    select_compilers_from_hardware_torch,
 )
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.utils.general import is_python_version_3_10
-from nebullvm.utils.optional_modules import tensorflow as tf
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class Step(ABC):
-    """Fundamental building block for the Pipeline.
-
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
-    """
-
-    def __init__(self, logger: Logger = None):
-        self._logger = logger
+    """Fundamental building block for the Pipeline."""
 
     @abstractmethod
     def run(self, *args, **kwargs) -> Dict:
@@ -71,18 +60,6 @@ class Step(ABC):
     @abstractmethod
     def name(self):
         raise NotImplementedError()
-
-    def _log_info(self, text: str):
-        if self._logger is None:
-            logging.info(text)
-        else:
-            self._logger.info(text)
-
-    def _log_warning(self, text: str):
-        if self._logger is None:
-            logging.warning(text)
-        else:
-            self._logger.warning(text)
 
 
 class CompressorStep(Step, ABC):
@@ -96,11 +73,10 @@ class CompressorStep(Step, ABC):
             a YAML file having as main keywords the Compressor names and as
             values dictionaries containing the specific parameters for the
             related Compressor object.
-        logger (Logger, optional): Logger defined by the user.
     """
 
-    def __init__(self, config_file: str = None, logger: Logger = None):
-        super().__init__(logger)
+    def __init__(self, config_file: str = None):
+        super().__init__()
         self._config_file = config_file
 
     def run(
@@ -129,7 +105,7 @@ class CompressorStep(Step, ABC):
             kwargs (Dict): Keyword arguments propagated to the next step.
         """
         compressor_dict = self._get_compressors(ignore_compressors)
-        self._log_info(f"Compressions: {tuple(compressor_dict.keys())}")
+        logger.info(f"Compressions: {tuple(compressor_dict.keys())}")
         models = {"no_compression": (copy.deepcopy(model), metric_drop_ths)}
 
         # input_data[0][0][0].shape[0] is the batch size
@@ -138,7 +114,7 @@ class CompressorStep(Step, ABC):
             or (len(input_data) * input_data[0][0][0].shape[0])
             < MIN_DIM_INPUT_DATA
         ):
-            self._log_warning(
+            logger.warning(
                 f"Compression step needs at least {MIN_DIM_INPUT_DATA} "
                 f"input data to be activated. Please provide more inputs. "
                 f"Compression step will be skipped."
@@ -158,7 +134,7 @@ class CompressorStep(Step, ABC):
                         )
                         models[technique] = (compressed_model, ths)
                     except Exception as ex:
-                        self._log_warning(
+                        logger.warning(
                             f"Error during compression {technique}. Got error "
                             f"{ex}. The compression technique will be skipped."
                             f" Please consult the documentation for further "
@@ -166,7 +142,7 @@ class CompressorStep(Step, ABC):
                             f"assistance."
                         )
             else:
-                self._log_warning(
+                logger.warning(
                     "Please note that DIM_DATASET / BATCH_SIZE >= 5, "
                     "otherwise the data cannot be split in training and "
                     "evaluation set properly. Compression step will be "
@@ -205,7 +181,6 @@ class TorchCompressorStep(CompressorStep):
             a YAML file having as main keywords the Compressor names and as
             values dictionaries containing the specific parameters for the
             related Compressor object.
-        logger (Logger, optional): Logger defined by the user.
     """
 
     def _get_compressors(
@@ -223,7 +198,8 @@ class TorchCompressorStep(CompressorStep):
             )
 
         if (
-            "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
+            intel_neural_compressor_is_available()
+            and "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
             and ModelCompressor.NEURAL_COMPRESSOR_PRUNING
             not in ignore_compressors
         ):
@@ -234,11 +210,7 @@ class TorchCompressorStep(CompressorStep):
 
 
 class NoCompressionStep(Step):
-    """Step to be used when no compression is required.
-
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
-    """
+    """Step to be used when no compression is required."""
 
     def run(
         self, model: Any, metric_drop_ths: Optional[float], **kwargs
@@ -258,8 +230,6 @@ class OptimizerStep(Step, ABC):
     optimizers are run on the model given as input and a list of tuples
     (optimized_model, latency) is given as output.
 
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
     """
 
     def run(
@@ -274,6 +244,7 @@ class OptimizerStep(Step, ABC):
         optimization_time: OptimizationTime = None,
         pipeline_name: str = None,
         model_outputs: Any = None,
+        device: Device = None,
         **kwargs,
     ) -> Dict:
         """Run the OptimizerStep for all the available compilers.
@@ -302,18 +273,24 @@ class OptimizerStep(Step, ABC):
                 framework interface.
             pipeline_name (str): Name of the pipeline.
             model_outputs (Any): Outputs computed by the original model
+            device (Device): Device used for running the model.
             kwargs (Dict): Extra keywords that will be ignored.
         """
 
-        optimizers = self._get_optimizers(ignore_compilers)
-        self._log_info(
+        optimizers = self._get_optimizers(ignore_compilers, device)
+        logger.info(
             f"Optimizations: "
             f"{tuple(compiler.value for compiler in optimizers.keys())}"
         )
         optimized_models = []
 
-        for prev_tech, (model, metric_drop_ths) in tqdm(models.items()):
-            self._log_info(f"Optimizing output of {prev_tech}")
+        for i, (prev_tech, (model, metric_drop_ths)) in enumerate(
+            models.items()
+        ):
+            logger.info(
+                f"Optimizing output of compressor "
+                f"{i+1}/{len(models)}: {prev_tech}"
+            )
             if model is None:
                 continue
             if metric_drop_ths is not None:
@@ -326,14 +303,16 @@ class OptimizerStep(Step, ABC):
                     q_types.append(QuantizationType.STATIC)
             else:
                 q_types = [None]
-            for compiler, optimizer in tqdm(optimizers.items()):
+            for j, (compiler, optimizer) in enumerate(optimizers.items()):
+                logger.info(f"[ OPTIMIZER {j+1}/{len(optimizers)} ]")
                 for q_type in q_types:
                     try:
-                        optimized_model = self._run_optimizer(
+                        optimized_model, metric_drop = self._run_optimizer(
                             optimizer,
                             model,
                             output_library,
                             model_params,
+                            device,
                             input_tfms.copy(),
                             metric_drop_ths,
                             q_type,
@@ -345,9 +324,14 @@ class OptimizerStep(Step, ABC):
                             latency = compute_optimized_running_time(
                                 optimized_model, input_data
                             )
+                            logger.info(
+                                f"Optimized model latency: {latency} sec/iter"
+                            )
                         else:
                             latency = np.inf
-                        optimized_models.append((optimized_model, latency))
+                        optimized_models.append(
+                            (optimized_model, latency, metric_drop)
+                        )
                         if (
                             compiler not in ignore_compilers
                             and optimization_time
@@ -363,7 +347,7 @@ class OptimizerStep(Step, ABC):
                             pipeline_name=pipeline_name,
                         )
                     except Exception as ex:
-                        self._log_warning(
+                        logger.warning(
                             f"Compilation failed with {output_library.value} "
                             f"interface of {compiler}. Got error {ex}. "
                             f"If possible the compilation will be re-scheduled"
@@ -396,18 +380,19 @@ class OptimizerStep(Step, ABC):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
-        model_outpust: Any = None,
-    ) -> BaseInferenceLearner:
+        model_outputs: Any = None,
+    ) -> Tuple[BaseInferenceLearner, float]:
         raise NotImplementedError()
 
     @abstractmethod
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler]
+        self, ignore_compilers: List[ModelCompiler], device: Device
     ) -> Dict[ModelCompiler, BaseOptimizer]:
         raise NotImplementedError()
 
@@ -418,177 +403,14 @@ class TorchOptimizerStep(OptimizerStep):
     as input and a list of tuples (optimized_model, latency) is given as
     output.
 
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
     """
 
     def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler]
+        self, ignore_compilers: List[ModelCompiler], device: Device
     ) -> Dict[ModelCompiler, BaseOptimizer]:
-        optimizers = {}
-        if ModelCompiler.TORCHSCRIPT not in ignore_compilers:
-            optimizers[ModelCompiler.TORCHSCRIPT] = PytorchBackendOptimizer(
-                logger=self._logger
-            )
-        if (
-            tvm_is_available()
-            and ModelCompiler.APACHE_TVM not in ignore_compilers
-        ):
-            optimizers[ModelCompiler.APACHE_TVM] = ApacheTVMOptimizer(
-                logger=self._logger
-            )
-        if (
-            deepsparse_is_available()
-            and ModelCompiler.DEEPSPARSE not in ignore_compilers
-        ):
-            optimizers[ModelCompiler.DEEPSPARSE] = DeepSparseOptimizer(
-                logger=self._logger
-            )
-        if (
-            bladedisc_is_available()
-            and ModelCompiler.BLADEDISC not in ignore_compilers
-        ):
-            optimizers[ModelCompiler.BLADEDISC] = BladeDISCOptimizer(
-                logger=self._logger
-            )
-        if (
-            torch_tensorrt_is_available()
-            and ModelCompiler.TENSOR_RT not in ignore_compilers
-        ):
-            optimizers[ModelCompiler.TENSOR_RT] = TensorRTOptimizer(
-                logger=self._logger
-            )
-        if (
-            intel_neural_compressor_is_available()
-            and ModelCompiler.INTEL_NEURAL_COMPRESSOR not in ignore_compilers
-        ):
-            optimizers[
-                ModelCompiler.INTEL_NEURAL_COMPRESSOR
-            ] = NeuralCompressorOptimizer(logger=self._logger)
-        return optimizers
-
-    def _run_optimizer(
-        self,
-        optimizer,
-        model: Any,
-        output_library: DeepLearningFramework,
-        model_params: ModelParams,
-        input_tfms: MultiStageTransformation = None,
-        metric_drop_ths: float = None,
-        quantization_type: QuantizationType = None,
-        metric: Callable = None,
-        input_data: DataManager = None,
-        model_outputs: Any = None,
-    ) -> PytorchBaseInferenceLearner:
-        if hasattr(optimizer, "optimize_from_torch"):
-            optimized_model = optimizer.optimize_from_torch(
-                torch_model=model,
-                model_params=model_params,
-                metric_drop_ths=metric_drop_ths
-                if quantization_type is not None
-                else None,
-                metric=metric,
-                quantization_type=quantization_type,
-                input_tfms=input_tfms,
-                input_data=input_data,
-                model_outputs=model_outputs,
-            )
-        else:
-            optimized_model = optimizer.optimize(
-                model=model,
-                output_library=output_library,
-                model_params=model_params,
-                metric_drop_ths=metric_drop_ths
-                if quantization_type is not None
-                else None,
-                metric=metric,
-                quantization_type=quantization_type,
-                input_tfms=input_tfms,
-                input_data=input_data,
-                model_outputs=model_outputs,
-            )
-        return optimized_model
-
-
-class TFOptimizerStep(OptimizerStep):
-    """Object managing the Optimizers in the pipeline step supporting
-    TensorFlow as compiler interface. All available optimizers are run on
-    the model given as input and a list of tuples (optimized_model, latency)
-    is given as output.
-
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
-    """
-
-    def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler]
-    ) -> Dict[ModelCompiler, BaseOptimizer]:
-        optimizers = {}
-        if ModelCompiler.TFLITE not in ignore_compilers:
-            optimizers[ModelCompiler.TFLITE] = TensorflowBackendOptimizer(
-                logger=self._logger
-            )
-        return optimizers
-
-    def _run_optimizer(
-        self,
-        optimizer,
-        model: Any,
-        output_library: DeepLearningFramework,
-        model_params: ModelParams,
-        input_tfms: MultiStageTransformation = None,
-        metric_drop_ths: float = None,
-        quantization_type: QuantizationType = None,
-        metric: Callable = None,
-        input_data: DataManager = None,
-        model_outputs: Any = None,
-    ) -> PytorchBaseInferenceLearner:
-        if hasattr(optimizer, "optimize_from_tf"):
-            optimized_model = optimizer.optimize_from_tf(
-                torch_model=model,
-                model_params=model_params,
-                metric_drop_ths=metric_drop_ths
-                if quantization_type is not None
-                else None,
-                metric=metric,
-                quantization_type=quantization_type,
-                input_tfms=input_tfms,
-                input_data=input_data,
-                model_outputs=model_outputs,
-            )
-        else:
-            optimized_model = optimizer.optimize(
-                model=model,
-                output_library=output_library,
-                model_params=model_params,
-                metric_drop_ths=metric_drop_ths
-                if quantization_type is not None
-                else None,
-                metric=metric,
-                quantization_type=quantization_type,
-                input_tfms=input_tfms,
-                input_data=input_data,
-                model_outputs=model_outputs,
-            )
-        return optimized_model
-
-
-class OnnxOptimizerStep(OptimizerStep):
-    """Object managing the Optimizers in the pipeline step supporting ONNX
-    as compiler interface. All available optimizers are run on the model given
-    as input and a list of tuples (optimized_model, latency) is given as
-    output.
-
-    Attributes:
-        logger (Logger, optional): Logger defined by the user.
-    """
-
-    def _get_optimizers(
-        self, ignore_compilers: List[ModelCompiler]
-    ) -> Dict[ModelCompiler, BaseOptimizer]:
-        compilers = select_compilers_from_hardware_onnx()
+        compilers = select_compilers_from_hardware_torch(device)
         optimizers = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](self._logger)
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
             for compiler in compilers
             if compiler not in ignore_compilers
         }
@@ -600,17 +422,163 @@ class OnnxOptimizerStep(OptimizerStep):
         model: Any,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> PytorchBaseInferenceLearner:
-        optimized_model = optimizer.optimize(
+    ) -> Tuple[PytorchBaseInferenceLearner, float]:
+        optimized_model = None
+        metric_drop = 0
+        if hasattr(optimizer, "optimize_from_torch"):
+            result = optimizer.optimize_from_torch(
+                torch_model=model,
+                model_params=model_params,
+                device=device,
+                metric_drop_ths=metric_drop_ths
+                if quantization_type is not None
+                else None,
+                metric=metric,
+                quantization_type=quantization_type,
+                input_tfms=input_tfms,
+                input_data=input_data,
+                model_outputs=model_outputs,
+            )
+        else:
+            result = optimizer.optimize(
+                model=model,
+                output_library=output_library,
+                model_params=model_params,
+                device=device,
+                metric_drop_ths=metric_drop_ths
+                if quantization_type is not None
+                else None,
+                metric=metric,
+                quantization_type=quantization_type,
+                input_tfms=input_tfms,
+                input_data=input_data,
+                model_outputs=model_outputs,
+            )
+
+        if result is not None:
+            optimized_model, metric_drop = result[0], result[1]
+
+        return optimized_model, metric_drop
+
+
+class TFOptimizerStep(OptimizerStep):
+    """Object managing the Optimizers in the pipeline step supporting
+    TensorFlow as compiler interface. All available optimizers are run on
+    the model given as input and a list of tuples (optimized_model, latency)
+    is given as output.
+
+    """
+
+    def _get_optimizers(
+        self, ignore_compilers: List[ModelCompiler], device: Device
+    ) -> Dict[ModelCompiler, BaseOptimizer]:
+        compilers = select_compilers_from_hardware_tensorflow(device)
+        optimizers = {
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
+            for compiler in compilers
+            if compiler not in ignore_compilers
+        }
+        return optimizers
+
+    def _run_optimizer(
+        self,
+        optimizer,
+        model: Any,
+        output_library: DeepLearningFramework,
+        model_params: ModelParams,
+        device: Device,
+        input_tfms: MultiStageTransformation = None,
+        metric_drop_ths: float = None,
+        quantization_type: QuantizationType = None,
+        metric: Callable = None,
+        input_data: DataManager = None,
+        model_outputs: Any = None,
+    ) -> Tuple[TensorflowBaseInferenceLearner, float]:
+        optimized_model = None
+        metric_drop = 0
+
+        if hasattr(optimizer, "optimize_from_tf"):
+            result = optimizer.optimize_from_tf(
+                torch_model=model,
+                model_params=model_params,
+                metric_drop_ths=metric_drop_ths
+                if quantization_type is not None
+                else None,
+                metric=metric,
+                quantization_type=quantization_type,
+                input_tfms=input_tfms,
+                input_data=input_data,
+                model_outputs=model_outputs,
+            )
+        else:
+            result = optimizer.optimize(
+                model=model,
+                output_library=output_library,
+                model_params=model_params,
+                device=device,
+                metric_drop_ths=metric_drop_ths
+                if quantization_type is not None
+                else None,
+                metric=metric,
+                quantization_type=quantization_type,
+                input_tfms=input_tfms,
+                input_data=input_data,
+                model_outputs=model_outputs,
+            )
+
+        if result is not None:
+            optimized_model, metric_drop = result[0], result[1]
+
+        return optimized_model, metric_drop
+
+
+class OnnxOptimizerStep(OptimizerStep):
+    """Object managing the Optimizers in the pipeline step supporting ONNX
+    as compiler interface. All available optimizers are run on the model given
+    as input and a list of tuples (optimized_model, latency) is given as
+    output.
+
+    """
+
+    def _get_optimizers(
+        self, ignore_compilers: List[ModelCompiler], device: Device
+    ) -> Dict[ModelCompiler, BaseOptimizer]:
+        compilers = select_compilers_from_hardware_onnx(device)
+        optimizers = {
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
+            for compiler in compilers
+            if compiler not in ignore_compilers
+        }
+        return optimizers
+
+    def _run_optimizer(
+        self,
+        optimizer,
+        model: Any,
+        output_library: DeepLearningFramework,
+        model_params: ModelParams,
+        device: Device,
+        input_tfms: MultiStageTransformation = None,
+        metric_drop_ths: float = None,
+        quantization_type: QuantizationType = None,
+        metric: Callable = None,
+        input_data: DataManager = None,
+        model_outputs: Any = None,
+    ) -> Tuple[NumpyBaseInferenceLearner, float]:
+        optimized_model = None
+        metric_drop = 0
+        result = optimizer.optimize(
             model=model,
             output_library=output_library,
             model_params=model_params,
+            device=device,
             metric_drop_ths=metric_drop_ths
             if quantization_type is not None
             else None,
@@ -620,7 +588,11 @@ class OnnxOptimizerStep(OptimizerStep):
             input_data=input_data,
             model_outputs=model_outputs,
         )
-        return optimized_model
+
+        if result is not None:
+            optimized_model, metric_drop = result[0], result[1]
+
+        return optimized_model, metric_drop
 
 
 class Pipeline(Step):
@@ -632,21 +604,18 @@ class Pipeline(Step):
     Attributes:
         pipeline_name: str,
         steps (List): List of Steps composing the pipeline.
-        logger (Logger): Logger defined by the user.
     """
 
-    def __init__(
-        self, pipeline_name: str, steps: List[Step], logger: Logger = None
-    ):
-        super().__init__(logger)
+    def __init__(self, pipeline_name: str, steps: List[Step]):
+        super().__init__()
         self._name = pipeline_name
         self._steps = steps
 
     def run(self, **kwargs) -> Dict:
-        self._log_info(f"Running pipeline: {self.name}")
+        logger.info(f"Running pipeline: {self.name}")
         kwargs["pipeline_name"] = self.name.split("_")[0]
         for step in self._steps:
-            self._log_info(f"Running step: {step.name}")
+            logger.info(f"Running step: {step.name}")
             kwargs = step.run(**kwargs)
         return kwargs
 
@@ -660,32 +629,30 @@ def _get_compressor_step(
     optimization_time: OptimizationTime,
     config_file: Optional[str],
     metric_drop_ths: Optional[float],
-    logger: Optional[Logger],
 ) -> Step:
     if optimization_time is OptimizationTime.CONSTRAINED:
-        return NoCompressionStep(logger=logger)
+        return NoCompressionStep()
     if metric_drop_ths is None:
-        return NoCompressionStep(logger=logger)
-    elif isinstance(model, torch.nn.Module):
-        return TorchCompressorStep(config_file=config_file, logger=logger)
+        return NoCompressionStep()
+    elif isinstance(model, Module):
+        return TorchCompressorStep(config_file=config_file)
     else:  # default is NoCompression
-        return NoCompressionStep(logger=logger)
+        return NoCompressionStep()
 
 
 def _get_optimizer_step(
     model: Any,
-    logger: Optional[Logger],
 ) -> Step:
-    if isinstance(model, torch.nn.Module):
-        return TorchOptimizerStep(logger=logger)
+    if isinstance(model, Module):
+        return TorchOptimizerStep()
     elif isinstance(model, tf.Module) and model is not None:
-        return TFOptimizerStep(logger=logger)
+        return TFOptimizerStep()
     else:
-        return OnnxOptimizerStep(logger=logger)
+        return OnnxOptimizerStep()
 
 
 def _get_pipeline_name(model: Any):
-    if isinstance(model, torch.nn.Module):
+    if isinstance(model, Module):
         return "pytorch_pipeline"
     elif isinstance(model, tf.Module) and model is not None:
         return "tensorflow_pipeline"
@@ -698,7 +665,6 @@ def build_pipeline_from_model(
     optimization_time: OptimizationTime,
     metric_drop_ths: Optional[float],
     config_file: Optional[str],
-    logger: Logger = None,
 ) -> Pipeline:
     """Function for building a pipeline from a model and user-defined
     parameters
@@ -718,15 +684,13 @@ def build_pipeline_from_model(
             possible speed-up.
         config_file (str, optional): Configuration file containing the
             parameters needed for defining the CompressionStep in the pipeline.
-        logger (Logger, optional): Logger defined by the user.
     """
     compressor_step = _get_compressor_step(
-        model, optimization_time, config_file, metric_drop_ths, logger
+        model, optimization_time, config_file, metric_drop_ths
     )
-    optimizer_step = _get_optimizer_step(model, logger)
+    optimizer_step = _get_optimizer_step(model)
     pipeline = Pipeline(
         pipeline_name=_get_pipeline_name(model),
-        logger=logger,
         steps=[compressor_step, optimizer_step],
     )
     return pipeline

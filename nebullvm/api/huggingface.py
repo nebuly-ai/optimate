@@ -12,13 +12,15 @@ from typing import (
 )
 
 import numpy as np
-import torch
 
+from nebullvm.base import Device
 from nebullvm.inference_learners import (
     InferenceLearnerWrapper,
     PytorchBaseInferenceLearner,
     LearnerMetadata,
 )
+
+from nebullvm.optional_modules.torch import torch, Module
 
 try:
     from transformers import (
@@ -44,7 +46,7 @@ def _flatten_outputs(
     return new_outputs
 
 
-class _TransformerWrapper(torch.nn.Module):
+class _TransformerWrapper(Module):
     """Class for wrappering the Transformers and give them an API compatible
     with nebullvm. The class takes and input of the forward method positional
     arguments and transform them in the input dictionaries needed by
@@ -53,7 +55,7 @@ class _TransformerWrapper(torch.nn.Module):
 
     def __init__(
         self,
-        core_model: torch.nn.Module,
+        core_model: Module,
         encoded_input: Dict[str, torch.Tensor],
     ):
         super().__init__()
@@ -86,11 +88,12 @@ def _get_output_structure_from_text(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     tokenizer_args: Dict,
+    device: Device,
 ) -> Tuple[OrderedDict, Type]:
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if device is Device.GPU else "cpu")
     encoded_input = tokenizer([text], **tokenizer_args).to(device)
     output = model(**encoded_input)
     structure = OrderedDict()
@@ -114,10 +117,14 @@ def _get_output_structure_from_text(
 def _get_output_structure_from_dict(
     input_example: Dict,
     model: PreTrainedModel,
+    device: Device,
 ) -> Tuple[OrderedDict, Type]:
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
+    device = torch.device("cuda" if device is Device.GPU else "cpu")
+    input_example.to(device)
+    model.to(device)
     output = model(**input_example)
     structure = OrderedDict()
     if isinstance(output, tuple):
@@ -201,6 +208,9 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
 
     def _save_wrapper_extra_info(self):
         pass
+
+    def get_size(self):
+        return self.core_inference_learner.get_size()
 
     @staticmethod
     def _load_wrapper_extra_info(builder_inputs: Dict) -> Dict:
@@ -340,6 +350,7 @@ class _HFDictDataset(Sequence):
 def convert_hf_model(
     model: PreTrainedModel,
     input_data: List,
+    device: Device,
     tokenizer: Optional[PreTrainedTokenizer] = None,
     tokenizer_args: Optional[Dict] = None,
     batch_size: int = 1,
@@ -355,6 +366,7 @@ def convert_hf_model(
         output_structure, output_type = _get_output_structure_from_dict(
             input_example=input_example,
             model=model,
+            device=device,
         )
         input_data = _HFDictDataset(
             input_data=input_data,
@@ -379,6 +391,7 @@ def convert_hf_model(
             model=model,
             tokenizer=tokenizer,
             tokenizer_args=tokenizer_args,
+            device=device,
         )
         input_example = tokenizer(input_data, **tokenizer_args)
         input_data = _HFTextDataset(

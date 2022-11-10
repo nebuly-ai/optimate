@@ -1,9 +1,14 @@
 import logging
 from pathlib import Path
 import subprocess
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple
 
-from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.base import (
+    DeepLearningFramework,
+    ModelParams,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
@@ -19,6 +24,8 @@ from nebullvm.utils.onnx import (
     get_input_names,
 )
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class OpenVinoOptimizer(BaseOptimizer):
     """Class for compiling the AI models on Intel CPUs using OpenVino."""
@@ -28,13 +35,14 @@ class OpenVinoOptimizer(BaseOptimizer):
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[OpenVinoInferenceLearner]:
+    ) -> Optional[Tuple[OpenVinoInferenceLearner, float]]:
         """Optimize the onnx model with OpenVino.
 
         Args:
@@ -42,6 +50,7 @@ class OpenVinoOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -63,7 +72,7 @@ class OpenVinoOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -123,7 +132,7 @@ class OpenVinoOptimizer(BaseOptimizer):
             with_ys=True
         )
 
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -137,11 +146,10 @@ class OpenVinoOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with openvino gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

@@ -1,4 +1,4 @@
-import warnings
+import logging
 from typing import Tuple, Callable, Any, List
 
 import numpy as np
@@ -6,6 +6,8 @@ import numpy as np
 from nebullvm.base import QuantizationType
 from nebullvm.inference_learners.base import BaseInferenceLearner
 from nebullvm.measure import compute_relative_difference
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 def check_precision(
@@ -16,7 +18,7 @@ def check_precision(
     metric_func: Callable = None,
     ys: List = None,
     aggregation_func: Callable = np.mean,
-) -> bool:
+) -> Tuple[bool, float]:
     metric_func = metric_func or compute_relative_difference
     relative_differences = []
     if ys is None:
@@ -35,7 +37,7 @@ def check_precision(
         )
         relative_differences.append(relative_difference)
     relative_difference = aggregation_func(relative_differences)
-    return relative_difference <= perf_loss_ths
+    return relative_difference <= perf_loss_ths, relative_difference
 
 
 def check_quantization(
@@ -47,7 +49,7 @@ def check_quantization(
             "specify the quantization algorithm too."
         )
     if quantization_type is not None and perf_loss_ths is None:
-        warnings.warn(
+        logger.warning(
             "Got a valid quantization type without any given quantization "
             "threshold. The quantization step will be ignored."
         )

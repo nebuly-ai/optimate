@@ -4,14 +4,14 @@ from tempfile import TemporaryDirectory
 import cpuinfo
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
 )
 from nebullvm.optimizers.openvino import OpenVinoOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
-from nebullvm.utils.general import is_python_version_3_10
+from nebullvm.utils.general import is_python_version_3_10, gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -79,9 +79,10 @@ def test_openvino(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        convert_torch_to_onnx(model, model_params, model_path)
+        device = Device.GPU if gpu_is_available() else Device.CPU
+        convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = OpenVinoOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model_path,
             output_library=output_library,
             model_params=model_params,
@@ -91,6 +92,7 @@ def test_openvino(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, OPENVINO_INFERENCE_LEARNERS[output_library])
 
@@ -102,6 +104,8 @@ def test_openvino(
         assert isinstance(
             loaded_model, OPENVINO_INFERENCE_LEARNERS[output_library]
         )
+
+        assert isinstance(model.get_size(), int)
 
         inputs_example = list(model.get_inputs_example())
         res = model(*inputs_example)

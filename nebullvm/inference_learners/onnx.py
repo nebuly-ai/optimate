@@ -1,20 +1,18 @@
+import logging
+import multiprocessing
 import os
 import shutil
-import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Union, List, Generator, Tuple, Dict, Type
 
 import cpuinfo
 import numpy as np
-import onnx
-import torch
 
-from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.base import DeepLearningFramework, ModelParams, Device
 from nebullvm.config import (
     ONNX_FILENAMES,
     ONNX_PROVIDERS,
-    NO_COMPILER_INSTALLATION,
 )
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -23,34 +21,17 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.optional_modules.onnx import onnx
+from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.optional_modules import tensorflow as tf
 
-try:
-    import onnxruntime as ort
-except ImportError:
-    if NO_COMPILER_INSTALLATION:
-        warnings.warn(
-            "No valid onnxruntime installation found. The compiler will raise "
-            "an error if used."
-        )
-
-        class ort:
-            pass
-
-        setattr(ort, "SessionOptions", None)
-    else:
-        warnings.warn(
-            "No valid onnxruntime installation found. Trying to install it..."
-        )
-        from nebullvm.installers.installers import install_onnxruntime
-
-        install_onnxruntime()
-        import onnxruntime as ort
+logger = logging.getLogger("nebullvm_logger")
 
 
-def _running_on_intel_cpu():
-    if torch.cuda.is_available():
+def _running_on_intel_cpu(use_gpu):
+    if use_gpu:
         return False  # running on GPU
     cpu_info = cpuinfo.get_cpu_info()["brand_raw"].lower()
     if "intel" in cpu_info:
@@ -58,18 +39,18 @@ def _running_on_intel_cpu():
     return False
 
 
-def _get_ort_session_options() -> ort.SessionOptions:
+def _get_ort_session_options(use_gpu) -> ort.SessionOptions:
     sess_options = ort.SessionOptions()
     sess_options.graph_optimization_level = (
         ort.GraphOptimizationLevel.ORT_ENABLE_ALL
     )
-    if not torch.cuda.is_available():
+    if not use_gpu:
         sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
         sess_options.inter_op_num_threads = 1
         sess_options.intra_op_num_threads = max(
             int(
                 os.environ.get("NEBULLVM_THREADS_PER_MODEL")
-                or torch.get_num_threads()
+                or multiprocessing.cpu_count()
             ),
             1,
         )
@@ -94,17 +75,19 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path: Union[str, Path],
         input_names: List[str],
         output_names: List[str],
+        device: Device,
         **kwargs,
     ):
         super().__init__(**kwargs)
         onnx_path = str(onnx_path)
         filename = "/".join(onnx_path.split("/")[-1:])
         dir_path = "/".join(onnx_path.split("/")[:-1])
+        self.device = device
 
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
-        sess_options = _get_ort_session_options()
+        sess_options = _get_ort_session_options(self.device is Device.GPU)
 
-        if _running_on_intel_cpu():
+        if _running_on_intel_cpu(self.device is Device.GPU):
             sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
@@ -113,12 +96,19 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             onnx_path,
             sess_options=sess_options,
             providers=ONNX_PROVIDERS["cuda"]
-            if torch.cuda.is_available()
+            if self.device is Device.GPU
             else ONNX_PROVIDERS["cpu"],
         )
         self._session = ort_session
         self.input_names = input_names
         self.output_names = output_names
+
+    def get_size(self):
+        return sum(
+            os.path.getsize(self.onnx_path.parents[0] / f)
+            for f in os.listdir(self.onnx_path.parents[0])
+            if os.path.isfile(self.onnx_path.parents[0] / f)
+        )
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
@@ -174,7 +164,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             ONNXInferenceLearner: The optimized model.
         """
         if len(kwargs) > 0:
-            warnings.warn(
+            logger.warning(
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )
@@ -182,6 +172,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = path / ONNX_FILENAMES["model_name"]
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
+        device = metadata.device
         if input_tfms is not None:
             input_tfms = MultiStageTransformation.from_dict(
                 metadata.input_tfms
@@ -192,6 +183,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             onnx_path=onnx_path,
             input_names=metadata["input_names"],
             output_names=metadata["output_names"],
+            device=device,
         )
 
     def _predict_arrays(self, input_arrays: Generator[np.ndarray, None, None]):

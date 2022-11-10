@@ -1,19 +1,20 @@
+import logging
 from abc import abstractmethod, ABC
-from logging import Logger
 from pathlib import Path
 from typing import Any, List
 
-import onnx
-from torch.nn import Module
-
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.converters.tensorflow_converters import (
     convert_tf_to_onnx,
     convert_keras_to_onnx,
 )
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
+from nebullvm.optional_modules.onnx import onnx
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import Module
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class BaseConverter(ABC):
@@ -24,9 +25,8 @@ class BaseConverter(ABC):
             be used as model name.
     """
 
-    def __init__(self, model_name: str = None, logger: Logger = None):
+    def __init__(self, model_name: str = None):
         self.model_name = model_name or "temp"
-        self.logger = logger
 
     @abstractmethod
     def convert(
@@ -34,6 +34,7 @@ class BaseConverter(ABC):
         model: Any,
         model_params: ModelParams,
         save_path: Path,
+        device: Device,
         input_data: DataManager = None,
     ):
         raise NotImplementedError
@@ -54,6 +55,7 @@ class ONNXConverter(BaseConverter):
         model: Any,
         model_params: ModelParams,
         save_path: Path,
+        device: Device,
         input_data: DataManager = None,
     ):
         """Convert the input model in ONNX.
@@ -65,6 +67,7 @@ class ONNXConverter(BaseConverter):
                 dynamic axis information.
             save_path (Path): Path to the directory where saving the onnx
                 model.
+            device (Device): Device where the model will be run.
             input_data (DataManager, optional): Custom data provided by user to
                 be used as input for the converter.
 
@@ -78,6 +81,7 @@ class ONNXConverter(BaseConverter):
                 model_params=model_params,
                 output_file_path=save_path / onnx_name,
                 input_data=input_data,
+                device=device,
             )
             return save_path / onnx_name
         elif isinstance(model, tf.Module) and model is not None:
@@ -110,27 +114,29 @@ class CrossConverter(BaseConverter):
         model: Any,
         model_params: ModelParams,
         save_path: Path,
+        device: Device,
         input_data: DataManager = None,
     ) -> List[Any]:
         # TODO: Add cross conversion torch-tf
         onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
         if isinstance(model, Module):
+            logger.info("Converting the torch model to onnx")
             onnx_path = convert_torch_to_onnx(
                 torch_model=model,
                 model_params=model_params,
                 output_file_path=onnx_path,
                 input_data=input_data,
-                logger=self.logger,
+                device=device,
             )
 
             return (
                 [model, str(onnx_path)] if onnx_path is not None else [model]
             )
         elif isinstance(model, tf.Module) and model is not None:
+            logger.info("Converting the tensorflow model to onnx")
             onnx_path = convert_tf_to_onnx(
                 model=model,
                 output_file_path=onnx_path,
-                logger=self.logger,
             )
             return (
                 [model, str(onnx_path)] if onnx_path is not None else [model]
@@ -144,7 +150,7 @@ class CrossConverter(BaseConverter):
                 model_onnx = onnx.load(str(model))
                 onnx.save(model_onnx, str(onnx_path))
             except Exception:
-                self.logger.error(
+                logger.error(
                     "The provided onnx model path is invalid. Please provide"
                     " a valid path to a model in order to use Nebullvm."
                 )

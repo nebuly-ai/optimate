@@ -1,35 +1,11 @@
 from typing import List, Tuple
 
 import numpy as np
-import torch
 
-from nebullvm.config import NO_COMPILER_INSTALLATION
-
-if torch.cuda.is_available():
-    try:
-        import polygraphy
-        from tensorrt import IInt8EntropyCalibrator2
-    except ImportError:
-        import warnings
-
-        if not NO_COMPILER_INSTALLATION:
-            from nebullvm.installers.installers import install_tensor_rt
-
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "Trying to install it from source."
-            )
-            install_tensor_rt()
-            import polygraphy
-            from tensorrt import IInt8EntropyCalibrator2
-        else:
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "It won't be possible to use it in the following steps."
-            )
-            IInt8EntropyCalibrator2 = object
-else:
-    IInt8EntropyCalibrator2 = object
+from nebullvm.optional_modules.tensor_rt import (
+    IInt8EntropyCalibrator2,
+    polygraphy,
+)
 
 
 class TensorRTCalibrator(IInt8EntropyCalibrator2):
@@ -41,13 +17,13 @@ class TensorRTCalibrator(IInt8EntropyCalibrator2):
         self.batches = (x for x in input_data)
 
     def get_batch(self, names):
-        cuda_stream = polygraphy.cuda.Stream()
+        cuda_stream = polygraphy.Stream()
         try:
             data = next(self.batches)
 
             cuda_data = []
             for input_tensor in data:
-                device_array = polygraphy.cuda.DeviceArray()
+                device_array = polygraphy.DeviceArray()
                 device_array.resize(input_tensor.shape)
                 device_array.copy_from(
                     host_buffer=input_tensor, stream=cuda_stream

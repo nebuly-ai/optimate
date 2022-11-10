@@ -6,7 +6,7 @@ This section contains all the available notebooks that show how to leverage nebu
 
 ```python
 import numpy as np
-from nebullvm.api.functions import optimize_model
+from nebullvm import optimize_model
 
 # Load a resnet as example
 # Model was downloaded from here: 
@@ -23,6 +23,13 @@ optimized_model = optimize_model(
 
 # Try the optimized model
 x = np.random.randn(1, 3, 224, 224).astype(np.float32)
+
+## Warmup the model
+## This step is necessary before the latency computation of the 
+## optimized model in order to get reliable results.
+# for _ in range(10):
+#   optimized_model(x)
+
 res_optimized = optimized_model(x)
 ```
 

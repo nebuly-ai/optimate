@@ -3,10 +3,12 @@ import os
 import uuid
 from typing import Tuple, Dict, Optional, Callable, Any
 
-import onnx
-import torch.cuda
-
-from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.base import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import (
     AUTO_TVM_TUNING_OPTION,
     AUTO_TVM_PARAMS,
@@ -24,6 +26,17 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.onnx import onnx
+from nebullvm.optional_modules.torch import torch, Module
+from nebullvm.optional_modules.tvm import (
+    tvm,
+    IRModule,
+    NDArray,
+    XGBTuner,
+    autotvm,
+    relay,
+    ToMixedPrecision,
+)
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
@@ -31,19 +44,7 @@ from nebullvm.utils.onnx import (
 )
 from nebullvm.utils.torch import create_model_inputs_torch
 
-try:
-    import tvm
-    from tvm import IRModule
-    from tvm.runtime.ndarray import NDArray
-    from tvm.autotvm.tuner import XGBTuner
-    from tvm import autotvm
-    import tvm.relay as relay
-    from tvm.relay.transform import ToMixedPrecision
-except ImportError:
-    # TVM is installed in the inference_learner package.
-    # TVM objects needed for avoiding errors:
-    IRModule = object
-    NDArray = object
+logger = logging.getLogger("nebullvm_logger")
 
 
 class ApacheTVMOptimizer(BaseOptimizer):
@@ -51,22 +52,23 @@ class ApacheTVMOptimizer(BaseOptimizer):
 
     def optimize_from_torch(
         self,
-        torch_model: torch.nn.Module,
+        torch_model: Module,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[ApacheTVMInferenceLearner]:
-        self._log(
+    ) -> Optional[Tuple[ApacheTVMInferenceLearner, float]]:
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        target = self._get_target()
+        target = self._get_target(device)
         mod, params = self._build_tvm_model_from_torch(
-            torch_model, model_params
+            torch_model, model_params, device
         )
         if quantization_type is not None:
             if quantization_type is QuantizationType.HALF:
@@ -109,7 +111,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         test_input_data, ys = input_data.get_split("test").get_list(
             with_ys=True
         )
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -123,27 +125,27 @@ class ApacheTVMOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with Pytorch tvm gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop
 
     def optimize(
         self,
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[ApacheTVMInferenceLearner]:
+    ) -> Optional[Tuple[ApacheTVMInferenceLearner, float]]:
         """Optimize the input model with Apache TVM.
 
         Args:
@@ -151,6 +153,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
@@ -170,12 +173,12 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
         check_quantization(quantization_type, metric_drop_ths)
-        target = self._get_target()
+        target = self._get_target(device)
         mod, params = self._build_tvm_model_from_onnx(model, model_params)
         if quantization_type is not None:
             if quantization_type is QuantizationType.HALF:
@@ -212,7 +215,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
         test_input_data, ys = input_data.get_split("test").get_list(
             with_ys=True
         )
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -226,18 +229,17 @@ class ApacheTVMOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with ONNX tvm gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop
 
     @staticmethod
     def _build_tvm_model_from_torch(
-        torch_model: torch.nn.Module, model_params: ModelParams
+        torch_model: Module, model_params: ModelParams, device: Device
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {
             f"input_{i}": (
@@ -251,7 +253,7 @@ class ApacheTVMOptimizer(BaseOptimizer):
                 model_params.batch_size, model_params.input_infos
             )
         )
-        if torch.cuda.is_available():
+        if device is not Device.GPU:
             inputs = tuple(input_.cpu() for input_ in inputs)
             torch_model.cpu()
         with torch.no_grad():
@@ -299,9 +301,8 @@ class ApacheTVMOptimizer(BaseOptimizer):
         return mod
 
     @staticmethod
-    def _get_target() -> str:
-        force_on_cpu = int(os.getenv("TVM_ON_CPU", 0)) > 1
-        if not force_on_cpu and torch.cuda.is_available():
+    def _get_target(device) -> str:
+        if device is Device.GPU:
             return str(tvm.target.cuda())
         else:
             return "llvm"  # run on CPU

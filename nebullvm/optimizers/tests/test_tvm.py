@@ -3,12 +3,13 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from nebullvm.base import DeepLearningFramework, QuantizationType
+from nebullvm.base import DeepLearningFramework, QuantizationType, Device
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.inference_learners.tvm import TVM_INFERENCE_LEARNERS
 from nebullvm.optimizers import ApacheTVMOptimizer
 from nebullvm.optimizers.tests.utils import initialize_model
 from nebullvm.utils.compilers import tvm_is_available
+from nebullvm.utils.general import gpu_is_available
 
 
 @pytest.mark.parametrize(
@@ -68,9 +69,10 @@ def test_tvm_onnx(
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
         model_path = str(model_path / "test_model.onnx")
-        convert_torch_to_onnx(model, model_params, model_path)
+        device = Device.GPU if gpu_is_available() else Device.CPU
+        convert_torch_to_onnx(model, model_params, model_path, device)
         optimizer = ApacheTVMOptimizer()
-        model = optimizer.optimize(
+        model, metric_drop = optimizer.optimize(
             model=model_path,
             output_library=output_library,
             model_params=model_params,
@@ -80,6 +82,7 @@ def test_tvm_onnx(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, TVM_INFERENCE_LEARNERS[output_library])
 
@@ -87,6 +90,8 @@ def test_tvm_onnx(
         model.save(tmp_dir)
         loaded_model = TVM_INFERENCE_LEARNERS[output_library].load(tmp_dir)
         assert isinstance(loaded_model, TVM_INFERENCE_LEARNERS[output_library])
+
+        assert isinstance(model.get_size(), int)
 
         inputs_example = model.get_inputs_example()
         res = model(*inputs_example)
@@ -154,7 +159,8 @@ def test_tvm_torch(
             metric,
         ) = initialize_model(dynamic, metric, output_library)
         optimizer = ApacheTVMOptimizer()
-        model = optimizer.optimize_from_torch(
+        device = Device.GPU if gpu_is_available() else Device.CPU
+        model, metric_drop = optimizer.optimize_from_torch(
             torch_model=model,
             model_params=model_params,
             input_tfms=input_tfms,
@@ -163,6 +169,7 @@ def test_tvm_torch(
             metric=metric,
             input_data=input_data,
             model_outputs=model_outputs,
+            device=device,
         )
         assert isinstance(model, TVM_INFERENCE_LEARNERS[output_library])
 
@@ -170,6 +177,8 @@ def test_tvm_torch(
         model.save(tmp_dir)
         loaded_model = TVM_INFERENCE_LEARNERS[output_library].load(tmp_dir)
         assert isinstance(loaded_model, TVM_INFERENCE_LEARNERS[output_library])
+
+        assert isinstance(model.get_size(), int)
 
         inputs_example = model.get_inputs_example()
         res = model(*inputs_example)

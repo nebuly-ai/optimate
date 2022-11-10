@@ -1,10 +1,13 @@
 import logging
 from copy import deepcopy
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple
 
-import torch
-
-from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.base import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
@@ -19,23 +22,27 @@ from nebullvm.optimizers.quantization.utils import (
     check_quantization,
     check_precision,
 )
+from nebullvm.optional_modules.torch import Module
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class NeuralCompressorOptimizer(BaseOptimizer):
     def optimize(
         self,
-        model: torch.nn.Module,
+        model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[NeuralCompressorInferenceLearner]:
+    ) -> Optional[Tuple[NeuralCompressorInferenceLearner, float]]:
         """Optimize the input model using Intel Neural Compressor Quantization.
 
         Args:
@@ -45,6 +52,7 @@ class NeuralCompressorOptimizer(BaseOptimizer):
             output_library (DeepLearningFramework): Output framework. At the
                 current stage just PYTORCH is supported.
             model_params (ModelParams): Model parameters.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -64,7 +72,7 @@ class NeuralCompressorOptimizer(BaseOptimizer):
         Returns:
             NeuralCompressorInferenceLearner: Model optimized for inference.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -95,7 +103,7 @@ class NeuralCompressorOptimizer(BaseOptimizer):
             with_ys=True
         )
 
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -109,11 +117,10 @@ class NeuralCompressorOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with neural compressor gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

@@ -4,8 +4,9 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.converters import ONNXConverter
+from nebullvm.utils.general import gpu_is_available
 
 
 class TorchTestModel(torch.nn.Module):
@@ -31,9 +32,13 @@ def test_onnx_converter(ai_model):
         input_infos=[{"size": (3, 256, 256), "dtype": "float"}],
         output_sizes=[(2,)],
     )
+    device = Device.GPU if gpu_is_available() else Device.CPU
     converter = ONNXConverter(model_name="test_model")
     with TemporaryDirectory() as tmp_dir:
         converted_model_path = converter.convert(
-            ai_model, model_params=model_params, save_path=Path(tmp_dir)
+            ai_model,
+            model_params=model_params,
+            save_path=Path(tmp_dir),
+            device=device,
         )
         assert converted_model_path.exists()

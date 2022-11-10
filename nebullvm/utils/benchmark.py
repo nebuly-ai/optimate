@@ -4,13 +4,13 @@ from tqdm import tqdm
 from typing import Any, Dict, Type
 
 import numpy as np
-import torch
 
 from nebullvm.api.functions import _check_input_data, _extract_info_from_data
 from nebullvm.base import DeepLearningFramework, ModelParams
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import create_model_inputs_onnx
-from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import create_model_inputs_tf
 from nebullvm.utils.torch import create_model_inputs_torch
 
@@ -65,40 +65,43 @@ class PytorchBenchmark(BaseBenchmark):
     def benchmark(self):
         has_cuda = torch.cuda.is_available()
         device = torch.device("cuda" if has_cuda else "cpu")
-        input_tensors = [tensor.to(device) for tensor in self.input_tensors]
-        batch_size = input_tensors[0].shape[0]
+        input_tensors = [
+            [tensor.to(device) for tensor in tensors]
+            for tensors in self.input_tensors
+        ]
+        batch_size = input_tensors[0][0].shape[0]
+
+        if isinstance(self.model, torch.nn.Module):
+            self.model.to(device).eval()
 
         if isinstance(self.model, torch.nn.Module):
             self.model.to(device).eval()
 
         with torch.no_grad():
-            for _ in tqdm(
+            for i in tqdm(
                 range(self.n_warmup),
                 desc=f"Performing warm up on {self.n_warmup} iterations",
             ):
-                features = self.model(*input_tensors)
+                self.model(
+                    *input_tensors[i % min(self.n_warmup, len(input_tensors))]
+                )
         if has_cuda:
             torch.cuda.synchronize()
         timings = []
         with torch.no_grad():
-            for _ in tqdm(
+            for i in tqdm(
                 range(1, self.n_runs + 1),
                 desc=f"Performing benchmark on {self.n_runs} iterations",
             ):
                 start_time = time.time()
-                features = self.model(*input_tensors)
+                self.model(
+                    *input_tensors[i % min(self.n_runs, len(input_tensors))]
+                )
                 if has_cuda:
                     torch.cuda.synchronize()
                 end_time = time.time()
                 timings.append(end_time - start_time)
 
-        if isinstance(features, tuple):
-            features = features[0]
-
-        print("Input shapes:", [tensor.shape for tensor in input_tensors])
-        print(
-            "Output features shapes:", [feature.shape for feature in features]
-        )
         print(f"Batch size: {batch_size}")
 
         throughput = batch_size / np.mean(timings)
@@ -122,7 +125,9 @@ class NumpyBenchmark(BaseBenchmark):
         raise NotImplementedError
 
 
-def benchmark(model, input_data, random=False, n_warmup=50, n_runs=1000):
+def benchmark(
+    model, input_data, device, random=False, n_warmup=50, n_runs=1000
+):
     """Performs a Benchmark on the input model regardless of the framework it
     was used for implementing it.
 
@@ -157,14 +162,11 @@ def benchmark(model, input_data, random=False, n_warmup=50, n_runs=1000):
 
     if random:
         model_params = _extract_info_from_data(
-            model,
-            input_data,
-            dl_framework,
-            None,
+            model, input_data, dl_framework, None, device
         )
         input_data = _create_model_inputs(dl_framework, model_params)
     else:
-        input_data = list(input_data.get_list(1)[0])
+        input_data = input_data.get_list()
 
     BENCHMARK_FUNCTIONS[dl_framework](
         model=model,

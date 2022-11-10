@@ -1,11 +1,8 @@
-import os
-
-import torch
+from nebullvm.optional_modules.torch import torch
 
 
-VERSION = "0.4.4"
+VERSION = "0.5.0"
 LEARNER_METADATA_FILENAME = "metadata.json"
-NO_COMPILER_INSTALLATION = int(os.getenv("NO_COMPILER_INSTALLATION", "0")) > 0
 ONNX_OPSET_VERSION = 13
 NEBULLVM_DEBUG_FILE = "nebullvm_debug.json"
 
@@ -32,6 +29,7 @@ TVM_FILENAMES = {"engine": "compiled_lib.so"}
 ONNX_FILENAMES = {"model_name": "model.onnx"}
 ONNX_PROVIDERS = {
     "cuda": [
+        "TensorrtExecutionProvider",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
     ],
@@ -78,3 +76,17 @@ COMPRESSOR_LIST = [
     "sparseml",
     "intel_pruning",
 ]
+
+ONNX_MODULES = ["openvino", "tensor_rt"]
+
+TORCH_MODULES = [
+    "deepsparse",
+    "intel_neural_compressor",
+    "tensor_rt",
+    "torch_tensor_rt",
+]
+
+TENSORFLOW_MODULES = []
+HUGGING_FACE_MODULES = []
+
+LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt"]

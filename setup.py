@@ -3,15 +3,12 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
-    "numpy>=1.20.0, <1.23.0",
-    "onnx>=1.10.0",
-    "onnxmltools>=1.11.0",
+    "numpy>=1.20.0",
     "py-cpuinfo>=8.0.0",
     "PyYAML>=6.0",
-    "psutil>=5.9.0",
-    "requests>=2.28.1",
-    "torch>=1.10.0",
-    "tqdm>=4.63.0",
+    "psutil>=5.0.0",
+    "requests>=2.26.0",
+    "tqdm>=4.36.0",
     "packaging>=21.3",
 ]
 
@@ -20,7 +17,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="nebullvm",
-    version="0.4.4",
+    version="0.5.0",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     long_description=long_description,

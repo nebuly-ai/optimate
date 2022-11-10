@@ -1,16 +1,15 @@
+import os
 import shutil
-import warnings
 from abc import ABC
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
 
 import numpy as np
-import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import (
     TVM_FILENAMES,
-    NO_COMPILER_INSTALLATION,
 )
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -19,39 +18,11 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.tvm import Module, GraphModule, tvm
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
-
-try:
-    import tvm
-    from tvm.contrib.graph_executor import GraphModule
-    from tvm.runtime import Module
-except ImportError:
-    # TODO: Remove the False flag for allowing tvm to be installed by
-    #  the Auto-Installer.
-    if False and not NO_COMPILER_INSTALLATION:
-        warnings.warn(
-            "Not found any valid tvm installation. "
-            "TVM will not be available in the following steps."
-        )
-        from nebullvm.installers.installers import install_tvm
-
-        install_tvm()
-        GraphModule = None
-        Module = None
-        warnings.warn(
-            "TVM has been successfully installed, but it won't be available "
-            "until the reset of the python kernel. Please reboot the python "
-            "environment for using TVM optimization."
-        )
-    else:
-        warnings.warn(
-            "Not found any valid tvm installation. "
-            "TVM will not be available in the following steps."
-        )
-        Module = object
-        GraphModule = object
 
 
 class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
@@ -93,6 +64,15 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             if engine_path is not None
             else engine_path
         )
+
+    def get_size(self):
+        with TemporaryDirectory() as tmp_dir:
+            self.save(tmp_dir)
+            return sum(
+                os.path.getsize(Path(tmp_dir) / f)
+                for f in os.listdir(Path(tmp_dir))
+                if os.path.isfile(Path(tmp_dir) / f)
+            )
 
     def _predict_array(
         self, input_arrays: Generator[np.ndarray, None, None]

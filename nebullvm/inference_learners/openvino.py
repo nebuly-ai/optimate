@@ -1,18 +1,16 @@
 import json
+import logging
+import os
 import shutil
-import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
-import cpuinfo
 import numpy as np
-import torch
 
 from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import (
     OPENVINO_FILENAMES,
-    NO_COMPILER_INSTALLATION,
 )
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
@@ -21,41 +19,25 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.openvino import (
+    Core,
+    Model,
+    CompiledModel,
+    InferRequest,
+)
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
 
-try:
-    from openvino.runtime import Core, Model, CompiledModel, InferRequest
-except ImportError:
-    from nebullvm.utils.general import is_python_version_3_10
-
-    if (
-        "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
-        and not is_python_version_3_10()
-        and not NO_COMPILER_INSTALLATION
-    ):
-        warnings.warn(
-            "No valid OpenVino installation has been found. "
-            "Trying to re-install it from source."
-        )
-        from nebullvm.installers.installers import install_openvino
-
-        install_openvino(with_optimization=True)
-        from openvino.runtime import Core, Model, CompiledModel, InferRequest
-    else:
-        warnings.warn(
-            "No Openvino library detected. "
-            "The Openvino Inference learner should not be used."
-        )
-        Model = CompiledModel = InferRequest = object
+logger = logging.getLogger("nebullvm_logger")
 
 
 class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
-    """Model optimized using ApacheTVM.
+    """Model optimized using OpenVINO.
 
     The class cannot be directly instantiated, but implements all the core
-    methods needed for using ApacheTVM at inference time.
+    methods needed for using OpenVINO at inference time.
 
     Attributes:
         network_parameters (ModelParams): The model parameters as batch
@@ -120,6 +102,9 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             model_name=model_name, model_weights=model_weights, **metadata
         )
 
+    def get_size(self):
+        return os.path.getsize(self.weights_file)
+
     @classmethod
     def from_model_name(
         cls,
@@ -145,7 +130,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             input_data (DataManager, optional): User defined data.
         """
         if len(kwargs) > 0:
-            warnings.warn(f"Found extra parameters: {kwargs}")
+            logger.warning(f"Found extra parameters: {kwargs}")
 
         core = Core()
         model = core.read_model(model=model_name, weights=model_weights)

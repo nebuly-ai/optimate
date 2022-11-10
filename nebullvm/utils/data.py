@@ -1,11 +1,13 @@
-import warnings
+import logging
 from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
-import torch
 
 from nebullvm.config import MIN_DIM_INPUT_DATA
+from nebullvm.optional_modules.torch import Dataset
 from nebullvm.utils.onnx import convert_to_numpy
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class DataManager:
@@ -83,7 +85,7 @@ class DataManager:
 
         ys, xs = [], []
         for i in idx:
-            x, y = self[i]
+            x, y = self[i] if len(self[i]) > 1 else (self[i][0], None)
             xs.append(x)
             ys.append(y)
         return xs, ys
@@ -108,9 +110,9 @@ class DataManager:
         n = int(round(len(idx) * split_pct))
 
         if len(self) < MIN_DIM_INPUT_DATA:
-            warnings.warn(
+            logger.warning(
                 f"Not enough data for splitting the DataManager. "
-                f"You should provide at least {MIN_DIM_INPUT_DATA}. "
+                f"You should provide at least {MIN_DIM_INPUT_DATA} "
                 f"data samples to allow a good split between train "
                 f"and test sets. Compression, calibration and precision "
                 f"checks will use the same data."
@@ -122,7 +124,7 @@ class DataManager:
             self.test_idxs = idx[n:]
 
 
-class PytorchDataset(torch.utils.data.Dataset):
+class PytorchDataset(Dataset):
     def __init__(self, input_data: DataManager):
         self.data = input_data
         self.batch_size = input_data[0][0][0].shape[0]

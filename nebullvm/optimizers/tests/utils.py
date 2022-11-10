@@ -12,12 +12,13 @@ from nebullvm.api.functions import (
     _benchmark_original_model,
 )
 from nebullvm.api.huggingface import convert_hf_model
-from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.base import ModelParams, DeepLearningFramework, Device
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
 from nebullvm.converters.torch_converters import convert_torch_to_onnx
 from nebullvm.measure import compute_relative_difference
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.general import gpu_is_available
 
 INPUT_SHAPE = (3, 256, 256)
 OUTPUT_SHAPE = (2,)
@@ -109,7 +110,8 @@ def get_onnx_model(temp_dir: str, dynamic: bool = False):
         model, model_params = _build_dynamic_model()
     else:
         model, model_params = _build_static_model()
-    convert_torch_to_onnx(model, model_params, model_path)
+    device = Device.GPU if gpu_is_available() else Device.CPU
+    convert_torch_to_onnx(model, model_params, model_path, device)
     return model_path, model_params
 
 
@@ -143,6 +145,7 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
 
     text = "Short text you wish to process"
     encoded_input = tokenizer(text, return_tensors="pt")
+    device = Device.GPU if gpu_is_available() else Device.CPU
 
     (
         model,
@@ -150,7 +153,7 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
         input_names,
         output_structure,
         output_type,
-    ) = convert_hf_model(model, [encoded_input])
+    ) = convert_hf_model(model, [encoded_input], device=device)
 
     input_data = DataManager(input_data)
     input_data.split(TRAIN_TEST_SPLIT_RATIO)
@@ -160,18 +163,17 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
         input_data.get_split("test"),
         dl_framework,
         compute_output=True,
+        device=device,
     )
 
     model_path = os.path.join(temp_dir, "test_model.onnx")
 
     model_params = _extract_info_from_data(
-        model,
-        input_data,
-        dl_framework,
-        None,
+        model, input_data, dl_framework, None, device
     )
 
-    convert_torch_to_onnx(model, model_params, model_path, input_data)
+    device = Device.GPU if gpu_is_available() else Device.CPU
+    convert_torch_to_onnx(model, model_params, model_path, device, input_data)
 
     return (
         model_path,
@@ -189,6 +191,7 @@ def initialize_model(
     metric: str,
     output_library: DeepLearningFramework,
 ):
+    device = Device.GPU if gpu_is_available() else Device.CPU
     batch_size = DYNAMIC_BATCH_SIZE if dynamic else STATIC_BATCH_SIZE
 
     if output_library == DeepLearningFramework.PYTORCH:
@@ -239,6 +242,7 @@ def initialize_model(
         input_data.get_split("test"),
         output_library,
         compute_output=True,
+        device=device,
     )
 
     if metric is not None:

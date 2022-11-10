@@ -9,15 +9,22 @@ from typing import Any, Optional
 
 import psutil
 import requests
-import torch.cuda
 from cpuinfo import cpuinfo
 
 from nebullvm.base import (
     DeepLearningFramework,
     ModelCompiler,
     QuantizationType,
+    Device,
 )
 from nebullvm.config import VERSION
+from nebullvm.optional_modules.torch import Module
+from nebullvm.optional_modules.utils import (
+    torch_is_available,
+    tensorflow_is_available,
+)
+from nebullvm.utils.tf import tensorflow_get_gpu_name
+from nebullvm.utils.torch import torch_get_device_name
 
 NEBULLVM_METADATA_PATH = Path.home() / ".nebullvm/collect.json"
 
@@ -35,7 +42,7 @@ def _input_with_timeout(message: str, timeout: int):
 def _read_model_size(model: Any):
     if isinstance(model, str) or isinstance(model, Path):
         size = os.stat(str(model)).st_size
-    elif isinstance(model, torch.nn.Module):
+    elif isinstance(model, Module):
         size = sum(
             param.nelement() * param.element_size()
             for param in model.parameters()
@@ -44,6 +51,17 @@ def _read_model_size(model: Any):
         # we assume it is a tf_model
         size = model.count_params() * 4  # assuming full precision 32 bit
     return f"{round(size * 1e-6, 2)} MB"
+
+
+def _get_gpu_name():
+    if torch_is_available():
+        name = torch_get_device_name()
+    elif tensorflow_is_available():
+        name = tensorflow_get_gpu_name()
+    else:
+        name = "Unknown GPU"
+
+    return name
 
 
 class FeedbackCollector:
@@ -65,8 +83,6 @@ class FeedbackCollector:
             "operative_system": platform.system(),
             "ram": f"{round(psutil.virtual_memory().total * 1e-9, 2)} GB",
         }
-        if torch.cuda.is_available():
-            self._hw_info["gpu"] = torch.cuda.get_device_name(0)
 
     @property
     def is_active(self):
@@ -104,12 +120,16 @@ class FeedbackCollector:
     def _generate_model_id(model_name: str):
         return f"{str(uuid.uuid4())}_{hash(model_name)}"
 
-    def start_collection(self, model: Any, framework: DeepLearningFramework):
+    def start_collection(
+        self, model: Any, framework: DeepLearningFramework, device: Device
+    ):
         if isinstance(model, str) or isinstance(model, Path):
             model_name = str(model)
         else:
             model_name = model.__class__.__name__
 
+        if device is Device.GPU:
+            self._hw_info["gpu"] = _get_gpu_name()
         self._model_id = self._generate_model_id(model_name)
         self._model_info = {
             "model_name": model_name,

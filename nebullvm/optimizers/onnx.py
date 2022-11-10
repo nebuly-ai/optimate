@@ -1,7 +1,12 @@
 import logging
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple
 
-from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.base import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import QUANTIZATION_DATA_NUM, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.inference_learners.onnx import (
     ONNXInferenceLearner,
@@ -16,10 +21,18 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.logger import (
+    save_root_logger_state,
+    load_root_logger_state,
+    raise_logger_level,
+    debug_mode_enabled,
+)
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
 )
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class ONNXOptimizer(BaseOptimizer):
@@ -30,13 +43,14 @@ class ONNXOptimizer(BaseOptimizer):
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[ONNXInferenceLearner]:
+    ) -> Optional[Tuple[ONNXInferenceLearner, float]]:
         """Build the ONNX runtime learner from the onnx model.
 
         Args:
@@ -44,6 +58,7 @@ class ONNXOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -65,7 +80,7 @@ class ONNXOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -75,10 +90,19 @@ class ONNXOptimizer(BaseOptimizer):
             QUANTIZATION_DATA_NUM
         )
 
+        if not debug_mode_enabled():
+            logger_state = save_root_logger_state()
+            raise_logger_level()
+
+        use_gpu = device is Device.GPU
+
         if quantization_type is not None:
             model, input_tfms = quantize_onnx(
-                model, quantization_type, input_tfms, input_data_onnx
+                model, quantization_type, input_tfms, input_data_onnx, use_gpu
             )
+
+        if not debug_mode_enabled():
+            load_root_logger_state(logger_state)
 
         learner = ONNX_INFERENCE_LEARNERS[output_library](
             input_tfms=input_tfms,
@@ -89,12 +113,13 @@ class ONNXOptimizer(BaseOptimizer):
             input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
+            device=device,
         )
 
         test_input_data, ys = input_data.get_split("test").get_list(
             with_ys=True
         )
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -106,13 +131,13 @@ class ONNXOptimizer(BaseOptimizer):
             else compute_relative_difference,
             ys=ys,
         )
+
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with onnxruntime gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

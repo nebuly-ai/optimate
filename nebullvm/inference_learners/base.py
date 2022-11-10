@@ -8,13 +8,13 @@ from tempfile import mkdtemp
 from typing import Union, Dict, Any, List, Optional
 
 import numpy as np
-import torch
 
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.config import LEARNER_METADATA_FILENAME
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.onnx import create_model_inputs_onnx
-from nebullvm.utils.optional_modules import tensorflow as tf
 from nebullvm.utils.tf import create_model_inputs_tf
 from nebullvm.utils.torch import create_model_inputs_torch
 
@@ -26,6 +26,7 @@ class BaseInferenceLearner(ABC):
     network_parameters: ModelParams
     input_tfms: Optional[MultiStageTransformation] = None
     input_data: InitVar[List[Any]] = None
+    device: Device = None
 
     def __post_init__(self, input_data):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
@@ -172,6 +173,9 @@ class BaseInferenceLearner(ABC):
         """
         raise NotImplementedError()
 
+    def get_size(self):
+        raise NotImplementedError()
+
     @abstractmethod
     def get_inputs_example(self):
         """The function returns an example of the input for the optimized
@@ -208,6 +212,7 @@ class LearnerMetadata:
     NAME: str = LEARNER_METADATA_FILENAME
     class_name: str
     module_name: str
+    device: Device
 
     def __init__(
         self,
@@ -258,6 +263,7 @@ class LearnerMetadata:
             module_name=model.__module__,
             network_parameters=model.network_parameters,
             input_tfms=model.input_tfms,
+            device=model.device.value if model.device is not None else None,
             **kwargs,
         )
 

@@ -1,11 +1,10 @@
 from typing import Optional
 
-from torch.jit import ScriptModule
-
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.inference_learners.pytorch import (
     PytorchBackendInferenceLearner,
 )
+from nebullvm.optional_modules.torch import ScriptModule
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 
@@ -16,6 +15,7 @@ class BladeDISCInferenceLearner(PytorchBackendInferenceLearner):
         cls,
         model: ScriptModule,
         network_parameters: ModelParams,
+        device: Device,
         input_tfms: Optional[MultiStageTransformation] = None,
         input_data: DataManager = None,
     ):
@@ -24,4 +24,5 @@ class BladeDISCInferenceLearner(PytorchBackendInferenceLearner):
             network_parameters=network_parameters,
             input_tfms=input_tfms,
             input_data=input_data,
+            device=device,
         )

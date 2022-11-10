@@ -1,11 +1,14 @@
 import logging
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple
 
-import torch
-
-from nebullvm.base import ModelParams, DeepLearningFramework, QuantizationType
+from nebullvm.base import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.converters import ONNXConverter
 from nebullvm.inference_learners.deepsparse import (
@@ -15,6 +18,7 @@ from nebullvm.inference_learners.deepsparse import (
 from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers import BaseOptimizer
 from nebullvm.optimizers.quantization.utils import check_precision
+from nebullvm.optional_modules.torch import Module
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.onnx import (
@@ -22,21 +26,24 @@ from nebullvm.utils.onnx import (
     get_output_names,
 )
 
+logger = logging.getLogger("nebullvm_logger")
+
 
 class DeepSparseOptimizer(BaseOptimizer):
     def optimize(
         self,
-        model: torch.nn.Module,
+        model: Module,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[DeepSparseInferenceLearner]:
-        self._log(
+    ) -> Optional[Tuple[DeepSparseInferenceLearner, float]]:
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
@@ -48,7 +55,7 @@ class DeepSparseOptimizer(BaseOptimizer):
             converter = ONNXConverter(model_name="model_pruned")
             onnx_pruned_path = Path(tmp_dir)
             converter.convert(
-                model, model_params, onnx_pruned_path, input_data
+                model, model_params, onnx_pruned_path, device, input_data
             )
             onnx_pruned_path = str(onnx_pruned_path / "model_pruned.onnx")
 
@@ -64,7 +71,7 @@ class DeepSparseOptimizer(BaseOptimizer):
             with_ys=True
         )
 
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -78,11 +85,10 @@ class DeepSparseOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with deepsparse gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

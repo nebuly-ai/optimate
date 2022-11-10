@@ -1,4 +1,5 @@
 import sys
+import subprocess
 from packaging import version
 from types import ModuleType
 
@@ -24,3 +25,11 @@ def is_python_version_3_10():
         str(sys.version_info.major) + "." + str(sys.version_info.minor)
         == "3.10"
     )
+
+
+def gpu_is_available():
+    try:
+        subprocess.check_output("nvidia-smi")
+        return True
+    except Exception:
+        return False

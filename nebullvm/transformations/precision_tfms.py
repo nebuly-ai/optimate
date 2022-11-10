@@ -1,10 +1,10 @@
 from typing import Any
 
 import numpy as np
-import torch
 
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.transformations.base import BaseTransformation
-from nebullvm.utils.optional_modules import tensorflow as tf
 
 
 class HalfPrecisionTransformation(BaseTransformation):

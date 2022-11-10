@@ -1,5 +1,4 @@
-
-![nebullvm nebuly logo](https://user-images.githubusercontent.com/100476561/180968989-31bebd47-e789-42a5-9a40-71a19c025389.png)
+![nebullvm nebuly logo](https://user-images.githubusercontent.com/28647171/201180136-a1affc2b-c94e-4de9-9267-3f1f81d959a3.png)
 
 
 # **Nebullvm**
@@ -9,7 +8,7 @@
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
 
-![nebullvm 22 08 29-01](https://user-images.githubusercontent.com/83510798/187257757-b6faa90b-450a-4138-8536-67aa09c0fae3.png)
+![nebullvm benchmarks](https://user-images.githubusercontent.com/28647171/201156822-00a307d7-e3b9-4121-aa83-c7d2a167f791.png)
 
 
 
@@ -21,32 +20,51 @@ The core `nebullvm` workflow consists of 3 steps:
 - [x]  **Search**: `nebullvm` automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
 - [x]  **Serve**: finally, `nebullvm` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
 
+
+# Installation
+
+> :warning: **Windows** installation is not supported for now.
+
+> :warning: For **MacOS** with **ARM processors**, please use a conda environment.
+
+Install nebullvm and its base requirements:
+```
+pip install nebullvm
+```
+
+> :warning: If you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
+> on your environment before proceeding to the next step, please install it from this 
+> [link](https://pytorch.org/get-started/locally/). At the moment pytorch 1.13 is not 
+> fully supported by some compilers, for getting the best optimization results we suggest 
+> to use 1.12.1 ([link](https://pytorch.org/get-started/previous-versions/#v1121)).
+
+
+Install the deep learning compilers:
+```
+python -m nebullvm.installers.auto_installer \
+    --frameworks torch onnx tensorflow huggingface \
+    --compilers all
+```
+
+For more details on the installation step, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation).
+
+
 # API quick view
 
 Only a single line of code is needed to get your accelerated model:
 
 ```python
-import torch
-import torchvision.models as models
-from nebullvm.api.functions import optimize_model
+from nebullvm import optimize_model
 
-# Load a resnet as example
-model = models.resnet50()
-
-# Provide an input data for the model
-input_data = [((torch.randn(1, 3, 256, 256), ), torch.tensor([0]))]
-
-# Run nebullvm optimization in one line of code
-optimized_model = optimize_model(
-    model, input_data=input_data, optimization_time="constrained"
-)
-
-# Try the optimized model
-x = torch.randn(1, 3, 256, 256)
-res = optimized_model(x)
+optimized_model = optimize_model(model, input_data=input_data)
 ```
+Checkout how to define the `model` and `input_data` parameters depending on which framework you want to use and how to use the optimized model: 
+[PyTorch](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/pytorch#pytorch-api-quick-view), 
+[HuggingFace](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/huggingface#huggingface-api-quick-view), 
+[TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/tensorflow#tensorflow-api-quick-view), 
+[ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/onnx#onnx-api-quick-view).
 
-For more details, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation) and [Get started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started).
+For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started),  [Nebullvm API](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/nebullvm-api) and [Examples of API options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/examples-of-api-options).
 
 # **How it works**
 
@@ -104,8 +122,7 @@ Don't forget to leave a star ⭐ to support the project and happy acceleration �
     - [x]  Pruning and sparsity
     - [ ]  Quantized-aware training, distillation, layer replacement and low rank compression
 - **Optimizer**
-    - [x]  TensorRT, OpenVINO, ONNX Runtime, TVM, PyTorch, DeepSparse, BladeDisc
-    - [ ]  TFlite, XLA
+    - [x]  TensorRT, OpenVINO, ONNX Runtime, TVM, PyTorch, DeepSparse, BladeDisc, TFlite, XLA
 - **Inference learners**
     - [x]  PyTorch, ONNX, Hugging Face, TensorFlow
     - [ ]  Jax

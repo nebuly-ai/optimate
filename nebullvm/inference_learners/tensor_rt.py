@@ -1,14 +1,15 @@
 import json
-import warnings
+import logging
+import os
 from abc import ABC
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
 
 import numpy as np
-import torch
 
-from nebullvm.base import ModelParams, DeepLearningFramework
-from nebullvm.config import NVIDIA_FILENAMES, NO_COMPILER_INSTALLATION
+from nebullvm.base import ModelParams, DeepLearningFramework, Device
+from nebullvm.config import NVIDIA_FILENAMES
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -16,31 +17,14 @@ from nebullvm.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.tensor_rt import tensorrt as trt, polygraphy
+from nebullvm.optional_modules.torch import torch, ScriptModule
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.optional_modules import tensorflow as tf
 
-if torch.cuda.is_available():
-    try:
-        import tensorrt as trt
-        import polygraphy.cuda
-    except ImportError:
-        if not NO_COMPILER_INSTALLATION:
-            from nebullvm.installers.installers import install_tensor_rt
-
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "Trying to install it from source."
-            )
-            install_tensor_rt()
-            import tensorrt as trt
-            import polygraphy.cuda
-        else:
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "It won't be possible to use it in the following steps."
-            )
+logger = logging.getLogger("nebullvm_logger")
 
 
 class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
@@ -65,6 +49,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         engine: Any,
         input_names: List[str],
         output_names: List[str],
+        device: Device,
         cuda_stream: Any = None,
         nvidia_logger: Any = None,
         **kwargs,
@@ -75,7 +60,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         self.output_names = output_names
         self.cuda_stream = cuda_stream
         self.nvidia_logger = nvidia_logger
-        self._set_cuda_env()
+        self._set_cuda_env(device is Device.GPU)
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         metadata = {
@@ -96,15 +81,15 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         raise NotImplementedError()
 
     @staticmethod
-    def check_env():
-        if not torch.cuda.is_available():
+    def check_env(use_gpu):
+        if not use_gpu:
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
             )
 
-    def _set_cuda_env(self):
-        self.check_env()
+    def _set_cuda_env(self, use_gpu):
+        self.check_env(use_gpu)
         if self.nvidia_logger is None:
             self.nvidia_logger = trt.Logger(trt.Logger.WARNING)
         if self.cuda_stream is None:
@@ -117,6 +102,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
         engine_path: Union[str, Path],
         input_names: List[str],
         output_names: List[str],
+        device: Device,
         nvidia_logger: Any = None,
         cuda_stream: Any = None,
         input_tfms: MultiStageTransformation = None,
@@ -134,6 +120,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
                 tensors.
             output_names (List[str]): Names associated to the model output
                 tensors.
+            device: (Device): Device where the model wil be run.
             cuda_stream (any, optional): Stream used for communication with
                 Nvidia GPUs.
             nvidia_logger (any, optional): Logger used by the Nvidia service
@@ -146,7 +133,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             NvidiaInferenceLearner: The optimized model.
         """
         if kwargs:
-            warnings.warn(
+            logger.warning(
                 f"Debug: Got extra keywords in "
                 f"NvidiaInferenceLearner::from_engine_path: {kwargs}"
             )
@@ -168,6 +155,7 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             nvidia_logger=nvidia_logger,
             cuda_stream=cuda_stream,
             input_data=input_data,
+            device=device,
         )
 
     def _predict_tensors(
@@ -195,6 +183,9 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             buffers[output_idx] = output_ptr
         context.execute_async_v2(buffers, self.stream_ptr)
         self._synchronize_stream()
+
+    def get_size(self):
+        return self.engine.serialize().nbytes
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
@@ -239,8 +230,11 @@ class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
             metadata["input_tfms"] = MultiStageTransformation.from_dict(
                 input_tfms
             )
+        device = Device.GPU
         return cls.from_engine_path(
-            engine_path=path / NVIDIA_FILENAMES["engine"], **metadata
+            engine_path=path / NVIDIA_FILENAMES["engine"],
+            device=device,
+            **metadata,
         )
 
 
@@ -248,17 +242,33 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_optimized.pt"
 
     def __init__(
-        self, torch_model: torch.jit.ScriptModule, dtype: torch.dtype, **kwargs
+        self,
+        torch_model: ScriptModule,
+        dtype: torch.dtype,
+        device: Device,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.model = torch_model.eval()
-        if torch.cuda.is_available():
+        if device is Device.GPU:
             self.model.cuda()
+            self.use_gpu = True
+        else:
+            self.use_gpu = False
         self.dtype = dtype
+
+    def get_size(self):
+        with TemporaryDirectory() as tmp_dir:
+            self.save(tmp_dir)
+            return sum(
+                os.path.getsize(Path(tmp_dir) / f)
+                for f in os.listdir(Path(tmp_dir))
+                if os.path.isfile(Path(tmp_dir) / f)
+            )
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device
-        if torch.cuda.is_available():
+        if self.use_gpu:
             if self.dtype == torch.half:
                 input_tensors = (
                     t.cuda().half() if t.dtype == torch.float32 else t.cuda()
@@ -290,6 +300,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         dtype = (
             torch.float32 if metadata.dtype == "torch.float32" else torch.half
         )
+        device = Device.GPU
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),
@@ -297,6 +308,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
             if metadata.input_tfms is not None
             else None,
             dtype=dtype,
+            device=device,
         )
 
 

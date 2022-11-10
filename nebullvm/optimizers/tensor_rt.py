@@ -1,17 +1,19 @@
 import logging
 import os
 import subprocess
-import warnings
 from pathlib import Path
 from typing import List, Tuple, Optional, Callable, Any
 
 import numpy as np
-import torch
 
-from nebullvm.base import DeepLearningFramework, ModelParams, QuantizationType
+from nebullvm.base import (
+    DeepLearningFramework,
+    ModelParams,
+    QuantizationType,
+    Device,
+)
 from nebullvm.config import (
     NVIDIA_FILENAMES,
-    NO_COMPILER_INSTALLATION,
     TORCH_TENSORRT_PRECISIONS,
     QUANTIZATION_DATA_NUM,
     CONSTRAINED_METRIC_DROP_THS,
@@ -25,96 +27,23 @@ from nebullvm.measure import compute_relative_difference
 from nebullvm.optimizers.base import (
     BaseOptimizer,
 )
+from nebullvm.optional_modules.onnxsim import onnxsim  # noqa F401
 from nebullvm.optimizers.quantization.tensor_rt import TensorRTCalibrator
 from nebullvm.optimizers.quantization.utils import (
     check_precision,
     check_quantization,
 )
+from nebullvm.optional_modules.tensor_rt import tensorrt as trt
+from nebullvm.optional_modules.torch import torch, Module
+from nebullvm.optional_modules.torch_tensorrt import torch_tensorrt
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager, PytorchDataset
-from nebullvm.utils.general import check_module_version
 from nebullvm.utils.onnx import (
     get_input_names,
     get_output_names,
 )
 
-if torch.cuda.is_available():
-    try:
-        import onnxsim  # noqa F401
-    except ImportError:
-        from nebullvm.installers.installers import install_onnx_simplifier
-
-        if not NO_COMPILER_INSTALLATION:
-            warnings.warn(
-                "No ONNX simplifier valid installation has been found. "
-                "Trying to install it from source."
-            )
-            install_onnx_simplifier()
-            try:
-                import onnxsim  # noqa F401
-            except ImportError:
-                warnings.warn(
-                    "No ONNX simplifier valid installation has been found. "
-                    "It won't be possible to use it in the following."
-                )
-        else:
-            warnings.warn(
-                "No ONNX simplifier valid installation has been found. "
-                "It won't be possible to use it in the following."
-            )
-
-    try:
-        import tensorrt as trt
-    except ImportError:
-        from nebullvm.installers.installers import install_tensor_rt
-
-        if not NO_COMPILER_INSTALLATION:
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "Trying to install it from source."
-            )
-            install_tensor_rt()
-            import tensorrt as trt
-        else:
-            warnings.warn(
-                "No TensorRT valid installation has been found. "
-                "It won't be possible to use it in the following."
-            )
-    if check_module_version(torch, min_version="1.12.0"):
-        try:
-            import torch_tensorrt
-        except ImportError:
-            if not NO_COMPILER_INSTALLATION:
-                from nebullvm.installers.installers import (
-                    install_torch_tensor_rt,
-                )
-
-                warnings.warn(
-                    "No Torch TensorRT valid installation has been found. "
-                    "Trying to install it from source."
-                )
-
-                install_torch_tensor_rt()
-
-                # Wrap import inside try/except because installation
-                # may fail until wheel 1.2 will be officially out.
-                try:
-                    import torch_tensorrt
-                except ImportError:
-                    warnings.warn(
-                        "Unable to install Torch TensorRT on this platform. "
-                        "It won't be possible to use it in the following."
-                    )
-            else:
-                warnings.warn(
-                    "No Torch TensorRT valid installation has been found. "
-                    "It won't be possible to use it in the following."
-                )
-    else:
-        warnings.warn(
-            "Torch-TensorRT can be installed only from Pytorch 1.12. "
-            "Please update your Pytorch version."
-        )
+logger = logging.getLogger("nebullvm_logger")
 
 
 class TensorRTOptimizer(BaseOptimizer):
@@ -130,7 +59,7 @@ class TensorRTOptimizer(BaseOptimizer):
         input_data: List[Tuple[np.ndarray, ...]] = None,
     ):
         # -- Build phase --
-        nvidia_logger = trt.Logger(trt.Logger.WARNING)
+        nvidia_logger = trt.Logger(trt.Logger.ERROR)
         builder = trt.Builder(nvidia_logger)
         # create network definition
         network = builder.create_network(
@@ -144,7 +73,7 @@ class TensorRTOptimizer(BaseOptimizer):
         except AttributeError:
             # The method set_memory_pool_limit is not available
             # until TensorRT Release 8.4.1
-            warnings.warn(
+            logger.warning(
                 "Cannot call method set_memory_pool_limit for TensorRT."
                 "Please update TensorRT version."
             )
@@ -172,8 +101,7 @@ class TensorRTOptimizer(BaseOptimizer):
 
         if not success:
             for idx in range(parser.num_errors):
-                if self.logger is not None:
-                    self.logger.debug(parser.get_error(idx))
+                logger.debug(parser.get_error(idx))
             raise ValueError(
                 f"Errors occurred while processing the "
                 f"ONNX file at {onnx_model_path}"
@@ -212,13 +140,14 @@ class TensorRTOptimizer(BaseOptimizer):
         model: str,
         output_library: DeepLearningFramework,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[NvidiaInferenceLearner]:
+    ) -> Optional[Tuple[NvidiaInferenceLearner, float]]:
         """Optimize the input model with TensorRT.
 
         Args:
@@ -226,6 +155,7 @@ class TensorRTOptimizer(BaseOptimizer):
             output_library (str): DL Framework the optimized model will be
                 compatible with.
             model_params (ModelParams): Model parameters.
+            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -247,11 +177,11 @@ class TensorRTOptimizer(BaseOptimizer):
                 will have an interface in the DL library specified in
                 `output_library`.
         """
-        self._log(
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        if not torch.cuda.is_available():
+        if device is not Device.GPU:
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
@@ -262,22 +192,22 @@ class TensorRTOptimizer(BaseOptimizer):
         if quantization_type is QuantizationType.DYNAMIC:
             return None  # Dynamic quantization is not supported on tensorRT
 
-        # Simplify model, otherwise tensor RT won't work on gpt2 and some
-        # other models.
-        simplified_model = model + "_simplified"
-        if not Path(simplified_model).is_file():
-            cmd = [
-                "onnxsim",
-                model,
-                model + "_simplified",
-            ]
-            subprocess.run(cmd)
-
         train_input_data = input_data.get_split("train").get_numpy_list(
             QUANTIZATION_DATA_NUM
         )
 
         try:
+            # Simplify model, otherwise tensor RT won't work on gpt2 and some
+            # other models.
+            simplified_model = model + "_simplified"
+            if not Path(simplified_model).is_file():
+                cmd = [
+                    "onnxsim",
+                    model,
+                    model + "_simplified",
+                ]
+                subprocess.run(cmd, stdout=subprocess.DEVNULL)
+
             # First try with simplified model
             engine_path = (
                 Path(simplified_model).parent / NVIDIA_FILENAMES["engine"]
@@ -313,12 +243,13 @@ class TensorRTOptimizer(BaseOptimizer):
             input_data=list(input_data.get_list(1)[0])
             if input_data is not None
             else None,
+            device=device,
         )
 
         test_input_data, ys = input_data.get_split("test").get_list(
             with_ys=True
         )
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -332,31 +263,31 @@ class TensorRTOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with ONNX tensor RT gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop
 
     def optimize_from_torch(
         self,
-        torch_model: torch.nn.Module,
+        torch_model: Module,
         model_params: ModelParams,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         metric: Callable = None,
         input_data: DataManager = None,
         model_outputs: Any = None,
-    ) -> Optional[PytorchTensorRTInferenceLearner]:
-        self._log(
+    ) -> Optional[Tuple[PytorchTensorRTInferenceLearner, float]]:
+        logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
         )
-        if not torch.cuda.is_available():
+        if device is not Device.GPU:
             raise SystemError(
                 "You are trying to run an optimizer developed for NVidia gpus "
                 "on a machine not connected to any GPU supporting CUDA."
@@ -405,34 +336,35 @@ class TensorRTOptimizer(BaseOptimizer):
         except Exception:
             model = torch.jit.trace(torch_model, input_tensors)
 
-        trt_model = torch_tensorrt.compile(
-            model,
-            inputs=[
-                torch_tensorrt.Input(
-                    tensor.shape,
-                    dtype=torch.half
-                    if (
-                        dtype == torch.half
-                        and tensor.dtype not in [torch.int8, torch.int32]
+        with torch_tensorrt.logging.errors():
+            trt_model = torch_tensorrt.compile(
+                model,
+                inputs=[
+                    torch_tensorrt.Input(
+                        tensor.shape,
+                        dtype=torch.half
+                        if (
+                            dtype == torch.half
+                            and tensor.dtype not in [torch.int8, torch.int32]
+                        )
+                        else tensor.dtype,
                     )
-                    else tensor.dtype,
-                )
-                for tensor in input_tensors
-            ],
-            enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
-            calibrator=calibrator
-            if quantization_type is QuantizationType.STATIC
-            else None,
-            workspace_size=1 << 30,
-            device={
-                "device_type": torch_tensorrt.DeviceType.GPU,
-                "gpu_id": 0,
-                "dla_core": 0,
-                "allow_gpu_fallback": False,
-                "disable_tf32": False,
-            },
-            truncate_long_and_double=True,
-        )
+                    for tensor in input_tensors
+                ],
+                enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
+                calibrator=calibrator
+                if quantization_type is QuantizationType.STATIC
+                else None,
+                workspace_size=1 << 30,
+                device={
+                    "device_type": torch_tensorrt.DeviceType.GPU,
+                    "gpu_id": 0,
+                    "dla_core": 0,
+                    "allow_gpu_fallback": False,
+                    "disable_tf32": False,
+                },
+                truncate_long_and_double=True,
+            )
 
         # Delete calibration cache
         if os.path.exists("calibration.cache"):
@@ -451,6 +383,7 @@ class TensorRTOptimizer(BaseOptimizer):
             input_tfms=input_tfms,
             input_data=input_tensors if input_data is not None else None,
             dtype=dtype,
+            device=device,
         )
 
         test_input_data, ys = input_data.get_split("test").get_list(
@@ -466,7 +399,7 @@ class TensorRTOptimizer(BaseOptimizer):
             for tensors in test_input_data
         ]
 
-        is_valid = check_precision(
+        is_valid, metric_drop = check_precision(
             learner,
             test_input_data,
             model_outputs,
@@ -480,11 +413,10 @@ class TensorRTOptimizer(BaseOptimizer):
         )
         if not is_valid:
             if quantization_type is None:
-                self._log(
+                logger.warning(
                     "The model optimized with Torch-TensorRT gives a "
                     "different result compared with the original model. "
-                    "This compiler will be skipped.",
-                    level=logging.WARNING,
+                    "This compiler will be skipped."
                 )
             return None
-        return learner
+        return learner, metric_drop

@@ -1,46 +1,30 @@
-import cpuinfo
-import warnings
+import logging
+import pickle
 from abc import ABC
 from pathlib import Path
 from typing import Union, Tuple, Dict, Type
 
-import torch.fx
-from torch.quantization.quantize_fx import prepare_fx, convert_fx
-
 from nebullvm.base import DeepLearningFramework, ModelParams
-from nebullvm.config import NO_COMPILER_INSTALLATION
 from nebullvm.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
 )
-from nebullvm.installers.installers import install_intel_neural_compressor
+from nebullvm.optional_modules.neural_compressor import (
+    cfgs_to_fx_cfgs,
+    cfg_to_qconfig,
+)
+from nebullvm.optional_modules.torch import (
+    torch,
+    prepare_fx,
+    convert_fx,
+    Module,
+    GraphModule,
+)
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.torch import save_with_torch_fx, load_with_torch_fx
 
-try:
-    from neural_compressor.adaptor.pytorch import (
-        _cfg_to_qconfig,
-        _cfgs_to_fx_cfgs,
-    )
-except ImportError:
-    import platform
-
-    os_ = platform.system()
-    if (
-        "intel" in cpuinfo.get_cpu_info()["brand_raw"].lower()
-        and not NO_COMPILER_INSTALLATION
-    ):
-        warnings.warn(
-            "No intel neural compressor installation found. "
-            "Trying to install it..."
-        )
-        install_intel_neural_compressor()
-    else:
-        warnings.warn(
-            "No valid intel neural compressor installation found. "
-            "The compiler won't be used in the following."
-        )
+logger = logging.getLogger("nebullvm_logger")
 
 
 class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
@@ -54,13 +38,18 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
 
     def __init__(
         self,
-        model: Union[torch.nn.Module, torch.fx.GraphModule],
-        model_quant: torch.fx.GraphModule,
+        model: Union[Module, GraphModule],
+        model_quant: GraphModule,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.model = model
         self.model_quant = model_quant
+
+    def get_size(self):
+        return len(pickle.dumps(self.model_quant, -1)) + len(
+            pickle.dumps(self.model, -1)
+        )
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
@@ -94,7 +83,7 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
             DeepSparseInferenceLearner: The optimized model.
         """
         if len(kwargs) > 0:
-            warnings.warn(
+            logger.warning(
                 f"No extra keywords expected for the load method. "
                 f"Got {kwargs}."
             )
@@ -108,8 +97,8 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         state_dict = torch.load(path_quant_model)
 
         tune_cfg = state_dict.pop("best_configure")
-        op_cfgs = _cfg_to_qconfig(tune_cfg, tune_cfg["approach"])
-        fx_op_cfgs = _cfgs_to_fx_cfgs(op_cfgs, tune_cfg["approach"])
+        op_cfgs = cfg_to_qconfig(tune_cfg, tune_cfg["approach"])
+        fx_op_cfgs = cfgs_to_fx_cfgs(op_cfgs, tune_cfg["approach"])
         prepare_custom_config_dict = None
         convert_custom_config_dict = None
 

@@ -5,7 +5,7 @@ import tensorflow as tf
 import torch
 from tensorflow.keras.applications.resnet50 import ResNet50
 
-from nebullvm.api.functions import optimize_model
+from nebullvm import optimize_model
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.inference_learners.onnx import TensorflowONNXInferenceLearner
 from nebullvm.inference_learners.openvino import (
@@ -122,11 +122,11 @@ def test_tensorflow_tensorrt():
 @pytest.mark.skipif(
     is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
 )
+@pytest.mark.skipif(
+    "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
+    reason="Openvino is only available for intel processors.",
+)
 def test_tensorflow_openvino():
-    processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
-    if "intel" not in processor:
-        return
-
     model = ResNet50()
     input_data = [
         ((tf.random.normal([1, 224, 224, 3]),), 0) for i in range(100)
@@ -140,6 +140,7 @@ def test_tensorflow_openvino():
             compiler for compiler in COMPILER_LIST if compiler != "openvino"
         ],
         ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
+        device="cpu",
     )
 
     # Try the optimized model

@@ -1,23 +1,30 @@
+import os
+import pickle
 import shutil
 from pathlib import Path
 from typing import Tuple, Union, Dict, Type
 
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, Device
 from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
 from nebullvm.inference_learners import (
     TensorflowBaseInferenceLearner,
     LearnerMetadata,
 )
-from nebullvm.utils.optional_modules import tensorflow as tf
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 
 
 class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
-    def __init__(self, tf_model: tf.Module, **kwargs):
+    def __init__(self, tf_model: tf.Module, device: Device, **kwargs):
         super(TensorflowBackendInferenceLearner, self).__init__(**kwargs)
         self.model = tf_model
+        self.device = device
+
+    def get_size(self):
+        return len(pickle.dumps(self.model, -1))
 
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
-        res = self.model.predict(input_tensors)
+        with tf.device(self.device.value):
+            res = self.model.predict(input_tensors)
         if not isinstance(res, tuple):
             return (res,)
         return res
@@ -38,18 +45,24 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         model = tf.keras.models.load_model(
             path / TENSORFLOW_BACKEND_FILENAMES["tf_model"]
         )
+        device = metadata.device
         return cls(
             tf_model=model,
             network_parameters=network_parameters,
             input_tfms=input_tfms,
+            device=device,
         )
 
 
 class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
-    def __init__(self, tflite_file: str, **kwargs):
+    def __init__(self, tflite_file: str, device: Device, **kwargs):
         super(TFLiteBackendInferenceLearner, self).__init__(**kwargs)
         self._tflite_file = self._store_file(tflite_file)
         self.interpreter = tf.lite.Interpreter(tflite_file)
+        self.device = device
+
+    def get_size(self):
+        return os.path.getsize(self._tflite_file)
 
     def run(self, *input_tensors: tf.Tensor):
         input_details = self.interpreter.get_input_details()
@@ -85,10 +98,12 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
         metadata = LearnerMetadata.read(path)
         network_parameters = ModelParams(**metadata.network_parameters)
         input_tfms = metadata.input_tfms
+        device = metadata.device
         return cls(
             tflite_file=tflite_file,
             network_parameters=network_parameters,
             input_tfms=input_tfms,
+            device=device,
         )
 
 
