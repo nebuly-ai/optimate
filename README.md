@@ -1,5 +1,4 @@
-
-![nebullvm nebuly logo](https://user-images.githubusercontent.com/100476561/180968989-31bebd47-e789-42a5-9a40-71a19c025389.png)
+![nebullvm nebuly logo](https://user-images.githubusercontent.com/28647171/201180136-a1affc2b-c94e-4de9-9267-3f1f81d959a3.png)
 
 
 # **Nebullvm**
@@ -123,8 +122,7 @@ Don't forget to leave a star ‚≠ê to support the project and happy acceleration 
     - [x]  Pruning and sparsity
     - [ ]  Quantized-aware training, distillation, layer replacement and low rank compression
 - **Optimizer**
-    - [x]  TensorRT, OpenVINO, ONNX Runtime, TVM, PyTorch, DeepSparse, BladeDisc
-    - [ ]  TFlite, XLA
+    - [x]  TensorRT, OpenVINO, ONNX Runtime, TVM, PyTorch, DeepSparse, BladeDisc, TFlite, XLA
 - **Inference learners**
     - [x]  PyTorch, ONNX, Hugging Face, TensorFlow
     - [ ]  Jax
