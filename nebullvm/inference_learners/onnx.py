@@ -1,4 +1,5 @@
 import logging
+import multiprocessing
 import os
 import shutil
 from abc import ABC
@@ -43,13 +44,13 @@ def _get_ort_session_options(use_gpu) -> ort.SessionOptions:
     sess_options.graph_optimization_level = (
         ort.GraphOptimizationLevel.ORT_ENABLE_ALL
     )
-    if use_gpu:
+    if not use_gpu:
         sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
         sess_options.inter_op_num_threads = 1
         sess_options.intra_op_num_threads = max(
             int(
                 os.environ.get("NEBULLVM_THREADS_PER_MODEL")
-                or torch.get_num_threads()
+                or multiprocessing.cpu_count()
             ),
             1,
         )
