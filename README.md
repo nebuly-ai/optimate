@@ -65,7 +65,7 @@ Checkout how to define the `model` and `input_data` parameters depending on whic
 [TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/tensorflow#tensorflow-api-quick-view), 
 [ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/onnx#onnx-api-quick-view).
 
-For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started) and [Advanced Options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/advanced-options).
+For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started),  [Nebullvm API](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/nebullvm-api) and [Examples of API options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/examples-of-api-options).
 
 # **How it works**
 
