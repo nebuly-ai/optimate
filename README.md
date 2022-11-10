@@ -9,7 +9,7 @@
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
 
-![nebullvm 22 08 29-01](https://user-images.githubusercontent.com/83510798/187257757-b6faa90b-450a-4138-8536-67aa09c0fae3.png)
+![nebullvm benchmarks](https://user-images.githubusercontent.com/28647171/201156822-00a307d7-e3b9-4121-aa83-c7d2a167f791.png)
 
 
 
@@ -65,7 +65,7 @@ Checkout how to define the `model` and `input_data` parameters depending on whic
 [TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/tensorflow#tensorflow-api-quick-view), 
 [ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/onnx#onnx-api-quick-view).
 
-For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started) and [Advanced Options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/advanced-options).
+For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started),  [Nebullvm API](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/nebullvm-api) and [Examples of API options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/examples-of-api-options).
 
 # **How it works**
 
