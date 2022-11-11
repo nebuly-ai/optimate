@@ -1,4 +1,5 @@
-![nebullvm nebuly AI accelerate inference optimize DeepLearning](https://user-images.githubusercontent.com/100476561/201369769-22a5fd55-62d9-4b7b-88d2-34bd5b478a65.png)
+![nebullvm nebuly AI accelerate inference optimize DeepLearning](https://user-images.githubusercontent.com/38586138/201391643-a80407e5-2c28-409c-90c9-327795cd27e8.png)
+
 
 
 
