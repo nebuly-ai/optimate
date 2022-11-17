@@ -142,6 +142,17 @@ def extract_info_from_torch_data(
             for x in input_row
         ],
     )
+
+    if dynamic_axis is not None:
+        dynamic_axis["inputs"] = [
+            {int(k): v for (k, v) in val.items()}
+            for val in dynamic_axis["inputs"]
+        ]
+        dynamic_axis["outputs"] = [
+            {int(k): v for (k, v) in val.items()}
+            for val in dynamic_axis["outputs"]
+        ]
+
     dynamic_axis = ifnone(
         dynamic_axis,
         _extract_dynamic_axis(
