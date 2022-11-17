@@ -3,7 +3,6 @@ from typing import List
 
 from nebullvm.operations.base import Operation
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.tools.base import ExecutionResult
 
 
 class Optimizer(Operation, abc.ABC):
@@ -12,7 +11,7 @@ class Optimizer(Operation, abc.ABC):
         self.optimized_models = None
 
     @abc.abstractmethod
-    def execute(self, **kwargs) -> ExecutionResult:
+    def execute(self, **kwargs):
         raise NotImplementedError()
 
     @abc.abstractmethod

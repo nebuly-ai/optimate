@@ -2,7 +2,6 @@ import abc
 from typing import Any
 
 from nebullvm.operations.base import Operation
-from nebullvm.tools.base import ExecutionResult
 
 
 class Compiler(Operation, abc.ABC):
@@ -11,7 +10,7 @@ class Compiler(Operation, abc.ABC):
         self.compiled_model = None
 
     @abc.abstractmethod
-    def execute(self, **kwargs) -> ExecutionResult:
+    def execute(self, **kwargs):
         raise NotImplementedError()
 
     @staticmethod

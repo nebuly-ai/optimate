@@ -1,5 +1,4 @@
 from nebullvm.operations.base import Operation
-from nebullvm.tools.base import ExecutionResult
 
 
 class Quantizer(Operation):
@@ -7,7 +6,7 @@ class Quantizer(Operation):
         super().__init__()
         self.quantized_model = None
 
-    def execute(self, **kwargs) -> ExecutionResult:
+    def execute(self, **kwargs):
         raise NotImplementedError()
 
     def is_result_available(self) -> bool:

@@ -5,7 +5,7 @@ from typing import Optional
 from nebullvm.base import ModelParams, Device
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.torch import convert_torch_to_onnx
-from nebullvm.tools.base import ExecutionResult, DeepLearningFramework, Status
+from nebullvm.tools.base import DeepLearningFramework
 
 
 class Converter(Operation, abc.ABC):
@@ -28,7 +28,7 @@ class Converter(Operation, abc.ABC):
         return self
 
     @abc.abstractmethod
-    def execute(self, **kwargs) -> ExecutionResult:
+    def execute(self, **kwargs):
         raise NotImplementedError()
 
     def is_result_available(self) -> bool:
@@ -47,7 +47,6 @@ class PytorchConverter(Converter):
         for framework in self.DEST_FRAMEWORKS:
             if framework is DeepLearningFramework.NUMPY:
                 self.onnx_conversion(save_path, model_params, device)
-                return ExecutionResult(Status.OK, None)
             else:
                 raise NotImplementedError()
 

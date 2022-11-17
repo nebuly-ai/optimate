@@ -1,13 +1,11 @@
 from typing import Any, Union, Iterable, Sequence
 
 from nebullvm.operations.base import Operation
-from nebullvm.tools.base import ExecutionResult, Status
 
 
 class FetchModelFromLocal(Operation):
-    def execute(self, model: Any) -> ExecutionResult:
+    def execute(self, model: Any):
         self.state["model"] = model
-        return ExecutionResult(Status.OK, None)
 
     def get_model(self) -> any:
         return self.state.get("model")
@@ -17,9 +15,8 @@ class FetchModelFromLocal(Operation):
 
 
 class FetchDataFromLocal(Operation):
-    def execute(self, data: Union[Iterable, Sequence]) -> ExecutionResult:
+    def execute(self, data: Union[Iterable, Sequence]):
         self.state["data"] = data
-        return ExecutionResult(Status.OK, None)
 
     def get_data(self) -> any:
         return self.state.get("data")

@@ -25,7 +25,7 @@ from nebullvm.operations.measures.measures import LatencyOriginalModelMeasure
 from nebullvm.operations.optimizations.optimizers import PytorchOptimizer
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import Module
-from nebullvm.tools.base import ExecutionResult, DeepLearningFramework
+from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.utils.data import DataManager
 from nebullvm.utils.general import gpu_is_available
 from nebullvm.utils.onnx import (
@@ -167,7 +167,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
         ignore_compressors: List[str] = None,
         store_latencies: bool = False,
         device: Optional[str] = None,
-    ) -> ExecutionResult:
+    ):
         if self.fetch_model_op.get_model() is None:
             self.fetch_model_op.execute(model)
         if self.fetch_data_op.get_data() is None:

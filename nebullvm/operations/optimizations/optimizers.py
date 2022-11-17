@@ -15,7 +15,6 @@ from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.pytorch import (
     PytorchBackendCompiler,
 )
-from nebullvm.tools.base import ExecutionResult
 from nebullvm.transformations.base import MultiStageTransformation
 
 
@@ -118,7 +117,7 @@ class TensorflowOptimizer(Optimizer):
     def _get_compilers(self) -> List[Compiler]:
         pass
 
-    def execute(self, **kwargs) -> ExecutionResult:
+    def execute(self, **kwargs):
         pass
 
 
@@ -126,5 +125,5 @@ class OnnxOptimizer(Optimizer):
     def _get_compilers(self) -> List[Compiler]:
         pass
 
-    def execute(self, **kwargs) -> ExecutionResult:
+    def execute(self, **kwargs):
         pass

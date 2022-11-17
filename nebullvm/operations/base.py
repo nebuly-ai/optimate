@@ -2,8 +2,6 @@ import abc
 import logging
 from typing import Dict
 
-from nebullvm.tools.base import ExecutionResult
-
 
 class Operation(abc.ABC):
     def __init__(self):
@@ -12,7 +10,7 @@ class Operation(abc.ABC):
         self.logger = logging.getLogger("nebullvm_logger")
 
     @abc.abstractmethod
-    def execute(self, **kwargs) -> ExecutionResult:
+    def execute(self, **kwargs):
         raise NotImplementedError()
 
     @abc.abstractmethod
