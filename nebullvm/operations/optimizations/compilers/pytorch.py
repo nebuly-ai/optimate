@@ -21,6 +21,16 @@ from nebullvm.utils.data import DataManager
 
 
 class PytorchBackendCompiler(Compiler):
+    supported_ops = {
+        "cpu": [None, QuantizationType.STATIC, QuantizationType.DYNAMIC],
+        "gpu": [
+            None,
+            QuantizationType.STATIC,
+            QuantizationType.HALF,
+            QuantizationType.DYNAMIC,
+        ],
+    }
+
     def __init__(self):
         super().__init__()
         self.quantization_op = PytorchQuantizer()
@@ -29,7 +39,6 @@ class PytorchBackendCompiler(Compiler):
         self,
         model: Module,
         input_data: DataManager,
-        device: Device,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -43,7 +52,6 @@ class PytorchBackendCompiler(Compiler):
                 modifications to the original model, it will be copied in the
                 method.
             input_data (DataManager): User defined data. Default: None.
-            device: (Device): Device where the model will be run.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -61,6 +69,11 @@ class PytorchBackendCompiler(Compiler):
         Returns:
             PytorchBackendInferenceLearner: Model optimized for inference.
         """
+
+        if quantization_type not in self.supported_ops[self.device.value]:
+            self.compiled_model = None
+            return
+
         self.logger.info(
             f"Optimizing with {self.__class__.__name__} and "
             f"q_type: {quantization_type}."
@@ -72,20 +85,19 @@ class PytorchBackendCompiler(Compiler):
         )
 
         if quantization_type is not None:
-            self.quantization_op.execute(
-                model, quantization_type, input_tfms, train_input_data, device
+            self.quantization_op.to(self.device).execute(
+                model, quantization_type, input_tfms, train_input_data
             )
-            model = self.quantization_op.quantized_model
+            model = self.quantization_op.get_result()
 
-        self.compiled_model = self.compile_model(model, input_data, device)
+        self.compiled_model = self.compile_model(model, input_data)
 
-    @staticmethod
     def compile_model(
+        self,
         model: Union[Module, GraphModule],
         input_data: DataManager,
-        device: Device,
     ) -> ScriptModule:
-        if device is Device.GPU:
+        if self.device is Device.GPU:
             input_data = [t.cuda() for t in input_data]
 
         if not isinstance(model, torch.fx.GraphModule):

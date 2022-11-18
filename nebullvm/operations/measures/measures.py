@@ -2,7 +2,6 @@ from typing import List, Tuple, Any, Callable, Dict, Optional
 
 import numpy as np
 
-from nebullvm.base import Device
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.inference_learners import BaseInferenceLearner
 from nebullvm.measure import (
@@ -81,14 +80,13 @@ class LatencyOriginalModelMeasure(Measure):
         model: Any,
         input_data: DataManager,
         dl_framework: DeepLearningFramework,
-        device: Device,
     ):
         self.logger.info("Benchmark performance of original model")
 
         self.outputs = [
             tuple(
                 COMPUTE_OUTPUT_FRAMEWORK[dl_framework](
-                    model, list(input_tensors[0]), device
+                    model, list(input_tensors[0]), self.device
                 )
             )
             for input_tensors in input_data
@@ -96,7 +94,7 @@ class LatencyOriginalModelMeasure(Measure):
 
         inputs = input_data.get_list(QUANTIZATION_DATA_NUM)
         self.measure_result, _ = COMPUTE_LATENCY_FRAMEWORK[dl_framework](
-            inputs, model, device
+            inputs, model, self.device
         )
         self.logger.info(
             f"Original model latency: {self.measure_result} sec/iter"

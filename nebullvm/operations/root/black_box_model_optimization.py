@@ -27,7 +27,6 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import Module
 from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.general import gpu_is_available
 from nebullvm.utils.onnx import (
     extract_info_from_np_data,
     get_output_sizes_onnx,
@@ -114,32 +113,6 @@ def _get_dl_framework(model: Any):
         raise TypeError(f"Model type {type(model)} not supported.")
 
 
-def _check_device(device: Optional[str]) -> Device:
-    if device is None:
-        if gpu_is_available():
-            device = Device.GPU
-        else:
-            device = Device.CPU
-    else:
-        if device.lower() == "gpu":
-            if not gpu_is_available():
-                logger.warning(
-                    "Selected GPU device but no available GPU found on this "
-                    "platform. CPU will be used instead. Please make sure "
-                    "that the gpu is installed and can be used by your "
-                    "framework."
-                )
-                device = Device.CPU
-            else:
-                device = Device.GPU
-        else:
-            device = Device.CPU
-
-    logger.info(f"Running Nebullvm optimization on {device.name}")
-
-    return device
-
-
 class BlackBoxModelOptimizationRootOp(Operation):
     def __init__(self):
         super().__init__()
@@ -166,8 +139,11 @@ class BlackBoxModelOptimizationRootOp(Operation):
         ignore_compilers: List[str] = None,
         ignore_compressors: List[str] = None,
         store_latencies: bool = False,
-        device: Optional[str] = None,
     ):
+        self.logger.info(
+            f"Running Black Box Nebullvm Optimization on {self.device.name}"
+        )
+
         if self.fetch_model_op.get_model() is None:
             self.fetch_model_op.execute(model)
         if self.fetch_data_op.get_data() is None:
@@ -184,7 +160,6 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 else:
                     self.data = DataManager.from_iterable(input_data)
 
-            device = _check_device(device)
             dl_framework = _get_dl_framework(self.model)
 
             if metric_drop_ths is not None and metric_drop_ths <= 0:
@@ -199,17 +174,16 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 input_data=self.data,
                 dl_framework=dl_framework,
                 dynamic_info=dynamic_info,
-                device=device,
+                device=self.device,
             )
 
             self.data.split(TRAIN_TEST_SPLIT_RATIO)
 
             # Benchmark original model
-            self.orig_latency_measure_op.execute(
+            self.orig_latency_measure_op.to(self.device).execute(
                 model=self.model,
                 input_data=self.data.get_split("test"),
                 dl_framework=dl_framework,
-                device=device,
             )
 
             with TemporaryDirectory() as tmp_dir:
@@ -217,35 +191,46 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 tmp_dir.mkdir(parents=True, exist_ok=True)
 
                 # Convert model to all available frameworks
-                self.conversion_op.set_state(self.model, self.data).execute(
+                self.conversion_op.to(self.device).set_state(
+                    self.model, self.data
+                ).execute(
                     save_path=tmp_dir,
                     model_params=model_params,
-                    device=device,
                 )
 
-                if dl_framework is DeepLearningFramework.PYTORCH:
-                    if (
-                        self.conversion_op.get_result() is not None
-                        and self.orig_latency_measure_op.get_result()
-                        is not None
-                    ):
-                        model_outputs = (
-                            self.orig_latency_measure_op.get_result()[0]
-                        )
-                        # orig_latency = (
-                        #     self.orig_latency_measure_op.get_result()[1]
-                        # )
-                        self.optimization_op.execute(
-                            model=self.model,
-                            input_data=self.data,
-                            optimization_time=optimization_time,
-                            metric_drop_ths=metric_drop_ths,
-                            metric=metric,
-                            model_params=model_params,
-                            model_outputs=model_outputs,
-                            device=device,
-                        )
-                    optimized_models = self.optimization_op.optimized_models
+                optimized_models = []
+                if self.conversion_op.get_result() is not None:
+                    for model in self.conversion_op.get_result():
+                        if (
+                            self.orig_latency_measure_op.get_result()
+                            is not None
+                        ):
+                            model_outputs = (
+                                self.orig_latency_measure_op.get_result()[0]
+                            )
+                            # orig_latency = (
+                            #     self.orig_latency_measure_op.get_result()[1]
+                            # )
+                            if isinstance(model, Module):
+                                self.optimization_op.to(self.device).execute(
+                                    model=model,
+                                    input_data=self.data,
+                                    optimization_time=optimization_time,
+                                    metric_drop_ths=metric_drop_ths,
+                                    metric=metric,
+                                    model_params=model_params,
+                                    model_outputs=model_outputs,
+                                )
+                                optimized_models += (
+                                    self.optimization_op.get_result()
+                                )
+                            elif (
+                                isinstance(model, tf.Module)
+                                and model is not None
+                            ):
+                                pass
+                            else:
+                                pass
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
             self.optimal_model = optimized_models[0][0]

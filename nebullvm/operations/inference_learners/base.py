@@ -14,4 +14,4 @@ class BuildInferenceLearner(Operation, abc.ABC):
         raise NotImplementedError()
 
     def get_result(self) -> Any:
-        pass
+        return self.inference_learner

@@ -37,7 +37,6 @@ class PytorchOptimizer(Optimizer):
         metric,
         model_params,
         model_outputs,
-        device,
     ):
 
         if metric_drop_ths is not None:
@@ -57,10 +56,9 @@ class PytorchOptimizer(Optimizer):
         # TODO: extend this to call all compressors and all compilers
         for q_type in q_types:
             try:
-                self.compiler_op.execute(
+                self.compiler_op.to(self.device).execute(
                     model=model,
                     input_data=input_data,
-                    device=device,
                     metric_drop_ths=metric_drop_ths
                     if q_type is not None
                     else None,
@@ -68,48 +66,52 @@ class PytorchOptimizer(Optimizer):
                     input_tfms=input_tfms,
                 )
 
-                compiled_model = self.compiler_op.compiled_model
-                self.build_inference_learner_op.execute(
-                    compiled_model, model_params, device
-                )
-                inference_learner = (
-                    self.build_inference_learner_op.inference_learner
-                )
-
-                if inference_learner is not None:
-                    test_input_data, ys = input_data.get_split(
-                        "test"
-                    ).get_list(with_ys=True)
-
-                    self.validity_check_op.execute(
-                        inference_learner,
-                        test_input_data,
-                        model_outputs,
-                        metric_drop_ths
-                        if q_type is not None
-                        else CONSTRAINED_METRIC_DROP_THS,
-                        metric_func=metric
-                        if q_type is not None
-                        else compute_relative_difference,
-                        ys=ys,
+                compiled_model = self.compiler_op.get_result()
+                if compiled_model is not None:
+                    self.build_inference_learner_op.to(self.device).execute(
+                        model=compiled_model,
+                        model_params=model_params,
+                        input_tfms=input_tfms,
+                    )
+                    inference_learner = (
+                        self.build_inference_learner_op.get_result()
                     )
 
-                    if self.validity_check_op.valid:
-                        latency = compute_optimized_running_time(
-                            inference_learner, input_data
+                    if inference_learner is not None:
+                        test_input_data, ys = input_data.get_split(
+                            "test"
+                        ).get_list(with_ys=True)
+
+                        self.validity_check_op.execute(
+                            inference_learner,
+                            test_input_data,
+                            model_outputs,
+                            metric_drop_ths
+                            if q_type is not None
+                            else CONSTRAINED_METRIC_DROP_THS,
+                            metric_func=metric
+                            if q_type is not None
+                            else compute_relative_difference,
+                            ys=ys,
                         )
-                        self.logger.info(
-                            f"Optimized model latency: {latency} sec/iter"
-                        )
-                        self.optimized_models.append(
-                            (
-                                inference_learner,
-                                latency,
-                                self.validity_check_op.measure_result,
+
+                        if self.validity_check_op.valid:
+                            latency = compute_optimized_running_time(
+                                inference_learner, input_data
                             )
-                        )
-            except Exception:
+                            self.logger.info(
+                                f"Optimized model latency: {latency} sec/iter"
+                            )
+                            self.optimized_models.append(
+                                (
+                                    inference_learner,
+                                    latency,
+                                    self.validity_check_op.measure_result,
+                                )
+                            )
+            except Exception as e:
                 # TODO: print error message
+                raise (e)
                 continue
 
 

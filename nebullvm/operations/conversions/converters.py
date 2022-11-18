@@ -2,7 +2,7 @@ import abc
 from pathlib import Path
 from typing import Optional, List
 
-from nebullvm.base import ModelParams, Device
+from nebullvm.base import ModelParams
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.torch import convert_torch_to_onnx
 from nebullvm.tools.base import DeepLearningFramework
@@ -42,11 +42,11 @@ class PytorchConverter(Converter):
         self,
         save_path: Path,
         model_params: ModelParams,
-        device: Device,
     ):
+        self.converted_models = [self.model]
         for framework in self.DEST_FRAMEWORKS:
             if framework is DeepLearningFramework.NUMPY:
-                self.onnx_conversion(save_path, model_params, device)
+                self.onnx_conversion(save_path, model_params, self.device)
             else:
                 raise NotImplementedError()
 

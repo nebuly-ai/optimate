@@ -1,10 +1,13 @@
 import abc
-from typing import Any
+from typing import Any, Dict, List, Optional
 
+from nebullvm.base import QuantizationType
 from nebullvm.operations.base import Operation
 
 
 class Compiler(Operation, abc.ABC):
+    supported_ops: Dict[str, List[Optional[QuantizationType]]]
+
     def __init__(self):
         super().__init__()
         self.compiled_model = None
@@ -13,8 +16,8 @@ class Compiler(Operation, abc.ABC):
     def execute(self, **kwargs):
         raise NotImplementedError()
 
-    @staticmethod
-    def compile_model(**kwargs) -> Any:
+    @abc.abstractmethod
+    def compile_model(self, **kwargs) -> Any:
         raise NotImplementedError()
 
     def get_result(self) -> Any:

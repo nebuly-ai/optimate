@@ -150,7 +150,6 @@ class PytorchQuantizer(Quantizer):
         quantization_type: QuantizationType,
         input_tfms: MultiStageTransformation,
         input_data_torch: List[Tuple[torch.Tensor, ...]],
-        device: Device,
     ):
         model = copy.deepcopy(model).eval()
 
@@ -161,15 +160,15 @@ class PytorchQuantizer(Quantizer):
 
         if quantization_type is QuantizationType.HALF:
             input_tfms.append(HalfPrecisionTransformation())
-            self.quantized_model, _ = _half_precision(model), input_tfms
+            self.quantized_model = _half_precision(model)
         elif quantization_type is QuantizationType.STATIC:
             self.quantized_model, _ = (
-                _quantize_static(model, input_data_torch, device),
+                _quantize_static(model, input_data_torch, self.device),
                 input_tfms,
             )
         elif quantization_type is QuantizationType.DYNAMIC:
             self.quantized_model, _ = (
-                _quantize_dynamic(model, input_data_torch, device),
+                _quantize_dynamic(model, input_data_torch, self.device),
                 input_tfms,
             )
         else:
