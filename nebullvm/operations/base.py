@@ -1,6 +1,6 @@
 import abc
 import logging
-from typing import Dict
+from typing import Dict, Any
 
 
 class Operation(abc.ABC):
@@ -14,7 +14,7 @@ class Operation(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def is_result_available(self) -> bool:
+    def get_result(self) -> Any:
         raise NotImplementedError()
 
     @property

@@ -10,7 +10,7 @@ class FetchModelFromLocal(Operation):
     def get_model(self) -> any:
         return self.state.get("model")
 
-    def is_result_available(self) -> bool:
+    def get_result(self) -> Any:
         pass
 
 
@@ -21,5 +21,5 @@ class FetchDataFromLocal(Operation):
     def get_data(self) -> any:
         return self.state.get("data")
 
-    def is_result_available(self) -> bool:
+    def get_result(self) -> Any:
         pass

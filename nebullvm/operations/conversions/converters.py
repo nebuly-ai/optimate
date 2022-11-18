@@ -1,6 +1,6 @@
 import abc
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from nebullvm.base import ModelParams, Device
 from nebullvm.operations.base import Operation
@@ -31,8 +31,8 @@ class Converter(Operation, abc.ABC):
     def execute(self, **kwargs):
         raise NotImplementedError()
 
-    def is_result_available(self) -> bool:
-        return self.converted_models is not None
+    def get_result(self) -> List:
+        return self.converted_models
 
 
 class PytorchConverter(Converter):

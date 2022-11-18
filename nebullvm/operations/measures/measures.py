@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any, Callable, Dict
+from typing import List, Tuple, Any, Callable, Dict, Optional
 
 import numpy as np
 
@@ -67,8 +67,8 @@ class PrecisionMeasure(Measure):
         self.valid = relative_difference <= perf_loss_ths
         self.measure_result = relative_difference
 
-    def is_result_available(self) -> bool:
-        return self.valid is not None and self.measure_result is not None
+    def get_result(self) -> Tuple:
+        return self.valid, self.measure_result
 
 
 class LatencyOriginalModelMeasure(Measure):
@@ -102,5 +102,8 @@ class LatencyOriginalModelMeasure(Measure):
             f"Original model latency: {self.measure_result} sec/iter"
         )
 
-    def is_result_available(self) -> bool:
-        return self.outputs is not None and self.measure_result is not None
+    def get_result(self) -> Optional[Tuple]:
+        if self.outputs is not None and self.measure_result is not None:
+            return self.outputs, self.measure_result
+        else:
+            return None

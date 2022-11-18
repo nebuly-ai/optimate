@@ -18,5 +18,5 @@ class Optimizer(Operation, abc.ABC):
     def _get_compilers(self) -> List[Compiler]:
         raise NotImplementedError()
 
-    def is_result_available(self) -> bool:
-        return self.optimized_models is not None
+    def get_result(self) -> List:
+        return self.optimized_models

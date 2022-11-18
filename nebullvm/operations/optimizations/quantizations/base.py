@@ -1,3 +1,5 @@
+from typing import Any
+
 from nebullvm.operations.base import Operation
 
 
@@ -9,5 +11,5 @@ class Quantizer(Operation):
     def execute(self, **kwargs):
         raise NotImplementedError()
 
-    def is_result_available(self) -> bool:
-        return self.quantized_model is not None
+    def get_result(self) -> Any:
+        return self.quantized_model

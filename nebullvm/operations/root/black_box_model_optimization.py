@@ -211,8 +211,6 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 dl_framework=dl_framework,
                 device=device,
             )
-            model_outputs = self.orig_latency_measure_op.outputs
-            # orig_latency = self.orig_latency_measure_op.measure_result
 
             with TemporaryDirectory() as tmp_dir:
                 tmp_dir = Path(tmp_dir) / "fp32"
@@ -226,7 +224,17 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 )
 
                 if dl_framework is DeepLearningFramework.PYTORCH:
-                    if self.conversion_op.is_result_available():
+                    if (
+                        self.conversion_op.get_result() is not None
+                        and self.orig_latency_measure_op.get_result()
+                        is not None
+                    ):
+                        model_outputs = (
+                            self.orig_latency_measure_op.get_result()[0]
+                        )
+                        # orig_latency = (
+                        #     self.orig_latency_measure_op.get_result()[1]
+                        # )
                         self.optimization_op.execute(
                             model=self.model,
                             input_data=self.data,
@@ -240,8 +248,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                     optimized_models = self.optimization_op.optimized_models
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
-
             self.optimal_model = optimized_models[0][0]
 
-    def is_result_available(self) -> bool:
-        return self.optimal_model is not None
+    def get_result(self) -> Any:
+        return self.optimal_model

@@ -17,5 +17,5 @@ class Compiler(Operation, abc.ABC):
     def compile_model(**kwargs) -> Any:
         raise NotImplementedError()
 
-    def is_result_available(self) -> bool:
-        return self.compiled_model is not None
+    def get_result(self) -> Any:
+        return self.compiled_model

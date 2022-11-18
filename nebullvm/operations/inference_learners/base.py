@@ -1,4 +1,5 @@
 import abc
+from typing import Any
 
 from nebullvm.operations.base import Operation
 
@@ -12,5 +13,5 @@ class BuildInferenceLearner(Operation, abc.ABC):
     def execute(self, **kwargs):
         raise NotImplementedError()
 
-    def is_result_available(self) -> bool:
+    def get_result(self) -> Any:
         pass
