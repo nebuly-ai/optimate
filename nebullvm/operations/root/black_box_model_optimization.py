@@ -15,6 +15,7 @@ from typing import (
 from nebullvm.api.utils import QUANTIZATION_METRIC_MAP
 from nebullvm.base import Device, ModelParams
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
+from nebullvm.inference_learners import BaseInferenceLearner
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.converters import PytorchConverter
 from nebullvm.operations.fetch_operations.local import (
@@ -22,7 +23,7 @@ from nebullvm.operations.fetch_operations.local import (
     FetchDataFromLocal,
 )
 from nebullvm.operations.measures.measures import LatencyOriginalModelMeasure
-from nebullvm.operations.optimizations.optimizers import PytorchOptimizer
+from nebullvm.operations.optimizations.optimizers import PytorchOptimizer, ONNXOptimizer
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import Module
 from nebullvm.tools.base import DeepLearningFramework
@@ -125,7 +126,8 @@ class BlackBoxModelOptimizationRootOp(Operation):
         self.fetch_data_op = FetchDataFromLocal()
         self.orig_latency_measure_op = LatencyOriginalModelMeasure()
         self.conversion_op = PytorchConverter()
-        self.optimization_op = PytorchOptimizer()
+        self.torch_optimization_op = PytorchOptimizer()
+        self.onnx_optimization_op = ONNXOptimizer()
 
     def execute(
         self,
@@ -201,39 +203,51 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 optimized_models = []
                 if self.conversion_op.get_result() is not None:
                     for model in self.conversion_op.get_result():
-                        if (
-                            self.orig_latency_measure_op.get_result()
-                            is not None
-                        ):
-                            model_outputs = (
-                                self.orig_latency_measure_op.get_result()[0]
-                            )
-                            # orig_latency = (
-                            #     self.orig_latency_measure_op.get_result()[1]
-                            # )
-                            if isinstance(model, Module):
-                                self.optimization_op.to(self.device).execute(
-                                    model=model,
-                                    input_data=self.data,
-                                    optimization_time=optimization_time,
-                                    metric_drop_ths=metric_drop_ths,
-                                    metric=metric,
-                                    model_params=model_params,
-                                    model_outputs=model_outputs,
-                                )
-                                optimized_models += (
-                                    self.optimization_op.get_result()
-                                )
-                            elif (
-                                isinstance(model, tf.Module)
-                                and model is not None
-                            ):
-                                pass
-                            else:
-                                pass
+                        optimized_models += self.optimize(model, optimization_time, metric_drop_ths, metric, model_params)
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
             self.optimal_model = optimized_models[0][0]
+
+    def optimize(self, model, optimization_time, metric_drop_ths, metric, model_params) -> List[BaseInferenceLearner]:
+        if (
+            self.orig_latency_measure_op.get_result()
+            is not None
+        ):
+            model_outputs = (
+                self.orig_latency_measure_op.get_result()[0]
+            )
+            # orig_latency = (
+            #     self.orig_latency_measure_op.get_result()[1]
+            # )
+            if isinstance(model, Module):
+                self.torch_optimization_op.to(self.device).execute(
+                    model=model,
+                    input_data=self.data,
+                    optimization_time=optimization_time,
+                    metric_drop_ths=metric_drop_ths,
+                    metric=metric,
+                    model_params=model_params,
+                    model_outputs=model_outputs,
+                )
+                optimized_models = self.torch_optimization_op.get_result()
+            elif (
+                    isinstance(model, tf.Module)
+                    and model is not None
+            ):
+                optimized_models = []
+            else:
+                self.onnx_optimization_op.to(self.device).execute(
+                    model=model,
+                    input_data=self.data,
+                    optimization_time=optimization_time,
+                    metric_drop_ths=metric_drop_ths,
+                    metric=metric,
+                    model_params=model_params,
+                    model_outputs=model_outputs,
+                )
+                optimized_models = self.onnx_optimization_op.get_result()
+
+            return optimized_models
 
     def get_result(self) -> Any:
         return self.optimal_model

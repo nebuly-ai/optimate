@@ -1,32 +1,46 @@
-from typing import List
+import logging
+from typing import List, Dict, Type
 
-from nebullvm.base import QuantizationType
-from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
-from nebullvm.measure import (
-    compute_relative_difference,
-    compute_optimized_running_time,
-)
+from nebullvm.base import ModelCompiler
+from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.builders import (
-    PytorchBuildInferenceLearner,
+    DeepSparseBuildInferenceLearner,
+    PytorchBuildInferenceLearner, ONNXBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import PrecisionMeasure
 from nebullvm.operations.optimizations.base import Optimizer
 from nebullvm.operations.optimizations.compilers.base import Compiler
+from nebullvm.operations.optimizations.compilers.deepsparse import DeepSparseCompiler
+from nebullvm.operations.optimizations.compilers.onnx import ONNXCompiler
 from nebullvm.operations.optimizations.compilers.pytorch import (
     PytorchBackendCompiler,
 )
-from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.utils.compilers import select_compilers_from_hardware_torch, select_compilers_from_hardware_onnx
+
+logger = logging.getLogger("nebullvm_logger")
 
 
 class PytorchOptimizer(Optimizer):
     def __init__(self):
         super().__init__()
-        self.compiler_op = PytorchBackendCompiler()
-        self.build_inference_learner_op = PytorchBuildInferenceLearner()
+        self.compiler_ops = {}
+        self.build_inference_learner_ops = {}
         self.validity_check_op = PrecisionMeasure()
 
-    def _get_compilers(self) -> List[Compiler]:
-        pass
+    def _load_compilers(
+        self, ignore_compilers: List[ModelCompiler]
+    ):
+        compilers = select_compilers_from_hardware_torch(self.device)
+        self.compiler_ops = {
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
+            for compiler in compilers
+            if compiler not in ignore_compilers and compiler in COMPILER_TO_OPTIMIZER_MAP
+        }
+        self.build_inference_learner_ops = {
+            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler]()
+            for compiler in compilers
+            if compiler not in ignore_compilers and compiler in COMPILER_TO_OPTIMIZER_MAP
+        }
 
     def execute(
         self,
@@ -38,81 +52,16 @@ class PytorchOptimizer(Optimizer):
         model_params,
         model_outputs,
     ):
-
-        if metric_drop_ths is not None:
-            q_types = [
-                None,
-                QuantizationType.DYNAMIC,
-                QuantizationType.HALF,
-            ]
-            if input_data is not None:
-                q_types.append(QuantizationType.STATIC)
-        else:
-            q_types = [None]
-
-        input_tfms = MultiStageTransformation([])
-        self.optimized_models = []
-
-        # TODO: extend this to call all compressors and all compilers
-        for q_type in q_types:
-            try:
-                self.compiler_op.to(self.device).execute(
-                    model=model,
-                    input_data=input_data,
-                    metric_drop_ths=metric_drop_ths
-                    if q_type is not None
-                    else None,
-                    quantization_type=q_type,
-                    input_tfms=input_tfms,
-                )
-
-                compiled_model = self.compiler_op.get_result()
-                if compiled_model is not None:
-                    self.build_inference_learner_op.to(self.device).execute(
-                        model=compiled_model,
-                        model_params=model_params,
-                        input_tfms=input_tfms,
-                    )
-                    inference_learner = (
-                        self.build_inference_learner_op.get_result()
-                    )
-
-                    if inference_learner is not None:
-                        test_input_data, ys = input_data.get_split(
-                            "test"
-                        ).get_list(with_ys=True)
-
-                        self.validity_check_op.execute(
-                            inference_learner,
-                            test_input_data,
-                            model_outputs,
-                            metric_drop_ths
-                            if q_type is not None
-                            else CONSTRAINED_METRIC_DROP_THS,
-                            metric_func=metric
-                            if q_type is not None
-                            else compute_relative_difference,
-                            ys=ys,
-                        )
-
-                        if self.validity_check_op.valid:
-                            latency = compute_optimized_running_time(
-                                inference_learner, input_data
-                            )
-                            self.logger.info(
-                                f"Optimized model latency: {latency} sec/iter"
-                            )
-                            self.optimized_models.append(
-                                (
-                                    inference_learner,
-                                    latency,
-                                    self.validity_check_op.measure_result,
-                                )
-                            )
-            except Exception as e:
-                # TODO: print error message
-                raise (e)
-                continue
+        self._load_compilers(ignore_compilers=[])
+        self.optimize(
+            model,
+            input_data,
+            optimization_time,
+            metric_drop_ths,
+            metric,
+            model_params,
+            model_outputs,
+        )
 
 
 class TensorflowOptimizer(Optimizer):
@@ -123,9 +72,58 @@ class TensorflowOptimizer(Optimizer):
         pass
 
 
-class OnnxOptimizer(Optimizer):
-    def _get_compilers(self) -> List[Compiler]:
-        pass
+class ONNXOptimizer(Optimizer):
+    def __init__(self):
+        super().__init__()
+        self.compiler_ops = {}
+        self.build_inference_learner_ops = {}
+        self.validity_check_op = PrecisionMeasure()
 
-    def execute(self, **kwargs):
-        pass
+    def _load_compilers(
+            self, ignore_compilers: List[ModelCompiler]
+    ):
+        compilers = select_compilers_from_hardware_onnx(self.device)
+        self.compiler_ops = {
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
+            for compiler in compilers
+            if compiler not in ignore_compilers and compiler in COMPILER_TO_OPTIMIZER_MAP
+        }
+        self.build_inference_learner_ops = {
+            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler]()
+            for compiler in compilers
+            if compiler not in ignore_compilers and compiler in COMPILER_TO_OPTIMIZER_MAP
+        }
+
+    def execute(
+        self,
+        model,
+        input_data,
+        optimization_time,
+        metric_drop_ths,
+        metric,
+        model_params,
+        model_outputs,
+    ):
+        self._load_compilers(ignore_compilers=[])
+        self.optimize(
+            model,
+            input_data,
+            optimization_time,
+            metric_drop_ths,
+            metric,
+            model_params,
+            model_outputs,
+        )
+
+
+COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
+    ModelCompiler.TORCHSCRIPT: PytorchBackendCompiler,
+    ModelCompiler.DEEPSPARSE: DeepSparseCompiler,
+    ModelCompiler.ONNX_RUNTIME: ONNXCompiler,
+}
+
+COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[ModelCompiler, Type[BuildInferenceLearner]] = {
+    ModelCompiler.TORCHSCRIPT: PytorchBuildInferenceLearner,
+    ModelCompiler.DEEPSPARSE: DeepSparseBuildInferenceLearner,
+    ModelCompiler.ONNX_RUNTIME: ONNXBuildInferenceLearner,
+}

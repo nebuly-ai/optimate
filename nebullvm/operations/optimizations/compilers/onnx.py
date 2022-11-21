@@ -1,28 +1,34 @@
-from typing import Callable, Any, Union
+from pathlib import Path
+from typing import Union
 
-from nebullvm.base import Device, QuantizationType
+from nebullvm.base import (
+    QuantizationType,
+)
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.pytorch import (
-    PytorchQuantizer,
-)
-from nebullvm.operations.optimizations.quantizations.utils import (
+from nebullvm.operations.optimizations.quantizations.onnx import ONNXQuantizer
+from nebullvm.optimizers.quantization.utils import (
     check_quantization,
 )
-from nebullvm.optional_modules.torch import (
-    torch,
-    Module,
-    ScriptModule,
-    GraphModule,
-    symbolic_trace,
-)
+from nebullvm.optional_modules.torch import Module
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
+from nebullvm.utils.logger import (
+    save_root_logger_state,
+    load_root_logger_state,
+    raise_logger_level,
+    debug_mode_enabled,
+)
 
 
-class PytorchBackendCompiler(Compiler):
+class ONNXCompiler(Compiler):
     supported_ops = {
-        "cpu": [None, QuantizationType.STATIC, QuantizationType.DYNAMIC],
+        "cpu": [
+            None,
+            QuantizationType.STATIC,
+            QuantizationType.HALF,
+            QuantizationType.DYNAMIC,
+        ],
         "gpu": [
             None,
             QuantizationType.STATIC,
@@ -33,7 +39,7 @@ class PytorchBackendCompiler(Compiler):
 
     def __init__(self):
         super().__init__()
-        self.quantization_op = PytorchQuantizer()
+        self.quantization_op = ONNXQuantizer()
 
     def execute(
         self,
@@ -74,9 +80,13 @@ class PytorchBackendCompiler(Compiler):
         )
 
         check_quantization(quantization_type, metric_drop_ths)
-        train_input_data = input_data.get_split("train").get_list(
+        train_input_data = input_data.get_split("train").get_numpy_list(
             QUANTIZATION_DATA_NUM
         )
+
+        if not debug_mode_enabled():
+            logger_state = save_root_logger_state()
+            raise_logger_level()
 
         if quantization_type is not None:
             self.quantization_op.to(self.device).execute(
@@ -84,27 +94,13 @@ class PytorchBackendCompiler(Compiler):
             )
             model = self.quantization_op.get_result()
 
-        self.compiled_model = self.compile_model(model, input_data)
+        if not debug_mode_enabled():
+            load_root_logger_state(logger_state)
+
+        self.compiled_model = self.compile_model(model)
 
     def compile_model(
-        self,
-        model: Union[Module, GraphModule],
-        input_data: DataManager,
-    ) -> ScriptModule:
-        if self.device is Device.GPU:
-            input_data = [t.cuda() for t in input_data]
+        self, model: Union[str, Path]
+    ):
+        return model
 
-        if not isinstance(model, torch.fx.GraphModule):
-            model.eval()
-            try:
-                model_scripted = symbolic_trace(model)
-                model_scripted = torch.jit.script(model_scripted)
-            except Exception:
-                try:
-                    model_scripted = torch.jit.script(model)
-                except Exception:
-                    model_scripted = torch.jit.trace(model, tuple(input_data))
-        else:
-            model_scripted = torch.jit.script(model)
-
-        return model_scripted
