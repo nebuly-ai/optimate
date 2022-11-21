@@ -16,5 +16,3 @@ model_optim.execute(
     model, input_data, metric_drop_ths=2, dynamic_info=dynamic_info
 )
 optimized_model = model_optim.root_op.optimal_model
-benchmark(model, input_data, "CPU")
-benchmark(optimized_model, input_data, "CPU")

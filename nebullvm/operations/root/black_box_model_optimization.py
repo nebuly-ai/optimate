@@ -1,4 +1,6 @@
 import logging
+import os
+import pickle
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
@@ -202,10 +204,49 @@ class BlackBoxModelOptimizationRootOp(Operation):
 
                 optimized_models = []
                 if self.conversion_op.get_result() is not None:
+                    original_model_size = (
+                        os.path.getsize(self.conversion_op.get_result()[0])
+                        if isinstance(self.conversion_op.get_result()[0], str)
+                        else len(pickle.dumps(self.conversion_op.get_result()[0], -1))
+                    )
                     for model in self.conversion_op.get_result():
                         optimized_models += self.optimize(model, optimization_time, metric_drop_ths, metric, model_params)
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
+            opt_metric_drop = (
+                f"{optimized_models[0][2]:.4f}"
+                if optimized_models[0][2] > 1e-4
+                else "0"
+            )
+
+            metric_name = (
+                "compute_relative_difference" if metric is None else metric.__name__
+            )
+
+            orig_latency = (
+                self.orig_latency_measure_op.get_result()[1]
+            )
+
+            self.logger.info(
+                (
+                    f"\n[ Nebullvm results ]\n"
+                    f"Optimization device: {self.device.name}\n"
+                    f"Original model latency: {orig_latency:.4f} sec/batch\n"
+                    f"Original model throughput: "
+                    f"{(1 / orig_latency) * model_params.batch_size:.2f} data/sec\n"
+                    f"Original model size: "
+                    f"{original_model_size / 1e6:.2f} MB\n"
+                    f"Optimized model latency: {optimized_models[0][1]:.4f} "
+                    f"sec/batch\n"
+                    f"Optimized model throughput: {1 / optimized_models[0][1]:.2f} "
+                    f"data/sec\n"
+                    f"Optimized model size: "
+                    f"{optimized_models[0][0].get_size() / 1e6:.2f} MB\n"
+                    f"Optimized model metric drop: {opt_metric_drop} ({metric_name})\n"
+                    f"Estimated speedup: {orig_latency / optimized_models[0][1]:.2f}x"
+                )
+            )
+
             self.optimal_model = optimized_models[0][0]
 
     def optimize(self, model, optimization_time, metric_drop_ths, metric, model_params) -> List[BaseInferenceLearner]:
@@ -216,9 +257,6 @@ class BlackBoxModelOptimizationRootOp(Operation):
             model_outputs = (
                 self.orig_latency_measure_op.get_result()[0]
             )
-            # orig_latency = (
-            #     self.orig_latency_measure_op.get_result()[1]
-            # )
             if isinstance(model, Module):
                 self.torch_optimization_op.to(self.device).execute(
                     model=model,
