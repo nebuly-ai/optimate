@@ -102,7 +102,7 @@ class DeepLearningFramework(Enum):
 
 
 class ModelCompiler(Enum):
-    TENSOR_RT = "tensor RT"
+    TENSOR_RT = "tensor_rt"
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
     ONNX_RUNTIME = "onnxruntime"

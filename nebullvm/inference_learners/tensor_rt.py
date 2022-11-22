@@ -590,5 +590,5 @@ NVIDIA_INFERENCE_LEARNERS: Dict[
 ] = {
     DeepLearningFramework.PYTORCH: PytorchNvidiaInferenceLearner,
     DeepLearningFramework.TENSORFLOW: TensorflowNvidiaInferenceLearner,
-    DeepLearningFramework.NUMPY: NumpyNvidiaInferenceLearner,
+    DeepLearningFramework.NUMPY: NvidiaInferenceLearner,
 }

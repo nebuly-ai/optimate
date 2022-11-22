@@ -10,4 +10,4 @@ class BlackBoxModelOptimization(App):
         self.root_op = BlackBoxModelOptimizationRootOp()
 
     def execute(self, *args, **kwargs):
-        return self.root_op.execute(*args, **kwargs)
+        return self.root_op.to("GPU").execute(*args, **kwargs)

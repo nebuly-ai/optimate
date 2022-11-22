@@ -61,7 +61,7 @@ TRAIN_TEST_SPLIT_RATIO = 0.8
 
 COMPILER_LIST = [
     "deepsparse",
-    "tensor RT",
+    "tensor_rt",
     "torchscript",
     "onnxruntime",
     "tflite",

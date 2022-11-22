@@ -1,12 +1,13 @@
 import abc
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List
 
 from nebullvm.base import ModelCompiler, QuantizationType
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
-from nebullvm.measure import compute_relative_difference, compute_optimized_running_time
-from nebullvm.utils.onnx import get_input_names, get_output_names
+from nebullvm.measure import (
+    compute_relative_difference,
+    compute_optimized_running_time,
+)
 from nebullvm.operations.base import Operation
 from nebullvm.transformations.base import MultiStageTransformation
 
@@ -46,7 +47,10 @@ class Optimizer(Operation, abc.ABC):
         else:
             q_types = [None]
 
-        for compiler_op, build_inference_learner_op in zip(self.compiler_ops.values(), self.build_inference_learner_ops.values()):
+        for compiler_op, build_inference_learner_op in zip(
+            self.compiler_ops.values(),
+            self.build_inference_learner_ops.values(),
+        ):
             for q_type in q_types:
                 input_tfms = MultiStageTransformation([])
 
@@ -68,6 +72,9 @@ class Optimizer(Operation, abc.ABC):
                         if compiled_model is not None:
                             build_inference_learner_op.to(self.device).execute(
                                 model=compiled_model,
+                                onnx_model=compiler_op.onnx_model
+                                if hasattr(compiler_op, "onnx_model")
+                                else None,
                                 model_params=model_params,
                                 input_tfms=input_tfms,
                             )
@@ -98,18 +105,19 @@ class Optimizer(Operation, abc.ABC):
                                         inference_learner, input_data
                                     )
                                     self.logger.info(
-                                        f"Optimized model latency: {latency} sec/iter"
+                                        f"Optimized model latency: {latency} "
+                                        f"sec/iter"
                                     )
                                     self.optimized_models.append(
                                         (
                                             inference_learner,
                                             latency,
-                                            self.validity_check_op.measure_result,
+                                            self.validity_check_op.measure_result,  # noqa: E501
                                         )
                                     )
                     except Exception as e:
                         # TODO: print error message
-                        # raise (e)
+                        # raise (e)
                         raise e
 
     def get_result(self) -> List:
