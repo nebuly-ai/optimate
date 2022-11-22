@@ -1,14 +1,14 @@
 import logging
 from typing import List, Dict, Type
 
-from nebullvm.base import ModelCompiler
+from nebullvm.base import ModelCompiler, DeepLearningFramework
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.builders import (
     DeepSparseBuildInferenceLearner,
-    NumpyTensorRTBuildInferenceLearner,
     OpenVINOBuildInferenceLearner,
     PytorchBuildInferenceLearner,
     ONNXBuildInferenceLearner,
+    TensorRTBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import PrecisionMeasure
 from nebullvm.operations.optimizations.base import Optimizer
@@ -24,7 +24,7 @@ from nebullvm.operations.optimizations.compilers.pytorch import (
     PytorchBackendCompiler,
 )
 from nebullvm.operations.optimizations.compilers.tensor_rt import (
-    ONNXTensorRTCompiler,
+    TensorRTCompiler,
 )
 from nebullvm.utils.compilers import (
     select_compilers_from_hardware_torch,
@@ -44,13 +44,17 @@ class PytorchOptimizer(Optimizer):
     def _load_compilers(self, ignore_compilers: List[ModelCompiler]):
         compilers = select_compilers_from_hardware_torch(self.device)
         self.compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
+                DeepLearningFramework.PYTORCH
+            )
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
         }
         self.build_inference_learner_ops = {
-            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler]()
+            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
+                DeepLearningFramework.PYTORCH
+            )
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
@@ -97,13 +101,17 @@ class ONNXOptimizer(Optimizer):
     def _load_compilers(self, ignore_compilers: List[ModelCompiler]):
         compilers = select_compilers_from_hardware_onnx(self.device)
         self.compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
+                DeepLearningFramework.NUMPY
+            )
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
         }
         self.build_inference_learner_ops = {
-            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler]()
+            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
+                DeepLearningFramework.NUMPY
+            )
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
@@ -137,7 +145,7 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
     ModelCompiler.DEEPSPARSE: DeepSparseCompiler,
     ModelCompiler.ONNX_RUNTIME: ONNXCompiler,
     ModelCompiler.OPENVINO: OpenVINOCompiler,
-    ModelCompiler.TENSOR_RT: ONNXTensorRTCompiler,
+    ModelCompiler.TENSOR_RT: TensorRTCompiler,
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
@@ -147,5 +155,5 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler.DEEPSPARSE: DeepSparseBuildInferenceLearner,
     ModelCompiler.ONNX_RUNTIME: ONNXBuildInferenceLearner,
     ModelCompiler.OPENVINO: OpenVINOBuildInferenceLearner,
-    ModelCompiler.TENSOR_RT: NumpyTensorRTBuildInferenceLearner,
+    ModelCompiler.TENSOR_RT: TensorRTBuildInferenceLearner,
 }

@@ -1,10 +1,11 @@
 from pathlib import Path
 import subprocess
-from typing import Union
+from typing import Union, Any
 
 from nebullvm.base import (
     ModelParams,
     QuantizationType,
+    DeepLearningFramework,
 )
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.quantizations.tensor_rt import (
@@ -30,13 +31,25 @@ class TensorRTCompiler(Compiler):
         ],
     }
 
+    def __init__(self, dl_framework: DeepLearningFramework):
+        super().__init__()
+        self.dl_framework = dl_framework
+
+    def execute(self, *args, **kwargs):
+        if self.dl_framework is DeepLearningFramework.PYTORCH:
+            pass
+        elif self.dl_framework is DeepLearningFramework.NUMPY:
+            compiler = ONNXTensorRTCompiler()
+            compiler.to(self.device).execute(*args, **kwargs)
+
+    def compile_model(self, **kwargs) -> Any:
+        pass
+
 
 class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
         super().__init__()
-
         self.onnx_model = None
-
         self.quantization_op = NumpyTensorRTQuantizer()
 
     def execute(

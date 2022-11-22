@@ -1,6 +1,6 @@
 from typing import Union
 
-from nebullvm.base import Device, QuantizationType
+from nebullvm.base import Device, QuantizationType, DeepLearningFramework
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.pytorch import (
@@ -29,9 +29,10 @@ class PytorchBackendCompiler(Compiler):
         ],
     }
 
-    def __init__(self):
+    def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
         self.quantization_op = PytorchQuantizer()
+        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -102,7 +103,7 @@ class PytorchBackendCompiler(Compiler):
                 try:
                     model_scripted = torch.jit.script(model)
                 except Exception:
-                    model_scripted = torch.jit.trace(model, input_data)
+                    model_scripted = torch.jit.trace(model, input_sample)
         else:
             model_scripted = torch.jit.script(model)
 

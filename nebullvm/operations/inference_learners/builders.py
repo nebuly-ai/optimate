@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Union
-from nebullvm.base import ModelParams
+from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.inference_learners import PytorchONNXInferenceLearner
 from nebullvm.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
@@ -20,8 +20,9 @@ from nebullvm.utils.onnx import get_input_names, get_output_names
 
 
 class PytorchBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self):
+    def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
+        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -39,8 +40,9 @@ class PytorchBuildInferenceLearner(BuildInferenceLearner):
 
 
 class DeepSparseBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self):
+    def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
+        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -60,8 +62,9 @@ class DeepSparseBuildInferenceLearner(BuildInferenceLearner):
 
 
 class ONNXBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self):
+    def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
+        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -84,8 +87,9 @@ class ONNXBuildInferenceLearner(BuildInferenceLearner):
 
 
 class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self):
+    def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
+        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -109,7 +113,20 @@ class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
         )
 
 
-class NumpyTensorRTBuildInferenceLearner(BuildInferenceLearner):
+class TensorRTBuildInferenceLearner(BuildInferenceLearner):
+    def __init__(self, dl_framework: DeepLearningFramework):
+        super().__init__()
+        self.dl_framework = dl_framework
+
+    def execute(self, *args, **kwargs):
+        if self.dl_framework is DeepLearningFramework.PYTORCH:
+            pass
+        elif self.dl_framework is DeepLearningFramework.NUMPY:
+            build_op = ONNXTensorRTBuildInferenceLearner()
+            build_op.to(self.device).execute(*args, **kwargs)
+
+
+class ONNXTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
     def __init__(self):
         super().__init__()
 

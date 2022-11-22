@@ -5,10 +5,13 @@ from typing import Tuple, Optional, Dict
 from nebullvm.base import (
     ModelParams,
     QuantizationType,
+    DeepLearningFramework,
 )
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.openvino import OpenVINOQuantizer
+from nebullvm.operations.optimizations.quantizations.openvino import (
+    OpenVINOQuantizer,
+)
 from nebullvm.optimizers.quantization.utils import (
     check_quantization,
 )
@@ -33,9 +36,10 @@ class OpenVINOCompiler(Compiler):
         "gpu": [],
     }
 
-    def __init__(self):
+    def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
         self.quantization_op = OpenVINOQuantizer()
+        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -118,8 +122,9 @@ class OpenVINOCompiler(Compiler):
                 input_data=train_input_data,
             )
             openvino_model_path = self.quantization_op.get_result()["model"]
-            openvino_model_weights = self.quantization_op.get_result()["weights"]
-
+            openvino_model_weights = self.quantization_op.get_result()[
+                "weights"
+            ]
 
         self.compiled_model = self.compile_model(
             model_name=str(openvino_model_path),
@@ -131,7 +136,7 @@ class OpenVINOCompiler(Compiler):
         self,
         model_name: str,
         model_weights: str,
-        network_parameters: ModelParams
+        network_parameters: ModelParams,
     ) -> CompiledModel:
         core = Core()
         model = core.read_model(model=model_name, weights=model_weights)

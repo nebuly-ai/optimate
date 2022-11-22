@@ -3,6 +3,7 @@ from typing import Union
 
 from nebullvm.base import (
     QuantizationType,
+    DeepLearningFramework,
 )
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
@@ -37,9 +38,10 @@ class ONNXCompiler(Compiler):
         ],
     }
 
-    def __init__(self):
+    def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
         self.quantization_op = ONNXQuantizer()
+        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -99,8 +101,5 @@ class ONNXCompiler(Compiler):
 
         self.compiled_model = self.compile_model(model)
 
-    def compile_model(
-        self, model: Union[str, Path]
-    ):
+    def compile_model(self, model: Union[str, Path]):
         return model
-

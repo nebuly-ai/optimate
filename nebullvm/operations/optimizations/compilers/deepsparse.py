@@ -1,14 +1,13 @@
 from pathlib import Path
 from typing import Union
 
-from nebullvm.base import QuantizationType, ModelParams
+from nebullvm.base import QuantizationType, ModelParams, DeepLearningFramework
 from nebullvm.converters import ONNXConverter
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.pytorch import (
     PytorchQuantizer,
 )
 from nebullvm.optional_modules.torch import (
-    torch,
     Module,
     GraphModule,
 )
@@ -21,9 +20,10 @@ class DeepSparseCompiler(Compiler):
         "gpu": [None],
     }
 
-    def __init__(self):
+    def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
         self.quantization_op = PytorchQuantizer()
+        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -60,7 +60,9 @@ class DeepSparseCompiler(Compiler):
             f"q_type: {quantization_type}."
         )
 
-        self.compiled_model = self.compile_model(model, onnx_output_path, input_data, model_params)
+        self.compiled_model = self.compile_model(
+            model, onnx_output_path, input_data, model_params
+        )
 
     def compile_model(
         self,
