@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-from typing import Tuple, Union, Optional, Dict
+from typing import Tuple, Optional, Dict
 
 from nebullvm.base import (
     ModelParams,
@@ -20,12 +20,6 @@ from nebullvm.optional_modules.openvino import (
 )
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
-from nebullvm.utils.logger import (
-    save_root_logger_state,
-    load_root_logger_state,
-    raise_logger_level,
-    debug_mode_enabled,
-)
 from nebullvm.utils.onnx import get_input_names
 
 

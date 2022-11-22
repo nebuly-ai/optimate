@@ -1,4 +1,4 @@
-from typing import Callable, Any, Union
+from typing import Union
 
 from nebullvm.base import Device, QuantizationType
 from nebullvm.config import QUANTIZATION_DATA_NUM
