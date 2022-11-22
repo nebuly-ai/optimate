@@ -25,9 +25,7 @@ class PytorchBackendCompiler(Compiler):
         "cpu": [None, QuantizationType.STATIC, QuantizationType.DYNAMIC],
         "gpu": [
             None,
-            QuantizationType.STATIC,
             QuantizationType.HALF,
-            QuantizationType.DYNAMIC,
         ],
     }
 
@@ -91,8 +89,9 @@ class PytorchBackendCompiler(Compiler):
         model: Union[Module, GraphModule],
         input_data: DataManager,
     ) -> ScriptModule:
+        input_sample = input_data.get_list(1)[0]
         if self.device is Device.GPU:
-            input_data = [t.cuda() for t in input_data]
+            input_sample = [t.cuda() for t in input_sample]
 
         if not isinstance(model, torch.fx.GraphModule):
             model.eval()
@@ -103,7 +102,7 @@ class PytorchBackendCompiler(Compiler):
                 try:
                     model_scripted = torch.jit.script(model)
                 except Exception:
-                    model_scripted = torch.jit.trace(model, tuple(input_data))
+                    model_scripted = torch.jit.trace(model, input_data)
         else:
             model_scripted = torch.jit.script(model)
 

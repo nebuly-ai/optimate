@@ -5,6 +5,7 @@ from nebullvm.base import ModelCompiler
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.builders import (
     DeepSparseBuildInferenceLearner,
+    OpenVINOBuildInferenceLearner,
     PytorchBuildInferenceLearner, ONNXBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import PrecisionMeasure
@@ -12,6 +13,7 @@ from nebullvm.operations.optimizations.base import Optimizer
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.deepsparse import DeepSparseCompiler
 from nebullvm.operations.optimizations.compilers.onnx import ONNXCompiler
+from nebullvm.operations.optimizations.compilers.openvino import OpenVINOCompiler
 from nebullvm.operations.optimizations.compilers.pytorch import (
     PytorchBackendCompiler,
 )
@@ -51,8 +53,9 @@ class PytorchOptimizer(Optimizer):
         metric,
         model_params,
         model_outputs,
+        ignore_compilers
     ):
-        self._load_compilers(ignore_compilers=[])
+        self._load_compilers(ignore_compilers=ignore_compilers)
         self.optimize(
             model,
             input_data,
@@ -103,8 +106,9 @@ class ONNXOptimizer(Optimizer):
         metric,
         model_params,
         model_outputs,
+        ignore_compilers,
     ):
-        self._load_compilers(ignore_compilers=[])
+        self._load_compilers(ignore_compilers=ignore_compilers)
         self.optimize(
             model,
             input_data,
@@ -120,10 +124,12 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
     ModelCompiler.TORCHSCRIPT: PytorchBackendCompiler,
     ModelCompiler.DEEPSPARSE: DeepSparseCompiler,
     ModelCompiler.ONNX_RUNTIME: ONNXCompiler,
+    ModelCompiler.OPENVINO: OpenVINOCompiler,
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[ModelCompiler, Type[BuildInferenceLearner]] = {
     ModelCompiler.TORCHSCRIPT: PytorchBuildInferenceLearner,
     ModelCompiler.DEEPSPARSE: DeepSparseBuildInferenceLearner,
     ModelCompiler.ONNX_RUNTIME: ONNXBuildInferenceLearner,
+    ModelCompiler.OPENVINO: OpenVINOBuildInferenceLearner,
 }

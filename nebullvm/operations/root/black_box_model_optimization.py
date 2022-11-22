@@ -210,7 +210,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                         else len(pickle.dumps(self.conversion_op.get_result()[0], -1))
                     )
                     for model in self.conversion_op.get_result():
-                        optimized_models += self.optimize(model, optimization_time, metric_drop_ths, metric, model_params)
+                        optimized_models += self.optimize(model, optimization_time, metric_drop_ths, metric, model_params, ignore_compilers)
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
             opt_metric_drop = (
@@ -249,7 +249,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
 
             self.optimal_model = optimized_models[0][0]
 
-    def optimize(self, model, optimization_time, metric_drop_ths, metric, model_params) -> List[BaseInferenceLearner]:
+    def optimize(self, model, optimization_time, metric_drop_ths, metric, model_params, ignore_compilers) -> List[BaseInferenceLearner]:
         if (
             self.orig_latency_measure_op.get_result()
             is not None
@@ -266,6 +266,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                     metric=metric,
                     model_params=model_params,
                     model_outputs=model_outputs,
+                    ignore_compilers=ignore_compilers,
                 )
                 optimized_models = self.torch_optimization_op.get_result()
             elif (
@@ -282,6 +283,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                     metric=metric,
                     model_params=model_params,
                     model_outputs=model_outputs,
+                    ignore_compilers=ignore_compilers,
                 )
                 optimized_models = self.onnx_optimization_op.get_result()
 

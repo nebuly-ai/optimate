@@ -70,12 +70,6 @@ class Optimizer(Operation, abc.ABC):
                                 model=compiled_model,
                                 model_params=model_params,
                                 input_tfms=input_tfms,
-                                input_names=get_input_names(str(compiled_model)) 
-                                if isinstance(compiled_model, str) or isinstance(compiled_model, Path)
-                                else None,
-                                output_names=get_output_names(str(compiled_model)) 
-                                if isinstance(compiled_model, str) or isinstance(compiled_model, Path)
-                                else None,
                             )
                             inference_learner = (
                                 build_inference_learner_op.get_result()
@@ -115,7 +109,8 @@ class Optimizer(Operation, abc.ABC):
                                     )
                     except Exception as e:
                         # TODO: print error message
-                        raise (e)
+                        # raise (e)
+                        raise e
 
     def get_result(self) -> List:
         return self.optimized_models
