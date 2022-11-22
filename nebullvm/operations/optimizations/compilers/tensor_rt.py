@@ -1,23 +1,26 @@
+import os
 from pathlib import Path
 import subprocess
-from typing import Union, Any
+from typing import Union, Any, List
 
 from nebullvm.base import (
     ModelParams,
     QuantizationType,
     DeepLearningFramework,
 )
-from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.config import QUANTIZATION_DATA_NUM, TORCH_TENSORRT_PRECISIONS
 from nebullvm.operations.optimizations.quantizations.tensor_rt import (
-    NumpyTensorRTQuantizer,
+    ONNXTensorRTQuantizer,
 )
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.optimizers.quantization.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
+from nebullvm.optional_modules.torch import torch, Module
+from nebullvm.optional_modules.torch_tensorrt import torch_tensorrt, Calibrator
 from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.data import DataManager
+from nebullvm.utils.data import DataManager, PytorchDataset
 from nebullvm.utils.onnx import get_input_names
 
 
@@ -46,11 +49,150 @@ class TensorRTCompiler(Compiler):
         pass
 
 
+class PyTorchTensorRTCompiler(TensorRTCompiler):
+    def __init__(self):
+        super().__init__()
+        self.onnx_model = None
+
+    def execute(
+        self,
+        model: Module,
+        input_data: DataManager,
+        input_tfms: MultiStageTransformation,
+        model_params: ModelParams,
+        metric_drop_ths: float = None,
+        quantization_type: QuantizationType = None,
+        **kwargs,
+    ):
+        """Optimize the input model using pytorch built-in techniques.
+
+        Args:
+            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
+                modifications to the original model, it will be copied in the
+                method.
+            input_data (DataManager): User defined data. Default: None.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction. Default: None.
+            metric_drop_ths (float, optional): Threshold for the accepted drop
+                in terms of precision. Any optimized model with an higher drop
+                will be ignored. Default: None.
+            quantization_type (QuantizationType, optional): The desired
+                quantization algorithm to be used. Default: None.
+
+        Returns:
+            PytorchBackendInferenceLearner: Model optimized for inference.
+        """
+
+        if quantization_type not in self.supported_ops[self.device.value]:
+            self.compiled_model = None
+            return
+
+        self.logger.info(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
+
+        check_quantization(quantization_type, metric_drop_ths)
+
+        if quantization_type is QuantizationType.HALF:
+            dtype = torch.half
+        elif quantization_type is QuantizationType.STATIC:
+            dtype = torch.int8
+
+            dataset = PytorchDataset(input_data.get_split("train"))
+            dataloader = torch.utils.data.DataLoader(
+                dataset,
+                batch_size=dataset.batch_size,
+                shuffle=False,
+                num_workers=0,
+            )
+
+            calibrator = torch_tensorrt.ptq.DataLoaderCalibrator(
+                dataloader,
+                use_cache=False,
+                algo_type=torch_tensorrt.ptq.CalibrationAlgo.ENTROPY_CALIBRATION_2,  # noqa E501
+                device=torch.device("cuda:0"),
+            )
+        else:
+            dtype = torch.float32
+
+        # Convert int64 to int32 for transformers inputs
+        input_tensors = [
+            tensor.cuda()
+            if tensor.dtype != torch.int64
+            else tensor.to(torch.int32).cuda()
+            for tensor in input_data.get_list(1)[0]
+        ]
+
+        self.compiled_model = self.compile_model(
+            model=model,
+            input_tensors=input_tensors,
+            dtype=dtype,
+            calibrator=calibrator
+            if quantization_type is QuantizationType.STATIC
+            else None,  # noqa E501
+            quantization_type=quantization_type,
+        )
+
+    def compile_model(
+        self,
+        model: Module,
+        input_tensors: List[torch.Tensor],
+        dtype: torch.dtype,
+        calibrator: Calibrator,
+        quantization_type: QuantizationType,
+    ):
+
+        model.cuda().eval()
+
+        try:
+            torch.jit.script(model)
+        except Exception:
+            model = torch.jit.trace(model, input_tensors)
+
+        with torch_tensorrt.logging.errors():
+            trt_model = torch_tensorrt.compile(
+                model,
+                inputs=[
+                    torch_tensorrt.Input(
+                        tensor.shape,
+                        dtype=torch.half
+                        if (
+                            dtype == torch.half
+                            and tensor.dtype not in [torch.int8, torch.int32]
+                        )
+                        else tensor.dtype,
+                    )
+                    for tensor in input_tensors
+                ],
+                enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
+                calibrator=calibrator
+                if quantization_type is QuantizationType.STATIC
+                else None,
+                workspace_size=1 << 30,
+                device={
+                    "device_type": torch_tensorrt.DeviceType.GPU,
+                    "gpu_id": 0,
+                    "dla_core": 0,
+                    "allow_gpu_fallback": False,
+                    "disable_tf32": False,
+                },
+                truncate_long_and_double=True,
+            )
+
+        # Delete calibration cache
+        if os.path.exists("calibration.cache"):
+            os.remove("calibration.cache")
+
+        return trt_model
+
+
 class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
         super().__init__()
         self.onnx_model = None
-        self.quantization_op = NumpyTensorRTQuantizer()
+        self.quantization_op = ONNXTensorRTQuantizer()
 
     def execute(
         self,

@@ -9,6 +9,7 @@ from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
 from nebullvm.inference_learners.openvino import NumpyOpenVinoInferenceLearner
 from nebullvm.inference_learners.tensor_rt import (
     PytorchNvidiaInferenceLearner,
+    PytorchTensorRTInferenceLearner,
 )
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.optional_modules.torch import ScriptModule
@@ -120,16 +121,34 @@ class TensorRTBuildInferenceLearner(BuildInferenceLearner):
 
     def execute(self, *args, **kwargs):
         if self.dl_framework is DeepLearningFramework.PYTORCH:
-            pass
+            build_op = PyTorchTensorRTBuildInferenceLearner()
         elif self.dl_framework is DeepLearningFramework.NUMPY:
             build_op = ONNXTensorRTBuildInferenceLearner()
-            build_op.to(self.device).execute(*args, **kwargs)
+        else:
+            raise ValueError(
+                f"TensorRT is not supported for {self.dl_framework} models."
+            )
+
+        build_op.to(self.device).execute(*args, **kwargs)
+
+
+class PyTorchTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
+    def execute(
+        self,
+        model: Union[str, Path],
+        input_tfms: MultiStageTransformation,
+        model_params: ModelParams,
+        **kwargs,
+    ):
+        self.inference_learner = PytorchTensorRTInferenceLearner(
+            torch_model=model,
+            input_tfms=input_tfms,
+            network_parameters=model_params,
+            device=self.device,
+        )
 
 
 class ONNXTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
-    def __init__(self):
-        super().__init__()
-
     def execute(
         self,
         model: Union[str, Path],

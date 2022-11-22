@@ -244,7 +244,6 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
     def __init__(
         self,
         torch_model: ScriptModule,
-        dtype: torch.dtype,
         device: Device,
         **kwargs,
     ):
@@ -255,7 +254,6 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
             self.use_gpu = True
         else:
             self.use_gpu = False
-        self.dtype = dtype
 
     def get_size(self):
         with TemporaryDirectory() as tmp_dir:
@@ -269,13 +267,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device
         if self.use_gpu:
-            if self.dtype == torch.half:
-                input_tensors = (
-                    t.cuda().half() if t.dtype == torch.float32 else t.cuda()
-                    for t in input_tensors
-                )
-            else:
-                input_tensors = (t.cuda() for t in input_tensors)
+            input_tensors = (t.cuda() for t in input_tensors)
 
         with torch.no_grad():
             res = self.model(*input_tensors)
@@ -288,7 +280,6 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         path = Path(path)
         path.mkdir(exist_ok=True)
         metadata = LearnerMetadata.from_model(self, **kwargs)
-        metadata.dtype = str(self.dtype)
         metadata.save(path)
         torch.jit.save(self.model, path / self.MODEL_NAME)
 
@@ -297,9 +288,6 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         path = Path(path)
         model = torch.jit.load(path / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
-        dtype = (
-            torch.float32 if metadata.dtype == "torch.float32" else torch.half
-        )
         device = Device.GPU
         return cls(
             torch_model=model,
@@ -307,7 +295,6 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
             input_tfms=MultiStageTransformation.from_dict(metadata.input_tfms)
             if metadata.input_tfms is not None
             else None,
-            dtype=dtype,
             device=device,
         )
 

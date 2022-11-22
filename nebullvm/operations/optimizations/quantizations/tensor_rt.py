@@ -8,7 +8,7 @@ from nebullvm.optimizers.quantization.tensor_rt import TensorRTCalibrator
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 
 
-class NumpyTensorRTQuantizer(Quantizer):
+class ONNXTensorRTQuantizer(Quantizer):
     def __init__(self):
         super().__init__()
         self.config = None
