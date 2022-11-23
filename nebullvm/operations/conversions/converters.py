@@ -6,6 +6,7 @@ from nebullvm.base import ModelParams
 from nebullvm.converters import convert_tf_to_onnx
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.torch import convert_torch_to_onnx
+from nebullvm.optional_modules.onnx import onnx
 from nebullvm.tools.base import DeepLearningFramework
 
 
@@ -95,15 +96,25 @@ class TensorflowConverter(Converter):
         else:
             self.converted_models.append(onnx_model_path)
 
-    def pytorch_conversion(self):
         raise NotImplementedError()
 
 
-class OnnxConverter(Converter):
+class ONNXConverter(Converter):
     DEST_FRAMEWORKS = []
 
-    def execute(self, **kwargs):
-        pass
+    def execute(self, save_path, model_params):
+        onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
+        try:
+            model_onnx = onnx.load(str(self.model))
+            onnx.save(model_onnx, str(onnx_path))
+        except Exception:
+            self.logger.error(
+                "The provided onnx model path is invalid. Please provide"
+                " a valid path to a model in order to use Nebullvm."
+            )
+            self.converted_models = []
+
+        self.converted_models = [str(onnx_path)]
 
     def tensorflow_conversion(self):
         raise NotImplementedError()

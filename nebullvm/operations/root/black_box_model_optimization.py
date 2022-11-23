@@ -23,6 +23,7 @@ from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.converters import (
     PytorchConverter,
     TensorflowConverter,
+    ONNXConverter,
 )
 from nebullvm.operations.fetch_operations.local import (
     FetchModelFromLocal,
@@ -139,6 +140,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
         self.torch_conversion_op = PytorchConverter()
         self.tensorflow_conversion_op = TensorflowConverter()
         self.torch_optimization_op = PytorchOptimizer()
+        self.onnx_conversion_op = ONNXConverter()
         self.onnx_optimization_op = ONNXOptimizer()
         self.tensorflow_optimization_op = TensorflowOptimizer()
 
@@ -148,9 +150,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
         elif dl_framework == DeepLearningFramework.TENSORFLOW:
             conversion_op = self.tensorflow_conversion_op
         else:
-            raise ValueError(
-                f"DeepLearningFramework {dl_framework} not supported."
-            )
+            conversion_op = self.onnx_conversion_op
 
         return conversion_op
 
