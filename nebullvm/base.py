@@ -108,6 +108,7 @@ class ModelCompiler(Enum):
     ONNX_RUNTIME = "onnxruntime"
     DEEPSPARSE = "deepsparse"
     TORCHSCRIPT = "torchscript"
+    XLA = "xla"
     TFLITE = "tflite"
     BLADEDISC = "bladedisc"
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"

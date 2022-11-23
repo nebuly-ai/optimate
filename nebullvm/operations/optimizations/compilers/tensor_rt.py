@@ -41,6 +41,7 @@ class TensorRTCompiler(Compiler):
     def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
         self.dl_framework = dl_framework
+        self.onnx_model = None
 
     def execute(self, *args, **kwargs):
         if self.dl_framework is DeepLearningFramework.PYTORCH:

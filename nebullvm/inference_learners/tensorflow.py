@@ -1,6 +1,4 @@
-import os
 import pickle
-import shutil
 from pathlib import Path
 from typing import Tuple, Union, Dict, Type
 
@@ -55,14 +53,14 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
 
 class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
-    def __init__(self, tflite_file: str, device: Device, **kwargs):
+    def __init__(self, tflite_file: bytes, device: Device, **kwargs):
         super(TFLiteBackendInferenceLearner, self).__init__(**kwargs)
-        self._tflite_file = self._store_file(tflite_file)
-        self.interpreter = tf.lite.Interpreter(tflite_file)
+        self.tflite_file = tflite_file
+        self.interpreter = tf.lite.Interpreter(model_content=tflite_file)
         self.device = device
 
     def get_size(self):
-        return os.path.getsize(self._tflite_file)
+        return len(self.tflite_file)
 
     def run(self, *input_tensors: tf.Tensor):
         input_details = self.interpreter.get_input_details()
@@ -86,15 +84,19 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
         path = Path(path)
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
-        shutil.copy2(
-            self._tflite_file,
-            path / TENSORFLOW_BACKEND_FILENAMES["tflite_model"],
-        )
+        with open(path / TENSORFLOW_BACKEND_FILENAMES["tflite"], "wb") as f:
+            f.write(self.tflite_file)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
         path = Path(path)
-        tflite_file = str(path / TENSORFLOW_BACKEND_FILENAMES["tflite_model"])
+        tflite_file_path = str(
+            path / TENSORFLOW_BACKEND_FILENAMES["tflite_model"]
+        )
+
+        with open(tflite_file_path, "rb") as f:
+            tflite_file = f.read()
+
         metadata = LearnerMetadata.read(path)
         network_parameters = ModelParams(**metadata.network_parameters)
         input_tfms = metadata.input_tfms

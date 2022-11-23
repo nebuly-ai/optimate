@@ -9,7 +9,7 @@ from typing import Union, List, Generator, Tuple, Dict, Type
 import cpuinfo
 import numpy as np
 
-from nebullvm.base import DeepLearningFramework, ModelParams, Device
+from nebullvm.base import ModelParams, Device
 from nebullvm.config import (
     ONNX_FILENAMES,
     ONNX_PROVIDERS,
@@ -25,6 +25,7 @@ from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
+from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 
 logger = logging.getLogger("nebullvm_logger")

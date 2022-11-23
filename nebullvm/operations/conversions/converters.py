@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, List
 
 from nebullvm.base import ModelParams
+from nebullvm.converters import convert_tf_to_onnx
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.torch import convert_torch_to_onnx
 from nebullvm.tools.base import DeepLearningFramework
@@ -46,23 +47,23 @@ class PytorchConverter(Converter):
         self.converted_models = [self.model]
         for framework in self.DEST_FRAMEWORKS:
             if framework is DeepLearningFramework.NUMPY:
-                self.onnx_conversion(save_path, model_params, self.device)
+                self.onnx_conversion(save_path, model_params)
             else:
                 raise NotImplementedError()
 
-    def onnx_conversion(self, save_path, model_params, device):
+    def onnx_conversion(self, save_path, model_params):
         onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
-        onnx_model = convert_torch_to_onnx(
+        onnx_model_path = convert_torch_to_onnx(
             torch_model=self.model,
             input_data=self.data,
             model_params=model_params,
             output_file_path=onnx_path,
-            device=device,
+            device=self.device,
         )
         if self.converted_models is None:
-            self.converted_models = [onnx_model]
+            self.converted_models = [onnx_model_path]
         else:
-            self.converted_models.append(onnx_model)
+            self.converted_models.append(onnx_model_path)
 
     def tensorflow_conversion(self):
         raise NotImplementedError()
@@ -71,11 +72,28 @@ class PytorchConverter(Converter):
 class TensorflowConverter(Converter):
     DEST_FRAMEWORKS = [DeepLearningFramework.NUMPY]
 
-    def execute(self, **kwargs):
-        pass
+    def execute(
+        self,
+        save_path: Path,
+        model_params: ModelParams,
+    ):
+        self.converted_models = [self.model]
+        for framework in self.DEST_FRAMEWORKS:
+            if framework is DeepLearningFramework.NUMPY:
+                self.onnx_conversion(save_path)
+            else:
+                raise NotImplementedError()
 
-    def onnx_conversion(self):
-        pass
+    def onnx_conversion(self, save_path):
+        onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
+        onnx_model_path = convert_tf_to_onnx(
+            model=self.model,
+            output_file_path=onnx_path,
+        )
+        if self.converted_models is None:
+            self.converted_models = [onnx_model_path]
+        else:
+            self.converted_models.append(onnx_model_path)
 
     def pytorch_conversion(self):
         raise NotImplementedError()

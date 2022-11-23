@@ -112,10 +112,11 @@ def select_compilers_from_hardware_torch(device: Device):
     return compilers
 
 
-def select_compilers_from_hardware_tensorflow(device: Device):
+def select_compilers_from_hardware_tensorflow():
     from nebullvm.optional_modules.utils import tensorflow_is_available
 
     compilers = []
     if tensorflow_is_available():
+        compilers.append(ModelCompiler.XLA)
         compilers.append(ModelCompiler.TFLITE)
     return compilers

@@ -22,7 +22,11 @@ class Optimizer(Operation, abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def _load_compilers(self, ignore_compilers: List[ModelCompiler]):
+    def _load_compilers(
+        self,
+        ignore_compilers: List[ModelCompiler],
+        metric_drop_ths: float = None,
+    ):  # noqa: E501
         raise NotImplementedError()
 
     def optimize(
@@ -77,6 +81,7 @@ class Optimizer(Operation, abc.ABC):
                                 else None,
                                 model_params=model_params,
                                 input_tfms=input_tfms,
+                                dl_framework=self.dl_framework,
                             )
                             inference_learner = (
                                 build_inference_learner_op.get_result()

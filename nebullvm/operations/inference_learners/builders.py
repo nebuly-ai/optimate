@@ -1,15 +1,19 @@
 from pathlib import Path
 from typing import Union
 from nebullvm.base import ModelParams, DeepLearningFramework
-from nebullvm.inference_learners import PytorchONNXInferenceLearner
 from nebullvm.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
 )
+from nebullvm.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
 from nebullvm.inference_learners.openvino import NumpyOpenVinoInferenceLearner
 from nebullvm.inference_learners.tensor_rt import (
     PytorchNvidiaInferenceLearner,
     PytorchTensorRTInferenceLearner,
+)
+from nebullvm.inference_learners.tensorflow import (
+    TensorflowBackendInferenceLearner,
+    TFLiteBackendInferenceLearner,
 )
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.optional_modules.torch import ScriptModule
@@ -34,6 +38,46 @@ class PytorchBuildInferenceLearner(BuildInferenceLearner):
     ):
         self.inference_learner = PytorchBackendInferenceLearner(
             torch_model=model,
+            network_parameters=model_params,
+            input_tfms=input_tfms,
+            device=self.device,
+        )
+
+
+class TensorflowBuildInferenceLearner(BuildInferenceLearner):
+    def __init__(self, dl_framework: DeepLearningFramework):
+        super().__init__()
+        self.dl_framework = dl_framework
+
+    def execute(
+        self,
+        model,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = TensorflowBackendInferenceLearner(
+            model,
+            network_parameters=model_params,
+            input_tfms=input_tfms,
+            device=self.device,
+        )
+
+
+class TFLiteBuildInferenceLearner(BuildInferenceLearner):
+    def __init__(self, dl_framework: DeepLearningFramework):
+        super().__init__()
+        self.dl_framework = dl_framework
+
+    def execute(
+        self,
+        model,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = TFLiteBackendInferenceLearner(
+            model,
             network_parameters=model_params,
             input_tfms=input_tfms,
             device=self.device,
@@ -72,12 +116,13 @@ class ONNXBuildInferenceLearner(BuildInferenceLearner):
         model: Union[str, Path],
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
+        dl_framework: DeepLearningFramework,
         **kwargs,
     ):
         input_names = get_input_names(str(model))
         output_names = get_output_names(str(model))
 
-        self.inference_learner = PytorchONNXInferenceLearner(
+        self.inference_learner = ONNX_INFERENCE_LEARNERS[dl_framework](
             onnx_path=model,
             network_parameters=model_params,
             input_names=input_names,

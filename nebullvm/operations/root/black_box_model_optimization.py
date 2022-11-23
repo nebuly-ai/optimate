@@ -20,7 +20,10 @@ from nebullvm.base import Device, ModelParams, ModelCompiler
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
 from nebullvm.inference_learners import BaseInferenceLearner
 from nebullvm.operations.base import Operation
-from nebullvm.operations.conversions.converters import PytorchConverter
+from nebullvm.operations.conversions.converters import (
+    PytorchConverter,
+    TensorflowConverter,
+)
 from nebullvm.operations.fetch_operations.local import (
     FetchModelFromLocal,
     FetchDataFromLocal,
@@ -29,6 +32,7 @@ from nebullvm.operations.measures.measures import LatencyOriginalModelMeasure
 from nebullvm.operations.optimizations.optimizers import (
     PytorchOptimizer,
     ONNXOptimizer,
+    TensorflowOptimizer,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import Module
@@ -127,13 +131,28 @@ class BlackBoxModelOptimizationRootOp(Operation):
         self.model = None
         self.data = None
         self.optimal_model = None
+        self.conversion_op = None
 
         self.fetch_model_op = FetchModelFromLocal()
         self.fetch_data_op = FetchDataFromLocal()
         self.orig_latency_measure_op = LatencyOriginalModelMeasure()
-        self.conversion_op = PytorchConverter()
+        self.torch_conversion_op = PytorchConverter()
+        self.tensorflow_conversion_op = TensorflowConverter()
         self.torch_optimization_op = PytorchOptimizer()
         self.onnx_optimization_op = ONNXOptimizer()
+        self.tensorflow_optimization_op = TensorflowOptimizer()
+
+    def _get_conversion_op(self, dl_framework: DeepLearningFramework):
+        if dl_framework == DeepLearningFramework.PYTORCH:
+            conversion_op = self.torch_conversion_op
+        elif dl_framework == DeepLearningFramework.TENSORFLOW:
+            conversion_op = self.tensorflow_conversion_op
+        else:
+            raise ValueError(
+                f"DeepLearningFramework {dl_framework} not supported."
+            )
+
+        return conversion_op
 
     def execute(
         self,
@@ -206,6 +225,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 tmp_dir.mkdir(parents=True, exist_ok=True)
 
                 # Convert model to all available frameworks
+                self.conversion_op = self._get_conversion_op(dl_framework)
                 self.conversion_op.to(self.device).set_state(
                     self.model, self.data
                 ).execute(
@@ -232,6 +252,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                             metric,
                             model_params,
                             ignore_compilers,
+                            dl_framework,
                         )
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
@@ -283,35 +304,30 @@ class BlackBoxModelOptimizationRootOp(Operation):
         metric,
         model_params,
         ignore_compilers,
+        dl_framework,
     ) -> List[BaseInferenceLearner]:
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
             if isinstance(model, Module):
-                self.torch_optimization_op.to(self.device).execute(
-                    model=model,
-                    input_data=self.data,
-                    optimization_time=optimization_time,
-                    metric_drop_ths=metric_drop_ths,
-                    metric=metric,
-                    model_params=model_params,
-                    model_outputs=model_outputs,
-                    ignore_compilers=ignore_compilers,
-                )
-                optimized_models = self.torch_optimization_op.get_result()
+                optimization_op = self.torch_optimization_op
             elif isinstance(model, tf.Module) and model is not None:
-                optimized_models = []
+                optimization_op = self.tensorflow_optimization_op
             else:
-                self.onnx_optimization_op.to(self.device).execute(
-                    model=model,
-                    input_data=self.data,
-                    optimization_time=optimization_time,
-                    metric_drop_ths=metric_drop_ths,
-                    metric=metric,
-                    model_params=model_params,
-                    model_outputs=model_outputs,
-                    ignore_compilers=ignore_compilers,
-                )
-                optimized_models = self.onnx_optimization_op.get_result()
+                optimization_op = self.onnx_optimization_op
+
+            optimization_op.to(self.device).execute(
+                model=model,
+                input_data=self.data,
+                optimization_time=optimization_time,
+                metric_drop_ths=metric_drop_ths,
+                metric=metric,
+                model_params=model_params,
+                model_outputs=model_outputs,
+                ignore_compilers=ignore_compilers,
+                dl_framework=dl_framework,
+            )
+
+            optimized_models = optimization_op.get_result()
 
             return optimized_models
 

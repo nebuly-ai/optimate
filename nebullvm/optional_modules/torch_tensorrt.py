@@ -3,4 +3,4 @@ try:
     from torch_tensorrt.ptq import DataLoaderCalibrator  # noqa F401
 except ImportError:
     torch_tensorrt = object
-    Calibrator = None
+    DataLoaderCalibrator = None
