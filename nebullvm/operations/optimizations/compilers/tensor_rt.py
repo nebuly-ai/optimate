@@ -18,8 +18,12 @@ from nebullvm.optimizers.quantization.utils import (
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.torch import torch, Module
-from nebullvm.optional_modules.torch_tensorrt import torch_tensorrt, Calibrator
+from nebullvm.optional_modules.torch_tensorrt import (
+    torch_tensorrt,
+    DataLoaderCalibrator,
+)
 from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 from nebullvm.utils.data import DataManager, PytorchDataset
 from nebullvm.utils.onnx import get_input_names
 
@@ -40,10 +44,22 @@ class TensorRTCompiler(Compiler):
 
     def execute(self, *args, **kwargs):
         if self.dl_framework is DeepLearningFramework.PYTORCH:
-            pass
+            compile_op = PyTorchTensorRTCompiler()
         elif self.dl_framework is DeepLearningFramework.NUMPY:
-            compiler = ONNXTensorRTCompiler()
-            compiler.to(self.device).execute(*args, **kwargs)
+            compile_op = ONNXTensorRTCompiler()
+        else:
+            raise ValueError(
+                f"TensorRT is not supported for {self.dl_framework} models."
+            )
+
+        compile_op.to(self.device).execute(*args, **kwargs)
+
+        self.compiled_model = compile_op.compiled_model
+        self.onnx_model = (
+            compile_op.onnx_model
+            if hasattr(compile_op, "onnx_model")
+            else None
+        )
 
     def compile_model(self, **kwargs) -> Any:
         pass
@@ -51,8 +67,7 @@ class TensorRTCompiler(Compiler):
 
 class PyTorchTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
-        super().__init__()
-        self.onnx_model = None
+        super().__init__(DeepLearningFramework.PYTORCH)
 
     def execute(
         self,
@@ -97,6 +112,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
 
         if quantization_type is QuantizationType.HALF:
             dtype = torch.half
+            input_tfms.append(HalfPrecisionTransformation())
         elif quantization_type is QuantizationType.STATIC:
             dtype = torch.int8
 
@@ -140,7 +156,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
         model: Module,
         input_tensors: List[torch.Tensor],
         dtype: torch.dtype,
-        calibrator: Calibrator,
+        calibrator: DataLoaderCalibrator,
         quantization_type: QuantizationType,
     ):
 
@@ -190,7 +206,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
 
 class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
-        super().__init__()
+        super().__init__(DeepLearningFramework.NUMPY)
         self.onnx_model = None
         self.quantization_op = ONNXTensorRTQuantizer()
 
@@ -283,6 +299,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                 quantization_type,
                 model_params,
                 config,
+                input_tfms,
                 train_input_data
                 if quantization_type is QuantizationType.STATIC
                 else None,

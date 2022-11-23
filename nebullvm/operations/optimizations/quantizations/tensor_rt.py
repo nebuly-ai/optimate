@@ -6,6 +6,8 @@ from nebullvm.base import ModelParams, QuantizationType
 from nebullvm.operations.optimizations.quantizations.base import Quantizer
 from nebullvm.optimizers.quantization.tensor_rt import TensorRTCalibrator
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
+from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 
 
 class ONNXTensorRTQuantizer(Quantizer):
@@ -18,10 +20,12 @@ class ONNXTensorRTQuantizer(Quantizer):
         quantization_type: QuantizationType,
         model_params: ModelParams,
         config,
+        input_tfms: MultiStageTransformation,
         input_data: List[Tuple[np.ndarray, ...]] = None,
     ):
         if quantization_type is QuantizationType.HALF:
             config.set_flag(trt.BuilderFlag.FP16)
+            input_tfms.append(HalfPrecisionTransformation())
         elif quantization_type is QuantizationType.STATIC:
             assert input_data is not None, (
                 "You need to specify the calibration data for "

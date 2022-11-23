@@ -106,9 +106,9 @@ def select_compilers_from_hardware_torch(device: Device):
                 compilers.append(ModelCompiler.DEEPSPARSE)
             if intel_neural_compressor_is_available():
                 compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
-        # elif device is Device.GPU:
-        #     if torch_tensorrt_is_available:
-        #         compilers.append(ModelCompiler.TENSOR_RT)
+        elif device is Device.GPU:
+            if torch_tensorrt_is_available:
+                compilers.append(ModelCompiler.TENSOR_RT)
     return compilers
 
 

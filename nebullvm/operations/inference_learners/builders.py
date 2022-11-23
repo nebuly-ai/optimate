@@ -130,9 +130,13 @@ class TensorRTBuildInferenceLearner(BuildInferenceLearner):
             )
 
         build_op.to(self.device).execute(*args, **kwargs)
+        self.inference_learner = build_op.inference_learner
 
 
 class PyTorchTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
+    def __init__(self):
+        super().__init__(DeepLearningFramework.PYTORCH)
+
     def execute(
         self,
         model: Union[str, Path],
@@ -149,6 +153,9 @@ class PyTorchTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
 
 
 class ONNXTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
+    def __init__(self):
+        super().__init__(DeepLearningFramework.PYTORCH)
+
     def execute(
         self,
         model: Union[str, Path],
