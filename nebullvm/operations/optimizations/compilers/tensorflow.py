@@ -76,6 +76,7 @@ class TFLiteBackendCompiler(Compiler):
             QuantizationType.HALF,
             QuantizationType.DYNAMIC,
         ],
+        "gpu": [],
     }
 
     def __init__(self, dl_framework: DeepLearningFramework):
