@@ -96,6 +96,7 @@ class TensorflowConverter(Converter):
         else:
             self.converted_models.append(onnx_model_path)
 
+    def pytorch_conversion(self):
         raise NotImplementedError()
 
 
