@@ -4,6 +4,9 @@ from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
 )
+from nebullvm.inference_learners.neural_compressor import (
+    PytorchNeuralCompressorInferenceLearner,
+)
 from nebullvm.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
 from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
 from nebullvm.inference_learners.openvino import NumpyOpenVinoInferenceLearner
@@ -16,7 +19,7 @@ from nebullvm.inference_learners.tensorflow import (
     TFLiteBackendInferenceLearner,
 )
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
-from nebullvm.optional_modules.torch import ScriptModule
+from nebullvm.optional_modules.torch import ScriptModule, Module
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.openvino import CompiledModel
 from nebullvm.transformations.base import MultiStageTransformation
@@ -204,14 +207,14 @@ class ONNXTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
     def execute(
         self,
         model: Union[str, Path],
-        onnx_model: Union[str, Path],
+        model_orig: Union[str, Path],
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
         **kwargs,
     ):
         nvidia_logger = trt.Logger(trt.Logger.ERROR)
-        input_names = get_input_names(str(onnx_model))
-        output_names = get_output_names(str(onnx_model))
+        input_names = get_input_names(str(model_orig))
+        output_names = get_output_names(str(model_orig))
 
         input_tfms.append(VerifyContiguity())
         runtime = trt.Runtime(nvidia_logger)
@@ -224,5 +227,26 @@ class ONNXTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
             input_names=input_names,
             output_names=output_names,
             nvidia_logger=nvidia_logger,
+            device=self.device,
+        )
+
+
+class IntelNeuralCompressorBuildInferenceLearner(BuildInferenceLearner):
+    def __init__(self, dl_framework: DeepLearningFramework):
+        super().__init__()
+        self.dl_framework = dl_framework
+
+    def execute(
+        self,
+        model: Union[str, Path],
+        model_orig: Module,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = PytorchNeuralCompressorInferenceLearner(
+            model=model,
+            input_tfms=input_tfms,
+            network_parameters=model_params,
             device=self.device,
         )

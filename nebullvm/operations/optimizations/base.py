@@ -76,8 +76,8 @@ class Optimizer(Operation, abc.ABC):
                         if compiled_model is not None:
                             build_inference_learner_op.to(self.device).execute(
                                 model=compiled_model,
-                                onnx_model=compiler_op.onnx_model
-                                if hasattr(compiler_op, "onnx_model")
+                                model_orig=compiler_op.model_orig
+                                if hasattr(compiler_op, "model_orig")
                                 else None,
                                 model_params=model_params,
                                 input_tfms=input_tfms,

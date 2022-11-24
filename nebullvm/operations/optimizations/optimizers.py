@@ -11,12 +11,16 @@ from nebullvm.operations.inference_learners.builders import (
     TensorRTBuildInferenceLearner,
     TensorflowBuildInferenceLearner,
     TFLiteBuildInferenceLearner,
+    IntelNeuralCompressorBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import PrecisionMeasure
 from nebullvm.operations.optimizations.base import Optimizer
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.deepsparse import (
     DeepSparseCompiler,
+)
+from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
+    IntelNeuralCompressorCompiler,
 )
 from nebullvm.operations.optimizations.compilers.onnx import ONNXCompiler
 from nebullvm.operations.optimizations.compilers.openvino import (
@@ -203,6 +207,7 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
     ModelCompiler.TENSOR_RT: TensorRTCompiler,
     ModelCompiler.TFLITE: TFLiteBackendCompiler,
     ModelCompiler.XLA: TensorflowBackendCompiler,
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorCompiler,
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
@@ -215,4 +220,5 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler.TENSOR_RT: TensorRTBuildInferenceLearner,
     ModelCompiler.TFLITE: TFLiteBuildInferenceLearner,
     ModelCompiler.XLA: TensorflowBuildInferenceLearner,
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorBuildInferenceLearner,  # noqa: E501
 }

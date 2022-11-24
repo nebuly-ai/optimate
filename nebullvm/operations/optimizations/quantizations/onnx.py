@@ -133,7 +133,9 @@ class ONNXQuantizer(Quantizer):
         use_gpu = self.device is Device.GPU
 
         if quantization_type is QuantizationType.STATIC:
-            self.quantized_model = _quantize_static(model_path, input_data, use_gpu)
+            self.quantized_model = _quantize_static(
+                model_path, input_data, use_gpu
+            )
         elif quantization_type is QuantizationType.DYNAMIC:
             self.quantized_model = _quantize_dynamic(model_path)
         elif quantization_type is QuantizationType.HALF:

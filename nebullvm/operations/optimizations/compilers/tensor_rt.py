@@ -41,7 +41,7 @@ class TensorRTCompiler(Compiler):
     def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
         self.dl_framework = dl_framework
-        self.onnx_model = None
+        self.model_orig = None
 
     def execute(self, *args, **kwargs):
         if self.dl_framework is DeepLearningFramework.PYTORCH:
@@ -56,9 +56,9 @@ class TensorRTCompiler(Compiler):
         compile_op.to(self.device).execute(*args, **kwargs)
 
         self.compiled_model = compile_op.compiled_model
-        self.onnx_model = (
-            compile_op.onnx_model
-            if hasattr(compile_op, "onnx_model")
+        self.model_orig = (
+            compile_op.model_orig
+            if hasattr(compile_op, "model_orig")
             else None
         )
 
@@ -208,7 +208,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
 class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
         super().__init__(DeepLearningFramework.NUMPY)
-        self.onnx_model = None
+        self.model_orig = None
         self.quantization_op = ONNXTensorRTQuantizer()
 
     def execute(
@@ -319,7 +319,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                 builder=builder,
                 nvidia_logger=nvidia_logger,
             )
-            self.onnx_model = onnx_model_path
+            self.model_orig = onnx_model_path
 
     def compile_model(
         self,
