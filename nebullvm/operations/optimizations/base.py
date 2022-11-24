@@ -16,6 +16,8 @@ class Optimizer(Operation, abc.ABC):
     def __init__(self):
         super().__init__()
         self.optimized_models = []
+        self.source_dl_framework = None
+        self.pipeline_dl_framework = None
 
     @abc.abstractmethod
     def execute(self, **kwargs):
@@ -81,7 +83,7 @@ class Optimizer(Operation, abc.ABC):
                                 else None,
                                 model_params=model_params,
                                 input_tfms=input_tfms,
-                                dl_framework=self.dl_framework,
+                                dl_framework=self.source_dl_framework,
                             )
                             inference_learner = (
                                 build_inference_learner_op.get_result()

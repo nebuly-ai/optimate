@@ -304,7 +304,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
         metric,
         model_params,
         ignore_compilers,
-        dl_framework,
+        source_dl_framework,
     ) -> List[BaseInferenceLearner]:
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
@@ -324,7 +324,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 model_params=model_params,
                 model_outputs=model_outputs,
                 ignore_compilers=ignore_compilers,
-                dl_framework=dl_framework,
+                source_dl_framework=source_dl_framework,
             )
 
             optimized_models = optimization_op.get_result()

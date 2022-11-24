@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Type
 
-from nebullvm.base import ModelCompiler
+from nebullvm.base import ModelCompiler, DeepLearningFramework
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.builders import (
     DeepSparseBuildInferenceLearner,
@@ -48,7 +48,7 @@ logger = logging.getLogger("nebullvm_logger")
 class PytorchOptimizer(Optimizer):
     def __init__(self):
         super().__init__()
-        self.dl_framework = None
+        self.pipeline_dl_framework = DeepLearningFramework.PYTORCH
 
         self.compiler_ops = {}
         self.build_inference_learner_ops = {}
@@ -57,14 +57,16 @@ class PytorchOptimizer(Optimizer):
     def _load_compilers(self, ignore_compilers: List[ModelCompiler]):
         compilers = select_compilers_from_hardware_torch(self.device)
         self.compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](self.dl_framework)
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
+                self.pipeline_dl_framework
+            )
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
         }
         self.build_inference_learner_ops = {
             compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
-                self.dl_framework
+                self.pipeline_dl_framework
             )
             for compiler in compilers
             if compiler not in ignore_compilers
@@ -81,9 +83,9 @@ class PytorchOptimizer(Optimizer):
         model_params,
         model_outputs,
         ignore_compilers,
-        dl_framework,
+        source_dl_framework,
     ):
-        self.dl_framework = dl_framework
+        self.source_dl_framework = source_dl_framework
         self._load_compilers(ignore_compilers=ignore_compilers)
         self.optimize(
             model,
@@ -99,7 +101,7 @@ class PytorchOptimizer(Optimizer):
 class TensorflowOptimizer(Optimizer):
     def __init__(self):
         super().__init__()
-        self.dl_framework = None
+        self.pipeline_dl_framework = DeepLearningFramework.TENSORFLOW
 
         self.compiler_ops = {}
         self.build_inference_learner_ops = {}
@@ -109,14 +111,16 @@ class TensorflowOptimizer(Optimizer):
         compilers = select_compilers_from_hardware_tensorflow()
 
         self.compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](self.dl_framework)
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
+                self.pipeline_dl_framework
+            )
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
         }
         self.build_inference_learner_ops = {
             compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
-                self.dl_framework
+                self.pipeline_dl_framework
             )
             for compiler in compilers
             if compiler not in ignore_compilers
@@ -133,9 +137,9 @@ class TensorflowOptimizer(Optimizer):
         model_params,
         model_outputs,
         ignore_compilers,
-        dl_framework,
+        source_dl_framework,
     ):
-        self.dl_framework = dl_framework
+        self.source_dl_framework = source_dl_framework
         self._load_compilers(ignore_compilers=ignore_compilers)
         self.optimize(
             model,
@@ -151,7 +155,7 @@ class TensorflowOptimizer(Optimizer):
 class ONNXOptimizer(Optimizer):
     def __init__(self):
         super().__init__()
-        self.dl_framework = None
+        self.pipeline_dl_framework = DeepLearningFramework.NUMPY
 
         self.compiler_ops = {}
         self.build_inference_learner_ops = {}
@@ -160,14 +164,16 @@ class ONNXOptimizer(Optimizer):
     def _load_compilers(self, ignore_compilers: List[ModelCompiler]):
         compilers = select_compilers_from_hardware_onnx(self.device)
         self.compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](self.dl_framework)
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
+                self.pipeline_dl_framework
+            )
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
         }
         self.build_inference_learner_ops = {
             compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
-                self.dl_framework
+                self.pipeline_dl_framework
             )
             for compiler in compilers
             if compiler not in ignore_compilers
@@ -184,9 +190,9 @@ class ONNXOptimizer(Optimizer):
         model_params,
         model_outputs,
         ignore_compilers,
-        dl_framework,
+        source_dl_framework,
     ):
-        self.dl_framework = dl_framework
+        self.source_dl_framework = source_dl_framework
         self._load_compilers(ignore_compilers=ignore_compilers)
         self.optimize(
             model,
