@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - "main"
-      - "dev"
-      - "pytorch_optional"
   pull_request:
     branches:
       - "main"

@@ -1,4 +1,4 @@
-from nebullvm.base import QuantizationType, DeepLearningFramework
+from nebullvm.base import QuantizationType
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.tensorflow import (
@@ -8,6 +8,7 @@ from nebullvm.operations.optimizations.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 

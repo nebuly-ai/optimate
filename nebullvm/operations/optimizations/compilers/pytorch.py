@@ -1,6 +1,6 @@
 from typing import Union
 
-from nebullvm.base import Device, QuantizationType, DeepLearningFramework
+from nebullvm.base import Device, QuantizationType
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.pytorch import (
@@ -16,6 +16,7 @@ from nebullvm.optional_modules.torch import (
     GraphModule,
     symbolic_trace,
 )
+from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.utils.data import DataManager
 

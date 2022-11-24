@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union
 
-from nebullvm.base import QuantizationType, ModelParams, DeepLearningFramework
+from nebullvm.base import QuantizationType, ModelParams
 from nebullvm.converters import ONNXConverter
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.pytorch import (
@@ -11,6 +11,7 @@ from nebullvm.optional_modules.torch import (
     Module,
     GraphModule,
 )
+from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.utils.data import DataManager
 
 

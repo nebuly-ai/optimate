@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Type
 
-from nebullvm.base import ModelCompiler, DeepLearningFramework
+from nebullvm.base import ModelCompiler
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.builders import (
     DeepSparseBuildInferenceLearner,
@@ -36,6 +36,7 @@ from nebullvm.operations.optimizations.compilers.tensorflow import (
     TensorflowBackendCompiler,
     TFLiteBackendCompiler,
 )
+from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.utils.compilers import (
     select_compilers_from_hardware_torch,
     select_compilers_from_hardware_onnx,
