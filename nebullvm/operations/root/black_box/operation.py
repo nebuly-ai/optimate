@@ -1,4 +1,3 @@
-import logging
 import os
 import pickle
 from pathlib import Path
@@ -8,7 +7,6 @@ from typing import (
     Union,
     Iterable,
     Sequence,
-    Optional,
     Dict,
     Callable,
     List,
@@ -33,107 +31,19 @@ from nebullvm.operations.optimizations.optimizers import (
     ONNXOptimizer,
     TensorflowOptimizer,
 )
+from nebullvm.operations.root.black_box.utils import (
+    map_compilers_and_compressors,
+    check_input_data,
+    get_dl_framework,
+    extract_info_from_data,
+)
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import Module
 from nebullvm.tools.base import (
-    Device,
-    ModelParams,
     ModelCompiler,
     DeepLearningFramework,
 )
 from nebullvm.tools.data import DataManager
-from nebullvm.tools.onnx import (
-    extract_info_from_np_data,
-    get_output_sizes_onnx,
-)
-from nebullvm.tools.tensorflow import (
-    extract_info_from_tf_data,
-    get_outputs_sizes_tf,
-)
-from nebullvm.tools.pytorch import (
-    extract_info_from_torch_data,
-    get_outputs_sizes_torch,
-)
-
-logger = logging.getLogger("nebullvm_logger")
-
-INFO_EXTRACTION_DICT: Dict[DeepLearningFramework, Callable] = {
-    DeepLearningFramework.PYTORCH: extract_info_from_torch_data,
-    DeepLearningFramework.TENSORFLOW: extract_info_from_tf_data,
-    DeepLearningFramework.NUMPY: extract_info_from_np_data,
-}
-
-OUTPUT_SIZE_COMPUTATION_DICT: Dict[DeepLearningFramework, Callable] = {
-    DeepLearningFramework.PYTORCH: get_outputs_sizes_torch,
-    DeepLearningFramework.TENSORFLOW: get_outputs_sizes_tf,
-    DeepLearningFramework.NUMPY: get_output_sizes_onnx,
-}
-
-
-def _check_input_data(input_data: Union[Iterable, Sequence]):
-    try:
-        input_data[0]
-    except:  # noqa E722
-        return False
-    else:
-        return True
-
-
-def _extract_info_from_data(
-    model: Any,
-    input_data: DataManager,
-    dl_framework: DeepLearningFramework,
-    dynamic_info: Optional[Dict],
-    device: Device,
-):
-    batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
-        dl_framework
-    ](
-        model,
-        input_data,
-        batch_size=None,
-        input_sizes=None,
-        input_types=None,
-        dynamic_axis=dynamic_info,
-        device=device,
-    )
-    model_params = ModelParams(
-        batch_size=batch_size,
-        input_infos=[
-            {"size": size, "dtype": dtype}
-            for size, dtype in zip(input_sizes, input_types)
-        ],
-        output_sizes=OUTPUT_SIZE_COMPUTATION_DICT[dl_framework](
-            model, input_data[0][0], device
-        ),
-        dynamic_info=dynamic_info,
-    )
-    return model_params
-
-
-def _get_dl_framework(model: Any):
-    if isinstance(model, Module):
-        return DeepLearningFramework.PYTORCH
-    elif isinstance(model, tf.Module) and model is not None:
-        return DeepLearningFramework.TENSORFLOW
-    elif isinstance(model, str):
-        if Path(model).is_file():
-            return DeepLearningFramework.NUMPY
-        else:
-            raise FileNotFoundError(
-                f"No file '{model}' found, please provide a valid path to "
-                f"a model."
-            )
-    else:
-        raise TypeError(f"Model type {type(model)} not supported.")
-
-
-def _map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
-    if ignore_list is None:
-        ignore_list = []
-    else:
-        ignore_list = [enum_class(element) for element in ignore_list]
-    return ignore_list
 
 
 class BlackBoxModelOptimizationRootOp(Operation):
@@ -187,7 +97,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
         if self.fetch_data_op.get_data() is None:
             self.fetch_data_op.execute(input_data)
 
-        ignore_compilers = _map_compilers_and_compressors(
+        ignore_compilers = map_compilers_and_compressors(
             ignore_compilers, ModelCompiler
         )
         # ignore_compressors = _map_compilers_and_compressors(
@@ -200,12 +110,12 @@ class BlackBoxModelOptimizationRootOp(Operation):
             self.data = self.fetch_data_op.get_data()
 
             if not isinstance(self.data, DataManager):
-                if _check_input_data(input_data):
+                if check_input_data(input_data):
                     self.data = DataManager(input_data)
                 else:
                     self.data = DataManager.from_iterable(input_data)
 
-            dl_framework = _get_dl_framework(self.model)
+            dl_framework = get_dl_framework(self.model)
 
             if metric_drop_ths is not None and metric_drop_ths <= 0:
                 metric_drop_ths = None
@@ -214,7 +124,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
             if isinstance(metric, str):
                 metric = QUANTIZATION_METRIC_MAP.get(metric)
 
-            model_params = _extract_info_from_data(
+            model_params = extract_info_from_data(
                 model=self.model,
                 input_data=self.data,
                 dl_framework=dl_framework,
