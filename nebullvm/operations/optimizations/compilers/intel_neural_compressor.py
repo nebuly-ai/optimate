@@ -1,20 +1,17 @@
 from pathlib import Path
 from typing import Union
 
-from nebullvm.base import (
-    QuantizationType,
-    DeepLearningFramework,
-)
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.intel_neural_compressor import (  # noqa: E501
     IntelNeuralCompressorQuantizer,
 )
-from nebullvm.optimizers.quantization.utils import (
+from nebullvm.operations.optimizations.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.torch import Module
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.data import DataManager
+from nebullvm.tools.base import QuantizationType, DeepLearningFramework
+from nebullvm.tools.data import DataManager
+from nebullvm.tools.transformations import MultiStageTransformation
 
 
 class IntelNeuralCompressorCompiler(Compiler):

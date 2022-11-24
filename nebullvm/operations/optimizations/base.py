@@ -2,14 +2,14 @@ import abc
 from tempfile import TemporaryDirectory
 from typing import List
 
-from nebullvm.base import ModelCompiler, QuantizationType
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
-from nebullvm.measure import (
+from nebullvm.operations.base import Operation
+from nebullvm.operations.measures.utils import (
     compute_relative_difference,
     compute_optimized_running_time,
 )
-from nebullvm.operations.base import Operation
-from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.tools.base import ModelCompiler, QuantizationType
+from nebullvm.tools.transformations import MultiStageTransformation
 
 
 class Optimizer(Operation, abc.ABC):

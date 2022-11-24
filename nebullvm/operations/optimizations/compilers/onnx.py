@@ -1,25 +1,22 @@
 from pathlib import Path
 from typing import Union
 
-from nebullvm.base import (
-    QuantizationType,
-    DeepLearningFramework,
-)
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.onnx import ONNXQuantizer
-from nebullvm.optimizers.quantization.utils import (
+from nebullvm.operations.optimizations.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.torch import Module
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.data import DataManager
-from nebullvm.utils.logger import (
-    save_root_logger_state,
-    load_root_logger_state,
-    raise_logger_level,
+from nebullvm.tools.base import QuantizationType, DeepLearningFramework
+from nebullvm.tools.data import DataManager
+from nebullvm.tools.logger import (
     debug_mode_enabled,
+    save_root_logger_state,
+    raise_logger_level,
+    load_root_logger_state,
 )
+from nebullvm.tools.transformations import MultiStageTransformation
 
 
 class ONNXCompiler(Compiler):
@@ -86,7 +83,7 @@ class ONNXCompiler(Compiler):
             QUANTIZATION_DATA_NUM
         )
 
-        if not debug_mode_enabled():
+        if not +debug_mode_enabled():
             logger_state = save_root_logger_state()
             raise_logger_level()
 

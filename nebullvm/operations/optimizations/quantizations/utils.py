@@ -1,6 +1,6 @@
 import logging
 
-from nebullvm.base import QuantizationType
+from nebullvm.tools.base import QuantizationType
 
 logger = logging.getLogger("nebullvm_logger")
 

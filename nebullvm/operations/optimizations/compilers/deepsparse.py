@@ -1,8 +1,9 @@
 from pathlib import Path
 from typing import Union
 
-from nebullvm.base import QuantizationType, ModelParams
-from nebullvm.converters import ONNXConverter
+from nebullvm.operations.conversions.converters import (
+    PytorchConverter,
+)
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.pytorch import (
     PytorchQuantizer,
@@ -11,8 +12,12 @@ from nebullvm.optional_modules.torch import (
     Module,
     GraphModule,
 )
-from nebullvm.tools.base import DeepLearningFramework
-from nebullvm.utils.data import DataManager
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    ModelParams,
+    QuantizationType,
+)
+from nebullvm.tools.data import DataManager
 
 
 class DeepSparseCompiler(Compiler):
@@ -24,6 +29,7 @@ class DeepSparseCompiler(Compiler):
     def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
         self.quantization_op = PytorchQuantizer()
+        self.conversion_op = PytorchConverter()
         self.dl_framework = dl_framework
 
     def execute(
@@ -72,10 +78,10 @@ class DeepSparseCompiler(Compiler):
         input_data: DataManager,
         model_params: ModelParams,
     ) -> str:
-        converter = ONNXConverter(model_name="model_pruned")
+        self.conversion_op.model_name = "model_pruned"
         onnx_pruned_path = Path(onnx_output_path)
-        converter.convert(
-            model, model_params, onnx_pruned_path, self.device, input_data
-        )
+        self.conversion_op.to(self.device).set_state(
+            model, input_data
+        ).execute(onnx_pruned_path, model_params)
         onnx_pruned_path = str(onnx_pruned_path / "model_pruned.onnx")
         return onnx_pruned_path

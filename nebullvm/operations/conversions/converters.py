@@ -2,10 +2,10 @@ import abc
 from pathlib import Path
 from typing import Optional, List
 
-from nebullvm.base import ModelParams
-from nebullvm.converters import convert_tf_to_onnx
+from nebullvm.tools.base import ModelParams
 from nebullvm.operations.base import Operation
-from nebullvm.operations.conversions.torch import convert_torch_to_onnx
+from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
+from nebullvm.operations.conversions.tensorflow import convert_tf_to_onnx
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.tools.base import DeepLearningFramework
 

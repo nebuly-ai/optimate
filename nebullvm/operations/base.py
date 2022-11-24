@@ -2,8 +2,8 @@ import abc
 import logging
 from typing import Dict, Any, Optional, Union
 
-from nebullvm.base import Device
-from nebullvm.utils.general import gpu_is_available
+from nebullvm.tools.base import Device
+from nebullvm.tools.utils import gpu_is_available
 
 logger = logging.getLogger("nebullvm_logger")
 

@@ -4,11 +4,7 @@ from typing import Union, Iterable, Tuple, List
 import cpuinfo
 import numpy as np
 
-from nebullvm.base import QuantizationType, Device
 from nebullvm.operations.optimizations.quantizations.base import Quantizer
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
-from nebullvm.utils.onnx import get_input_names
 from nebullvm.optional_modules.onnx import (
     onnx,
     convert_float_to_float16_model_path,
@@ -20,6 +16,12 @@ from nebullvm.optional_modules.onnxruntime import (
     quantize_static,
 )
 from nebullvm.optional_modules.torch import DataLoader
+from nebullvm.tools.base import QuantizationType, Device
+from nebullvm.tools.onnx import get_input_names
+from nebullvm.tools.transformations import (
+    MultiStageTransformation,
+    HalfPrecisionTransformation,
+)
 
 
 class _IterableCalibrationDataReader(CalibrationDataReader):

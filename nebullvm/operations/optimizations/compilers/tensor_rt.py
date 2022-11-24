@@ -3,16 +3,12 @@ from pathlib import Path
 import subprocess
 from typing import Union, Any, List
 
-from nebullvm.base import (
-    ModelParams,
-    QuantizationType,
-)
 from nebullvm.config import QUANTIZATION_DATA_NUM, TORCH_TENSORRT_PRECISIONS
 from nebullvm.operations.optimizations.quantizations.tensor_rt import (
     ONNXTensorRTQuantizer,
 )
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.optimizers.quantization.utils import (
+from nebullvm.operations.optimizations.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
@@ -21,11 +17,17 @@ from nebullvm.optional_modules.torch_tensorrt import (
     torch_tensorrt,
     DataLoaderCalibrator,
 )
-from nebullvm.tools.base import DeepLearningFramework
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
-from nebullvm.utils.data import DataManager, PytorchDataset
-from nebullvm.utils.onnx import get_input_names
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    QuantizationType,
+    ModelParams,
+)
+from nebullvm.tools.data import DataManager, PytorchDataset
+from nebullvm.tools.onnx import get_input_names
+from nebullvm.tools.transformations import (
+    MultiStageTransformation,
+    HalfPrecisionTransformation,
+)
 
 
 class TensorRTCompiler(Compiler):

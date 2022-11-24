@@ -1,32 +1,37 @@
 from pathlib import Path
 from typing import Union
 
-from nebullvm.base import ModelParams
-from nebullvm.inference_learners.deepsparse import (
+from nebullvm.operations.inference_learners.base import BuildInferenceLearner
+from nebullvm.operations.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
 )
-from nebullvm.inference_learners.neural_compressor import (
+from nebullvm.operations.inference_learners.neural_compressor import (
     PytorchNeuralCompressorInferenceLearner,
 )
-from nebullvm.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
-from nebullvm.inference_learners.pytorch import PytorchBackendInferenceLearner
-from nebullvm.inference_learners.openvino import NumpyOpenVinoInferenceLearner
-from nebullvm.inference_learners.tensor_rt import (
-    PytorchNvidiaInferenceLearner,
-    PytorchTensorRTInferenceLearner,
+from nebullvm.operations.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
+from nebullvm.operations.inference_learners.openvino import (
+    NumpyOpenVinoInferenceLearner,
 )
-from nebullvm.inference_learners.tensorflow import (
+from nebullvm.operations.inference_learners.pytorch import (
+    PytorchBackendInferenceLearner,
+)
+from nebullvm.operations.inference_learners.tensor_rt import (
+    PytorchTensorRTInferenceLearner,
+    PytorchNvidiaInferenceLearner,
+)
+from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
-from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.openvino import CompiledModel
-from nebullvm.tools.base import DeepLearningFramework
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.transformations.tensor_tfms import VerifyContiguity
-from nebullvm.utils.onnx import get_input_names, get_output_names
+from nebullvm.tools.base import DeepLearningFramework, ModelParams
+from nebullvm.tools.onnx import get_input_names, get_output_names
+from nebullvm.tools.transformations import (
+    MultiStageTransformation,
+    VerifyContiguity,
+)
 
 
 class PytorchBuildInferenceLearner(BuildInferenceLearner):

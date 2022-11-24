@@ -1,7 +1,6 @@
 import copy
 from typing import List, Tuple, Union
 
-from nebullvm.base import QuantizationType, Device
 from nebullvm.operations.optimizations.quantizations.base import Quantizer
 from nebullvm.optional_modules.torch import (
     torch,
@@ -14,9 +13,12 @@ from nebullvm.optional_modules.torch import (
     prepare_fx,
     convert_fx,
 )
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
-from nebullvm.utils.general import check_module_version
+from nebullvm.tools.base import Device, QuantizationType
+from nebullvm.tools.transformations import (
+    MultiStageTransformation,
+    HalfPrecisionTransformation,
+)
+from nebullvm.tools.utils import check_module_version
 
 
 class _QuantWrapper(Module):

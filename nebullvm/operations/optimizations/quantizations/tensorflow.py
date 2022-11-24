@@ -1,9 +1,9 @@
 from typing import List, Tuple
 
-from nebullvm.base import QuantizationType
 from nebullvm.operations.optimizations.quantizations.base import Quantizer
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.tools.base import QuantizationType
+from nebullvm.tools.transformations import MultiStageTransformation
 
 
 def _quantize_dynamic(model: tf.Module):

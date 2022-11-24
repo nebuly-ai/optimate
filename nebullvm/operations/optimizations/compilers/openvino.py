@@ -2,17 +2,12 @@ from pathlib import Path
 import subprocess
 from typing import Tuple, Optional, Dict
 
-from nebullvm.base import (
-    ModelParams,
-    QuantizationType,
-    DeepLearningFramework,
-)
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.quantizations.openvino import (
     OpenVINOQuantizer,
 )
-from nebullvm.optimizers.quantization.utils import (
+from nebullvm.operations.optimizations.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.torch import Module
@@ -21,9 +16,14 @@ from nebullvm.optional_modules.openvino import (
     Model,
     CompiledModel,
 )
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.data import DataManager
-from nebullvm.utils.onnx import get_input_names
+from nebullvm.tools.base import (
+    QuantizationType,
+    DeepLearningFramework,
+    ModelParams,
+)
+from nebullvm.tools.data import DataManager
+from nebullvm.tools.onnx import get_input_names
+from nebullvm.tools.transformations import MultiStageTransformation
 
 
 class OpenVINOCompiler(Compiler):

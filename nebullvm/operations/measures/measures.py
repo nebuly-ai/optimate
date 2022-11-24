@@ -3,19 +3,19 @@ from typing import List, Tuple, Any, Callable, Dict, Optional
 import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
-from nebullvm.inference_learners import BaseInferenceLearner
-from nebullvm.measure import (
-    compute_relative_difference,
+from nebullvm.operations.inference_learners.base import BaseInferenceLearner
+from nebullvm.operations.measures.base import Measure
+from nebullvm.operations.measures.utils import (
     compute_torch_latency,
     compute_tf_latency,
     compute_onnx_latency,
+    compute_relative_difference,
 )
-from nebullvm.operations.measures.base import Measure
 from nebullvm.tools.base import DeepLearningFramework
-from nebullvm.utils.data import DataManager
-from nebullvm.utils.onnx import run_onnx_model
-from nebullvm.utils.tf import run_tf_model
-from nebullvm.utils.torch import run_torch_model
+from nebullvm.tools.data import DataManager
+from nebullvm.tools.onnx import run_onnx_model
+from nebullvm.tools.pytorch import run_torch_model
+from nebullvm.tools.tensorflow import run_tf_model
 
 COMPUTE_OUTPUT_FRAMEWORK: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.PYTORCH: run_torch_model,

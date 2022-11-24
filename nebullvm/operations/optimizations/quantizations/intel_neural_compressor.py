@@ -4,17 +4,18 @@ from typing import Any
 
 import yaml
 
-from nebullvm.base import QuantizationType
-from nebullvm.compressors.intel import INCDataset
 from nebullvm.operations.optimizations.quantizations.base import Quantizer
 from nebullvm.optional_modules.neural_compressor import (
     MixedPrecision,
     Quantization,
 )
 from nebullvm.optional_modules.torch import DataLoader, Module, GraphModule
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
-from nebullvm.utils.data import DataManager
+from nebullvm.tools.base import QuantizationType
+from nebullvm.tools.data import DataManager, PytorchDataset
+from nebullvm.tools.transformations import (
+    MultiStageTransformation,
+    HalfPrecisionTransformation,
+)
 
 
 def _prepare_quantization_config(model: Any, tmp_dir: str, approach: str):
@@ -59,7 +60,7 @@ def _prepare_mixed_precision_config(model: Any, tmp_dir: str):
 
 def _get_dataloader(input_data: DataManager):
     bs = input_data[0][0][0].shape[0]
-    ds = INCDataset(input_data)
+    ds = PytorchDataset(input_data, has_labels=True)
     dl = DataLoader(ds, bs)
     return dl
 
