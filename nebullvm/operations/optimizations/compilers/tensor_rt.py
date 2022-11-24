@@ -6,7 +6,6 @@ from typing import Union, Any, List
 from nebullvm.base import (
     ModelParams,
     QuantizationType,
-    DeepLearningFramework,
 )
 from nebullvm.config import QUANTIZATION_DATA_NUM, TORCH_TENSORRT_PRECISIONS
 from nebullvm.operations.optimizations.quantizations.tensor_rt import (
@@ -22,6 +21,7 @@ from nebullvm.optional_modules.torch_tensorrt import (
     torch_tensorrt,
     DataLoaderCalibrator,
 )
+from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 from nebullvm.utils.data import DataManager, PytorchDataset

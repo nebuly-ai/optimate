@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Union
-from nebullvm.base import ModelParams, DeepLearningFramework
+from nebullvm.base import ModelParams
 from nebullvm.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
 )
@@ -22,6 +22,7 @@ from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.optional_modules.torch import ScriptModule, Module
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.openvino import CompiledModel
+from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.transformations.base import MultiStageTransformation
 from nebullvm.transformations.tensor_tfms import VerifyContiguity
 from nebullvm.utils.onnx import get_input_names, get_output_names
