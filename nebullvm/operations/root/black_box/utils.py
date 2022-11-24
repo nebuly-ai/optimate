@@ -107,3 +107,22 @@ def map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
     else:
         ignore_list = [enum_class(element) for element in ignore_list]
     return ignore_list
+
+
+def is_huggingface_data(data_sample: Any) -> bool:
+    if is_dict_type(data_sample):
+        return True
+    elif isinstance(data_sample, str):
+        return True
+    elif isinstance(data_sample[0], str):
+        return True
+    return False
+
+
+def is_dict_type(data_sample: Any):
+    try:
+        data_sample.items()
+    except AttributeError:
+        return False
+    else:
+        return True

@@ -15,6 +15,7 @@ def optimize_model(
     ignore_compressors: List[str] = None,
     store_latencies: bool = False,
     device: str = "CPU",
+    **kwargs,
 ):
     root_op = BlackBoxModelOptimizationRootOp()
     root_op.to(device).execute(
@@ -28,6 +29,7 @@ def optimize_model(
         ignore_compilers,
         ignore_compressors,
         store_latencies,
+        **kwargs,
     )
 
     return root_op.optimal_model

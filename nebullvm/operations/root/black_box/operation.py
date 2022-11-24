@@ -13,6 +13,7 @@ from typing import (
 )
 
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
+from nebullvm.operations.conversions.huggingface import convert_hf_model
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.converters import (
@@ -36,12 +37,14 @@ from nebullvm.operations.root.black_box.utils import (
     check_input_data,
     get_dl_framework,
     extract_info_from_data,
+    is_huggingface_data,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import Module
 from nebullvm.tools.base import (
     ModelCompiler,
     DeepLearningFramework,
+    ModelParams,
 )
 from nebullvm.tools.data import DataManager
 
@@ -87,6 +90,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
         ignore_compilers: List[str] = None,
         ignore_compressors: List[str] = None,
         store_latencies: bool = False,
+        **kwargs,
     ):
         self.logger.info(
             f"Running Black Box Nebullvm Optimization on {self.device.name}"
@@ -109,11 +113,24 @@ class BlackBoxModelOptimizationRootOp(Operation):
             self.model = self.fetch_model_op.get_model()
             self.data = self.fetch_data_op.get_data()
 
+            needs_conversion_to_hf = False
+            if is_huggingface_data(self.data[0]):
+                (
+                    self.model,
+                    self.data,
+                    input_names,
+                    output_structure,
+                    output_type,
+                ) = convert_hf_model(
+                    self.model, self.data, self.device, **kwargs
+                )
+                needs_conversion_to_hf = True
+
             if not isinstance(self.data, DataManager):
-                if check_input_data(input_data):
-                    self.data = DataManager(input_data)
+                if check_input_data(self.data):
+                    self.data = DataManager(self.data)
                 else:
-                    self.data = DataManager.from_iterable(input_data)
+                    self.data = DataManager.from_iterable(self.data)
 
             dl_framework = get_dl_framework(self.model)
 
@@ -167,13 +184,13 @@ class BlackBoxModelOptimizationRootOp(Operation):
                     )
                     for model in self.conversion_op.get_result():
                         optimized_models += self.optimize(
-                            model,
-                            optimization_time,
-                            metric_drop_ths,
-                            metric,
-                            model_params,
-                            ignore_compilers,
-                            dl_framework,
+                            model=model,
+                            optimization_time=optimization_time,
+                            metric_drop_ths=metric_drop_ths,
+                            metric=metric,
+                            model_params=model_params,
+                            ignore_compilers=ignore_compilers,
+                            source_dl_framework=dl_framework,
                         )
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
@@ -217,15 +234,27 @@ class BlackBoxModelOptimizationRootOp(Operation):
 
             self.optimal_model = optimized_models[0][0]
 
+            if needs_conversion_to_hf:
+                from nebullvm.operations.inference_learners.huggingface import (  # noqa: E501
+                    HuggingFaceInferenceLearner,
+                )
+
+                self.optimal_model = HuggingFaceInferenceLearner(
+                    core_inference_learner=self.optimal_model,
+                    output_structure=output_structure,
+                    input_names=input_names,
+                    output_type=output_type,
+                )
+
     def optimize(
         self,
-        model,
-        optimization_time,
-        metric_drop_ths,
-        metric,
-        model_params,
-        ignore_compilers,
-        source_dl_framework,
+        model: Any,
+        optimization_time: str,
+        metric_drop_ths: float,
+        metric: Callable,
+        model_params: ModelParams,
+        ignore_compilers: List[str],
+        source_dl_framework: DeepLearningFramework,
     ) -> List[BaseInferenceLearner]:
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
