@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Union
+
 from nebullvm.base import ModelParams
 from nebullvm.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
@@ -19,7 +20,7 @@ from nebullvm.inference_learners.tensorflow import (
     TFLiteBackendInferenceLearner,
 )
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
-from nebullvm.optional_modules.torch import ScriptModule, Module
+from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.openvino import CompiledModel
 from nebullvm.tools.base import DeepLearningFramework
@@ -239,14 +240,15 @@ class IntelNeuralCompressorBuildInferenceLearner(BuildInferenceLearner):
 
     def execute(
         self,
-        model: Union[str, Path],
+        model: GraphModule,
         model_orig: Module,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
         **kwargs,
     ):
         self.inference_learner = PytorchNeuralCompressorInferenceLearner(
-            model=model,
+            model=model_orig,
+            model_quant=model,
             input_tfms=input_tfms,
             network_parameters=model_params,
             device=self.device,

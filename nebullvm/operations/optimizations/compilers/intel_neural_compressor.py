@@ -21,9 +21,9 @@ class IntelNeuralCompressorCompiler(Compiler):
     supported_ops = {
         "cpu": [
             QuantizationType.STATIC,
-            QuantizationType.HALF,
             QuantizationType.DYNAMIC,
-        ]
+        ],
+        "gpu": [],
     }
 
     def __init__(self, dl_framework: DeepLearningFramework):
