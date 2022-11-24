@@ -12,6 +12,8 @@ from nebullvm.optional_modules.neural_compressor import (
     Quantization,
 )
 from nebullvm.optional_modules.torch import DataLoader, Module, GraphModule
+from nebullvm.transformations.base import MultiStageTransformation
+from nebullvm.transformations.precision_tfms import HalfPrecisionTransformation
 from nebullvm.utils.data import DataManager
 
 
@@ -88,12 +90,16 @@ def _quantize_dynamic(model: Module) -> GraphModule:
     return compressed_model
 
 
-def _mixed_precision(model: Module) -> GraphModule:
+def _mixed_precision(
+    model: Module, input_tfms: MultiStageTransformation
+) -> GraphModule:
     with TemporaryDirectory() as tmp_dir:
         config_file_qt = _prepare_mixed_precision_config(model, tmp_dir)
         converter = MixedPrecision(str(config_file_qt))
         converter.model = model
         compressed_model = converter()
+
+    input_tfms.append(HalfPrecisionTransformation())
 
     return compressed_model
 
@@ -103,6 +109,7 @@ class IntelNeuralCompressorQuantizer(Quantizer):
         self,
         model: Module,
         quantization_type: QuantizationType,
+        input_tfms: MultiStageTransformation,
         input_data: DataManager,
     ):
         if quantization_type is QuantizationType.STATIC:
@@ -110,7 +117,7 @@ class IntelNeuralCompressorQuantizer(Quantizer):
         elif quantization_type is QuantizationType.DYNAMIC:
             self.quantized_model = _quantize_dynamic(model)
         elif quantization_type is QuantizationType.HALF:
-            self.quantized_model = _mixed_precision(model)
+            self.quantized_model = _mixed_precision(model, input_tfms)
         else:
             raise ValueError(
                 f"Quantization type {quantization_type} is not "

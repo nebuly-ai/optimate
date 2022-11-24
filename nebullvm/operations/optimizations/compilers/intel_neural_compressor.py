@@ -6,7 +6,9 @@ from nebullvm.base import (
     DeepLearningFramework,
 )
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.onnx import ONNXQuantizer
+from nebullvm.operations.optimizations.quantizations.intel_neural_compressor import (  # noqa: E501
+    IntelNeuralCompressorQuantizer,
+)
 from nebullvm.optimizers.quantization.utils import (
     check_quantization,
 )
@@ -29,7 +31,7 @@ class IntelNeuralCompressorCompiler(Compiler):
         self.dl_framework = dl_framework
         self.model_orig = None
 
-        self.quantization_op = ONNXQuantizer()
+        self.quantization_op = IntelNeuralCompressorQuantizer()
 
     def execute(
         self,
