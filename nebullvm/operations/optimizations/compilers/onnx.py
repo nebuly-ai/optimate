@@ -8,7 +8,7 @@ from nebullvm.operations.optimizations.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.torch import Module
-from nebullvm.tools.base import QuantizationType, DeepLearningFramework
+from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.logger import (
     debug_mode_enabled,
@@ -35,10 +35,9 @@ class ONNXCompiler(Compiler):
         ],
     }
 
-    def __init__(self, dl_framework: DeepLearningFramework):
+    def __init__(self):
         super().__init__()
         self.quantization_op = ONNXQuantizer()
-        self.dl_framework = dl_framework
 
     def execute(
         self,

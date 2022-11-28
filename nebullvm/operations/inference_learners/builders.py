@@ -1,4 +1,3 @@
-from abc import ABC
 from pathlib import Path
 from typing import Union
 
@@ -36,10 +35,6 @@ from nebullvm.tools.transformations import (
 
 
 class PytorchBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
-
     def execute(
         self,
         model: ScriptModule,
@@ -56,10 +51,6 @@ class PytorchBuildInferenceLearner(BuildInferenceLearner):
 
 
 class TensorflowBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
-
     def execute(
         self,
         model,
@@ -76,10 +67,6 @@ class TensorflowBuildInferenceLearner(BuildInferenceLearner):
 
 
 class TFLiteBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
-
     def execute(
         self,
         model,
@@ -96,10 +83,6 @@ class TFLiteBuildInferenceLearner(BuildInferenceLearner):
 
 
 class DeepSparseBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
-
     def execute(
         self,
         model: Union[str, Path],
@@ -118,10 +101,6 @@ class DeepSparseBuildInferenceLearner(BuildInferenceLearner):
 
 
 class ONNXBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
-
     def execute(
         self,
         model: Union[str, Path],
@@ -144,10 +123,6 @@ class ONNXBuildInferenceLearner(BuildInferenceLearner):
 
 
 class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
-
     def execute(
         self,
         model: CompiledModel,
@@ -170,16 +145,7 @@ class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
         )
 
 
-class TensorRTBuildInferenceLearner(BuildInferenceLearner, ABC):
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
-
-
-class PyTorchTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
-    def __init__(self):
-        super().__init__(DeepLearningFramework.PYTORCH)
-
+class PyTorchTensorRTBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
         model: Union[str, Path],
@@ -195,10 +161,7 @@ class PyTorchTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
         )
 
 
-class ONNXTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
-    def __init__(self):
-        super().__init__(DeepLearningFramework.PYTORCH)
-
+class ONNXTensorRTBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
         model: Union[str, Path],
@@ -227,10 +190,6 @@ class ONNXTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):
 
 
 class IntelNeuralCompressorBuildInferenceLearner(BuildInferenceLearner):
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
-
     def execute(
         self,
         model: GraphModule,

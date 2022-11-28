@@ -83,7 +83,7 @@ class Optimizer(Operation, abc.ABC):
         compiler_ops = {
             compiler: COMPILER_TO_OPTIMIZER_MAP[compiler][
                 self.pipeline_dl_framework
-            ](self.pipeline_dl_framework)
+            ]()
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
@@ -91,7 +91,7 @@ class Optimizer(Operation, abc.ABC):
         build_inference_learner_ops = {
             compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler][
                 self.pipeline_dl_framework
-            ](self.pipeline_dl_framework)
+            ]()
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP

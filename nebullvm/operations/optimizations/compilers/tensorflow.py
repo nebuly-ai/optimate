@@ -7,7 +7,7 @@ from nebullvm.operations.optimizations.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.tools.base import DeepLearningFramework, QuantizationType
+from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
@@ -17,10 +17,6 @@ class TensorflowBackendCompiler(Compiler):
         "cpu": [None],
         "gpu": [None],
     }
-
-    def __init__(self, dl_framework: DeepLearningFramework):
-        super().__init__()
-        self.dl_framework = dl_framework
 
     def execute(
         self,
@@ -79,10 +75,9 @@ class TFLiteBackendCompiler(Compiler):
         "gpu": [],
     }
 
-    def __init__(self, dl_framework: DeepLearningFramework):
+    def __init__(self):
         super().__init__()
         self.quantization_op = TensorflowQuantizer()
-        self.dl_framework = dl_framework
 
     def execute(
         self,

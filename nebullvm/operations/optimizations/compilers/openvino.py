@@ -18,7 +18,6 @@ from nebullvm.optional_modules.openvino import (
 )
 from nebullvm.tools.base import (
     QuantizationType,
-    DeepLearningFramework,
     ModelParams,
 )
 from nebullvm.tools.data import DataManager
@@ -36,10 +35,9 @@ class OpenVINOCompiler(Compiler):
         "gpu": [],
     }
 
-    def __init__(self, dl_framework: DeepLearningFramework):
+    def __init__(self):
         super().__init__()
         self.quantization_op = OpenVINOQuantizer()
-        self.dl_framework = dl_framework
 
     def execute(
         self,

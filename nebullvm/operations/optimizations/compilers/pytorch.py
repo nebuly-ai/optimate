@@ -15,7 +15,7 @@ from nebullvm.optional_modules.torch import (
     GraphModule,
     symbolic_trace,
 )
-from nebullvm.tools.base import DeepLearningFramework, QuantizationType, Device
+from nebullvm.tools.base import QuantizationType, Device
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
@@ -29,10 +29,9 @@ class PytorchBackendCompiler(Compiler):
         ],
     }
 
-    def __init__(self, dl_framework: DeepLearningFramework):
+    def __init__(self):
         super().__init__()
         self.quantization_op = PytorchQuantizer()
-        self.dl_framework = dl_framework
 
     def execute(
         self,

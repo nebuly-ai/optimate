@@ -13,7 +13,6 @@ from nebullvm.optional_modules.torch import (
     GraphModule,
 )
 from nebullvm.tools.base import (
-    DeepLearningFramework,
     ModelParams,
     QuantizationType,
 )
@@ -26,11 +25,10 @@ class DeepSparseCompiler(Compiler):
         "gpu": [None],
     }
 
-    def __init__(self, dl_framework: DeepLearningFramework):
+    def __init__(self):
         super().__init__()
         self.quantization_op = PytorchQuantizer()
         self.conversion_op = PytorchConverter()
-        self.dl_framework = dl_framework
 
     def execute(
         self,

@@ -19,7 +19,6 @@ from nebullvm.optional_modules.torch_tensorrt import (
     DataLoaderCalibrator,
 )
 from nebullvm.tools.base import (
-    DeepLearningFramework,
     QuantizationType,
     ModelParams,
 )
@@ -41,9 +40,8 @@ class TensorRTCompiler(Compiler, abc.ABC):
         ],
     }
 
-    def __init__(self, dl_framework: DeepLearningFramework):
+    def __init__(self):
         super().__init__()
-        self.dl_framework = dl_framework
         self.model_orig = None
 
     @abc.abstractmethod
@@ -52,9 +50,6 @@ class TensorRTCompiler(Compiler, abc.ABC):
 
 
 class PyTorchTensorRTCompiler(TensorRTCompiler):
-    def __init__(self):
-        super().__init__(DeepLearningFramework.PYTORCH)
-
     def execute(
         self,
         model: Module,
@@ -192,7 +187,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
 
 class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
-        super().__init__(DeepLearningFramework.NUMPY)
+        super().__init__()
         self.model_orig = None
         self.quantization_op = ONNXTensorRTQuantizer()
 
