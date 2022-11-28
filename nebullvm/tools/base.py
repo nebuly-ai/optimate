@@ -44,6 +44,11 @@ class ModelCompiler(Enum):
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
 
 
+class OptimizationTime(Enum):
+    CONSTRAINED = "constrained"
+    UNCONSTRAINED = "unconstrained"
+
+
 class InputInfo:
     """Class for storing all the information needed for creating an input
     tensor for AI models.

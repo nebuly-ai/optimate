@@ -1,14 +1,27 @@
 import abc
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import List, Callable, Union
+
+import numpy as np
 
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.operations.base import Operation
+from nebullvm.operations.measures.measures import PrecisionMeasure
 from nebullvm.operations.measures.utils import (
     compute_relative_difference,
     compute_optimized_running_time,
 )
-from nebullvm.tools.base import ModelCompiler, QuantizationType
+
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
+from nebullvm.tools.base import (
+    ModelCompiler,
+    QuantizationType,
+    OptimizationTime,
+    ModelParams,
+    DeepLearningFramework,
+)
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
@@ -18,28 +31,85 @@ class Optimizer(Operation, abc.ABC):
         self.optimized_models = []
         self.source_dl_framework = None
         self.pipeline_dl_framework = None
+        self.compiler_ops = {}
+        self.build_inference_learner_ops = {}
+        self.validity_check_op = PrecisionMeasure()
+
+    def execute(
+        self,
+        model: str,
+        input_data: DataManager,
+        optimization_time: OptimizationTime,
+        metric_drop_ths: str,
+        metric: Callable,
+        model_params: ModelParams,
+        model_outputs: List[np.ndarray],
+        ignore_compilers: List[ModelCompiler],
+        source_dl_framework: DeepLearningFramework,
+    ):
+        self.source_dl_framework = source_dl_framework
+        compilers = self._select_compilers_from_hardware()
+        (
+            self.compiler_ops,
+            self.build_inference_learner_ops,
+        ) = self._load_compilers(
+            ignore_compilers=ignore_compilers,
+            compilers=compilers,
+        )
+        self.optimize(
+            model=model,
+            input_data=input_data,
+            optimization_time=optimization_time,
+            metric_drop_ths=metric_drop_ths,
+            metric=metric,
+            model_params=model_params,
+            model_outputs=model_outputs,
+            ignore_compilers=ignore_compilers,
+        )
 
     @abc.abstractmethod
-    def execute(self, **kwargs):
+    def _select_compilers_from_hardware(self):
         raise NotImplementedError()
 
-    @abc.abstractmethod
     def _load_compilers(
         self,
         ignore_compilers: List[ModelCompiler],
-        metric_drop_ths: float = None,
-    ):  # noqa: E501
-        raise NotImplementedError()
+        compilers: List[ModelCompiler],
+    ):
+        from nebullvm.operations.optimizations.optimizers import (
+            COMPILER_TO_OPTIMIZER_MAP,
+            COMPILER_TO_INFERENCE_LEARNER_MAP,
+        )
+
+        compiler_ops = {
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
+                self.pipeline_dl_framework
+            )
+            for compiler in compilers
+            if compiler not in ignore_compilers
+            and compiler in COMPILER_TO_OPTIMIZER_MAP
+        }
+        build_inference_learner_ops = {
+            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
+                self.pipeline_dl_framework
+            )
+            for compiler in compilers
+            if compiler not in ignore_compilers
+            and compiler in COMPILER_TO_OPTIMIZER_MAP
+        }
+
+        return compiler_ops, build_inference_learner_ops
 
     def optimize(
         self,
-        model,
-        input_data,
-        optimization_time,
-        metric_drop_ths,
-        metric,
-        model_params,
-        model_outputs,
+        model: Union[torch.nn.Module, tf.Module, str],
+        input_data: DataManager,
+        optimization_time: OptimizationTime,
+        metric_drop_ths: str,
+        metric: Callable,
+        model_params: ModelParams,
+        model_outputs: List[Union[torch.Tensor, tf.Tensor, np.ndarray]],
+        ignore_compilers: List[ModelCompiler],
     ):
 
         if metric_drop_ths is not None:
@@ -53,7 +123,8 @@ class Optimizer(Operation, abc.ABC):
         else:
             q_types = [None]
 
-        for compiler_op, build_inference_learner_op in zip(
+        for compiler, compiler_op, build_inference_learner_op in zip(
+            self.compiler_ops.keys(),
             self.compiler_ops.values(),
             self.build_inference_learner_ops.values(),
         ):
@@ -115,6 +186,14 @@ class Optimizer(Operation, abc.ABC):
                                         f"Optimized model latency: {latency} "
                                         f"sec/iter"
                                     )
+
+                                    if (
+                                        compiler not in ignore_compilers
+                                        and optimization_time
+                                        is OptimizationTime.CONSTRAINED
+                                    ):
+                                        ignore_compilers.append(compiler)
+
                                     self.optimized_models.append(
                                         (
                                             inference_learner,

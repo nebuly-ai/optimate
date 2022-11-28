@@ -1,5 +1,4 @@
-import logging
-from typing import List, Dict, Type
+from typing import Dict, Type
 
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.builders import (
@@ -36,13 +35,21 @@ from nebullvm.operations.optimizations.compilers.tensorflow import (
     TFLiteBackendCompiler,
 )
 from nebullvm.operations.optimizations.compilers.utils import (
-    select_compilers_from_hardware_torch,
-    select_compilers_from_hardware_tensorflow,
-    select_compilers_from_hardware_onnx,
+    tvm_is_available,
+    bladedisc_is_available,
+    deepsparse_is_available,
+    intel_neural_compressor_is_available,
+    torch_tensorrt_is_available,
+    onnxruntime_is_available,
+    tensorrt_is_available,
+    openvino_is_available,
 )
-from nebullvm.tools.base import DeepLearningFramework, ModelCompiler
-
-logger = logging.getLogger("nebullvm_logger")
+from nebullvm.optional_modules.utils import (
+    torch_is_available,
+    tensorflow_is_available,
+    onnx_is_available,
+)
+from nebullvm.tools.base import DeepLearningFramework, ModelCompiler, Device
 
 
 class PytorchOptimizer(Optimizer):
@@ -54,48 +61,24 @@ class PytorchOptimizer(Optimizer):
         self.build_inference_learner_ops = {}
         self.validity_check_op = PrecisionMeasure()
 
-    def _load_compilers(self, ignore_compilers: List[ModelCompiler]):
-        compilers = select_compilers_from_hardware_torch(self.device)
-        self.compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
-                self.pipeline_dl_framework
-            )
-            for compiler in compilers
-            if compiler not in ignore_compilers
-            and compiler in COMPILER_TO_OPTIMIZER_MAP
-        }
-        self.build_inference_learner_ops = {
-            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
-                self.pipeline_dl_framework
-            )
-            for compiler in compilers
-            if compiler not in ignore_compilers
-            and compiler in COMPILER_TO_OPTIMIZER_MAP
-        }
+    def _select_compilers_from_hardware(self):
+        compilers = []
+        if torch_is_available():
+            compilers.append(ModelCompiler.TORCHSCRIPT)
+            if tvm_is_available():
+                compilers.append(ModelCompiler.APACHE_TVM)
+            if bladedisc_is_available():
+                compilers.append(ModelCompiler.BLADEDISC)
 
-    def execute(
-        self,
-        model,
-        input_data,
-        optimization_time,
-        metric_drop_ths,
-        metric,
-        model_params,
-        model_outputs,
-        ignore_compilers,
-        source_dl_framework,
-    ):
-        self.source_dl_framework = source_dl_framework
-        self._load_compilers(ignore_compilers=ignore_compilers)
-        self.optimize(
-            model,
-            input_data,
-            optimization_time,
-            metric_drop_ths,
-            metric,
-            model_params,
-            model_outputs,
-        )
+            if self.device is Device.CPU:
+                if deepsparse_is_available():
+                    compilers.append(ModelCompiler.DEEPSPARSE)
+                if intel_neural_compressor_is_available():
+                    compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
+            elif self.device is Device.GPU:
+                if torch_tensorrt_is_available:
+                    compilers.append(ModelCompiler.TENSOR_RT)
+        return compilers
 
 
 class TensorflowOptimizer(Optimizer):
@@ -107,49 +90,12 @@ class TensorflowOptimizer(Optimizer):
         self.build_inference_learner_ops = {}
         self.validity_check_op = PrecisionMeasure()
 
-    def _load_compilers(self, ignore_compilers: List[ModelCompiler]):
-        compilers = select_compilers_from_hardware_tensorflow()
-
-        self.compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
-                self.pipeline_dl_framework
-            )
-            for compiler in compilers
-            if compiler not in ignore_compilers
-            and compiler in COMPILER_TO_OPTIMIZER_MAP
-        }
-        self.build_inference_learner_ops = {
-            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
-                self.pipeline_dl_framework
-            )
-            for compiler in compilers
-            if compiler not in ignore_compilers
-            and compiler in COMPILER_TO_OPTIMIZER_MAP
-        }
-
-    def execute(
-        self,
-        model,
-        input_data,
-        optimization_time,
-        metric_drop_ths,
-        metric,
-        model_params,
-        model_outputs,
-        ignore_compilers,
-        source_dl_framework,
-    ):
-        self.source_dl_framework = source_dl_framework
-        self._load_compilers(ignore_compilers=ignore_compilers)
-        self.optimize(
-            model,
-            input_data,
-            optimization_time,
-            metric_drop_ths,
-            metric,
-            model_params,
-            model_outputs,
-        )
+    def _select_compilers_from_hardware(self):
+        compilers = []
+        if tensorflow_is_available():
+            compilers.append(ModelCompiler.XLA)
+            compilers.append(ModelCompiler.TFLITE)
+        return compilers
 
 
 class ONNXOptimizer(Optimizer):
@@ -157,52 +103,18 @@ class ONNXOptimizer(Optimizer):
         super().__init__()
         self.pipeline_dl_framework = DeepLearningFramework.NUMPY
 
-        self.compiler_ops = {}
-        self.build_inference_learner_ops = {}
-        self.validity_check_op = PrecisionMeasure()
-
-    def _load_compilers(self, ignore_compilers: List[ModelCompiler]):
-        compilers = select_compilers_from_hardware_onnx(self.device)
-        self.compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler](
-                self.pipeline_dl_framework
-            )
-            for compiler in compilers
-            if compiler not in ignore_compilers
-            and compiler in COMPILER_TO_OPTIMIZER_MAP
-        }
-        self.build_inference_learner_ops = {
-            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler](
-                self.pipeline_dl_framework
-            )
-            for compiler in compilers
-            if compiler not in ignore_compilers
-            and compiler in COMPILER_TO_OPTIMIZER_MAP
-        }
-
-    def execute(
-        self,
-        model,
-        input_data,
-        optimization_time,
-        metric_drop_ths,
-        metric,
-        model_params,
-        model_outputs,
-        ignore_compilers,
-        source_dl_framework,
-    ):
-        self.source_dl_framework = source_dl_framework
-        self._load_compilers(ignore_compilers=ignore_compilers)
-        self.optimize(
-            model,
-            input_data,
-            optimization_time,
-            metric_drop_ths,
-            metric,
-            model_params,
-            model_outputs,
-        )
+    def _select_compilers_from_hardware(self):
+        compilers = []
+        if onnx_is_available():
+            if onnxruntime_is_available():
+                compilers.append(ModelCompiler.ONNX_RUNTIME)
+            if tvm_is_available():
+                compilers.append(ModelCompiler.APACHE_TVM)
+            if self.device is Device.GPU and tensorrt_is_available():
+                compilers.append(ModelCompiler.TENSOR_RT)
+            if self.device is Device.CPU and openvino_is_available():
+                compilers.append(ModelCompiler.OPENVINO)
+        return compilers
 
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {

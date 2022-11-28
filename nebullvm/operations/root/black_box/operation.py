@@ -45,6 +45,7 @@ from nebullvm.tools.base import (
     ModelCompiler,
     DeepLearningFramework,
     ModelParams,
+    OptimizationTime,
 )
 from nebullvm.tools.data import DataManager
 
@@ -107,6 +108,8 @@ class BlackBoxModelOptimizationRootOp(Operation):
         # ignore_compressors = _map_compilers_and_compressors(
         #     ignore_compressors, ModelCompressor
         # )
+
+        optimization_time = OptimizationTime(optimization_time)
 
         # Check availability of model and data
         if self.fetch_model_op.get_model() and self.fetch_data_op.get_data():

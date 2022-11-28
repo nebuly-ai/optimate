@@ -3,10 +3,10 @@ import torchvision.models as models
 from nebullvm import optimize_model
 
 # Load a resnet as example
-model = models.resnet50()
+model = models.alexnet()
 
 # Provide an input data for the model
-input_data = [((torch.randn(1, 3, 256, 256),), torch.tensor([0]))]
+input_data = [((torch.randn(1, 3, 224, 224),), torch.tensor([0]))]
 
 dynamic_info = {"inputs": [{0: "batch"}], "outputs": [{0: "batch"}]}
 
