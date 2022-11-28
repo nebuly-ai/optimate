@@ -7,11 +7,10 @@ from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
 
 import numpy as np
 
-from nebullvm.base import ModelParams, DeepLearningFramework
 from nebullvm.config import (
     TVM_FILENAMES,
 )
-from nebullvm.inference_learners.base import (
+from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
@@ -21,8 +20,11 @@ from nebullvm.inference_learners.base import (
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.optional_modules.tvm import Module, GraphModule, tvm
-from nebullvm.transformations.base import MultiStageTransformation
-from nebullvm.utils.data import DataManager
+from nebullvm.tools.base import ModelParams, DeepLearningFramework
+from nebullvm.tools.data import DataManager
+from nebullvm.tools.transformations import (
+    MultiStageTransformation,
+)
 
 
 class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
@@ -85,10 +87,11 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             self.graph_executor_module.get_output(
                 i,
                 tvm.nd.empty(
-                    (
+                    shape=(
                         self.network_parameters.batch_size,
                         *output_size,
-                    )
+                    ),
+                    dtype="float16" if len(self.input_tfms) > 0 else "float32",
                 ),
             ).numpy()
             for i, output_size in enumerate(

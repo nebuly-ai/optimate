@@ -11,6 +11,8 @@ from nebullvm.operations.inference_learners.builders import (
     IntelNeuralCompressorBuildInferenceLearner,
     PyTorchTensorRTBuildInferenceLearner,
     ONNXTensorRTBuildInferenceLearner,
+    PyTorchApacheTVMBuildInferenceLearner,
+    ONNXApacheTVMBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import PrecisionMeasure
 from nebullvm.operations.optimizations.base import Optimizer
@@ -35,6 +37,10 @@ from nebullvm.operations.optimizations.compilers.tensor_rt import (
 from nebullvm.operations.optimizations.compilers.tensorflow import (
     TensorflowBackendCompiler,
     TFLiteBackendCompiler,
+)
+from nebullvm.operations.optimizations.compilers.tvm import (
+    PyTorchApacheTVMCompiler,
+    ONNXApacheTVMCompiler,
 )
 from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
@@ -135,6 +141,10 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[
         DeepLearningFramework.PYTORCH: PyTorchTensorRTCompiler,
         DeepLearningFramework.NUMPY: ONNXTensorRTCompiler,
     },
+    ModelCompiler.APACHE_TVM: {
+        DeepLearningFramework.PYTORCH: PyTorchApacheTVMCompiler,
+        DeepLearningFramework.NUMPY: ONNXApacheTVMCompiler,
+    },
     ModelCompiler.ONNX_RUNTIME: {DeepLearningFramework.NUMPY: ONNXCompiler},
     ModelCompiler.OPENVINO: {DeepLearningFramework.NUMPY: OpenVINOCompiler},
     ModelCompiler.TFLITE: {
@@ -163,6 +173,10 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler.TENSOR_RT: {
         DeepLearningFramework.PYTORCH: PyTorchTensorRTBuildInferenceLearner,
         DeepLearningFramework.NUMPY: ONNXTensorRTBuildInferenceLearner,
+    },
+    ModelCompiler.APACHE_TVM: {
+        DeepLearningFramework.PYTORCH: PyTorchApacheTVMBuildInferenceLearner,
+        DeepLearningFramework.NUMPY: ONNXApacheTVMBuildInferenceLearner,
     },
     ModelCompiler.TFLITE: {
         DeepLearningFramework.PYTORCH: TFLiteBuildInferenceLearner

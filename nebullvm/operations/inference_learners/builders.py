@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Union
 
+import torch
+
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
@@ -23,10 +25,15 @@ from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
-from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
+from nebullvm.operations.inference_learners.tvm import (
+    PytorchApacheTVMInferenceLearner,
+    NumpyApacheTVMInferenceLearner,
+)
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
+from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
+from nebullvm.optional_modules.tvm import tvm
 from nebullvm.optional_modules.openvino import CompiledModel
-from nebullvm.tools.base import DeepLearningFramework, ModelParams
+from nebullvm.tools.base import DeepLearningFramework, ModelParams, Device
 from nebullvm.tools.onnx import get_input_names, get_output_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -204,4 +211,63 @@ class IntelNeuralCompressorBuildInferenceLearner(BuildInferenceLearner):
             input_tfms=input_tfms,
             network_parameters=model_params,
             device=self.device,
+        )
+
+
+class PyTorchApacheTVMBuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: torch.nn.Module,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        target_device = (
+            str(tvm.target.cuda()) if self.device is Device.GPU else "llvm"
+        )
+        dev = tvm.device(str(target_device), 0)
+
+        input_names = [
+            f"input_{i}" for i in range(len(model_params.input_infos))
+        ]
+
+        graph_executor_module = tvm.contrib.graph_executor.GraphModule(
+            model["default"](dev)
+        )
+        self.inference_learner = PytorchApacheTVMInferenceLearner(
+            input_tfms=input_tfms,
+            network_parameters=model_params,
+            graph_executor_module=graph_executor_module,
+            input_names=input_names,
+            lib=model,
+            target=target_device,
+        )
+
+
+class ONNXApacheTVMBuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: torch.nn.Module,
+        model_orig: Module,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        target_device = (
+            str(tvm.target.cuda()) if self.device is Device.GPU else "llvm"
+        )
+        dev = tvm.device(str(target_device), 0)
+
+        input_names = get_input_names(str(model_orig))
+
+        graph_executor_module = tvm.contrib.graph_executor.GraphModule(
+            model["default"](dev)
+        )
+        self.inference_learner = NumpyApacheTVMInferenceLearner(
+            input_tfms=input_tfms,
+            network_parameters=model_params,
+            graph_executor_module=graph_executor_module,
+            input_names=input_names,
+            lib=model,
+            target=target_device,
         )

@@ -82,7 +82,7 @@ class ONNXCompiler(Compiler):
             QUANTIZATION_DATA_NUM
         )
 
-        if not +debug_mode_enabled():
+        if not debug_mode_enabled():
             logger_state = save_root_logger_state()
             raise_logger_level()
 
