@@ -1,3 +1,4 @@
+from abc import ABC
 from pathlib import Path
 from typing import Union
 
@@ -169,23 +170,10 @@ class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
         )
 
 
-class TensorRTBuildInferenceLearner(BuildInferenceLearner):
+class TensorRTBuildInferenceLearner(BuildInferenceLearner, ABC):
     def __init__(self, dl_framework: DeepLearningFramework):
         super().__init__()
         self.dl_framework = dl_framework
-
-    def execute(self, *args, **kwargs):
-        if self.dl_framework is DeepLearningFramework.PYTORCH:
-            build_op = PyTorchTensorRTBuildInferenceLearner()
-        elif self.dl_framework is DeepLearningFramework.NUMPY:
-            build_op = ONNXTensorRTBuildInferenceLearner()
-        else:
-            raise ValueError(
-                f"TensorRT is not supported for {self.dl_framework} models."
-            )
-
-        build_op.to(self.device).execute(*args, **kwargs)
-        self.inference_learner = build_op.inference_learner
 
 
 class PyTorchTensorRTBuildInferenceLearner(TensorRTBuildInferenceLearner):

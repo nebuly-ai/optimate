@@ -1,7 +1,8 @@
+import abc
 import os
 from pathlib import Path
 import subprocess
-from typing import Union, Any, List
+from typing import Union, List
 
 from nebullvm.config import QUANTIZATION_DATA_NUM, TORCH_TENSORRT_PRECISIONS
 from nebullvm.operations.optimizations.quantizations.tensor_rt import (
@@ -30,7 +31,7 @@ from nebullvm.tools.transformations import (
 )
 
 
-class TensorRTCompiler(Compiler):
+class TensorRTCompiler(Compiler, abc.ABC):
     supported_ops = {
         "cpu": [],
         "gpu": [
@@ -45,26 +46,8 @@ class TensorRTCompiler(Compiler):
         self.dl_framework = dl_framework
         self.model_orig = None
 
+    @abc.abstractmethod
     def execute(self, *args, **kwargs):
-        if self.dl_framework is DeepLearningFramework.PYTORCH:
-            compile_op = PyTorchTensorRTCompiler()
-        elif self.dl_framework is DeepLearningFramework.NUMPY:
-            compile_op = ONNXTensorRTCompiler()
-        else:
-            raise ValueError(
-                f"TensorRT is not supported for {self.dl_framework} models."
-            )
-
-        compile_op.to(self.device).execute(*args, **kwargs)
-
-        self.compiled_model = compile_op.compiled_model
-        self.model_orig = (
-            compile_op.model_orig
-            if hasattr(compile_op, "model_orig")
-            else None
-        )
-
-    def compile_model(self, **kwargs) -> Any:
         pass
 
 

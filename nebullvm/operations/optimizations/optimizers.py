@@ -6,10 +6,11 @@ from nebullvm.operations.inference_learners.builders import (
     OpenVINOBuildInferenceLearner,
     PytorchBuildInferenceLearner,
     ONNXBuildInferenceLearner,
-    TensorRTBuildInferenceLearner,
     TensorflowBuildInferenceLearner,
     TFLiteBuildInferenceLearner,
     IntelNeuralCompressorBuildInferenceLearner,
+    PyTorchTensorRTBuildInferenceLearner,
+    ONNXTensorRTBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import PrecisionMeasure
 from nebullvm.operations.optimizations.base import Optimizer
@@ -28,7 +29,8 @@ from nebullvm.operations.optimizations.compilers.pytorch import (
     PytorchBackendCompiler,
 )
 from nebullvm.operations.optimizations.compilers.tensor_rt import (
-    TensorRTCompiler,
+    PyTorchTensorRTCompiler,
+    ONNXTensorRTCompiler,
 )
 from nebullvm.operations.optimizations.compilers.tensorflow import (
     TensorflowBackendCompiler,
@@ -117,26 +119,58 @@ class ONNXOptimizer(Optimizer):
         return compilers
 
 
-COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
-    ModelCompiler.TORCHSCRIPT: PytorchBackendCompiler,
-    ModelCompiler.DEEPSPARSE: DeepSparseCompiler,
-    ModelCompiler.ONNX_RUNTIME: ONNXCompiler,
-    ModelCompiler.OPENVINO: OpenVINOCompiler,
-    ModelCompiler.TENSOR_RT: TensorRTCompiler,
-    ModelCompiler.TFLITE: TFLiteBackendCompiler,
-    ModelCompiler.XLA: TensorflowBackendCompiler,
-    ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorCompiler,
+COMPILER_TO_OPTIMIZER_MAP: Dict[
+    ModelCompiler, Dict[DeepLearningFramework, Type[Compiler]]
+] = {
+    ModelCompiler.TORCHSCRIPT: {
+        DeepLearningFramework.PYTORCH: PytorchBackendCompiler
+    },
+    ModelCompiler.DEEPSPARSE: {
+        DeepLearningFramework.PYTORCH: DeepSparseCompiler
+    },
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: {
+        DeepLearningFramework.PYTORCH: IntelNeuralCompressorCompiler
+    },
+    ModelCompiler.TENSOR_RT: {
+        DeepLearningFramework.PYTORCH: PyTorchTensorRTCompiler,
+        DeepLearningFramework.NUMPY: ONNXTensorRTCompiler,
+    },
+    ModelCompiler.ONNX_RUNTIME: {DeepLearningFramework.NUMPY: ONNXCompiler},
+    ModelCompiler.OPENVINO: {DeepLearningFramework.NUMPY: OpenVINOCompiler},
+    ModelCompiler.TFLITE: {
+        DeepLearningFramework.TENSORFLOW: TFLiteBackendCompiler
+    },
+    ModelCompiler.XLA: {
+        DeepLearningFramework.TENSORFLOW: TensorflowBackendCompiler
+    },
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
-    ModelCompiler, Type[BuildInferenceLearner]
+    ModelCompiler, Dict[DeepLearningFramework, Type[BuildInferenceLearner]]
 ] = {
-    ModelCompiler.TORCHSCRIPT: PytorchBuildInferenceLearner,
-    ModelCompiler.DEEPSPARSE: DeepSparseBuildInferenceLearner,
-    ModelCompiler.ONNX_RUNTIME: ONNXBuildInferenceLearner,
-    ModelCompiler.OPENVINO: OpenVINOBuildInferenceLearner,
-    ModelCompiler.TENSOR_RT: TensorRTBuildInferenceLearner,
-    ModelCompiler.TFLITE: TFLiteBuildInferenceLearner,
-    ModelCompiler.XLA: TensorflowBuildInferenceLearner,
-    ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorBuildInferenceLearner,  # noqa: E501
+    ModelCompiler.TORCHSCRIPT: {
+        DeepLearningFramework.PYTORCH: PytorchBuildInferenceLearner
+    },
+    ModelCompiler.DEEPSPARSE: {
+        DeepLearningFramework.PYTORCH: DeepSparseBuildInferenceLearner
+    },
+    ModelCompiler.ONNX_RUNTIME: {
+        DeepLearningFramework.NUMPY: ONNXBuildInferenceLearner
+    },
+    ModelCompiler.OPENVINO: {
+        DeepLearningFramework.NUMPY: OpenVINOBuildInferenceLearner
+    },
+    ModelCompiler.TENSOR_RT: {
+        DeepLearningFramework.PYTORCH: PyTorchTensorRTBuildInferenceLearner,
+        DeepLearningFramework.NUMPY: ONNXTensorRTBuildInferenceLearner,
+    },
+    ModelCompiler.TFLITE: {
+        DeepLearningFramework.PYTORCH: TFLiteBuildInferenceLearner
+    },
+    ModelCompiler.XLA: {
+        DeepLearningFramework.PYTORCH: TensorflowBuildInferenceLearner
+    },
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: {
+        DeepLearningFramework.PYTORCH: IntelNeuralCompressorBuildInferenceLearner  # noqa: E501
+    },
 }

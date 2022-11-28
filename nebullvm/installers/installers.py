@@ -12,18 +12,18 @@ import cpuinfo
 from nebullvm.config import (
     LIBRARIES_GPU,
 )
-from nebullvm.optional_modules.torch import torch
-from nebullvm.utils.compilers import (
+from nebullvm.operations.optimizations.compilers.utils import (
     openvino_is_available,
     tensorrt_is_available,
     torch_tensorrt_is_available,
     deepsparse_is_available,
     intel_neural_compressor_is_available,
 )
-from nebullvm.utils.general import (
+from nebullvm.optional_modules.torch import torch
+from nebullvm.tools.utils import (
+    gpu_is_available,
     check_module_version,
     is_python_version_3_10,
-    gpu_is_available,
 )
 
 logger = logging.getLogger("nebullvm_logger")
