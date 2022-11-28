@@ -48,6 +48,7 @@ from nebullvm.tools.base import (
     OptimizationTime,
 )
 from nebullvm.tools.data import DataManager
+from nebullvm.tools.feedback_collector import FEEDBACK_COLLECTOR
 
 
 class BlackBoxModelOptimizationRootOp(Operation):
@@ -154,11 +155,24 @@ class BlackBoxModelOptimizationRootOp(Operation):
 
             self.data.split(TRAIN_TEST_SPLIT_RATIO)
 
+            FEEDBACK_COLLECTOR.start_collection(
+                self.model, framework=dl_framework, device=self.device
+            )
+
             # Benchmark original model
             self.orig_latency_measure_op.to(self.device).execute(
                 model=self.model,
                 input_data=self.data.get_split("test"),
                 dl_framework=dl_framework,
+            )
+
+            # Store original model result
+            FEEDBACK_COLLECTOR.store_compiler_result(
+                compiler=dl_framework,
+                q_type=None,
+                metric_drop_ths=metric_drop_ths,
+                latency=self.orig_latency_measure_op.get_result()[1],
+                pipeline_name=dl_framework,
             )
 
             with TemporaryDirectory() as tmp_dir:
@@ -197,62 +211,74 @@ class BlackBoxModelOptimizationRootOp(Operation):
                         )
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
-            opt_metric_drop = (
-                f"{optimized_models[0][2]:.4f}"
-                if optimized_models[0][2] > 1e-4
-                else "0"
-            )
 
-            metric_name = (
-                "compute_relative_difference"
-                if metric is None
-                else metric.__name__
-            )
-
-            orig_latency = self.orig_latency_measure_op.get_result()[1]
-
-            self.logger.info(
-                (
-                    f"\n[ Nebullvm results ]\n"
-                    f"Optimization device: {self.device.name}\n"
-                    f"Original model latency: {orig_latency:.4f} sec/batch\n"
-                    f"Original model throughput: "
-                    f"{(1 / orig_latency) * model_params.batch_size:.2f} "
-                    f"data/sec\n"
-                    f"Original model size: "
-                    f"{original_model_size / 1e6:.2f} MB\n"
-                    f"Optimized model latency: {optimized_models[0][1]:.4f} "
-                    f"sec/batch\n"
-                    f"Optimized model throughput: "
-                    f"{1 / optimized_models[0][1]:.2f} "
-                    f"data/sec\n"
-                    f"Optimized model size: "
-                    f"{optimized_models[0][0].get_size() / 1e6:.2f} MB\n"
-                    f"Optimized model metric drop: {opt_metric_drop} "
-                    f"({metric_name})\n"
-                    f"Estimated speedup: "
-                    f"{orig_latency / optimized_models[0][1]:.2f}x"
+            if len(optimized_models) < 1 or optimized_models[0][0] is None:
+                self.logger.warning(
+                    "No optimized model has been created. This is likely "
+                    "due to a bug in Nebullvm. Please open an issue and "
+                    "report in details your use case."
                 )
-            )
-
-            self.optimal_model = optimized_models[0][0]
-
-            if needs_conversion_to_hf:
-                from nebullvm.operations.inference_learners.huggingface import (  # noqa: E501
-                    HuggingFaceInferenceLearner,
+            else:
+                opt_metric_drop = (
+                    f"{optimized_models[0][2]:.4f}"
+                    if optimized_models[0][2] > 1e-4
+                    else "0"
                 )
 
-                self.optimal_model = HuggingFaceInferenceLearner(
-                    core_inference_learner=self.optimal_model,
-                    output_structure=output_structure,
-                    input_names=input_names,
-                    output_type=output_type,
+                metric_name = (
+                    "compute_relative_difference"
+                    if metric is None
+                    else metric.__name__
                 )
+
+                orig_latency = self.orig_latency_measure_op.get_result()[1]
+
+                FEEDBACK_COLLECTOR.send_feedback(store_latencies)
+
+                self.logger.info(
+                    (
+                        f"\n[ Nebullvm results ]\n"
+                        f"Optimization device: {self.device.name}\n"
+                        f"Original model latency: {orig_latency:.4f} "
+                        f"sec/batch\n"
+                        f"Original model throughput: "
+                        f"{(1 / orig_latency) * model_params.batch_size:.2f} "
+                        f"data/sec\n"
+                        f"Original model size: "
+                        f"{original_model_size / 1e6:.2f} MB\n"
+                        f"Optimized model latency: "
+                        f"{optimized_models[0][1]:.4f} "
+                        f"sec/batch\n"
+                        f"Optimized model throughput: "
+                        f"{1 / optimized_models[0][1]:.2f} "
+                        f"data/sec\n"
+                        f"Optimized model size: "
+                        f"{optimized_models[0][0].get_size() / 1e6:.2f} MB\n"
+                        f"Optimized model metric drop: {opt_metric_drop} "
+                        f"({metric_name})\n"
+                        f"Estimated speedup: "
+                        f"{orig_latency / optimized_models[0][1]:.2f}x"
+                    )
+                )
+
+                if needs_conversion_to_hf:
+                    from nebullvm.operations.inference_learners.huggingface import (  # noqa: E501
+                        HuggingFaceInferenceLearner,
+                    )
+
+                    self.optimal_model = HuggingFaceInferenceLearner(
+                        core_inference_learner=self.optimal_model,
+                        output_structure=output_structure,
+                        input_names=input_names,
+                        output_type=output_type,
+                    )
+                else:
+                    self.optimal_model = optimized_models[0][0]
 
     def optimize(
         self,
         model: Any,
-        optimization_time: str,
+        optimization_time: OptimizationTime,
         metric_drop_ths: float,
         metric: Callable,
         model_params: ModelParams,

@@ -1,8 +1,6 @@
 import abc
 from tempfile import TemporaryDirectory
-from typing import List, Callable, Union
-
-import numpy as np
+from typing import List, Callable, Union, Tuple, Any
 
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.operations.base import Operation
@@ -22,6 +20,7 @@ from nebullvm.tools.base import (
     DeepLearningFramework,
 )
 from nebullvm.tools.data import DataManager
+from nebullvm.tools.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
@@ -43,7 +42,7 @@ class Optimizer(Operation, abc.ABC):
         metric_drop_ths: str,
         metric: Callable,
         model_params: ModelParams,
-        model_outputs: List[np.ndarray],
+        model_outputs: List[Tuple[Any, ...]],
         ignore_compilers: List[ModelCompiler],
         source_dl_framework: DeepLearningFramework,
     ):
@@ -108,7 +107,7 @@ class Optimizer(Operation, abc.ABC):
         metric_drop_ths: str,
         metric: Callable,
         model_params: ModelParams,
-        model_outputs: List[Union[torch.Tensor, tf.Tensor, np.ndarray]],
+        model_outputs: List[Tuple[Any, ...]],
         ignore_compilers: List[ModelCompiler],
     ):
 
@@ -201,10 +200,38 @@ class Optimizer(Operation, abc.ABC):
                                             self.validity_check_op.measure_result,  # noqa: E501
                                         )
                                     )
-                    except Exception as e:
-                        # TODO: print error message
-                        # raise (e)
-                        raise e
+                                    FEEDBACK_COLLECTOR.store_compiler_result(
+                                        compiler=compiler,
+                                        q_type=q_type,
+                                        metric_drop_ths=metric_drop_ths,
+                                        latency=latency,
+                                        compression=None,
+                                        pipeline_name=self.pipeline_dl_framework,  # noqa: E501
+                                    )
+                                else:
+                                    self.logger.warning(
+                                        "The optimized model will be "
+                                        "discarded due to poor results "
+                                        "obtained with the given metric."
+                                    )
+                    except Exception as ex:
+                        self.logger.warning(
+                            f"Optimization failed with "
+                            f"{self.pipeline_dl_framework} "
+                            f"interface of {compiler}. Got error {ex}. "
+                            f"If possible the compilation will be re-scheduled"
+                            f" with another interface. Please consult the "
+                            f"documentation for further info or open an issue "
+                            f"on GitHub for receiving assistance."
+                        )
+                        FEEDBACK_COLLECTOR.store_compiler_result(
+                            compiler=compiler,
+                            q_type=q_type,
+                            metric_drop_ths=metric_drop_ths,
+                            latency=None,
+                            compression=None,
+                            pipeline_name=self.pipeline_dl_framework,
+                        )
 
     def get_result(self) -> List:
         return self.optimized_models

@@ -15,6 +15,7 @@ model_optim = optimize_model(
     input_data,
     metric_drop_ths=2,
     dynamic_info=dynamic_info,
+    store_latencies=True,
 )
 
 print(model_optim)
