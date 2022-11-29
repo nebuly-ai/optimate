@@ -2,7 +2,7 @@ import abc
 import os
 from pathlib import Path
 import subprocess
-from typing import Union, List, Any, Tuple
+from typing import List, Any, Tuple
 
 import numpy as np
 
@@ -56,36 +56,35 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
     def execute(
         self,
         model: Module,
-        input_data: DataManager,
-        input_tfms: MultiStageTransformation,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
+        input_data: DataManager = None,
         **kwargs,
     ):
         """Optimize the input model using pytorch built-in techniques.
 
         Args:
-            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
-                modifications to the original model, it will be copied in the
-                method.
-            input_data (DataManager): User defined data. Default: None.
+            model (torch.nn.Module): The pytorch model.
+            model_params (ModelParams): The model parameters.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
             metric_drop_ths (float, optional): Threshold for the accepted drop
-                in terms of precision. Any optimized model with an higher drop
+                in terms of precision. Any optimized model with a higher drop
                 will be ignored. Default: None.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used. Default: None.
-
-        Returns:
-            PytorchBackendInferenceLearner: Model optimized for inference.
+            input_data (DataManager): User defined data. Default: None
         """
 
         if quantization_type not in self.supported_ops[self.device.value]:
             self.compiled_model = None
             return
+
+        if quantization_type is QuantizationType.STATIC and input_data is None:
+            raise ValueError("Input data is required for static quantization.")
 
         self.logger.info(
             f"Optimizing with {self.__class__.__name__} and "
@@ -199,37 +198,36 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
 
     def execute(
         self,
-        model: Union[str, Path],
-        input_data: DataManager,
-        input_tfms: MultiStageTransformation,
+        model: str,
         model_params: ModelParams,
+        input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
+        input_data: DataManager = None,
         **kwargs,
     ):
         """Optimize the input model using pytorch built-in techniques.
 
         Args:
-            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
-                modifications to the original model, it will be copied in the
-                method.
-            input_data (DataManager): User defined data. Default: None.
+            model (str): The path to the onnx model.
+            model_params (ModelParams): The model parameters.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
             metric_drop_ths (float, optional): Threshold for the accepted drop
-                in terms of precision. Any optimized model with an higher drop
+                in terms of precision. Any optimized model with a higher drop
                 will be ignored. Default: None.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used. Default: None.
-
-        Returns:
-            PytorchBackendInferenceLearner: Model optimized for inference.
+            input_data (DataManager): User defined data. Default: None
         """
 
         if quantization_type not in self.supported_ops[self.device.value]:
             self.compiled_model = None
             return
+
+        if quantization_type is QuantizationType.STATIC and input_data is None:
+            raise ValueError("Input data is required for static quantization.")
 
         self.logger.info(
             f"Optimizing with {self.__class__.__name__} and "

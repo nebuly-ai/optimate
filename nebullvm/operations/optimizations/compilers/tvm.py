@@ -52,37 +52,36 @@ class ApacheTVMCompiler(Compiler, ABC):
     def execute(
         self,
         model: Union[Module, str],
-        input_data: DataManager,
         input_tfms: MultiStageTransformation,
         model_params: ModelParams,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
+        input_data: DataManager = None,
         **kwargs,
     ):
         """Optimize the input model using pytorch built-in techniques.
 
         Args:
-            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
-                modifications to the original model, it will be copied in the
-                method.
-            input_data (DataManager): User defined data. Default: None.
+            model (Union[Module, str]: The input model. Can be a torch model
+                or a path to an onnx model.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
             model_params (ModelParams): Model parameters.
             metric_drop_ths (float, optional): Threshold for the accepted drop
-                in terms of precision. Any optimized model with an higher drop
+                in terms of precision. Any optimized model with a higher drop
                 will be ignored. Default: None.
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used. Default: None.
-
-        Returns:
-            PytorchBackendInferenceLearner: Model optimized for inference.
+            input_data (DataManager): User defined data. Default: None
         """
 
         if quantization_type not in self.supported_ops[self.device.value]:
             self.compiled_model = None
             return
+
+        if quantization_type is QuantizationType.STATIC and input_data is None:
+            raise ValueError("Input data is required for static quantization.")
 
         self.logger.info(
             f"Optimizing with {self.__class__.__name__} and "

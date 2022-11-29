@@ -14,5 +14,6 @@ model_optim.execute(
     model,
     input_data,
     metric_drop_ths=2,
+    ignore_compilers=["openvino", "tflite", "onnxruntime"],
 )
 optimized_model = model_optim.root_op.optimal_model

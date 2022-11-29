@@ -29,32 +29,30 @@ class DeepSparseCompiler(Compiler):
     def execute(
         self,
         model: Module,
-        input_data: DataManager,
         onnx_output_path: str,
         model_params: ModelParams,
         quantization_type: QuantizationType = None,
+        input_data: DataManager = None,
         **kwargs,
     ):
-        """Optimize the input model using pytorch built-in techniques.
+        """Compile the input model using DeepSparse Compiler.
 
         Args:
-            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
-                modifications to the original model, it will be copied in the
-                method.
-            input_data (DataManager): User defined data. Default: None.
+            model (torch.nn.Module): The pytorch model.
             onnx_output_path (str): Path where the converted ONNX model will be
                 stored.
+            model_params (ModelParams): The model parameters.
             quantization_type (QuantizationType): The desired
                 quantization algorithm to be used. Default: None.
-            model_params (ModelParams): The model parameters.
-
-        Returns:
-            PytorchBackendInferenceLearner: Model optimized for inference.
+            input_data (DataManager): User defined data. Default: None
         """
 
         if quantization_type not in self.supported_ops[self.device.value]:
             self.compiled_model = None
             return
+
+        if quantization_type is QuantizationType.STATIC and input_data is None:
+            raise ValueError("Input data is required for static quantization.")
 
         self.logger.info(
             f"Optimizing with {self.__class__.__name__} and "
