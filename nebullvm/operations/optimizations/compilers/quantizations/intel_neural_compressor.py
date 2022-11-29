@@ -4,7 +4,6 @@ from typing import Any
 
 import yaml
 
-from nebullvm.operations.optimizations.quantizations.base import Quantizer
 from nebullvm.optional_modules.neural_compressor import (
     MixedPrecision,
     Quantization,
@@ -105,22 +104,21 @@ def _mixed_precision(
     return compressed_model
 
 
-class IntelNeuralCompressorQuantizer(Quantizer):
-    def execute(
-        self,
-        model: Module,
-        quantization_type: QuantizationType,
-        input_tfms: MultiStageTransformation,
-        input_data: DataManager,
-    ):
-        if quantization_type is QuantizationType.STATIC:
-            self.quantized_model = _quantize_static(model, input_data)
-        elif quantization_type is QuantizationType.DYNAMIC:
-            self.quantized_model = _quantize_dynamic(model)
-        elif quantization_type is QuantizationType.HALF:
-            self.quantized_model = _mixed_precision(model, input_tfms)
-        else:
-            raise ValueError(
-                f"Quantization type {quantization_type} is not "
-                f"supported by Intel Neural Compressor"
-            )
+def quantize_neural_compressor(
+    self,
+    model: Module,
+    quantization_type: QuantizationType,
+    input_tfms: MultiStageTransformation,
+    input_data: DataManager,
+):
+    if quantization_type is QuantizationType.STATIC:
+        self.quantized_model = _quantize_static(model, input_data)
+    elif quantization_type is QuantizationType.DYNAMIC:
+        self.quantized_model = _quantize_dynamic(model)
+    elif quantization_type is QuantizationType.HALF:
+        self.quantized_model = _mixed_precision(model, input_tfms)
+    else:
+        raise ValueError(
+            f"Quantization type {quantization_type} is not "
+            f"supported by Intel Neural Compressor"
+        )

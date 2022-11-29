@@ -1,13 +1,17 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, List, Tuple
+
+import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.onnx import ONNXQuantizer
-from nebullvm.operations.optimizations.quantizations.utils import (
+
+from nebullvm.operations.optimizations.compilers.quantizations.onnx import (
+    quantize_onnx,
+)
+from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
-from nebullvm.optional_modules.torch import Module
 from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.logger import (
@@ -35,13 +39,9 @@ class ONNXCompiler(Compiler):
         ],
     }
 
-    def __init__(self):
-        super().__init__()
-        self.quantization_op = ONNXQuantizer()
-
     def execute(
         self,
-        model: Module,
+        model: str,
         input_data: DataManager,
         input_tfms: MultiStageTransformation,
         metric_drop_ths: float = None,
@@ -87,10 +87,9 @@ class ONNXCompiler(Compiler):
             raise_logger_level()
 
         if quantization_type is not None:
-            self.quantization_op.to(self.device).execute(
-                model, quantization_type, input_tfms, train_input_data
+            model = self.quantize_model(
+                model, train_input_data, quantization_type, input_tfms
             )
-            model = self.quantization_op.get_result()
 
         if not debug_mode_enabled():
             load_root_logger_state(logger_state)
@@ -99,3 +98,14 @@ class ONNXCompiler(Compiler):
 
     def compile_model(self, model: Union[str, Path]):
         return model
+
+    def quantize_model(
+        self,
+        model_path: str,
+        input_data: List[Tuple[np.ndarray, ...]],
+        quantization_type: QuantizationType,
+        input_tfms: MultiStageTransformation,
+    ):
+        return quantize_onnx(
+            model_path, input_data, quantization_type, self.device, input_tfms
+        )

@@ -1,9 +1,12 @@
+from typing import List, Tuple
+
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.tensorflow import (
-    TensorflowQuantizer,
+
+from nebullvm.operations.optimizations.compilers.quantizations.tensorflow import (  # noqa: E501
+    quantize_tensorflow,
 )
-from nebullvm.operations.optimizations.quantizations.utils import (
+from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
@@ -63,6 +66,10 @@ class TensorflowBackendCompiler(Compiler):
     def compile_model(self):
         pass
 
+    @staticmethod
+    def quantize_model(**kwargs):
+        raise NotImplementedError()
+
 
 class TFLiteBackendCompiler(Compiler):
     supported_ops = {
@@ -74,10 +81,6 @@ class TFLiteBackendCompiler(Compiler):
         ],
         "gpu": [],
     }
-
-    def __init__(self):
-        super().__init__()
-        self.quantization_op = TensorflowQuantizer()
 
     def execute(
         self,
@@ -123,10 +126,9 @@ class TFLiteBackendCompiler(Compiler):
         )
 
         if quantization_type is not None:
-            self.quantization_op.to(self.device).execute(
+            self.compiled_model = self.quantize_model(
                 model, quantization_type, input_tfms, train_input_data
             )
-            self.compiled_model = self.quantization_op.get_result()
         else:
             self.compiled_model = self.compile_model(model)
 
@@ -137,3 +139,14 @@ class TFLiteBackendCompiler(Compiler):
         converter = tf.lite.TFLiteConverter.from_keras_model(model)
         tflite_model = converter.convert()
         return tflite_model
+
+    @staticmethod
+    def quantize_model(
+        model: tf.Module,
+        quantization_type: QuantizationType,
+        input_tfms: MultiStageTransformation,
+        input_data_tensorflow: List[Tuple[tf.Tensor, ...]],
+    ):
+        return quantize_tensorflow(
+            model, quantization_type, input_tfms, input_data_tensorflow
+        )

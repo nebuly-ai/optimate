@@ -21,7 +21,6 @@ model_optim = optimize_model(
     dynamic_info=dynamic_info,
     optimization_time="unconstrained",
     store_latencies=True,
-    ignore_compilers=["torchscript", "onnxruntime"],
 )
 
 print(model_optim)

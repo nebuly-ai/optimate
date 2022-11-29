@@ -1,18 +1,19 @@
+import abc
 import os
 import uuid
 from abc import ABC
-from typing import Any, Tuple, Dict
+from typing import Any, Tuple, Dict, Union
 
 from nebullvm.config import (
     AUTO_TVM_PARAMS,
     AUTO_TVM_TUNING_OPTION,
 )
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.tvm import (
+from nebullvm.operations.optimizations.compilers.quantizations.tvm import (
     TVMCalibrator,
-    ApacheTVMQuantizer,
+    quantize_apache_tvm,
 )
-from nebullvm.operations.optimizations.quantizations.utils import (
+from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.onnx import onnx
@@ -47,6 +48,61 @@ class ApacheTVMCompiler(Compiler, ABC):
             QuantizationType.DYNAMIC,
         ],
     }
+
+    def execute(
+        self,
+        model: Union[Module, str],
+        input_data: DataManager,
+        input_tfms: MultiStageTransformation,
+        model_params: ModelParams,
+        metric_drop_ths: float = None,
+        quantization_type: QuantizationType = None,
+        **kwargs,
+    ):
+        """Optimize the input model using pytorch built-in techniques.
+
+        Args:
+            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
+                modifications to the original model, it will be copied in the
+                method.
+            input_data (DataManager): User defined data. Default: None.
+            input_tfms (MultiStageTransformation, optional): Transformations
+                to be performed to the model's input tensors in order to
+                get the prediction. Default: None.
+            model_params (ModelParams): Model parameters.
+            metric_drop_ths (float, optional): Threshold for the accepted drop
+                in terms of precision. Any optimized model with an higher drop
+                will be ignored. Default: None.
+            quantization_type (QuantizationType, optional): The desired
+                quantization algorithm to be used. Default: None.
+
+        Returns:
+            PytorchBackendInferenceLearner: Model optimized for inference.
+        """
+
+        if quantization_type not in self.supported_ops[self.device.value]:
+            self.compiled_model = None
+            return
+
+        self.logger.info(
+            f"Optimizing with {self.__class__.__name__} and "
+            f"q_type: {quantization_type}."
+        )
+
+        check_quantization(quantization_type, metric_drop_ths)
+
+        mod, params = self._build_tvm_model(model, model_params)
+
+        if quantization_type is not None:
+            mod = self.quantize_model(
+                mod, quantization_type, input_tfms, input_data, params
+            )
+
+        self.compiled_model = self.compile_model(mod, params)
+
+    @abc.abstractmethod
+    def _build_tvm_model(self, model: Any, model_params: ModelParams):
+        raise NotImplementedError()
 
     @staticmethod
     def _build_tvm_model_from_torch(
@@ -157,144 +213,38 @@ class ApacheTVMCompiler(Compiler, ABC):
             )
         return tuning_records
 
+    def compile_model(self, model: Any, params: Any):
+        target = self._get_target(self.device)
+        tuning_records = self._tune_tvm_model(target, model, params)
+        with autotvm.apply_history_best(tuning_records):
+            with tvm.transform.PassContext(opt_level=3, config={}):
+                lib = relay.build(model, target=target, params=params)
 
-class PyTorchApacheTVMCompiler(ApacheTVMCompiler):
-    def __init__(self):
-        super().__init__()
-        self.quantization_op = ApacheTVMQuantizer()
+        # Remove temporary file created by tvm
+        os.remove(tuning_records)
 
-    def execute(
-        self,
-        model: Module,
-        input_data: DataManager,
+        return lib
+
+    @staticmethod
+    def quantize_model(
+        model: Any,
+        quantization_type: QuantizationType,
         input_tfms: MultiStageTransformation,
-        model_params: ModelParams,
-        metric_drop_ths: float = None,
-        quantization_type: QuantizationType = None,
-        **kwargs,
+        input_data: DataManager,
+        params,
     ):
-        """Optimize the input model using pytorch built-in techniques.
-
-        Args:
-            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
-                modifications to the original model, it will be copied in the
-                method.
-            input_data (DataManager): User defined data. Default: None.
-            input_tfms (MultiStageTransformation, optional): Transformations
-                to be performed to the model's input tensors in order to
-                get the prediction. Default: None.
-            model_params (ModelParams): Model parameters.
-            metric_drop_ths (float, optional): Threshold for the accepted drop
-                in terms of precision. Any optimized model with an higher drop
-                will be ignored. Default: None.
-            quantization_type (QuantizationType, optional): The desired
-                quantization algorithm to be used. Default: None.
-
-        Returns:
-            PytorchBackendInferenceLearner: Model optimized for inference.
-        """
-
-        if quantization_type not in self.supported_ops[self.device.value]:
-            self.compiled_model = None
-            return
-
-        self.logger.info(
-            f"Optimizing with {self.__class__.__name__} and "
-            f"q_type: {quantization_type}."
+        return quantize_apache_tvm(
+            model, quantization_type, input_tfms, input_data, params
         )
 
-        check_quantization(quantization_type, metric_drop_ths)
 
-        mod, params = self._build_tvm_model_from_torch(
+class PyTorchApacheTVMCompiler(ApacheTVMCompiler):
+    def _build_tvm_model(self, model: Any, model_params: ModelParams):
+        return self._build_tvm_model_from_torch(
             model, model_params, self.device
         )
 
-        if quantization_type is not None:
-            self.quantization_op.to(self.device).execute(
-                mod, quantization_type, input_tfms, input_data, params
-            )
-            mod = self.quantization_op.get_result()
-
-        self.compiled_model = self.compile_model(mod, params)
-
-    def compile_model(self, model: Any, params: Any):
-        target = self._get_target(self.device)
-        tuning_records = self._tune_tvm_model(target, model, params)
-        with autotvm.apply_history_best(tuning_records):
-            with tvm.transform.PassContext(opt_level=3, config={}):
-                lib = relay.build(model, target=target, params=params)
-
-        # Remove temporary file created by tvm
-        os.remove(tuning_records)
-
-        return lib
-
 
 class ONNXApacheTVMCompiler(ApacheTVMCompiler):
-    def __init__(self):
-        super().__init__()
-        self.quantization_op = ApacheTVMQuantizer()
-
-    def execute(
-        self,
-        model: str,
-        input_data: DataManager,
-        input_tfms: MultiStageTransformation,
-        model_params: ModelParams,
-        metric_drop_ths: float = None,
-        quantization_type: QuantizationType = None,
-        **kwargs,
-    ):
-        """Optimize the input model using pytorch built-in techniques.
-
-        Args:
-            model (torch.nn.Module): The pytorch model. For avoiding un-wanted
-                modifications to the original model, it will be copied in the
-                method.
-            input_data (DataManager): User defined data. Default: None.
-            input_tfms (MultiStageTransformation, optional): Transformations
-                to be performed to the model's input tensors in order to
-                get the prediction. Default: None.
-            model_params (ModelParams): Model parameters.
-            metric_drop_ths (float, optional): Threshold for the accepted drop
-                in terms of precision. Any optimized model with an higher drop
-                will be ignored. Default: None.
-            quantization_type (QuantizationType, optional): The desired
-                quantization algorithm to be used. Default: None.
-
-        Returns:
-            PytorchBackendInferenceLearner: Model optimized for inference.
-        """
-
-        if quantization_type not in self.supported_ops[self.device.value]:
-            self.compiled_model = None
-            return
-
-        self.logger.info(
-            f"Optimizing with {self.__class__.__name__} and "
-            f"q_type: {quantization_type}."
-        )
-
-        check_quantization(quantization_type, metric_drop_ths)
-
-        mod, params = self._build_tvm_model_from_onnx(model, model_params)
-
-        if quantization_type is not None:
-            self.quantization_op.to(self.device).execute(
-                mod, quantization_type, input_tfms, input_data, params
-            )
-            mod = self.quantization_op.get_result()
-
-        self.compiled_model = self.compile_model(mod, params)
-
-    def compile_model(self, model: Any, params: Any):
-        target = self._get_target(self.device)
-        tuning_records = self._tune_tvm_model(target, model, params)
-        with autotvm.apply_history_best(tuning_records):
-            with tvm.transform.PassContext(opt_level=3, config={}):
-                lib = relay.build(model, target=target, params=params)
-
-        # Remove temporary file created by tvm
-        os.remove(tuning_records)
-
-        return lib
+    def _build_tvm_model(self, model: Any, model_params: ModelParams):
+        return self._build_tvm_model_from_onnx(model, model_params)

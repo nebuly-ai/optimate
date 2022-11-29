@@ -4,7 +4,6 @@ from typing import Union, Iterable, Tuple, List
 import cpuinfo
 import numpy as np
 
-from nebullvm.operations.optimizations.quantizations.base import Quantizer
 from nebullvm.optional_modules.onnx import (
     onnx,
     convert_float_to_float16_model_path,
@@ -124,27 +123,20 @@ def _convert_to_half_precision(
     return str(model_quant)
 
 
-class ONNXQuantizer(Quantizer):
-    def execute(
-        self,
-        model_path: str,
-        quantization_type: QuantizationType,
-        input_tfms: MultiStageTransformation,
-        input_data: List[Tuple[np.ndarray, ...]],
-    ):
-        use_gpu = self.device is Device.GPU
-
-        if quantization_type is QuantizationType.STATIC:
-            self.quantized_model = _quantize_static(
-                model_path, input_data, use_gpu
-            )
-        elif quantization_type is QuantizationType.DYNAMIC:
-            self.quantized_model = _quantize_dynamic(model_path)
-        elif quantization_type is QuantizationType.HALF:
-            self.quantized_model = _convert_to_half_precision(
-                model_path, input_tfms
-            )
-        else:
-            raise ValueError(
-                f"Quantization type {quantization_type} is not supported"
-            )
+def quantize_onnx(
+    model_path: str,
+    input_data: List[Tuple[np.ndarray, ...]],
+    quantization_type: QuantizationType,
+    device: Device,
+    input_tfms: MultiStageTransformation,
+):
+    if quantization_type == QuantizationType.DYNAMIC:
+        return _quantize_dynamic(model_path)
+    elif quantization_type == QuantizationType.STATIC:
+        return _quantize_static(model_path, input_data, device is Device.GPU)
+    elif quantization_type == QuantizationType.HALF:
+        return _convert_to_half_precision(model_path, input_tfms)
+    else:
+        raise ValueError(
+            f"Quantization type {quantization_type} not supported"
+        )

@@ -1,7 +1,7 @@
 import copy
+import logging
 from typing import List, Tuple, Union
 
-from nebullvm.operations.optimizations.quantizations.base import Quantizer
 from nebullvm.optional_modules.torch import (
     torch,
     Module,
@@ -19,6 +19,8 @@ from nebullvm.tools.transformations import (
     HalfPrecisionTransformation,
 )
 from nebullvm.tools.utils import check_module_version
+
+logger = logging.getLogger("nebullvm")
 
 
 class _QuantWrapper(Module):
@@ -145,36 +147,37 @@ def _half_precision(model: Module):
     return model.half()
 
 
-class PytorchQuantizer(Quantizer):
-    def execute(
-        self,
-        model: Module,
-        quantization_type: QuantizationType,
-        input_tfms: MultiStageTransformation,
-        input_data_torch: List[Tuple[torch.Tensor, ...]],
-    ):
-        model = copy.deepcopy(model).eval()
+def quantize_pytorch(
+    model: Module,
+    quantization_type: QuantizationType,
+    input_tfms: MultiStageTransformation,
+    input_data_torch: List[Tuple[torch.Tensor, ...]],
+    device: Device,
+):
+    model = copy.deepcopy(model).eval()
 
-        try:
-            model = symbolic_trace(model)
-        except Exception:
-            self.logger.warning("Unable to trace model with torch.fx")
+    try:
+        model = symbolic_trace(model)
+    except Exception:
+        logger.warning("Unable to trace model with torch.fx")
 
-        if quantization_type is QuantizationType.HALF:
-            input_tfms.append(HalfPrecisionTransformation())
-            self.quantized_model = _half_precision(model)
-        elif quantization_type is QuantizationType.STATIC:
-            self.quantized_model, _ = (
-                _quantize_static(model, input_data_torch, self.device),
-                input_tfms,
-            )
-        elif quantization_type is QuantizationType.DYNAMIC:
-            self.quantized_model, _ = (
-                _quantize_dynamic(model, input_data_torch, self.device),
-                input_tfms,
-            )
-        else:
-            raise NotImplementedError(
-                f"No quantization implemented for quantization "
-                f"type {quantization_type}"
-            )
+    if quantization_type is QuantizationType.HALF:
+        input_tfms.append(HalfPrecisionTransformation())
+        quantized_model = _half_precision(model)
+    elif quantization_type is QuantizationType.STATIC:
+        quantized_model, _ = (
+            _quantize_static(model, input_data_torch, device),
+            input_tfms,
+        )
+    elif quantization_type is QuantizationType.DYNAMIC:
+        quantized_model, _ = (
+            _quantize_dynamic(model, input_data_torch, device),
+            input_tfms,
+        )
+    else:
+        raise NotImplementedError(
+            f"No quantization implemented for quantization "
+            f"type {quantization_type}"
+        )
+
+    return quantized_model

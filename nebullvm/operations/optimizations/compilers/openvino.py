@@ -1,16 +1,17 @@
 from pathlib import Path
 import subprocess
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict, List
+
+import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.openvino import (
-    OpenVINOQuantizer,
+from nebullvm.operations.optimizations.compilers.quantizations.openvino import (  # noqa: E501
+    quantize_openvino,
 )
-from nebullvm.operations.optimizations.quantizations.utils import (
+from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
-from nebullvm.optional_modules.torch import Module
 from nebullvm.optional_modules.openvino import (
     Core,
     Model,
@@ -37,11 +38,10 @@ class OpenVINOCompiler(Compiler):
 
     def __init__(self):
         super().__init__()
-        self.quantization_op = OpenVINOQuantizer()
 
     def execute(
         self,
-        model: Module,
+        model: str,
         input_data: DataManager,
         input_tfms: MultiStageTransformation,
         model_params: ModelParams,
@@ -113,16 +113,12 @@ class OpenVINOCompiler(Compiler):
         openvino_model_weights = base_path / f"{Path(model).stem}.bin"
 
         if quantization_type not in [QuantizationType.HALF, None]:
-            self.quantization_op.execute(
+            openvino_model_path, openvino_model_weights = self.quantize_model(
                 model_topology=str(openvino_model_path),
                 model_weights=str(openvino_model_weights),
                 input_names=get_input_names(model),
                 input_data=train_input_data,
             )
-            openvino_model_path = self.quantization_op.get_result()["model"]
-            openvino_model_weights = self.quantization_op.get_result()[
-                "weights"
-            ]
 
         self.compiled_model = self.compile_model(
             model_name=str(openvino_model_path),
@@ -145,6 +141,17 @@ class OpenVINOCompiler(Compiler):
             model.reshape(dynamic_shape)
 
         return core.compile_model(model=model, device_name="CPU")
+
+    @staticmethod
+    def quantize_model(
+        model_topology: str,
+        model_weights: str,
+        input_data: List[Tuple[np.ndarray, ...]],
+        input_names: List[str],
+    ) -> Tuple[str, str]:
+        return quantize_openvino(
+            model_topology, model_weights, input_data, input_names
+        )
 
     @staticmethod
     def _get_dynamic_shape(

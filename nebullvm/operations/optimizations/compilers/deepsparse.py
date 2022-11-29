@@ -5,9 +5,6 @@ from nebullvm.operations.conversions.converters import (
     PytorchConverter,
 )
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.pytorch import (
-    PytorchQuantizer,
-)
 from nebullvm.optional_modules.torch import (
     Module,
     GraphModule,
@@ -27,7 +24,6 @@ class DeepSparseCompiler(Compiler):
 
     def __init__(self):
         super().__init__()
-        self.quantization_op = PytorchQuantizer()
         self.conversion_op = PytorchConverter()
 
     def execute(
@@ -83,3 +79,7 @@ class DeepSparseCompiler(Compiler):
         ).execute(onnx_pruned_path, model_params)
         onnx_pruned_path = str(onnx_pruned_path / "model_pruned.onnx")
         return onnx_pruned_path
+
+    @staticmethod
+    def quantize_model(**kwargs):
+        raise NotImplementedError()

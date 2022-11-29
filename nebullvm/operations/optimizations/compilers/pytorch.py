@@ -1,11 +1,12 @@
-from typing import Union
+from typing import Union, List, Tuple
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.pytorch import (
-    PytorchQuantizer,
+
+from nebullvm.operations.optimizations.compilers.quantizations.pytorch import (
+    quantize_pytorch,
 )
-from nebullvm.operations.optimizations.quantizations.utils import (
+from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.torch import (
@@ -28,10 +29,6 @@ class PytorchBackendCompiler(Compiler):
             QuantizationType.HALF,
         ],
     }
-
-    def __init__(self):
-        super().__init__()
-        self.quantization_op = PytorchQuantizer()
 
     def execute(
         self,
@@ -77,10 +74,9 @@ class PytorchBackendCompiler(Compiler):
         )
 
         if quantization_type is not None:
-            self.quantization_op.to(self.device).execute(
+            model = self.quantize_model(
                 model, quantization_type, input_tfms, train_input_data
             )
-            model = self.quantization_op.get_result()
 
         self.compiled_model = self.compile_model(model, input_data)
 
@@ -107,3 +103,14 @@ class PytorchBackendCompiler(Compiler):
             model_scripted = torch.jit.script(model)
 
         return model_scripted
+
+    def quantize_model(
+        self,
+        model: Module,
+        quantization_type: QuantizationType,
+        input_tfms: MultiStageTransformation,
+        input_data_torch: List[Tuple[torch.Tensor, ...]],
+    ):
+        return quantize_pytorch(
+            model, quantization_type, input_tfms, input_data_torch, self.device
+        )

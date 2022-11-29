@@ -2,10 +2,10 @@ from pathlib import Path
 from typing import Union
 
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.intel_neural_compressor import (  # noqa: E501
-    IntelNeuralCompressorQuantizer,
+from nebullvm.operations.optimizations.compilers.quantizations.intel_neural_compressor import (  # noqa: E501
+    quantize_neural_compressor,
 )
-from nebullvm.operations.optimizations.quantizations.utils import (
+from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.torch import Module
@@ -26,8 +26,6 @@ class IntelNeuralCompressorCompiler(Compiler):
     def __init__(self):
         super().__init__()
         self.model_orig = None
-
-        self.quantization_op = IntelNeuralCompressorQuantizer()
 
     def execute(
         self,
@@ -73,11 +71,21 @@ class IntelNeuralCompressorCompiler(Compiler):
         self.model_orig = model
 
         if quantization_type is not None:
-            self.quantization_op.to(self.device).execute(
+            quantized_model = self.quantize_model(
                 model, quantization_type, input_tfms, train_input_data
             )
-            model_quantized = self.quantization_op.get_result()
-            self.compiled_model = self.compile_model(model_quantized)
+            self.compiled_model = self.compile_model(quantized_model)
 
     def compile_model(self, model: Union[str, Path]):
         return model
+
+    @staticmethod
+    def quantize_model(
+        model: Module,
+        quantization_type: QuantizationType,
+        input_tfms: MultiStageTransformation,
+        input_data: DataManager,
+    ):
+        return quantize_neural_compressor(
+            model, quantization_type, input_tfms, input_data
+        )

@@ -2,14 +2,17 @@ import abc
 import os
 from pathlib import Path
 import subprocess
-from typing import Union, List
+from typing import Union, List, Any, Tuple
+
+import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM, TORCH_TENSORRT_PRECISIONS
-from nebullvm.operations.optimizations.quantizations.tensor_rt import (
-    ONNXTensorRTQuantizer,
-)
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.quantizations.utils import (
+
+from nebullvm.operations.optimizations.compilers.quantizations.tensor_rt import (  # noqa: E501
+    quantize_tensorrt,
+)
+from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
@@ -184,12 +187,15 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
 
         return trt_model
 
+    @staticmethod
+    def quantize_model(**kwargs) -> Any:
+        raise NotImplementedError
+
 
 class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
         super().__init__()
         self.model_orig = None
-        self.quantization_op = ONNXTensorRTQuantizer()
 
     def execute(
         self,
@@ -276,7 +282,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             )
 
         if quantization_type is not None:
-            self.quantization_op.to(self.device).execute(
+            config = self.quantize_model(
                 quantization_type,
                 model_params,
                 config,
@@ -285,21 +291,16 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                 if quantization_type is QuantizationType.STATIC
                 else None,
             )
-            config = self.quantization_op.get_result()
 
-        if (
-            quantization_type is None
-            or self.quantization_op.get_result() is not None
-        ):
-            self.compiled_model = self.compile_model(
-                onnx_model_path=str(onnx_model_path),
-                model_params=model_params,
-                config=config,
-                network=network,
-                builder=builder,
-                nvidia_logger=nvidia_logger,
-            )
-            self.model_orig = onnx_model_path
+        self.compiled_model = self.compile_model(
+            onnx_model_path=str(onnx_model_path),
+            model_params=model_params,
+            config=config,
+            network=network,
+            builder=builder,
+            nvidia_logger=nvidia_logger,
+        )
+        self.model_orig = onnx_model_path
 
     def compile_model(
         self,
@@ -346,3 +347,19 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                 )
             config.add_optimization_profile(profile)
         return builder.build_serialized_network(network, config)
+
+    @staticmethod
+    def quantize_model(
+        quantization_type: QuantizationType,
+        model_params: ModelParams,
+        config,
+        input_tfms: MultiStageTransformation,
+        input_data: List[Tuple[np.ndarray, ...]] = None,
+    ):
+        return quantize_tensorrt(
+            quantization_type,
+            model_params,
+            config,
+            input_tfms,
+            input_data,
+        )

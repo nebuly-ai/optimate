@@ -164,11 +164,8 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler.DEEPSPARSE: {
         DeepLearningFramework.PYTORCH: DeepSparseBuildInferenceLearner
     },
-    ModelCompiler.ONNX_RUNTIME: {
-        DeepLearningFramework.NUMPY: ONNXBuildInferenceLearner
-    },
-    ModelCompiler.OPENVINO: {
-        DeepLearningFramework.NUMPY: OpenVINOBuildInferenceLearner
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: {
+        DeepLearningFramework.PYTORCH: IntelNeuralCompressorBuildInferenceLearner  # noqa: E501
     },
     ModelCompiler.TENSOR_RT: {
         DeepLearningFramework.PYTORCH: PyTorchTensorRTBuildInferenceLearner,
@@ -178,13 +175,16 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
         DeepLearningFramework.PYTORCH: PyTorchApacheTVMBuildInferenceLearner,
         DeepLearningFramework.NUMPY: ONNXApacheTVMBuildInferenceLearner,
     },
+    ModelCompiler.ONNX_RUNTIME: {
+        DeepLearningFramework.NUMPY: ONNXBuildInferenceLearner
+    },
+    ModelCompiler.OPENVINO: {
+        DeepLearningFramework.NUMPY: OpenVINOBuildInferenceLearner
+    },
     ModelCompiler.TFLITE: {
-        DeepLearningFramework.PYTORCH: TFLiteBuildInferenceLearner
+        DeepLearningFramework.TENSORFLOW: TFLiteBuildInferenceLearner
     },
     ModelCompiler.XLA: {
-        DeepLearningFramework.PYTORCH: TensorflowBuildInferenceLearner
-    },
-    ModelCompiler.INTEL_NEURAL_COMPRESSOR: {
-        DeepLearningFramework.PYTORCH: IntelNeuralCompressorBuildInferenceLearner  # noqa: E501
+        DeepLearningFramework.TENSORFLOW: TensorflowBuildInferenceLearner
     },
 }

@@ -20,5 +20,9 @@ class Compiler(Operation, abc.ABC):
     def compile_model(self, **kwargs) -> Any:
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def quantize_model(self, **kwargs) -> Any:
+        raise NotImplementedError()
+
     def get_result(self) -> Any:
         return self.compiled_model
