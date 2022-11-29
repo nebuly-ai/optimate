@@ -14,7 +14,6 @@ from nebullvm.operations.inference_learners.builders import (
     PyTorchApacheTVMBuildInferenceLearner,
     ONNXApacheTVMBuildInferenceLearner,
 )
-from nebullvm.operations.measures.measures import PrecisionMeasure
 from nebullvm.operations.optimizations.base import Optimizer
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.deepsparse import (
@@ -65,10 +64,6 @@ class PytorchOptimizer(Optimizer):
         super().__init__()
         self.pipeline_dl_framework = DeepLearningFramework.PYTORCH
 
-        self.compiler_ops = {}
-        self.build_inference_learner_ops = {}
-        self.validity_check_op = PrecisionMeasure()
-
     def _select_compilers_from_hardware(self):
         compilers = []
         if torch_is_available():
@@ -93,10 +88,6 @@ class TensorflowOptimizer(Optimizer):
     def __init__(self):
         super().__init__()
         self.pipeline_dl_framework = DeepLearningFramework.TENSORFLOW
-
-        self.compiler_ops = {}
-        self.build_inference_learner_ops = {}
-        self.validity_check_op = PrecisionMeasure()
 
     def _select_compilers_from_hardware(self):
         compilers = []
