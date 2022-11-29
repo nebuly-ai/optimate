@@ -63,7 +63,8 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
         input_data: DataManager = None,
         **kwargs,
     ):
-        """Optimize the input model using pytorch built-in techniques.
+        """Compile the input model using TensorRT Compiler from the
+            PyTorch interface.
 
         Args:
             model (torch.nn.Module): The pytorch model.
@@ -206,7 +207,8 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         input_data: DataManager = None,
         **kwargs,
     ):
-        """Optimize the input model using pytorch built-in techniques.
+        """Compile the input model using TensorRT Compiler from the
+            ONNX interface.
 
         Args:
             model (str): The path to the onnx model.

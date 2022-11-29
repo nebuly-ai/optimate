@@ -30,7 +30,7 @@ class TensorflowBackendCompiler(Compiler):
         input_data: DataManager = None,
         **kwargs,
     ):
-        """Optimize the input model using pytorch built-in techniques.
+        """Optimize the input model using tensorflow built-in techniques.
 
         Args:
             model (tf.Module): The tensorflow model.

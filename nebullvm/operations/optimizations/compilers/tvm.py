@@ -59,7 +59,7 @@ class ApacheTVMCompiler(Compiler, ABC):
         input_data: DataManager = None,
         **kwargs,
     ):
-        """Optimize the input model using pytorch built-in techniques.
+        """Compile the input model using Apache TVM compiler.
 
         Args:
             model (Union[Module, str]: The input model. Can be a torch model
