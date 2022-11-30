@@ -5,8 +5,7 @@ then
   # Installation for centos type linux distribution
   # Try installation with pip if fails then install from source
   pip3 install --upgrade setuptools pip
-  pip3 install nvidia-pyindex
-  pip3 install --upgrade nvidia-tensorrt
+  pip3 install --upgrade nvidia-tensorrt --extra-index-url https://pypi.ngc.nvidia.com
   pip3 install colored polygraphy --extra-index-url https://pypi.ngc.nvidia.com
 
   if [[ $(python3 -c "import tensorrt; print(tensorrt.__version__); assert tensorrt.Builder(tensorrt.Logger())" || echo 1) == 1 ]]
@@ -23,8 +22,7 @@ then
 else
   # Try installation with pip if fails then install from source
   pip install --upgrade setuptools pip
-  pip install nvidia-pyindex
-  pip install --upgrade nvidia-tensorrt
+  pip install --upgrade nvidia-tensorrt --extra-index-url https://pypi.ngc.nvidia.com
   pip install colored polygraphy --extra-index-url https://pypi.ngc.nvidia.com
 
   if [[ $(python3 -c "import tensorrt; print(tensorrt.__version__); assert tensorrt.Builder(tensorrt.Logger())" || echo 1) == 1 ]]
