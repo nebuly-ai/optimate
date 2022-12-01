@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Optional
 
 import torch
 import tensorflow as tf
@@ -180,10 +180,11 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
 
 def initialize_model(
     dynamic: bool,
-    metric: str,
+    metric: Optional[str],
     output_library: DeepLearningFramework,
+    device: Device,
 ):
-    device = Device.GPU if gpu_is_available() else Device.CPU
+    torch_device = torch.device("cuda" if device is Device.GPU else "cpu")
     batch_size = DYNAMIC_BATCH_SIZE if dynamic else STATIC_BATCH_SIZE
 
     if output_library == DeepLearningFramework.PYTORCH:
@@ -193,8 +194,8 @@ def initialize_model(
             [
                 (
                     (
-                        torch.randn(batch_size, *INPUT_SHAPE),
-                        torch.randn(batch_size, *INPUT_SHAPE),
+                        torch.randn(batch_size, *INPUT_SHAPE).to(torch_device),
+                        torch.randn(batch_size, *INPUT_SHAPE).to(torch_device),
                     ),
                     torch.zeros(batch_size, dtype=torch.long),
                 )

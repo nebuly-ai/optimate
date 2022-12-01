@@ -6,7 +6,6 @@ from tempfile import TemporaryDirectory
 from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
 
 import numpy as np
-from tvm.relay.backend.executor_factory import ExecutorFactoryModule
 
 from nebullvm.config import (
     TVM_FILENAMES,
@@ -20,7 +19,11 @@ from nebullvm.operations.inference_learners.base import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.optional_modules.tvm import GraphModule, tvm
+from nebullvm.optional_modules.tvm import (
+    GraphModule,
+    tvm,
+    ExecutorFactoryModule,
+)
 from nebullvm.tools.base import ModelParams, DeepLearningFramework
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (

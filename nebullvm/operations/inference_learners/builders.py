@@ -1,8 +1,6 @@
 from pathlib import Path
 from typing import Union, Any
 
-from tvm.relay.backend.executor_factory import ExecutorFactoryModule
-
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
@@ -33,7 +31,7 @@ from nebullvm.optional_modules.openvino import CompiledModel
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
-from nebullvm.optional_modules.tvm import tvm
+from nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
 from nebullvm.tools.base import DeepLearningFramework, ModelParams, Device
 from nebullvm.tools.onnx import get_input_names, get_output_names
 from nebullvm.tools.transformations import (

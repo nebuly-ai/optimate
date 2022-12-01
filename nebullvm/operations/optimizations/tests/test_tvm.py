@@ -24,6 +24,8 @@ from nebullvm.tools.base import (
 )
 from nebullvm.tools.utils import gpu_is_available
 
+device = Device.GPU if gpu_is_available() else Device.CPU
+
 
 @pytest.mark.parametrize(
     (
@@ -77,11 +79,10 @@ def test_tvm_onnx(
             input_tfms,
             model_outputs,
             metric,
-        ) = initialize_model(dynamic, metric, output_library)
+        ) = initialize_model(dynamic, metric, output_library, device)
 
         model_path = Path(tmp_dir) / "fp32"
         model_path.mkdir(parents=True)
-        device = Device.GPU if gpu_is_available() else Device.CPU
 
         converter_op = PytorchConverter()
         converter_op.to(device).set_state(model, input_data).execute(
@@ -194,8 +195,7 @@ def test_tvm_torch(
             input_tfms,
             model_outputs,
             metric,
-        ) = initialize_model(dynamic, metric, output_library)
-        device = Device.GPU if gpu_is_available() else Device.CPU
+        ) = initialize_model(dynamic, metric, output_library, device)
         compiler_op = PyTorchApacheTVMCompiler()
         compiler_op.to(device).execute(
             model=model,

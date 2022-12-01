@@ -21,6 +21,8 @@ from nebullvm.tools.base import (
 )
 from nebullvm.tools.utils import gpu_is_available
 
+device = Device.GPU if gpu_is_available() else Device.CPU
+
 
 def run_test_torchscript(
     output_library: DeepLearningFramework,
@@ -37,9 +39,7 @@ def run_test_torchscript(
             input_tfms,
             model_outputs,
             metric,
-        ) = initialize_model(dynamic, metric, output_library)
-
-        device = Device.GPU if gpu_is_available() else Device.CPU
+        ) = initialize_model(dynamic, metric, output_library, device)
 
         compiler_op = PytorchBackendCompiler()
         compiler_op.to(device).execute(

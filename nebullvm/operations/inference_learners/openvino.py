@@ -1,4 +1,3 @@
-import json
 import logging
 from abc import ABC
 from pathlib import Path
@@ -6,10 +5,6 @@ from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
 import numpy as np
 
-
-from nebullvm.config import (
-    OPENVINO_FILENAMES,
-)
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -81,20 +76,18 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         """
         path = Path(path)
 
-        core = Core()
-        compiled_model = core.import_model(path / cls.MODEL_NAME, "CPU")
+        with open(path / cls.MODEL_NAME, "rb") as fp:
+            model_stream = fp.read()
 
-        with open(path / OPENVINO_FILENAMES["metadata"], "r") as fin:
-            metadata = json.load(fin)
-        metadata.update(kwargs)
-        metadata["network_parameters"] = ModelParams(
-            **metadata["network_parameters"]
-        )
-        input_tfms = metadata.get("input_tfms")
+        core = Core()
+        compiled_model = core.import_model(model_stream, "CPU")
+
+        metadata = LearnerMetadata.read(path)
+
+        network_parameters = ModelParams(**metadata["network_parameters"])
+        input_tfms = metadata.input_tfms
         if input_tfms is not None:
-            metadata["input_tfms"] = MultiStageTransformation.from_dict(
-                input_tfms
-            )
+            input_tfms = MultiStageTransformation.from_dict(input_tfms)
 
         infer_request = compiled_model.create_infer_request()
 
@@ -107,10 +100,11 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
         return cls(
             compiled_model=compiled_model,
+            input_tfms=input_tfms,
+            network_parameters=network_parameters,
             infer_request=infer_request,
             input_keys=input_keys,
             output_keys=output_keys,
-            **metadata,
         )
 
     def get_size(self):
@@ -232,8 +226,8 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         path = Path(path)
         path.mkdir(exist_ok=True)
         metadata = self._get_metadata(**kwargs)
-        with open(path / OPENVINO_FILENAMES["metadata"], "w") as fout:
-            json.dump(metadata.to_dict(), fout)
+
+        metadata.save(path)
 
         model_stream = self.compiled_model.export_model()
 
