@@ -1,13 +1,16 @@
 import abc
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from nebullvm.tools.base import ModelParams
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
 from nebullvm.operations.conversions.tensorflow import convert_tf_to_onnx
 from nebullvm.optional_modules.onnx import onnx
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import DeepLearningFramework
+from nebullvm.tools.data import DataManager
 
 
 class Converter(Operation, abc.ABC):
@@ -24,14 +27,12 @@ class Converter(Operation, abc.ABC):
         self.device = None
         self.model_name = model_name or "temp"
 
-    def set_state(self, model, data):
+    def set_state(
+        self, model: Union[torch.nn.Module, tf.Module, str], data: DataManager
+    ):
         self.model = model
         self.data = data
         return self
-
-    @abc.abstractmethod
-    def execute(self, **kwargs):
-        raise NotImplementedError()
 
     def get_result(self) -> List:
         return self.converted_models
@@ -67,6 +68,7 @@ class PytorchConverter(Converter):
             self.converted_models.append(onnx_model_path)
 
     def tensorflow_conversion(self):
+        # TODO: Implement conversion from Pytorch to Tensorflow
         raise NotImplementedError()
 
 
@@ -97,6 +99,7 @@ class TensorflowConverter(Converter):
             self.converted_models.append(onnx_model_path)
 
     def pytorch_conversion(self):
+        # TODO: Implement conversion from Tensorflow to Pytorch
         raise NotImplementedError()
 
 
@@ -118,7 +121,9 @@ class ONNXConverter(Converter):
         self.converted_models = [str(onnx_path)]
 
     def tensorflow_conversion(self):
+        # TODO: Implement conversion from ONNX to Tensorflow
         raise NotImplementedError()
 
     def pytorch_conversion(self):
+        # TODO: Implement conversion from ONNX to Pytorch
         raise NotImplementedError()

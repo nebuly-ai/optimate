@@ -22,7 +22,9 @@ from nebullvm.operations.optimizations.compilers.deepsparse import (
 from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
     IntelNeuralCompressorCompiler,
 )
-from nebullvm.operations.optimizations.compilers.onnx import ONNXCompiler
+from nebullvm.operations.optimizations.compilers.onnxruntime import (
+    ONNXCompiler,
+)
 from nebullvm.operations.optimizations.compilers.openvino import (
     OpenVINOCompiler,
 )

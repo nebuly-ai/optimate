@@ -20,7 +20,7 @@ from nebullvm.tools.transformations import (
 )
 from nebullvm.tools.utils import check_module_version
 
-logger = logging.getLogger("nebullvm")
+logger = logging.getLogger("nebullvm_logger")
 
 
 class _QuantWrapper(Module):
@@ -165,15 +165,9 @@ def quantize_pytorch(
         input_tfms.append(HalfPrecisionTransformation())
         quantized_model = _half_precision(model)
     elif quantization_type is QuantizationType.STATIC:
-        quantized_model, _ = (
-            _quantize_static(model, input_data_torch, device),
-            input_tfms,
-        )
+        quantized_model = _quantize_static(model, input_data_torch, device)
     elif quantization_type is QuantizationType.DYNAMIC:
-        quantized_model, _ = (
-            _quantize_dynamic(model, input_data_torch, device),
-            input_tfms,
-        )
+        quantized_model = _quantize_dynamic(model, input_data_torch, device)
     else:
         raise NotImplementedError(
             f"No quantization implemented for quantization "

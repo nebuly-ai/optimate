@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 from typing import Union, Type, Dict, Any, List, Generator, Tuple, Optional
 
 import numpy as np
+from tvm.relay.backend.executor_factory import ExecutorFactoryModule
 
 from nebullvm.config import (
     TVM_FILENAMES,
@@ -19,7 +20,7 @@ from nebullvm.operations.inference_learners.base import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.optional_modules.tvm import Module, GraphModule, tvm
+from nebullvm.optional_modules.tvm import GraphModule, tvm
 from nebullvm.tools.base import ModelParams, DeepLearningFramework
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
@@ -51,7 +52,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         self,
         graph_executor_module: GraphModule,
         input_names: List[str],
-        lib: Module,
+        lib: ExecutorFactoryModule,
         target: str,
         engine_path: Path = None,
         **kwargs
@@ -157,7 +158,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
     def from_runtime_module(
         cls,
         network_parameters: ModelParams,
-        lib: Module,
+        lib: ExecutorFactoryModule,
         target_device: str,
         input_names: List[str],
         input_tfms: MultiStageTransformation = None,
@@ -409,7 +410,7 @@ class NumpyApacheTVMInferenceLearner(
         return tuple(self._inner_predict(input_arrays, input_shapes))
 
 
-TVM_INFERENCE_LEARNERS: Dict[
+APACHE_TVM_INFERENCE_LEARNERS: Dict[
     DeepLearningFramework, Type[ApacheTVMInferenceLearner]
 ] = {
     DeepLearningFramework.PYTORCH: PytorchApacheTVMInferenceLearner,

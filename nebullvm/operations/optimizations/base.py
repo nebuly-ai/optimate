@@ -153,7 +153,7 @@ class Optimizer(Operation, abc.ABC):
                                 else None,
                                 model_params=model_params,
                                 input_tfms=input_tfms,
-                                dl_framework=self.source_dl_framework,
+                                source_dl_framework=self.source_dl_framework,
                             )
                             inference_learner = (
                                 build_inference_learner_op.get_result()

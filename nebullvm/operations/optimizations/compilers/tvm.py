@@ -25,6 +25,7 @@ from nebullvm.optional_modules.tvm import (
     XGBTuner,
     autotvm,
     relay,
+    ExecutorFactoryModule,
 )
 from nebullvm.tools.base import QuantizationType, ModelParams, Device
 from nebullvm.tools.data import DataManager
@@ -37,17 +38,21 @@ class ApacheTVMCompiler(Compiler, ABC):
     supported_ops = {
         "cpu": [
             None,
-            QuantizationType.STATIC,
+            # QuantizationType.STATIC,
             QuantizationType.HALF,
             QuantizationType.DYNAMIC,
         ],
         "gpu": [
             None,
-            QuantizationType.STATIC,
+            # QuantizationType.STATIC,
             QuantizationType.HALF,
             QuantizationType.DYNAMIC,
         ],
     }
+
+    def __init__(self):
+        super().__init__()
+        self.model_orig = None
 
     def execute(
         self,
@@ -212,7 +217,7 @@ class ApacheTVMCompiler(Compiler, ABC):
             )
         return tuning_records
 
-    def compile_model(self, model: Any, params: Any):
+    def compile_model(self, model: Any, params: Any) -> ExecutorFactoryModule:
         target = self._get_target(self.device)
         tuning_records = self._tune_tvm_model(target, model, params)
         with autotvm.apply_history_best(tuning_records):
@@ -246,4 +251,5 @@ class PyTorchApacheTVMCompiler(ApacheTVMCompiler):
 
 class ONNXApacheTVMCompiler(ApacheTVMCompiler):
     def _build_tvm_model(self, model: Any, model_params: ModelParams):
+        self.model_orig = model
         return self._build_tvm_model_from_onnx(model, model_params)

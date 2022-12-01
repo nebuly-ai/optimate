@@ -125,7 +125,7 @@ class TFLiteBackendCompiler(Compiler):
 
         if quantization_type is not None:
             self.compiled_model = self.quantize_model(
-                model, quantization_type, input_tfms, train_input_data
+                model, quantization_type, train_input_data
             )
         else:
             self.compiled_model = self.compile_model(model)
@@ -142,9 +142,8 @@ class TFLiteBackendCompiler(Compiler):
     def quantize_model(
         model: tf.Module,
         quantization_type: QuantizationType,
-        input_tfms: MultiStageTransformation,
         input_data_tensorflow: List[Tuple[tf.Tensor, ...]],
     ):
         return quantize_tensorflow(
-            model, quantization_type, input_tfms, input_data_tensorflow
+            model, quantization_type, input_data_tensorflow
         )

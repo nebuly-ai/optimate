@@ -84,7 +84,9 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
         path = Path(path)
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
-        with open(path / TENSORFLOW_BACKEND_FILENAMES["tflite"], "wb") as f:
+        with open(
+            path / TENSORFLOW_BACKEND_FILENAMES["tflite_model"], "wb"
+        ) as f:
             f.write(self.tflite_file)
 
     @classmethod

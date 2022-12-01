@@ -1,6 +1,5 @@
 import logging
 from typing import (
-    Any,
     Union,
     Iterable,
     Sequence,
@@ -11,6 +10,8 @@ from typing import (
 )
 
 from nebullvm.operations.root.black_box import BlackBoxModelOptimizationRootOp
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
 from nebullvm.tools.utils import gpu_is_available
 
@@ -42,7 +43,7 @@ def _check_device(device: Optional[str]) -> Device:
 
 
 def optimize_model(
-    model: Any,
+    model: Union[torch.nn.Module, tf.Module, str],
     input_data: Union[Iterable, Sequence],
     metric_drop_ths: float = None,
     metric: Union[str, Callable] = None,
@@ -61,7 +62,8 @@ def optimize_model(
     interface as the original one.
 
     Args:
-        model (Any): The input model.
+        model (Union[torch.Module, tf.Module, str]): The input model. It can be
+            a torch or tensorflow model or a path to an onnx saved model.
         input_data (Iterable or Sequence): Input data to be used for
             optimizing the model. Note that if 'unconstrained' is selected as
             `optimization_time`, it would be beneficial to provide at least 100
@@ -70,7 +72,7 @@ def optimize_model(
             accessed by "element", e.g. `data[i]`) or iterable (data needs to
             be accessed with loop, e.g. `for x in data`). PyTorch, TensorFlow
             and Onnx respectively accept input tensor in `torch.Tensor`,
-            `tf.Tensor` and `np.ndarray` formats. Note that the each input
+            `tf.Tensor` and `np.ndarray` formats. Note that each input
             sample must be a tuple containing a tuple as first element, the
             `inputs`, and the `label` as second element. The `inputs` needs to
             be passed as tuple even if a single input is needed by the model
@@ -81,7 +83,7 @@ def optimize_model(
             list of string is provided as input_data (tokenizers can be passed
             as extra arguments of this function using the keyword `tokenizer`).
         metric_drop_ths (float, optional): Maximum reduction in the
-            selected metric accepted. No model with an higher error will be
+            selected metric accepted. No model with a higher error will be
             accepted, i.e. all optimized model having a larger error respect to
             the original one will be discarded, without even considering their
             possible speed-up. Default: None, i.e. no drop in metric accepted.
@@ -103,7 +105,7 @@ def optimize_model(
             mode. It can be either 'constrained' or 'unconstrained'. For
             'constrained' mode just compilers and precision reduction
             techniques are used (no compression). 'Unconstrained' optimization
-            allows the usage of more time consuming techniques as pruning and
+            allows the usage of more time-consuming techniques as pruning and
             distillation. Note that for using many of the sophisticated
             techniques in the 'unconstrained' optimization, a small fine-tuning
             of the model will be needed. Thus we highly recommend to give as

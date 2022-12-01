@@ -6,7 +6,6 @@ from typing import Tuple, List, Union, Dict
 class QuantizationType(Enum):
     DYNAMIC = "DYNAMIC"
     STATIC = "STATIC"
-    QAT = "QAT"
     HALF = "HALF"
 
 

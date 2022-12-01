@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, Any
 
-import torch
+from tvm.relay.backend.executor_factory import ExecutorFactoryModule
 
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.deepsparse import (
@@ -12,14 +12,14 @@ from nebullvm.operations.inference_learners.neural_compressor import (
 )
 from nebullvm.operations.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
 from nebullvm.operations.inference_learners.openvino import (
-    NumpyOpenVinoInferenceLearner,
+    OPENVINO_INFERENCE_LEARNERS,
 )
 from nebullvm.operations.inference_learners.pytorch import (
     PytorchBackendInferenceLearner,
 )
 from nebullvm.operations.inference_learners.tensor_rt import (
     PytorchTensorRTInferenceLearner,
-    PytorchNvidiaInferenceLearner,
+    TENSOR_RT_INFERENCE_LEARNERS,
 )
 from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
@@ -27,12 +27,13 @@ from nebullvm.operations.inference_learners.tensorflow import (
 )
 from nebullvm.operations.inference_learners.tvm import (
     PytorchApacheTVMInferenceLearner,
-    NumpyApacheTVMInferenceLearner,
+    APACHE_TVM_INFERENCE_LEARNERS,
 )
+from nebullvm.optional_modules.openvino import CompiledModel
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
 from nebullvm.optional_modules.tvm import tvm
-from nebullvm.optional_modules.openvino import CompiledModel
 from nebullvm.tools.base import DeepLearningFramework, ModelParams, Device
 from nebullvm.tools.onnx import get_input_names, get_output_names
 from nebullvm.tools.transformations import (
@@ -60,7 +61,7 @@ class PytorchBuildInferenceLearner(BuildInferenceLearner):
 class TensorflowBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
-        model,
+        model: tf.Module,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
         **kwargs,
@@ -76,7 +77,7 @@ class TensorflowBuildInferenceLearner(BuildInferenceLearner):
 class TFLiteBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
-        model,
+        model: bytes,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
         **kwargs,
@@ -113,13 +114,13 @@ class ONNXBuildInferenceLearner(BuildInferenceLearner):
         model: Union[str, Path],
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
-        dl_framework: DeepLearningFramework,
+        source_dl_framework: DeepLearningFramework,
         **kwargs,
     ):
         input_names = get_input_names(str(model))
         output_names = get_output_names(str(model))
 
-        self.inference_learner = ONNX_INFERENCE_LEARNERS[dl_framework](
+        self.inference_learner = ONNX_INFERENCE_LEARNERS[source_dl_framework](
             onnx_path=model,
             network_parameters=model_params,
             input_names=input_names,
@@ -135,6 +136,7 @@ class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
         model: CompiledModel,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
+        source_dl_framework: DeepLearningFramework,
         **kwargs,
     ):
         infer_request = model.create_infer_request()
@@ -142,7 +144,9 @@ class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
         input_keys = list(map(lambda obj: obj.get_any_name(), model.inputs))
         output_keys = list(map(lambda obj: obj.get_any_name(), model.outputs))
 
-        self.inference_learner = NumpyOpenVinoInferenceLearner(
+        self.inference_learner = OPENVINO_INFERENCE_LEARNERS[
+            source_dl_framework
+        ](
             compiled_model=model,
             infer_request=infer_request,
             input_keys=input_keys,
@@ -155,7 +159,7 @@ class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
 class PyTorchTensorRTBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
-        model: Union[str, Path],
+        model: ScriptModule,
         input_tfms: MultiStageTransformation,
         model_params: ModelParams,
         **kwargs,
@@ -171,10 +175,11 @@ class PyTorchTensorRTBuildInferenceLearner(BuildInferenceLearner):
 class ONNXTensorRTBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
-        model: Union[str, Path],
+        model: Any,
         model_orig: Union[str, Path],
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
+        source_dl_framework: DeepLearningFramework,
         **kwargs,
     ):
         nvidia_logger = trt.Logger(trt.Logger.ERROR)
@@ -185,7 +190,9 @@ class ONNXTensorRTBuildInferenceLearner(BuildInferenceLearner):
         runtime = trt.Runtime(nvidia_logger)
         engine = runtime.deserialize_cuda_engine(model)
 
-        self.inference_learner = PytorchNvidiaInferenceLearner(
+        self.inference_learner = TENSOR_RT_INFERENCE_LEARNERS[
+            source_dl_framework
+        ](
             engine=engine,
             input_tfms=input_tfms,
             network_parameters=model_params,
@@ -217,7 +224,7 @@ class IntelNeuralCompressorBuildInferenceLearner(BuildInferenceLearner):
 class PyTorchApacheTVMBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
-        model: torch.nn.Module,
+        model: ExecutorFactoryModule,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
         **kwargs,
@@ -247,10 +254,11 @@ class PyTorchApacheTVMBuildInferenceLearner(BuildInferenceLearner):
 class ONNXApacheTVMBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
-        model: torch.nn.Module,
-        model_orig: Module,
+        model: ExecutorFactoryModule,
+        model_orig: str,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
+        source_dl_framework: DeepLearningFramework,
         **kwargs,
     ):
         target_device = (
@@ -258,12 +266,18 @@ class ONNXApacheTVMBuildInferenceLearner(BuildInferenceLearner):
         )
         dev = tvm.device(str(target_device), 0)
 
-        input_names = get_input_names(str(model_orig))
+        input_names = (
+            get_input_names(model_orig)
+            if model_orig is not None
+            else [f"input_{i}" for i in range(len(model_params.input_infos))]
+        )
 
         graph_executor_module = tvm.contrib.graph_executor.GraphModule(
             model["default"](dev)
         )
-        self.inference_learner = NumpyApacheTVMInferenceLearner(
+        self.inference_learner = APACHE_TVM_INFERENCE_LEARNERS[
+            source_dl_framework
+        ](
             input_tfms=input_tfms,
             network_parameters=model_params,
             graph_executor_module=graph_executor_module,

@@ -2,10 +2,6 @@ from typing import List, Tuple
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.tools.base import QuantizationType
-from nebullvm.tools.transformations import (
-    MultiStageTransformation,
-    HalfPrecisionTransformation,
-)
 
 
 def _quantize_dynamic(model: tf.Module):
@@ -27,9 +23,8 @@ def _quantize_static(model: tf.Module, dataset: List[Tuple[tf.Tensor, ...]]):
     return tflite_quant_model
 
 
-def _half_precision(model: tf.Module, input_tfms: MultiStageTransformation):
+def _half_precision(model: tf.Module):
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    input_tfms.append(HalfPrecisionTransformation())
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.target_spec.supported_types = [tf.float16]
     tflite_quant_model = converter.convert()
@@ -39,7 +34,6 @@ def _half_precision(model: tf.Module, input_tfms: MultiStageTransformation):
 def quantize_tensorflow(
     model: tf.Module,
     quantization_type: QuantizationType,
-    input_tfms: MultiStageTransformation,
     input_data_tensorflow: List[Tuple[tf.Tensor, ...]],
 ):
     if quantization_type is QuantizationType.DYNAMIC:
@@ -47,7 +41,7 @@ def quantize_tensorflow(
     elif quantization_type is QuantizationType.STATIC:
         quantized_model = _quantize_static(model, input_data_tensorflow)
     elif quantization_type is QuantizationType.HALF:
-        quantized_model = _half_precision(model, input_tfms)
+        quantized_model = _half_precision(model)
     else:
         raise NotImplementedError(
             f"Quantization not supported for type {quantization_type}"

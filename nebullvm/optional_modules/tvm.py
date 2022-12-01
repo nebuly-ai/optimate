@@ -8,6 +8,7 @@ try:
     from tvm.relay.transform import ToMixedPrecision
     from tvm.contrib.graph_executor import GraphModule
     from tvm.runtime import Module
+    from tvm.relay.backend.executor_factory import ExecutorFactoryModule
 except ImportError:
     tvm = (
         IRModule
@@ -15,4 +16,6 @@ except ImportError:
         NDArray
     ) = (
         XGBTuner
+    ) = (
+        ExecutorFactoryModule
     ) = autotvm = relay = ToMixedPrecision = GraphModule = Module = object

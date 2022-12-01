@@ -29,7 +29,7 @@ from nebullvm.tools.transformations import (
 logger = logging.getLogger("nebullvm_logger")
 
 
-class NvidiaInferenceLearner(BaseInferenceLearner, ABC):
+class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
     """Model optimized using TensorRT.
 
     The class cannot be directly instantiated, but implements all the core
@@ -301,8 +301,8 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         )
 
 
-class PytorchNvidiaInferenceLearner(
-    NvidiaInferenceLearner, PytorchBaseInferenceLearner
+class PytorchONNXTensorRTInferenceLearner(
+    ONNXTensorRTInferenceLearner, PytorchBaseInferenceLearner
 ):
     """Model optimized using TensorRT with a Pytorch interface.
 
@@ -398,7 +398,7 @@ class PytorchNvidiaInferenceLearner(
         )
 
 
-class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
+class BaseArrayONNXTensorRTInferenceLearner(ONNXTensorRTInferenceLearner, ABC):
     """Base Model that can be used for all array-based
     NvidiaInferenceLearners.
     """
@@ -465,8 +465,8 @@ class BaseArrayNvidiaInferenceLearner(NvidiaInferenceLearner, ABC):
         )
 
 
-class TensorflowNvidiaInferenceLearner(
-    BaseArrayNvidiaInferenceLearner, TensorflowBaseInferenceLearner
+class TensorflowONNXTensorRTInferenceLearner(
+    BaseArrayONNXTensorRTInferenceLearner, TensorflowBaseInferenceLearner
 ):
     """Model optimized using TensorRT with a tensorflow interface.
 
@@ -520,8 +520,8 @@ class TensorflowNvidiaInferenceLearner(
         return tuple(tf.convert_to_tensor(array) for array in out_arrays)
 
 
-class NumpyNvidiaInferenceLearner(
-    BaseArrayNvidiaInferenceLearner, NumpyBaseInferenceLearner
+class NumpyONNXTensorRTInferenceLearner(
+    BaseArrayONNXTensorRTInferenceLearner, NumpyBaseInferenceLearner
 ):
     """Model optimized using TensorRT with a tensorflow interface.
 
@@ -574,10 +574,10 @@ class NumpyNvidiaInferenceLearner(
         return tuple(self._predict_array(cuda_input_arrays, input_shapes))
 
 
-NVIDIA_INFERENCE_LEARNERS: Dict[
-    DeepLearningFramework, Type[NvidiaInferenceLearner]
+TENSOR_RT_INFERENCE_LEARNERS: Dict[
+    DeepLearningFramework, Type[ONNXTensorRTInferenceLearner]
 ] = {
-    DeepLearningFramework.PYTORCH: PytorchNvidiaInferenceLearner,
-    DeepLearningFramework.TENSORFLOW: TensorflowNvidiaInferenceLearner,
-    DeepLearningFramework.NUMPY: NvidiaInferenceLearner,
+    DeepLearningFramework.PYTORCH: PytorchONNXTensorRTInferenceLearner,
+    DeepLearningFramework.TENSORFLOW: TensorflowONNXTensorRTInferenceLearner,
+    DeepLearningFramework.NUMPY: NumpyONNXTensorRTInferenceLearner,
 }
