@@ -19,7 +19,7 @@ from nebullvm.tools.data import DataManager
 class DeepSparseCompiler(Compiler):
     supported_ops = {
         "cpu": [None],
-        "gpu": [None],
+        "gpu": [],
     }
 
     def __init__(self):

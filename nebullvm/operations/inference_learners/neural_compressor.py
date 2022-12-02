@@ -21,8 +21,13 @@ from nebullvm.optional_modules.torch import (
     GraphModule,
 )
 from nebullvm.tools.base import ModelParams, DeepLearningFramework
-from nebullvm.tools.pytorch import save_with_torch_fx, load_with_torch_fx
+from nebullvm.tools.pytorch import (
+    save_with_torch_fx,
+    load_with_torch_fx,
+    create_model_inputs_torch,
+)
 from nebullvm.tools.transformations import MultiStageTransformation
+from nebullvm.tools.utils import check_module_version
 
 logger = logging.getLogger("nebullvm_logger")
 
@@ -88,6 +93,15 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
                 f"Got {kwargs}."
             )
 
+        metadata = LearnerMetadata.read(path)
+        input_tfms = metadata.input_tfms
+        if input_tfms is not None:
+            input_tfms = MultiStageTransformation.from_dict(
+                metadata.input_tfms
+            )
+
+        network_parameters = ModelParams(**metadata.network_parameters)
+
         path_orig_model = Path(path) / Path("model_orig")
         path_quant_model = Path(path) / Path("model_quant") / "best_model.pt"
 
@@ -99,27 +113,25 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         tune_cfg = state_dict.pop("best_configure")
         op_cfgs = cfg_to_qconfig(tune_cfg, tune_cfg["approach"])
         fx_op_cfgs = cfgs_to_fx_cfgs(op_cfgs, tune_cfg["approach"])
-        prepare_custom_config_dict = None
-        convert_custom_config_dict = None
+
+        additional_arguments = {}
+        if check_module_version(torch, min_version="1.13.0"):
+            additional_arguments["example_inputs"] = tuple(
+                create_model_inputs_torch(
+                    batch_size=network_parameters.batch_size,
+                    input_infos=network_parameters.input_infos,
+                )
+            )
 
         q_model = prepare_fx(
             model,
             fx_op_cfgs,
-            prepare_custom_config_dict=prepare_custom_config_dict,
+            **additional_arguments,
         )
-
-        q_model = convert_fx(
-            q_model, convert_custom_config_dict=convert_custom_config_dict
-        )
+        q_model = convert_fx(q_model)
 
         q_model.load_state_dict(state_dict)
 
-        metadata = LearnerMetadata.read(path)
-        input_tfms = metadata.input_tfms
-        if input_tfms is not None:
-            input_tfms = MultiStageTransformation.from_dict(
-                metadata.input_tfms
-            )
         return cls(
             input_tfms=input_tfms,
             network_parameters=ModelParams(**metadata.network_parameters),

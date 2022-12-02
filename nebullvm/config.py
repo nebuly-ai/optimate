@@ -65,6 +65,7 @@ COMPILER_LIST = [
     "torchscript",
     "onnxruntime",
     "tflite",
+    "xla",
     "tvm",
     "openvino",
     "bladedisc",

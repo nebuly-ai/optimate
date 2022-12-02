@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-from typing import Tuple, Optional, Dict, List
+from typing import Tuple, List
 
 import numpy as np
 
@@ -14,7 +14,6 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
 )
 from nebullvm.optional_modules.openvino import (
     Core,
-    Model,
     CompiledModel,
 )
 from nebullvm.tools.base import (
@@ -119,10 +118,8 @@ class OpenVINOCompiler(Compiler):
                 input_data=train_input_data,
             )
 
-        self.compiled_model = self.compile_model(
-            model_name=str(openvino_model_path),
-            model_weights=str(openvino_model_weights),
-            network_parameters=model_params,
+        self.compiled_model = str(
+            Path(openvino_model_path).parent / Path(openvino_model_path).stem
         )
 
     def compile_model(
@@ -151,41 +148,3 @@ class OpenVINOCompiler(Compiler):
         return quantize_openvino(
             model_topology, model_weights, input_data, input_names
         )
-
-    @staticmethod
-    def _get_dynamic_shape(
-        model: Model, network_parameters: ModelParams
-    ) -> Optional[Dict[str, Tuple[int]]]:
-        if network_parameters.dynamic_info is None:
-            return None
-
-        input_names = [
-            list(model_input.names)[0] for model_input in model.inputs
-        ]
-        input_shapes = [
-            (network_parameters.batch_size, *input_info.size)
-            for input_info in network_parameters.input_infos
-        ]
-        dynamic_shapes = []
-
-        assert len(input_shapes) == len(
-            network_parameters.dynamic_info.inputs
-        ), (
-            f"Number of inputs defined in dynamic info "
-            f"({len(input_shapes)}) is different from the one "
-            f"expected from the model "
-            f"({len(network_parameters.dynamic_info.inputs)})."
-        )
-
-        for input_shape, dynamic_shape_dict in zip(
-            input_shapes, network_parameters.dynamic_info.inputs
-        ):
-            input_shape = list(input_shape)
-            for key in dynamic_shape_dict.keys():
-                input_shape[int(key)] = -1
-            dynamic_shapes.append(tuple(input_shape))
-
-        dynamic_shape_dict = {
-            k: v for k, v in zip(input_names, dynamic_shapes)
-        }
-        return dynamic_shape_dict

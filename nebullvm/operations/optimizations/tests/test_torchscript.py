@@ -12,7 +12,10 @@ from nebullvm.operations.optimizations.compilers.pytorch import (
 from nebullvm.operations.optimizations.optimizers import (
     COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
-from nebullvm.operations.optimizations.tests.utils import initialize_model
+from nebullvm.operations.optimizations.tests.utils import (
+    initialize_model,
+    check_model_validity,
+)
 from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
@@ -79,6 +82,17 @@ def run_test_torchscript(
         inputs_example = list(optimized_model.get_inputs_example())
         res = optimized_model(*inputs_example)
         assert res is not None
+
+        # Test validity of the model
+        valid = check_model_validity(
+            optimized_model,
+            input_data,
+            model_outputs,
+            metric_drop_ths,
+            quantization_type,
+            metric,
+        )
+        assert valid
 
         if dynamic:  # Check also with a smaller bath_size
             inputs_example = [

@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Any, Callable
 
 import torch
 import tensorflow as tf
@@ -8,13 +8,21 @@ import tensorflow.keras as keras
 from tensorflow.keras import Model, layers
 from transformers import AlbertModel, AlbertTokenizer
 
-from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
+from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, CONSTRAINED_METRIC_DROP_THS
 from nebullvm.operations.conversions.huggingface import convert_hf_model
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
-from nebullvm.operations.measures.measures import LatencyOriginalModelMeasure
+from nebullvm.operations.measures.measures import (
+    LatencyOriginalModelMeasure,
+    MetricDropMeasure,
+)
 from nebullvm.operations.measures.utils import compute_relative_difference
 from nebullvm.operations.root.black_box.utils import extract_info_from_data
-from nebullvm.tools.base import DeepLearningFramework, ModelParams, Device
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    ModelParams,
+    Device,
+    QuantizationType,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.utils import gpu_is_available
@@ -244,3 +252,29 @@ def initialize_model(
         metric = compute_relative_difference
 
     return model, input_data, model_params, input_tfms, model_outputs, metric
+
+
+def check_model_validity(
+    optimized_model: Any,
+    input_data: DataManager,
+    model_outputs: Any,
+    metric_drop_ths: float,
+    quantization_type: QuantizationType,
+    metric: Callable,
+) -> bool:
+    test_input_data, ys = input_data.get_split("test").get_list(with_ys=True)
+    validity_check_op = MetricDropMeasure()
+    validity_check_op.execute(
+        optimized_model,
+        test_input_data,
+        model_outputs,
+        metric_drop_ths
+        if quantization_type is not None
+        else CONSTRAINED_METRIC_DROP_THS,
+        metric_func=metric
+        if quantization_type is not None
+        else compute_relative_difference,
+        ys=ys,
+    )
+
+    return validity_check_op.get_result()[0]

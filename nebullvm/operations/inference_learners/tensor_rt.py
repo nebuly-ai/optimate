@@ -218,7 +218,7 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
                 `from_engine_path` class method.
 
         Returns:
-            NvidiaInferenceLearner: The optimized model.
+            ONNXTensorRTInferenceLearner: The optimized model.
         """
         path = Path(path)
         with open(path / NVIDIA_FILENAMES["metadata"], "r") as fin:

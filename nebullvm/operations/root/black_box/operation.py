@@ -267,7 +267,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                     )
 
                     self.optimal_model = HuggingFaceInferenceLearner(
-                        core_inference_learner=self.optimal_model,
+                        core_inference_learner=optimized_models[0][0],
                         output_structure=output_structure,
                         input_names=input_names,
                         output_type=output_type,

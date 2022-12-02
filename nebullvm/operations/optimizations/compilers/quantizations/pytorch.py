@@ -12,6 +12,7 @@ from nebullvm.optional_modules.torch import (
     default_dynamic_qconfig,
     prepare_fx,
     convert_fx,
+    ScriptModule,
 )
 from nebullvm.tools.base import Device, QuantizationType
 from nebullvm.tools.transformations import (
@@ -54,12 +55,11 @@ def _quantize_dynamic_torch_fx(
 ):
     qconfig_dict = {"": default_dynamic_qconfig}
 
+    additional_arguments = {}
     if check_module_version(torch, min_version="1.13.0"):
-        model_prepared = prepare_fx(
-            model, qconfig_dict, example_inputs=input_data[0]
-        )
-    else:
-        model_prepared = prepare_fx(model, qconfig_dict)
+        additional_arguments["example_inputs"] = input_data[0]
+
+    model_prepared = prepare_fx(model, qconfig_dict, **additional_arguments)
     return convert_fx(model_prepared)
 
 
@@ -85,12 +85,11 @@ def _quantize_static_torch_fx(
     backend: str,
 ):
     qconfig_dict = {"": torch.quantization.get_default_qconfig(backend)}
+    additional_arguments = {}
     if check_module_version(torch, min_version="1.13.0"):
-        model_prepared = prepare_fx(
-            model, qconfig_dict, example_inputs=input_data[0]
-        )
-    else:
-        model_prepared = prepare_fx(model, qconfig_dict)
+        additional_arguments["example_inputs"] = input_data[0]
+
+    model_prepared = prepare_fx(model, qconfig_dict, **additional_arguments)
     with torch.no_grad():
         for tensors in input_data:
             _ = model_prepared(*tensors)
@@ -153,7 +152,7 @@ def quantize_pytorch(
     input_tfms: MultiStageTransformation,
     input_data_torch: List[Tuple[torch.Tensor, ...]],
     device: Device,
-):
+) -> Union[torch.nn.Module, ScriptModule, GraphModule]:
     model = copy.deepcopy(model).eval()
 
     try:

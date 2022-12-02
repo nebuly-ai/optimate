@@ -1,10 +1,13 @@
+import json
 import logging
 from abc import ABC
 from pathlib import Path
+import shutil
 from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
 import numpy as np
 
+from nebullvm.config import OPENVINO_FILENAMES
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -53,6 +56,8 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         infer_request: InferRequest,
         input_keys: List,
         output_keys: List,
+        description_file: str,
+        weights_file: str,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -60,6 +65,8 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         self.infer_request = infer_request
         self.input_keys = input_keys
         self.output_keys = output_keys
+        self.description_file = self._store_file(description_file)
+        self.weights_file = self._store_file(weights_file)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -76,35 +83,22 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         """
         path = Path(path)
 
-        with open(path / cls.MODEL_NAME, "rb") as fp:
-            model_stream = fp.read()
-
-        core = Core()
-        compiled_model = core.import_model(model_stream, "CPU")
-
-        metadata = LearnerMetadata.read(path)
-
-        network_parameters = ModelParams(**metadata["network_parameters"])
-        input_tfms = metadata.input_tfms
+        with open(path / OPENVINO_FILENAMES["metadata"], "r") as fin:
+            metadata = json.load(fin)
+        metadata.update(kwargs)
+        metadata["network_parameters"] = ModelParams(
+            **metadata["network_parameters"]
+        )
+        input_tfms = metadata.get("input_tfms")
         if input_tfms is not None:
-            input_tfms = MultiStageTransformation.from_dict(input_tfms)
+            metadata["input_tfms"] = MultiStageTransformation.from_dict(
+                input_tfms
+            )
 
-        infer_request = compiled_model.create_infer_request()
-
-        input_keys = list(
-            map(lambda obj: obj.get_any_name(), compiled_model.inputs)
-        )
-        output_keys = list(
-            map(lambda obj: obj.get_any_name(), compiled_model.outputs)
-        )
-
-        return cls(
-            compiled_model=compiled_model,
-            input_tfms=input_tfms,
-            network_parameters=network_parameters,
-            infer_request=infer_request,
-            input_keys=input_keys,
-            output_keys=output_keys,
+        model_name = str(path / OPENVINO_FILENAMES["description_file"])
+        model_weights = str(path / OPENVINO_FILENAMES["weights"])
+        return cls.from_model_name(
+            model_name=model_name, model_weights=model_weights, **metadata
         )
 
     def get_size(self):
@@ -156,7 +150,6 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         )
 
         return cls(
-            model,
             compiled_model,
             infer_request,
             input_keys,
@@ -229,10 +222,11 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
         metadata.save(path)
 
-        model_stream = self.compiled_model.export_model()
-
-        with open(path / self.MODEL_NAME, "wb") as f:
-            f.write(model_stream)
+        shutil.copy(
+            self.description_file,
+            path / OPENVINO_FILENAMES["description_file"],
+        )
+        shutil.copy(self.weights_file, path / OPENVINO_FILENAMES["weights"])
 
     def _predict_array(
         self,

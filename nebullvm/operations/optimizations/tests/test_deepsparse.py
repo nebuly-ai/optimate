@@ -2,9 +2,12 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
+from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.operations.inference_learners.deepsparse import (
     DEEPSPARSE_INFERENCE_LEARNERS,
 )
+from nebullvm.operations.measures.measures import MetricDropMeasure
+from nebullvm.operations.measures.utils import compute_relative_difference
 from nebullvm.operations.optimizations.compilers.deepsparse import (
     DeepSparseCompiler,
 )
@@ -31,7 +34,11 @@ device = Device.CPU
     not deepsparse_is_available(),
     reason="Can't test deepsparse if it's not installed.",
 )
-def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
+def test_deepsparse(
+    output_library: DeepLearningFramework,
+    dynamic: bool,
+    quantization_type=None,
+):
     with TemporaryDirectory() as tmp_dir:
         (
             model,
@@ -85,6 +92,26 @@ def test_deepsparse(output_library: DeepLearningFramework, dynamic: bool):
         inputs_example = optimized_model.get_inputs_example()
         res = optimized_model(*inputs_example)
         assert res is not None
+
+        # Test validity of the model
+        test_input_data, ys = input_data.get_split("test").get_list(
+            with_ys=True
+        )
+
+        validity_check_op = MetricDropMeasure()
+        validity_check_op.execute(
+            optimized_model,
+            test_input_data,
+            model_outputs,
+            CONSTRAINED_METRIC_DROP_THS,
+            metric_func=metric
+            if quantization_type is not None
+            else compute_relative_difference,
+            ys=ys,
+        )
+
+        # Check validity of the optimized model
+        assert validity_check_op.get_result()
 
         # Dynamic batch size is currently not supported from deepsparse
         # if dynamic:

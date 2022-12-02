@@ -109,7 +109,7 @@ def quantize_neural_compressor(
     quantization_type: QuantizationType,
     input_tfms: MultiStageTransformation,
     input_data: DataManager,
-):
+) -> GraphModule:
     if quantization_type is QuantizationType.STATIC:
         quantized_model = _quantize_static(model, input_data)
     elif quantization_type is QuantizationType.DYNAMIC:

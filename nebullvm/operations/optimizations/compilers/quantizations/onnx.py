@@ -52,7 +52,7 @@ class _IterableCalibrationDataReader(CalibrationDataReader):
         return cls(iterable_ds, input_names)
 
 
-def _quantize_dynamic(model_path: str):
+def _quantize_dynamic(model_path: str) -> str:
     model_path = Path(model_path)
     model_quant = model_path.parent.parent / "int8_dynamic"
     model_quant.mkdir(parents=True, exist_ok=True)
@@ -88,7 +88,7 @@ def _get_quantization_type_for_static(use_gpu) -> Tuple[QuantType, QuantType]:
 
 def _quantize_static(
     model_path: str, input_data: List[Tuple[np.ndarray, ...]], use_gpu: bool
-):
+) -> str:
     model_path = Path(model_path)
     model_quant = model_path.parent.parent / "int8_static"
     model_quant.mkdir(parents=True, exist_ok=True)
@@ -112,7 +112,7 @@ def _quantize_static(
 
 def _convert_to_half_precision(
     model_path: str, input_tfms: MultiStageTransformation
-):
+) -> str:
     model_path = Path(model_path)
     model_quant = model_path.parent.parent / "fp16"
     model_quant.mkdir(parents=True)
@@ -129,7 +129,7 @@ def quantize_onnx(
     quantization_type: QuantizationType,
     device: Device,
     input_tfms: MultiStageTransformation,
-):
+) -> str:
     if quantization_type == QuantizationType.DYNAMIC:
         return _quantize_dynamic(model_path)
     elif quantization_type == QuantizationType.STATIC:

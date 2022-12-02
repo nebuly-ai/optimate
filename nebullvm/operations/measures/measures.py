@@ -30,7 +30,7 @@ COMPUTE_LATENCY_FRAMEWORK: Dict[DeepLearningFramework, Callable] = {
 }
 
 
-class PrecisionMeasure(Measure):
+class MetricDropMeasure(Measure):
     def __init__(self):
         super().__init__()
         self.valid = None

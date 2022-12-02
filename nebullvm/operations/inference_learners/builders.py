@@ -27,7 +27,6 @@ from nebullvm.operations.inference_learners.tvm import (
     PytorchApacheTVMInferenceLearner,
     APACHE_TVM_INFERENCE_LEARNERS,
 )
-from nebullvm.optional_modules.openvino import CompiledModel
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
@@ -131,24 +130,17 @@ class ONNXBuildInferenceLearner(BuildInferenceLearner):
 class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
-        model: CompiledModel,
+        model: str,
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
         source_dl_framework: DeepLearningFramework,
         **kwargs,
     ):
-        infer_request = model.create_infer_request()
-
-        input_keys = list(map(lambda obj: obj.get_any_name(), model.inputs))
-        output_keys = list(map(lambda obj: obj.get_any_name(), model.outputs))
-
         self.inference_learner = OPENVINO_INFERENCE_LEARNERS[
             source_dl_framework
-        ](
-            compiled_model=model,
-            infer_request=infer_request,
-            input_keys=input_keys,
-            output_keys=output_keys,
+        ].from_model_name(
+            model_name=model + ".xml",
+            model_weights=model + ".bin",
             input_tfms=input_tfms,
             network_parameters=model_params,
         )

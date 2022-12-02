@@ -4,7 +4,7 @@ from typing import List, Callable, Union, Tuple, Any
 
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.operations.base import Operation
-from nebullvm.operations.measures.measures import PrecisionMeasure
+from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import (
     compute_relative_difference,
     compute_optimized_running_time,
@@ -32,11 +32,11 @@ class Optimizer(Operation, abc.ABC):
         self.pipeline_dl_framework = None
         self.compiler_ops = {}
         self.build_inference_learner_ops = {}
-        self.validity_check_op = PrecisionMeasure()
+        self.validity_check_op = MetricDropMeasure()
 
     def execute(
         self,
-        model: str,
+        model: Any,
         input_data: DataManager,
         optimization_time: OptimizationTime,
         metric_drop_ths: str,
@@ -145,6 +145,8 @@ class Optimizer(Operation, abc.ABC):
                         )
 
                         compiled_model = compiler_op.get_result()
+                        print("FINISHED COMPILATION")
+                        print(compiled_model)
                         if compiled_model is not None:
                             build_inference_learner_op.to(self.device).execute(
                                 model=compiled_model,
