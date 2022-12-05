@@ -2,6 +2,8 @@ import logging
 from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
+import torch
+from torch.utils.data import DataLoader
 
 from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.optional_modules.torch import Dataset
@@ -93,6 +95,34 @@ class DataManager:
     @classmethod
     def from_iterable(cls, iterable: Iterable, max_length: int = 500):
         return cls([x for i, x in enumerate(iterable) if i < max_length])
+
+    @classmethod
+    def from_dataloader(cls, dataloader: DataLoader, max_length: int = 500):
+        if dataloader.batch_size > max_length:
+            raise ValueError(
+                f"Batch size ({dataloader.batch_size}) is greater than "
+                f"max_length ({max_length})."
+            )
+        data_manager = []
+        for i, batch in enumerate(dataloader):
+            if i * dataloader.batch_size >= max_length:
+                break
+
+            if (isinstance(batch, tuple) or isinstance(batch, list)) and len(
+                batch
+            ) == 2:
+                if isinstance(batch[0], tuple):
+                    data_manager.append((batch[0], batch[1]))
+                elif isinstance(batch[0], torch.Tensor):
+                    data_manager.append(((batch[0],), batch[1]))
+                else:
+                    raise ValueError(
+                        "The first element of the batch should be a tuple "
+                        "or a torch.Tensor"
+                    )
+            else:
+                data_manager.append((batch, None))
+        return cls(data_manager)
 
     def get_split(self, split_type="train"):
         return (

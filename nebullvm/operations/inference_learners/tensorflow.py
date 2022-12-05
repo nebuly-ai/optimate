@@ -22,7 +22,7 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         with tf.device(self.device.value):
-            res = self.model.predict(input_tensors)
+            res = self.model.predict(input_tensors, verbose=0)
         if not isinstance(res, tuple):
             return (res,)
         return res
@@ -69,7 +69,7 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
             for i, (input_tensor, detail) in enumerate(
                 zip(input_tensors, input_details)
             ):
-                if input_tensor.shape != detail["shape"]:
+                if input_tensor.shape != tuple(detail["shape"]):
                     self.interpreter.resize_tensor_input(i, input_tensor.shape)
         self.interpreter.allocate_tensors()
         for i, input_tensor in enumerate(input_tensors):

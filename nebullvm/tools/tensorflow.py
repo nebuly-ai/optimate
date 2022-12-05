@@ -40,7 +40,7 @@ def run_tf_model(
     device: Device,
 ) -> Tuple[tf.Tensor]:
     with tf.device(device.value):
-        pred = model.predict(input_tensors)
+        pred = model.predict(input_tensors, verbose=0)
     if isinstance(pred, tf.Module) and pred is not None:
         pred = (pred,)
     return pred

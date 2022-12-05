@@ -18,6 +18,7 @@ from nebullvm.tools.base import (
     OptimizationTime,
     ModelParams,
     DeepLearningFramework,
+    ModelCompressor,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FEEDBACK_COLLECTOR
@@ -44,9 +45,13 @@ class Optimizer(Operation, abc.ABC):
         model_params: ModelParams,
         model_outputs: List[Tuple[Any, ...]],
         ignore_compilers: List[ModelCompiler],
+        ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
     ):
         self.source_dl_framework = source_dl_framework
+
+        # TODO: implement and select compressors from hardware
+
         compilers = self._select_compilers_from_hardware()
         (
             self.compiler_ops,
@@ -145,8 +150,6 @@ class Optimizer(Operation, abc.ABC):
                         )
 
                         compiled_model = compiler_op.get_result()
-                        print("FINISHED COMPILATION")
-                        print(compiled_model)
                         if compiled_model is not None:
                             build_inference_learner_op.to(self.device).execute(
                                 model=compiled_model,

@@ -28,6 +28,7 @@ from nebullvm.tools.base import ModelParams, DeepLearningFramework
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
+    HalfPrecisionTransformation,
 )
 
 
@@ -80,6 +81,12 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
                 if os.path.isfile(Path(tmp_dir) / f)
             )
 
+    def _has_half_precision_transformation(self):
+        for tfm in self.input_tfms.to_list():
+            if isinstance(tfm, HalfPrecisionTransformation):
+                return True
+        return False
+
     def _predict_array(
         self, input_arrays: Generator[np.ndarray, None, None]
     ) -> Generator[np.ndarray, None, None]:
@@ -95,7 +102,9 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
                         self.network_parameters.batch_size,
                         *output_size,
                     ),
-                    dtype="float16" if len(self.input_tfms) > 0 else "float32",
+                    dtype="float16"
+                    if self._has_half_precision_transformation()
+                    else "float32",
                 ),
             ).numpy()
             for i, output_size in enumerate(

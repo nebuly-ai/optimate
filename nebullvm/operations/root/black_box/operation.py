@@ -12,6 +12,8 @@ from typing import (
     List,
 )
 
+from torch.utils.data import DataLoader
+
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
 from nebullvm.operations.conversions.huggingface import convert_hf_model
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
@@ -32,12 +34,8 @@ from nebullvm.operations.optimizations.optimizers import (
     ONNXOptimizer,
     TensorflowOptimizer,
 )
-from nebullvm.operations.root.black_box.utils import (
+from nebullvm.operations.optimizations.utils import (
     map_compilers_and_compressors,
-    check_input_data,
-    get_dl_framework,
-    extract_info_from_data,
-    is_huggingface_data,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import Module
@@ -46,9 +44,16 @@ from nebullvm.tools.base import (
     DeepLearningFramework,
     ModelParams,
     OptimizationTime,
+    ModelCompressor,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FEEDBACK_COLLECTOR
+from nebullvm.tools.utils import (
+    get_dl_framework,
+    is_huggingface_data,
+    check_input_data,
+    extract_info_from_data,
+)
 
 
 class BlackBoxModelOptimizationRootOp(Operation):
@@ -83,7 +88,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
     def execute(
         self,
         model: Any,
-        input_data: Union[Iterable, Sequence],
+        input_data: Union[Iterable, Sequence, DataManager],
         metric_drop_ths: float = None,
         metric: Union[str, Callable] = None,
         optimization_time: str = "constrained",
@@ -106,9 +111,9 @@ class BlackBoxModelOptimizationRootOp(Operation):
         ignore_compilers = map_compilers_and_compressors(
             ignore_compilers, ModelCompiler
         )
-        # ignore_compressors = _map_compilers_and_compressors(
-        #     ignore_compressors, ModelCompressor
-        # )
+        ignore_compressors = map_compilers_and_compressors(
+            ignore_compressors, ModelCompressor
+        )
 
         optimization_time = OptimizationTime(optimization_time)
 
@@ -116,6 +121,9 @@ class BlackBoxModelOptimizationRootOp(Operation):
         if self.fetch_model_op.get_model() and self.fetch_data_op.get_data():
             self.model = self.fetch_model_op.get_model()
             self.data = self.fetch_data_op.get_data()
+
+            if isinstance(self.data, DataLoader):
+                self.data = DataManager.from_dataloader(self.data)
 
             needs_conversion_to_hf = False
             if is_huggingface_data(self.data[0]):
@@ -207,6 +215,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                             metric=metric,
                             model_params=model_params,
                             ignore_compilers=ignore_compilers,
+                            ignore_compressors=ignore_compressors,
                             source_dl_framework=dl_framework,
                         )
 
@@ -282,7 +291,8 @@ class BlackBoxModelOptimizationRootOp(Operation):
         metric_drop_ths: float,
         metric: Callable,
         model_params: ModelParams,
-        ignore_compilers: List[str],
+        ignore_compilers: List[ModelCompiler],
+        ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
     ) -> List[BaseInferenceLearner]:
         if self.orig_latency_measure_op.get_result() is not None:
@@ -303,6 +313,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
                 model_params=model_params,
                 model_outputs=model_outputs,
                 ignore_compilers=ignore_compilers,
+                ignore_compressors=ignore_compressors,
                 source_dl_framework=source_dl_framework,
             )
 

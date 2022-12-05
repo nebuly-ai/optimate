@@ -43,6 +43,11 @@ class ModelCompiler(Enum):
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
 
 
+class ModelCompressor(Enum):
+    SPARSE_ML = "sparseml"
+    INTEL_PRUNING = "intel_pruning"
+
+
 class OptimizationTime(Enum):
     CONSTRAINED = "constrained"
     UNCONSTRAINED = "unconstrained"

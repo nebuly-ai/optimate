@@ -5,7 +5,6 @@ from typing import (
     Optional,
 )
 
-from nebullvm.operations.root.black_box.utils import is_dict_type
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
 from nebullvm.tools.huggingface import (
@@ -13,6 +12,7 @@ from nebullvm.tools.huggingface import (
     get_output_structure_from_text,
     TransformerWrapper,
 )
+from nebullvm.tools.utils import is_dict_type
 
 try:
     from transformers import (

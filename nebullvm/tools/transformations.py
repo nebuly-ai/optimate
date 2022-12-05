@@ -45,6 +45,9 @@ class MultiStageTransformation(BaseTransformation):
     def to_dict(self) -> Dict:
         return {"tfms": [tfm.to_dict() for tfm in self._tfms]}
 
+    def to_list(self):
+        return self._tfms
+
     @classmethod
     def from_dict(cls, tfms_dict: Dict):
         tfms = []

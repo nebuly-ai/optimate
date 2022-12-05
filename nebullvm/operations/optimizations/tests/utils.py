@@ -16,7 +16,6 @@ from nebullvm.operations.measures.measures import (
     MetricDropMeasure,
 )
 from nebullvm.operations.measures.utils import compute_relative_difference
-from nebullvm.operations.root.black_box.utils import extract_info_from_data
 from nebullvm.tools.base import (
     DeepLearningFramework,
     ModelParams,
@@ -25,7 +24,7 @@ from nebullvm.tools.base import (
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
-from nebullvm.tools.utils import gpu_is_available
+from nebullvm.tools.utils import gpu_is_available, extract_info_from_data
 
 INPUT_SHAPE = (3, 256, 256)
 OUTPUT_SHAPE = (2,)

@@ -270,7 +270,12 @@ class TensorflowONNXInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        input_arrays = (input_tensor.numpy() for input_tensor in input_tensors)
+        input_arrays = (
+            input_tensor.numpy()
+            if not isinstance(input_tensor, np.ndarray)
+            else input_tensor
+            for input_tensor in input_tensors
+        )
         outputs = self._predict_arrays(input_arrays)
         # noinspection PyTypeChecker
         return tuple(tf.convert_to_tensor(output) for output in outputs)
