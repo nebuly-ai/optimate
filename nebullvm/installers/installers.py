@@ -118,7 +118,7 @@ def install_torch_tensor_rt():
         torch, min_version="1.12.0", max_version="1.12.1+cu116"
     ):
         raise RuntimeError(
-            "Torch-TensorRT can be installed only for Pytorch 1.12. "
+            "Torch-TensorRT can be installed only from Pytorch 1.12. "
             "Please update your Pytorch version."
         )
 
@@ -141,7 +141,7 @@ def install_torch_tensor_rt():
         "install",
         "torch-tensorrt",
         "--find-links",
-        "https://github.com/pytorch/TensorRT/releases/expanded_assets/v1.2.0",
+        "https://github.com/pytorch/TensorRT/releases/expanded_assets/v1.3.0",
     ]
     subprocess.run(cmd)
 
@@ -214,11 +214,7 @@ def install_openvino(with_optimization: bool = True):
         )
 
     openvino_version = "openvino-dev" if with_optimization else "openvino"
-    cmd = ["pip3", "install", f"{openvino_version}[onnx]>=2022.1.0"]
-    subprocess.run(cmd)
-
-    # Reinstall updated versions of libraries that were downgraded by openvino
-    cmd = ["pip3", "install", "onnx>=1.12"]
+    cmd = ["pip3", "install", f"{openvino_version}>=2022.1.0"]
     subprocess.run(cmd)
 
     cmd = ["pip3", "install", "scipy>=1.7.3"]

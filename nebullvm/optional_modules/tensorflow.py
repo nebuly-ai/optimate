@@ -1,6 +1,9 @@
-import absl.logging
+try:
+    import absl.logging
 
-absl.logging.set_verbosity(absl.logging.ERROR)
+    absl.logging.set_verbosity(absl.logging.ERROR)
+except Exception:
+    pass
 
 NoneType = type(None)
 

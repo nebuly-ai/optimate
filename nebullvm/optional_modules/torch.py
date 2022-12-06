@@ -21,7 +21,7 @@ except ImportError:
         pass
 
     class nn:
-        module = Module
+        Module = Module
 
     class torch:
         float = half = int8 = None

@@ -103,7 +103,7 @@ class FeedbackCollector:
         while flag:
             try:
                 collect_feedback_bool = _input_with_timeout(message, timeout)
-            except TimeoutError:
+            except (TimeoutError, OSError):
                 collect_feedback_bool = "no"
             if len(collect_feedback_bool) == 0:
                 flag = False

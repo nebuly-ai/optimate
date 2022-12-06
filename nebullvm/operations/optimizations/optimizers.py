@@ -81,7 +81,7 @@ class PytorchOptimizer(Optimizer):
                 if intel_neural_compressor_is_available():
                     compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
             elif self.device is Device.GPU:
-                if torch_tensorrt_is_available:
+                if torch_tensorrt_is_available():
                     compilers.append(ModelCompiler.TENSOR_RT)
         return compilers
 

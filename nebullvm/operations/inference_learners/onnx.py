@@ -79,9 +79,8 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        onnx_path = str(onnx_path)
-        filename = "/".join(onnx_path.split("/")[-1:])
-        dir_path = "/".join(onnx_path.split("/")[:-1])
+        filename = Path(onnx_path).name
+        dir_path = str(Path(onnx_path).parent)
         self.device = device
 
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
@@ -93,7 +92,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             )
 
         ort_session = ort.InferenceSession(
-            onnx_path,
+            str(onnx_path),
             sess_options=sess_options,
             providers=ONNX_PROVIDERS["cuda"]
             if self.device is Device.GPU
