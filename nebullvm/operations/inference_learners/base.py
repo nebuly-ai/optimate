@@ -16,7 +16,7 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.onnx import create_model_inputs_onnx
-from nebullvm.tools.tensorflow import create_model_inputs_tf
+from nebullvm.tools.tf import create_model_inputs_tf
 from nebullvm.tools.pytorch import create_model_inputs_torch
 
 

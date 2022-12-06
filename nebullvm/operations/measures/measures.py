@@ -15,7 +15,7 @@ from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import run_onnx_model
 from nebullvm.tools.pytorch import run_torch_model
-from nebullvm.tools.tensorflow import run_tf_model
+from nebullvm.tools.tf import run_tf_model
 
 COMPUTE_OUTPUT_FRAMEWORK: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.PYTORCH: run_torch_model,

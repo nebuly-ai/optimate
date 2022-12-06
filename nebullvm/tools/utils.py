@@ -28,7 +28,7 @@ from nebullvm.tools.pytorch import (
     extract_info_from_torch_data,
     get_outputs_sizes_torch,
 )
-from nebullvm.tools.tensorflow import (
+from nebullvm.tools.tf import (
     extract_info_from_tf_data,
     get_outputs_sizes_tf,
 )

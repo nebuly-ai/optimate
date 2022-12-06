@@ -25,7 +25,7 @@ from nebullvm.tools.base import (
     QuantizationType,
 )
 from nebullvm.tools.pytorch import torch_get_device_name
-from nebullvm.tools.tensorflow import tensorflow_get_gpu_name
+from nebullvm.tools.tf import tensorflow_get_gpu_name
 
 NEBULLVM_METADATA_PATH = Path.home() / ".nebullvm/collect.json"
 

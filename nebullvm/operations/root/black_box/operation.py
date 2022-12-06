@@ -12,8 +12,6 @@ from typing import (
     List,
 )
 
-from torch.utils.data import DataLoader
-
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO
 from nebullvm.operations.conversions.huggingface import convert_hf_model
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
@@ -38,7 +36,7 @@ from nebullvm.operations.optimizations.utils import (
     map_compilers_and_compressors,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import Module
+from nebullvm.optional_modules.torch import Module, DataLoader
 from nebullvm.tools.base import (
     ModelCompiler,
     DeepLearningFramework,
@@ -122,7 +120,7 @@ class BlackBoxModelOptimizationRootOp(Operation):
             self.model = self.fetch_model_op.get_model()
             self.data = self.fetch_data_op.get_data()
 
-            if isinstance(self.data, DataLoader):
+            if isinstance(self.data, (DataLoader, tf.data.Dataset)):
                 self.data = DataManager.from_dataloader(self.data)
 
             needs_conversion_to_hf = False

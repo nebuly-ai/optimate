@@ -9,10 +9,15 @@ class Keras:
     Model = NoneType
 
 
+class data:
+    Dataset = NoneType
+
+
 class Tensorflow:
     Module = NoneType
     Tensor = NoneType
     keras = Keras()
+    data = data
 
     @staticmethod
     def function(**kwargs):

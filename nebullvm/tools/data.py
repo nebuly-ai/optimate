@@ -2,11 +2,10 @@ import logging
 from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
-import torch
-from torch.utils.data import DataLoader
 
 from nebullvm.config import MIN_DIM_INPUT_DATA
-from nebullvm.optional_modules.torch import Dataset
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch, Dataset, DataLoader
 from nebullvm.tools.onnx import convert_to_numpy
 
 logger = logging.getLogger("nebullvm_logger")
@@ -97,15 +96,25 @@ class DataManager:
         return cls([x for i, x in enumerate(iterable) if i < max_length])
 
     @classmethod
-    def from_dataloader(cls, dataloader: DataLoader, max_length: int = 500):
-        if dataloader.batch_size > max_length:
+    def from_dataloader(
+        cls,
+        dataloader: Union[DataLoader, tf.data.Dataset],
+        max_length: int = 500,
+    ):
+        batch_size = (
+            dataloader.batch_size
+            if isinstance(dataloader, DataLoader)
+            else dataloader._batch_size
+        )
+
+        if batch_size > max_length:
             raise ValueError(
                 f"Batch size ({dataloader.batch_size}) is greater than "
                 f"max_length ({max_length})."
             )
         data_manager = []
         for i, batch in enumerate(dataloader):
-            if i * dataloader.batch_size >= max_length:
+            if i * batch_size >= max_length:
                 break
 
             if (isinstance(batch, tuple) or isinstance(batch, list)) and len(
@@ -113,7 +122,7 @@ class DataManager:
             ) == 2:
                 if isinstance(batch[0], tuple):
                     data_manager.append((batch[0], batch[1]))
-                elif isinstance(batch[0], torch.Tensor):
+                elif isinstance(batch[0], (torch.Tensor, tf.Tensor)):
                     data_manager.append(((batch[0],), batch[1]))
                 else:
                     raise ValueError(
