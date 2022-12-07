@@ -9,7 +9,9 @@ from typing import (
     Optional,
 )
 
-from nebullvm.operations.root.black_box import BlackBoxModelOptimizationRootOp
+from apps.black_box_model_optimization.root_op import (
+    BlackBoxModelOptimizationRootOp,
+)
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device

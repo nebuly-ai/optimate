@@ -49,7 +49,7 @@ def torch_tensorrt_is_available() -> bool:
 
 def openvino_is_available() -> bool:
     try:
-        import openvino  # noqa F401
+        from openvino.runtime import Core  # noqa F401
     except ImportError:
         return False
     else:

@@ -113,24 +113,48 @@ class DataManager:
                 f"max_length ({max_length})."
             )
         data_manager = []
+        warning_label = False
         for i, batch in enumerate(dataloader):
             if i * batch_size >= max_length:
                 break
 
-            if (isinstance(batch, tuple) or isinstance(batch, list)) and len(
-                batch
-            ) == 2:
-                if isinstance(batch[0], tuple):
-                    data_manager.append((batch[0], batch[1]))
-                elif isinstance(batch[0], (torch.Tensor, tf.Tensor)):
-                    data_manager.append(((batch[0],), batch[1]))
+            if isinstance(batch, (list, tuple)):
+                if len(batch) == 1:
+                    data_manager.append((batch, None))
+                elif len(batch) == 2:
+                    if isinstance(batch[0], tuple):
+                        data_manager.append((batch[0], batch[1]))
+                    elif isinstance(batch[0], (torch.Tensor, tf.Tensor)):
+                        warning_label = True
+                        data_manager.append(((batch[0],), batch[1]))
+                    else:
+                        raise ValueError(
+                            "The first element of the batch should be a "
+                            "tuple or a torch.Tensor"
+                        )
                 else:
-                    raise ValueError(
-                        "The first element of the batch should be a tuple "
-                        "or a torch.Tensor"
+                    warning_label = True
+                    data_manager.append(
+                        (tuple(t for t in batch[:-1]), batch[-1])
                     )
+            elif isinstance(batch, (torch.Tensor, tf.Tensor)):
+                data_manager.append(((batch,), None))
             else:
-                data_manager.append((batch, None))
+                raise ValueError(
+                    "The batch should be a tuple, a list or a Tensor"
+                )
+
+        if warning_label:
+            logger.warning(
+                "The provided dataloader returns a tuple of tensors"
+                "for each batch. The last tensor in the tuple will "
+                "be considered as the label. "
+                "To avoid this warning, the dataloader should return "
+                "a tuple for each batch, where the first element is "
+                "a tuple containing the inputs and the second element "
+                "is a tensor containing the label."
+            )
+
         return cls(data_manager)
 
     def get_split(self, split_type="train"):

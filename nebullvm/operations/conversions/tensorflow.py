@@ -21,8 +21,15 @@ def convert_tf_to_onnx(model: tf.Module, output_file_path: Union[str, Path]):
     """
     with TemporaryDirectory() as temp_dir:
         tf.saved_model.save(model, export_dir=temp_dir)
+
+        try:
+            subprocess.check_output(["python3", "--version"])
+            python_cmd = "python3"
+        except subprocess.CalledProcessError:
+            python_cmd = "python"
+
         onnx_cmd = [
-            "python3",
+            python_cmd,
             "-m",
             "tf2onnx.convert",
             "--saved-model",
@@ -32,9 +39,8 @@ def convert_tf_to_onnx(model: tf.Module, output_file_path: Union[str, Path]):
             "--opset",
             f"{ONNX_OPSET_VERSION}",
         ]
-        subprocess.run(onnx_cmd)
-
         try:
+            subprocess.run(onnx_cmd)
             onnx.load(output_file_path)
         except Exception:
             logger.warning(

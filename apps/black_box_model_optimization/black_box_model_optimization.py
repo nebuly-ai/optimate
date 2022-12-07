@@ -1,7 +1,7 @@
-from nebullvm.apps.base import App
-from nebullvm.operations.root.black_box import (
+from apps.black_box_model_optimization.root_op import (
     BlackBoxModelOptimizationRootOp,
 )
+from nebullvm.apps.base import App
 
 
 class BlackBoxModelOptimization(App):
