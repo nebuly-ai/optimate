@@ -3,25 +3,33 @@ import os
 import warnings
 from copy import copy
 
+LOGGER_NAME = "nebullvm_logger"
+
 
 def debug_mode_enabled():
     return int(os.environ.get("DEBUG_MODE", "0")) > 0
 
 
 def setup_logger():
+    level = logging.DEBUG
     if not debug_mode_enabled():
         warnings.filterwarnings("ignore")
+        level = logging.INFO
 
-    logger = logging.getLogger("nebullvm_logger")
-    logger.setLevel(logging.INFO)
+    logger = logging.getLogger(LOGGER_NAME)
+    logger.setLevel(level)
 
     ch = logging.StreamHandler()
     formatter = logging.Formatter(
-        "%(asctime)s [ %(levelname)s ] %(message)s", "%d/%m/%Y %I:%M:%S %p"
+        "%(asctime)s | %(processName)s %(threadName)s [ %(levelname)s ] %(message)s", "%d/%m/%Y %I:%M:%S %p"
     )
     ch.setFormatter(formatter)
     logger.handlers = [ch]
     logger.propagate = False
+
+
+def get_logger() -> logging.Logger:
+    return logging.getLogger(LOGGER_NAME)
 
 
 def save_root_logger_state():
