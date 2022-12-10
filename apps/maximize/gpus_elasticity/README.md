@@ -10,4 +10,4 @@ GPUs Elasticity also differs from the standard Kubernetes quota management by co
 
 The App extends the basic implementation with features such as over-quota pods preemption, CompositeElasticQuota resources, custom resource, fair sharing of over-quota resources, and optional maximum limits. CompositeElasticQuota are quotas associated with groups of namespaces, allowing users to set quotas at organization levels as opposed to team level.
 
-Overall, GPUs Elasticity allows user to benefit from amore flexible and efficient resource quota management in your Kubernetes cluster. Try it out today, and reach out if you have any feedback!
+Overall, GPUs Elasticity allows user to benefit from a more flexible and efficient resource quota management in your Kubernetes cluster. Try it out today, and reach out if you have any feedback!
