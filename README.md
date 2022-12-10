@@ -13,26 +13,26 @@ If you like the idea, give us a star to support the project ⭐
 
 ## Accelerate Apps
 Achieve sub-10ms response time for any AI application, including generative and language models. Improve customer experience by providing near real-time inferences.
-* [AutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/auto_boost/README.md): Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
-* [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/optimate/README.md): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
-* [LargeAutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/large_auto_boost/README.md): Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
-* [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/cloud_surfer/README.md): Discover the optimal inference hardware and cloud platform to run an optimized version of your AI model.
-* [MatrixMaster](https://github.com/nebuly-ai/nebullvm/tree/dev/apps/accelerate/matrix_master/README.md): Boost your DL model's performance with MatrixMaster's custom-generated matrix multiplication algorithms.
+* [AutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/auto_boost): Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
+* [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/optimate): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
+* [LargeAutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/large_auto_boost): Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
+* [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/cloud_surfer): Discover the optimal inference hardware and cloud platform to run an optimized version of your AI model.
+* [MatrixMaster](https://github.com/nebuly-ai/nebullvm/tree/dev/apps/accelerate/matrix_master): Boost your DL model's performance with MatrixMaster's custom-generated matrix multiplication algorithms.
 
 ## Extract Apps
 Don’t settle on generic AI-models. Extract domain-specific knowledge from large foundational models to create portable, super efficient AI models tailored for your use case.
-* [Promptify](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/extract/promptify/README.md): Effortlessly fine-tune large language and multi-modal models with minimal data and hardware requirements using p-tuning.
-* [LargeOracle Distillation](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/extract/large_oracle_distillation/README.md): Leverage advanced knowledge distillation to extract a small and efficient model out of a larger model.
+* [Promptify](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/extract/promptify): Effortlessly fine-tune large language and multi-modal models with minimal data and hardware requirements using p-tuning.
+* [LargeOracle Distillation](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/extract/large_oracle_distillation): Leverage advanced knowledge distillation to extract a small and efficient model out of a larger model.
 
 ## Simulate Apps
 The time for trial and error is over. Simulate the performances of large models on different computing architectures to reduce time-to-market, maximize accuracy and minimize costs.
-* [Simulinf](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/simulate/simulinf/README.md): Simulate inference performances of your AI model on different hardware and cloud platforms.
-* [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/simulate/training_sim/README.md): Easily simulate and optimize the training of large AI models on a distributed infrastructure.
+* [Simulinf](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/simulate/simulinf): Simulate inference performances of your AI model on different hardware and cloud platforms.
+* [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/simulate/training_sim): Easily simulate and optimize the training of large AI models on a distributed infrastructure.
 
 ## Maximize Apps
 Make your Kubernetes GPU infrastructure efficient. Simplify cluster management, maximize hardware utilization and minimize costs.
-* [GPU Partitioner](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpu_partitioner/README.md): Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
-* [GPUs Elasticity](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpus_elasticity/README.md): Maximize your GPUs Kubernetes resource utilization with flexible and efficient elastic quotas.
+* [GPU Partitioner](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpu_partitioner): Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
+* [GPUs Elasticity](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpus_elasticity): Maximize your GPUs Kubernetes resource utilization with flexible and efficient elastic quotas.
 
 
 Couldn't find the optimization app you were looking for? Please open an issue and we will be happy to develop it together.
