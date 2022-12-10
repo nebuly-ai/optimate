@@ -4,9 +4,9 @@
 
 
 
-# **Nebullvm**
+# **AutoBoost App (WIP)**
 
-`nebullvm` is an open-source tool designed to speed up AI inference in just a few lines of code. `nebullvm` boosts your model to achieve the maximum acceleration that is physically possible on your hardware.
+`AutoBoost` is an open-source app designed to speed up AI inference in just a few lines of code. The library boosts your model to achieve the maximum acceleration that is physically possible on your hardware.
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
@@ -15,13 +15,13 @@ We are building a new AI inference acceleration product leveraging state-of-the-
 
 
 
-The core `nebullvm` workflow consists of 3 steps:
+The core `AutoBoost` workflow consists of 3 steps:
 
 - [x]  **Select**: input your model in your preferred DL framework and express your preferences regarding:
     - Accuracy loss: do you want to trade off a little accuracy for much higher performance?
     - Optimization time: stellar accelerations can be time-consuming. Can you wait, or do you need an instant answer?
-- [x]  **Search**: `nebullvm` automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
-- [x]  **Serve**: finally, `nebullvm` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
+- [x]  **Search**: the App automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
+- [x]  **Serve**: finally, `AutoBoost` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
 
 
 # Installation
@@ -30,9 +30,9 @@ The core `nebullvm` workflow consists of 3 steps:
 
 > :warning: For **MacOS** with **ARM processors**, please use a conda environment.
 
-Install nebullvm and its base requirements:
+Install AutoBoost and its base requirements:
 ```
-pip install nebullvm
+pip install autoboost
 ```
 
 > :warning: If you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
@@ -57,7 +57,7 @@ For more details on the installation step, please visit [Installation](https://n
 Only a single line of code is needed to get your accelerated model:
 
 ```python
-from nebullvm import optimize_model
+from autoboost import optimize_model
 
 optimized_model = optimize_model(model, input_data=input_data)
 ```
@@ -75,7 +75,7 @@ We are not here to reinvent the wheel, but to build an all-in-one open-source pr
 
 ### **Product design**
 
-`nebullvm` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
+`AutoBoost` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
 
 - [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `nebullvm`, namely PyTorch, TensorFlow, and ONNX. This allows the Compressor and Optimizer modules to apply any optimization technique to the model.
 - [x]  **Compressor:** applies various compression techniques to the model, such as pruning, knowledge distillation, or quantization-aware training.
