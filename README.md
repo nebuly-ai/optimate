@@ -77,7 +77,7 @@ We are not here to reinvent the wheel, but to build an all-in-one open-source pr
 
 `AutoBoost` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
 
-- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `nebullvm`, namely PyTorch, TensorFlow, and ONNX. This allows the Compressor and Optimizer modules to apply any optimization technique to the model.
+- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `AutoBoost`, namely PyTorch, TensorFlow, and ONNX. This allows the Compressor and Optimizer modules to apply any optimization technique to the model.
 - [x]  **Compressor:** applies various compression techniques to the model, such as pruning, knowledge distillation, or quantization-aware training.
 - [x]  **Optimizer:** converts the compressed models to the intermediate representation (IR) of the supported deep learning compilers. The compilers apply both post-training quantization techniques and graph optimizations, to produce compiled binary files.
 - [x]  **Inference Learner:** takes the best performing compiled model and converts it to the same interface as the original input model.
@@ -112,7 +112,7 @@ The **optimizer stage** leverages the following open-source projects:
 - **[Discord](https://discord.gg/RbeQMu886J)**: best for sharing your projects, hanging out with the community and learning about AI acceleration.
 - **[Github issues](https://github.com/nebuly-ai/nebullvm/issues)**: ideal for suggesting new acceleration components, requesting new features, and reporting bugs and improvements.
 
-We’re developing `nebullvm` together with our community so the best way to get started is to pick a `good-first issue`. Please read our [contribution guidelines](https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
+We’re developing `AutoBoost` together with our community so the best way to get started is to pick a `good-first issue`. Please read our [contribution guidelines](https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
 
 Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀
 
