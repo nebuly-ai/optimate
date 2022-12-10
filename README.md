@@ -4,131 +4,38 @@
 
 
 
-# **AutoBoost App (WIP)**
+# **Optimization AppStore (WIP)**
+**WARNING: The AppStore is still a work-in-progress, stable versions of the optimization Apps will be released in the coming weeks.**
 
-`AutoBoost` is an open-source App designed to speed up AI inference in just a few lines of code. The library boosts your model to achieve the maximum acceleration that is physically possible on your hardware.
+Data. Models. Hardware. These are not independent factors, and making optimal choices on all fronts is hard. Our open source Apps help you to combine these 3 factors seamlessly, thus bringing incredibly fast and efficient AI systems to your fingertips.
 
-We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
+If you like the idea, give us a star to support the project ⭐
 
+## Accelerate Apps
+Achieve sub-10ms response time for any AI application, including generative and language models. Improve customer experience by providing near real-time inferences.
+* [AutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/auto_boost/README.md): Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
+* [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/optimate/README.md): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
+* [LargeAutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/large_auto_boost/README.md): Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
+* [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/cloud_surfer/README.md): Discover the optimal inference hardware and cloud platform to run an optimized version of your AI model.
+* [MatrixMaster](https://github.com/nebuly-ai/nebullvm/tree/dev/apps/accelerate/matrix_master/README.md): Boost your DL model's performance with MatrixMaster's custom-generated matrix multiplication algorithms.
 
-![nebullvm benchmarks](https://user-images.githubusercontent.com/28647171/201156822-00a307d7-e3b9-4121-aa83-c7d2a167f791.png)
+## Extract Apps
+Don’t settle on generic AI-models. Extract domain-specific knowledge from large foundational models to create portable, super efficient AI models tailored for your use case.
+* [Promptify](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/extract/promptify/README.md): Effortlessly fine-tune large language and multi-modal models with minimal data and hardware requirements using p-tuning.
+* [LargeOracle Distillation](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/extract/large_oracle_distillation/README.md): Leverage advanced knowledge distillation to extract a small and efficient model out of a larger model.
 
+## Simulate Apps
+The time for trial and error is over. Simulate the performances of large models on different computing architectures to reduce time-to-market, maximize accuracy and minimize costs.
+* [Simulinf](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/simulate/simulinf/README.md): Simulate inference performances of your AI model on different hardware and cloud platforms.
+* [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/simulate/training_sim/README.md): Easily simulate and optimize the training of large AI models on a distributed infrastructure.
 
-
-The core `AutoBoost` workflow consists of 3 steps:
-
-- [x]  **Select**: input your model in your preferred DL framework and express your preferences regarding:
-    - Accuracy loss: do you want to trade off a little accuracy for much higher performance?
-    - Optimization time: stellar accelerations can be time-consuming. Can you wait, or do you need an instant answer?
-- [x]  **Search**: the App automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
-- [x]  **Serve**: finally, `AutoBoost` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
-
-
-# Installation
-
-> :warning: **Windows** installation is not supported for now.
-
-> :warning: For **MacOS** with **ARM processors**, please use a conda environment.
-
-Install AutoBoost and its base requirements:
-```
-pip install autoboost
-```
-
-> :warning: If you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
-> on your environment before proceeding to the next step, please install it from this 
-> [link](https://pytorch.org/get-started/locally/). At the moment pytorch 1.13 is not 
-> fully supported by some compilers, for getting the best optimization results we suggest 
-> to use 1.12.1 ([link](https://pytorch.org/get-started/previous-versions/#v1121)).
+## Maximize Apps
+Make your Kubernetes GPU infrastructure efficient. Simplify cluster management, maximize hardware utilization and minimize costs.
+* [GPU Partitioner](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpu_partitioner/README.md): Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
+* [GPUs Elasticity](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpus_elasticity/README.md): Maximize your GPUs Kubernetes resource utilization with flexible and efficient elastic quotas.
 
 
-Install the deep learning compilers:
-```
-python -m nebullvm.installers.auto_installer \
-    --frameworks torch onnx tensorflow huggingface \
-    --compilers all
-```
-
-For more details on the installation step, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation).
-
-
-# API quick view
-
-Only a single line of code is needed to get your accelerated model:
-
-```python
-from autoboost import optimize_model
-
-optimized_model = optimize_model(model, input_data=input_data)
-```
-Checkout how to define the `model` and `input_data` parameters depending on which framework you want to use and how to use the optimized model: 
-[PyTorch](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/pytorch#pytorch-api-quick-view), 
-[HuggingFace](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/huggingface#huggingface-api-quick-view), 
-[TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/tensorflow#tensorflow-api-quick-view), 
-[ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/onnx#onnx-api-quick-view).
-
-For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started),  [Nebullvm API](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/nebullvm-api) and [Examples of API options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/examples-of-api-options).
-
-# **How it works**
-
-We are not here to reinvent the wheel, but to build an all-in-one open-source product to master all the available AI acceleration techniques and deliver the **fastest AI ever.** As a result, `AutoBoost` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that the community can benefit from it.
-
-### **Product design**
-
-`AutoBoost` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
-
-- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `AutoBoost`, namely PyTorch, TensorFlow, and ONNX. This allows the Compressor and Optimizer modules to apply any optimization technique to the model.
-- [x]  **Compressor:** applies various compression techniques to the model, such as pruning, knowledge distillation, or quantization-aware training.
-- [x]  **Optimizer:** converts the compressed models to the intermediate representation (IR) of the supported deep learning compilers. The compilers apply both post-training quantization techniques and graph optimizations, to produce compiled binary files.
-- [x]  **Inference Learner:** takes the best performing compiled model and converts it to the same interface as the original input model.
-
-![nebullvm nebuly ai](https://user-images.githubusercontent.com/100476561/180975206-3a3a1f80-afc6-42b0-9953-4b8426c09b62.png)
-
-The **compressor** stage leverages the following open-source projects:
-
-- [Intel/neural-compressor](https://github.com/intel/neural-compressor): targeting to provide unified APIs for network compression technologies, such as low precision quantization, sparsity, pruning, knowledge distillation, across different deep learning frameworks to pursue optimal inference performance.
-- [SparseML](https://github.com/neuralmagic/sparseml): libraries for applying sparsification recipes to neural networks with a few lines of code, enabling faster and smaller models.
-
-The **optimizer stage** leverages the following open-source projects:
-
-- [Apache TVM](https://github.com/apache/tvm): open deep learning compiler stack for cpu, gpu and specialized accelerators.
-- [BladeDISC](https://github.com/alibaba/BladeDISC): end-to-end Dynamic Shape Compiler project for machine learning workloads.
-- [DeepSparse](https://github.com/neuralmagic/deepsparse): neural network inference engine that delivers GPU-class performance for sparsified models on CPUs.
-- [OpenVINO](https://github.com/openvinotoolkit/openvino): open-source toolkit for optimizing and deploying AI inference.
-- [ONNX Runtime](https://github.com/microsoft/onnxruntime): cross-platform, high performance ML inferencing and training accelerator
-- [TensorRT](https://github.com/NVIDIA/TensorRT): C++ library for high performance inference on NVIDIA GPUs and deep learning accelerators.
-- [TFlite](https://github.com/tensorflow/tflite-micro) and [XLA](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/compiler/xla): open-source libraries to accelerate TensorFlow models.
-
-# **Documentation**
-
-- [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation)
-- [Get started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started)
-- [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
-- [Benchmarks](https://nebuly.gitbook.io/nebuly/nebullvm/benchmarks)
-- [Supported features and roadmap](https://nebuly.gitbook.io/nebuly/nebullvm/how-nebullvm-works/supported-features-and-roadmap)
-
-# **Community**
-
-- **[Discord](https://discord.gg/RbeQMu886J)**: best for sharing your projects, hanging out with the community and learning about AI acceleration.
-- **[Github issues](https://github.com/nebuly-ai/nebullvm/issues)**: ideal for suggesting new acceleration components, requesting new features, and reporting bugs and improvements.
-
-We’re developing `AutoBoost` together with our community so the best way to get started is to pick a `good-first issue`. Please read our [contribution guidelines](https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
-
-Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀
-
-# **Status**
-
-- **Model converter backends**
-    - [x]  ONNX, PyTorch, TensorFlow
-    - [ ]  Jax
-- **Compressor**
-    - [x]  Pruning and sparsity
-    - [ ]  Quantized-aware training, distillation, layer replacement and low rank compression
-- **Optimizer**
-    - [x]  TensorRT, OpenVINO, ONNX Runtime, TVM, PyTorch, DeepSparse, BladeDisc, TFlite, XLA
-- **Inference learners**
-    - [x]  PyTorch, ONNX, Hugging Face, TensorFlow
-    - [ ]  Jax
+Couldn't find the optimization app you were looking for? Please open an issue and we will be happy to develop it together.
 
 ---
 
