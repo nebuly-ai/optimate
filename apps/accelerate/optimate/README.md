@@ -1,6 +1,8 @@
 # 🧉 OptiMate app (WIP)
 Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📖 Description
 The OptiMate App is targeted at a sophisticated and savvy type of users, who need to squeeze out every last drop of performance out of a given hardware. 
 

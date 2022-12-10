@@ -1,6 +1,8 @@
 # ⚡ LargeAutoBoost App (WIP)
 Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📚 Description
 The LargeAutoBoost App is a powerful tool to optimize large AI models (LMs). Leveraging state-of-the-art open-source optimization tools, LargeAutoBoost enables the acceleration of large models, i.e. models with a number of parameters in excess of what could be stored on a single GPU. The workflow consists in 3 steps: select, search, and serve.
 

@@ -1,6 +1,8 @@
 # 🐉 MatrixMaster App (WIP)
 Boost your DL model's performance with MatrixMaster's custom-generated matrix multiplication algorithms.
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📖 Description
 The MatrixMaster App is a powerful tool to optimize deep learning models leveraging the open source implementation of AlphaTensor. It leverages custom-generated algorithms for matrix multiplications to provide significant acceleration for transformer architectures across all hardware devices. With MatrixMaster, users can improve their models’ performance without sacrificing accuracy.
 

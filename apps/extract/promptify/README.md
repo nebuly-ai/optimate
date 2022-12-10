@@ -1,6 +1,8 @@
 # ✒️ Promptify App (WIP)
 Effortlessly fine-tune large language and multi-modal models with minimal data and hardware requirements using p-tuning
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📖 Description
 The Promptify App implements p-tuning to use large language and multi-modal models on custom use cases. Fine-tuning a large model (LMs) is typically burdensome in terms of both data and resources required. On the other side, prompt-tuning offers an economical but very effective alternative that provides impressive results when adapting generic LMs to specific use cases.
 

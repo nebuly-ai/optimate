@@ -1,6 +1,8 @@
 # 🏄 CloudSurfer App (WIP)
 Discover the optimal inference hardware and cloud platform to run an optimized version of your AI model.
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📚 Description
 The CloudSurfer App allows users to automatically compare the inference performance of their deep learning model across hardware and cloud providers. It leverages state-of-the-art optimization techniques to custom-accelerate the models on each platform, providing the user with an accurate benchmark of their model performances in terms of speed, accuracy, and cost.
 

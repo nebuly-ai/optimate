@@ -1,6 +1,8 @@
 # 🛰️ GPU Partitioner App (WIP)
 Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📚 Description
 The GPU Partitioner App is a Kubernetes plug-in that allows users to easily schedule Pods requesting fractions of GPUs without having to manually partition them. The plug-in uses a dynamic partitioning system that monitors the GPU resources of the cluster in real time. The App  determines the optimal partitioning of the available GPUs to maximize their utilization.
 

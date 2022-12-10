@@ -1,6 +1,8 @@
 # 🏋️ TrainingSim App (WIP)
 Easily simulate and optimize the training of large AI models on a distributed infrastructure.
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📖 Description
 The TrainingSim App is a powerful tool for simulating the training behavior of large models on a distributed infrastructure. Unlike other solutions, it allows users to explore different parallelism strategies and configurations without the need for time-consuming and costly trial and error.
 

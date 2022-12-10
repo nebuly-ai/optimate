@@ -1,6 +1,8 @@
 # 🦾 SimulInf App (WIP)
 Simulate inference performances of your AI model on different hardware and cloud platforms.
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📖 Description
 SimulInf is a powerful tool to simulate the inference performance of deep learning models on different hardware. It allows users to easily select the fastest or most cost-effective hardware for their model, without the need for expensive trial and error.
 

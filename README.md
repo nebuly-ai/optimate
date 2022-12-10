@@ -8,8 +8,9 @@
 **WARNING: The AppStore is still a work-in-progress, stable versions of the optimization Apps will be released in the coming weeks.**
 
 Data. Models. Hardware. These are not independent factors, and making optimal choices on all fronts is hard. Our open source Apps help you to combine these 3 factors seamlessly, thus bringing incredibly fast and efficient AI systems to your fingertips.
+Four Apps categories to push the boundaries of AI efficiency. Dozens of Apps.
 
-If you like the idea, give us a star to support the project ⭐
+If you like the idea, give us a star to show your support for the project ⭐
 
 ## Accelerate Apps
 Achieve sub-10ms response time for any AI application, including generative and language models. Improve customer experience by providing near real-time inferences.
@@ -18,6 +19,11 @@ Achieve sub-10ms response time for any AI application, including generative and 
 * [LargeAutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/large_auto_boost): Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
 * [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/cloud_surfer): Discover the optimal inference hardware and cloud platform to run an optimized version of your AI model.
 * [MatrixMaster](https://github.com/nebuly-ai/nebullvm/tree/dev/apps/accelerate/matrix_master): Boost your DL model's performance with MatrixMaster's custom-generated matrix multiplication algorithms.
+
+## Maximize Apps
+Make your Kubernetes GPU infrastructure efficient. Simplify cluster management, maximize hardware utilization and minimize costs.
+* [GPU Partitioner](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpu_partitioner): Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
+* [GPUs Elasticity](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpus_elasticity): Maximize your GPUs Kubernetes resource utilization with flexible and efficient elastic quotas.
 
 ## Extract Apps
 Don’t settle on generic AI-models. Extract domain-specific knowledge from large foundational models to create portable, super efficient AI models tailored for your use case.
@@ -28,11 +34,6 @@ Don’t settle on generic AI-models. Extract domain-specific knowledge from larg
 The time for trial and error is over. Simulate the performances of large models on different computing architectures to reduce time-to-market, maximize accuracy and minimize costs.
 * [Simulinf](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/simulate/simulinf): Simulate inference performances of your AI model on different hardware and cloud platforms.
 * [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/simulate/training_sim): Easily simulate and optimize the training of large AI models on a distributed infrastructure.
-
-## Maximize Apps
-Make your Kubernetes GPU infrastructure efficient. Simplify cluster management, maximize hardware utilization and minimize costs.
-* [GPU Partitioner](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpu_partitioner): Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
-* [GPUs Elasticity](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/maximize/gpus_elasticity): Maximize your GPUs Kubernetes resource utilization with flexible and efficient elastic quotas.
 
 
 Couldn't find the optimization app you were looking for? Please open an issue and we will be happy to develop it together.

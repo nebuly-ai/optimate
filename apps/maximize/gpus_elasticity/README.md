@@ -1,6 +1,8 @@
 # ☄️ GPUs Elasticity App (WIP)
 Maximize your GPUs Kubernetes resource utilization with flexible and efficient elastic quotas.
 
+If you like this App, give us a star to show your support for the project ⭐
+
 ## 📚 Description
 The GPUs Elasticity App extends the Kubernetes Resource Quotas for GPUs adding more flexibility through 2 custom resources: ElasticQuotas and CompositeElasticQuotas.
 
