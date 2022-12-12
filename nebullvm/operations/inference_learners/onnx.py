@@ -141,7 +141,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         except FileNotFoundError:
             # If missing files, it means it's saved in onnx external_data
             # format
-            src_dir = "/".join(str(self.onnx_path).split("/")[:-1])
+            src_dir = str(Path(self.onnx_path).parent)
             files = os.listdir(src_dir)
             for fname in files:
                 if ".onnx" not in fname:

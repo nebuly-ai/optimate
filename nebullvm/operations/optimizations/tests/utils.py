@@ -268,12 +268,14 @@ def check_model_validity(
         test_input_data,
         model_outputs,
         metric_drop_ths
-        if quantization_type is not None
+        if metric_drop_ths is not None
         else CONSTRAINED_METRIC_DROP_THS,
         metric_func=metric
         if quantization_type is not None
         else compute_relative_difference,
         ys=ys,
     )
+
+    print(validity_check_op.get_result()[1])
 
     return validity_check_op.get_result()[0]

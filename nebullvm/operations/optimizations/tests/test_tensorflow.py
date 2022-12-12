@@ -125,8 +125,20 @@ def test_tensorflow_backend(
         "metric",
     ),
     [
-        (DeepLearningFramework.TENSORFLOW, False, None, None, None),
-        (DeepLearningFramework.TENSORFLOW, True, None, None, None),
+        (
+            DeepLearningFramework.TENSORFLOW,
+            False,
+            None,
+            0.1,
+            "numeric_precision",
+        ),
+        (
+            DeepLearningFramework.TENSORFLOW,
+            True,
+            None,
+            0.1,
+            "numeric_precision",
+        ),
         (
             DeepLearningFramework.TENSORFLOW,
             True,
