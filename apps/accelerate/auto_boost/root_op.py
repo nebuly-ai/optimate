@@ -54,7 +54,7 @@ from nebullvm.tools.utils import (
 )
 
 
-class BlackBoxModelOptimizationRootOp(Operation):
+class AutoBoostRootOp(Operation):
     def __init__(self):
         super().__init__()
 
