@@ -95,6 +95,10 @@ def test_tensorflow_tf_backend():
     assert abs((res_original - res_optimized)).max() < 1e-2
 
 
+@pytest.mark.skipif(
+    torch.cuda.is_available(),
+    reason="TFLite does not support Nvidia GPUs",
+)
 def test_tensorflow_tflite():
     model = ResNet50()
     input_data = [
