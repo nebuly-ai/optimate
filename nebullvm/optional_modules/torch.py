@@ -17,17 +17,21 @@ except ImportError:
     class Tensor:
         pass
 
+    class Module:
+        pass
+
+    class nn:
+        Module = Module
+
     class torch:
         float = half = int8 = None
         Tensor = Tensor
         dtype = None
+        nn = nn
 
         @staticmethod
         def no_grad():
             return lambda x: None
-
-    class Module:
-        pass
 
     class ScriptModule:
         pass

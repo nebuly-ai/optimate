@@ -1,4 +1,4 @@
-from nebullvm.utils.logger import (
+from nebullvm.tools.logger import (
     save_root_logger_state,
     load_root_logger_state,
 )

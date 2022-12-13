@@ -1,18 +1,18 @@
 import cpuinfo
 import logging
 
-from nebullvm.base import Device
-from nebullvm.utils.compilers import (
-    bladedisc_is_available,
+from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
+    onnxruntime_is_available,
+    tensorrt_is_available,
+    openvino_is_available,
+    bladedisc_is_available,
     deepsparse_is_available,
     intel_neural_compressor_is_available,
-    onnxruntime_is_available,
-    openvino_is_available,
-    tensorrt_is_available,
     torch_tensorrt_is_available,
 )
-from nebullvm.utils.general import check_module_version, gpu_is_available
+from nebullvm.tools.base import Device
+from nebullvm.tools.utils import gpu_is_available, check_module_version
 
 logger = logging.getLogger("nebullvm_logger")
 

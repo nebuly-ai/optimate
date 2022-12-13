@@ -29,7 +29,6 @@ TVM_FILENAMES = {"engine": "compiled_lib.so"}
 ONNX_FILENAMES = {"model_name": "model.onnx"}
 ONNX_PROVIDERS = {
     "cuda": [
-        "TensorrtExecutionProvider",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
     ],
@@ -62,10 +61,11 @@ TRAIN_TEST_SPLIT_RATIO = 0.8
 
 COMPILER_LIST = [
     "deepsparse",
-    "tensor RT",
+    "tensor_rt",
     "torchscript",
     "onnxruntime",
     "tflite",
+    "xla",
     "tvm",
     "openvino",
     "bladedisc",

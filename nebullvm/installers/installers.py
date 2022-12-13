@@ -12,18 +12,18 @@ import cpuinfo
 from nebullvm.config import (
     LIBRARIES_GPU,
 )
-from nebullvm.optional_modules.torch import torch
-from nebullvm.utils.compilers import (
+from nebullvm.operations.optimizations.compilers.utils import (
     openvino_is_available,
     tensorrt_is_available,
     torch_tensorrt_is_available,
     deepsparse_is_available,
     intel_neural_compressor_is_available,
 )
-from nebullvm.utils.general import (
+from nebullvm.optional_modules.torch import torch
+from nebullvm.tools.utils import (
+    gpu_is_available,
     check_module_version,
     is_python_version_3_10,
-    gpu_is_available,
 )
 
 logger = logging.getLogger("nebullvm_logger")
@@ -114,11 +114,9 @@ def install_torch_tensor_rt():
             "Torch-TensorRT can run just on Nvidia machines. "
             "No available cuda driver has been found."
         )
-    elif not check_module_version(
-        torch, min_version="1.12.0", max_version="1.12.1+cu116"
-    ):
+    elif not check_module_version(torch, min_version="1.12.0"):
         raise RuntimeError(
-            "Torch-TensorRT can be installed only for Pytorch 1.12. "
+            "Torch-TensorRT can be installed only from Pytorch 1.12. "
             "Please update your Pytorch version."
         )
 
@@ -141,7 +139,7 @@ def install_torch_tensor_rt():
         "install",
         "torch-tensorrt",
         "--find-links",
-        "https://github.com/pytorch/TensorRT/releases/expanded_assets/v1.2.0",
+        "https://github.com/pytorch/TensorRT/releases/expanded_assets/v1.3.0",
     ]
     subprocess.run(cmd)
 
@@ -214,11 +212,7 @@ def install_openvino(with_optimization: bool = True):
         )
 
     openvino_version = "openvino-dev" if with_optimization else "openvino"
-    cmd = ["pip3", "install", f"{openvino_version}[onnx]>=2022.1.0"]
-    subprocess.run(cmd)
-
-    # Reinstall updated versions of libraries that were downgraded by openvino
-    cmd = ["pip3", "install", "onnx>=1.12"]
+    cmd = ["pip3", "install", f"{openvino_version}>=2022.1.0"]
     subprocess.run(cmd)
 
     cmd = ["pip3", "install", "scipy>=1.7.3"]
@@ -264,7 +258,7 @@ def install_deepsparse():
     python_minor_version = sys.version_info.minor
 
     os_ = platform.system()
-    if os_ == "Darwin" or get_cpu_arch() == "arm":
+    if os_ in ["Darwin", "Windows"] or get_cpu_arch() == "arm":
         raise RuntimeError(
             "DeepSparse is not supported on this platform. "
             "It won't be installed."
@@ -297,7 +291,7 @@ def install_intel_neural_compressor():
             f"You are trying to install it on {processor}"
         )
 
-    cmd = ["pip3", "install", "neural-compressor"]
+    cmd = ["pip3", "install", "--user", "neural-compressor"]
     subprocess.run(cmd)
 
     try:
@@ -385,23 +379,13 @@ class PytorchInstaller(BaseInstaller):
         except ImportError:
             raise ImportError(
                 "No PyTorch found in your python environment. Please install "
-                "it from https://pytorch.org/get-started/locally/. We suggest "
-                "to install v1.12.1 because v1.13 is not yet fully supported "
-                "by all the compilers. You can find it here: "
-                "https://pytorch.org/get-started/previous-versions/."
+                "it from https://pytorch.org/get-started/locally/."
             )
 
         if not check_module_version(torch, min_version="1.12.0"):
             logger.warning(
                 "You are using an old version of PyTorch, please update it "
                 "in order to get the best optimization results."
-            )
-
-        if check_module_version(torch, min_version="1.13.0"):
-            logger.warning(
-                "You are using PyTorch 1.13, some compilers are still not "
-                "compatible with this version. Please use v1.12.1 for "
-                "having the best possible result."
             )
 
         return True
@@ -442,10 +426,10 @@ class TensorflowInstaller(BaseInstaller):
     @staticmethod
     def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0, <2.11.0"]
+            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0,<2.11.0"]
             subprocess.run(cmd)
         else:
-            cmd = ["pip3", "install", "tensorflow>=2.7.0, <2.11.0"]
+            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0,<2.11.0"]
             subprocess.run(cmd)
 
         try:
