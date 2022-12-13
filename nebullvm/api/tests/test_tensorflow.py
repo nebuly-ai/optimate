@@ -109,6 +109,7 @@ def test_tensorflow_tflite():
             compiler for compiler in COMPILER_LIST if compiler != "tflite"
         ],
         ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
+        metric_drop_ths=0.1,
     )
 
     # Try the optimized model
