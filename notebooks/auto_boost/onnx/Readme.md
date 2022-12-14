@@ -6,7 +6,7 @@ This section contains all the available notebooks that show how to leverage nebu
 
 ```python
 import numpy as np
-from nebullvm import optimize_model
+from autoboost import optimize_model
 
 # Load a resnet as example
 # Model was downloaded from here: 

@@ -31,7 +31,7 @@ After cloning the repository there are two options: we can either install nebull
 
 Install nebullvm library:
 ```
-pip install nebullvm
+pip install autoboost
 ```
 
 Install deep learning compilers:

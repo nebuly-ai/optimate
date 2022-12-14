@@ -5,7 +5,7 @@ import tensorflow as tf
 import torch
 from keras.applications import ResNet50
 
-from nebullvm import optimize_model
+from autoboost import optimize_model
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 
 

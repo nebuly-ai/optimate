@@ -5,7 +5,7 @@ This section contains all the available notebooks that show how to leverage nebu
 ## HuggingFace API quick view:
 
 ``` python
-from nebullvm import optimize_model
+from autoboost import optimize_model
 from transformers import AlbertModel, AlbertTokenizer
 
 # Load Albert as example

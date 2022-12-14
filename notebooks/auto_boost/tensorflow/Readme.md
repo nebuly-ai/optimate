@@ -7,7 +7,7 @@ This section contains all the available notebooks that show how to leverage nebu
 ``` python
 import tensorflow as tf
 from tensorflow.keras.applications.resnet50 import ResNet50
-from nebullvm import optimize_model
+from autoboost import optimize_model
 
 # Load a resnet as example
 model = ResNet50()

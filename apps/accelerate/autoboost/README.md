@@ -24,8 +24,6 @@ The core `AutoBoost` workflow consists of 3 steps:
 
 # Installation
 
-> :warning: **Windows** installation is not supported for now.
-
 > :warning: For **MacOS** with **ARM processors**, please use a conda environment.
 
 Install AutoBoost and its base requirements:
@@ -35,9 +33,7 @@ pip install autoboost
 
 > :warning: If you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
 > on your environment before proceeding to the next step, please install it from this 
-> [link](https://pytorch.org/get-started/locally/). At the moment pytorch 1.13 is not 
-> fully supported by some compilers, for getting the best optimization results we suggest 
-> to use 1.12.1 ([link](https://pytorch.org/get-started/previous-versions/#v1121)).
+> [link](https://pytorch.org/get-started/locally/).
 
 
 Install the deep learning compilers:

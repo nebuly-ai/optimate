@@ -156,6 +156,9 @@ def install_tf2onnx():
         cmd = ["conda", "install", "-y", "tf2onnx>=1.8.4"]
         subprocess.run(cmd)
     else:
+        cmd = ["pip3", "install", "--user", "protobuf<4,>=3.20.2"]
+        subprocess.run(cmd)
+
         cmd = ["pip3", "install", "tf2onnx>=1.8.4"]
         subprocess.run(cmd)
 

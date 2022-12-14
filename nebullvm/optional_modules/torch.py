@@ -39,7 +39,8 @@ except ImportError:
     class GraphModule:
         pass
 
-    Dataset = DataLoader = object
+    Dataset = object
+    DataLoader = type(None)
     symbolic_trace = None
     QuantStub = (
         DeQuantStub

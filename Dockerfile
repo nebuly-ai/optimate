@@ -1,4 +1,4 @@
-ARG STARTING_IMAGE=nvidia/cuda:11.6.2-cudnn8-devel-ubuntu20.04
+ARG STARTING_IMAGE=nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
 FROM ${STARTING_IMAGE}
 
 # Set frontend as non-interactive
@@ -16,10 +16,7 @@ RUN apt-get install -y python3-opencv python3-pip && \
 RUN apt-get install -y sudo wget
 
 # Install pytorch
-RUN pip3 install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu116
-
-# Install tensorflow
-RUN pip3 install "tensorflow"
+RUN pip3 install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
 
 # Install nebullvm
 ARG NEBULLVM_VERSION=latest
@@ -37,7 +34,7 @@ RUN pip install cmake
 ARG COMPILER=all
 ENV NO_COMPILER_INSTALLATION=1
 RUN if [ "$COMPILER" = "all" ] ; then \
-        python3 -c "import os; os.environ['NO_COMPILER_INSTALLATION'] = '0'; import nebullvm" ; \
+        python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers all" ; \
     elif [ "$COMPILER" = "tensorrt" ] ; then \
         python3 -c "from nebullvm.installers.installers import install_tensor_rt, install_torch_tensor_rt; install_tensor_rt(); install_torch_tensor_rt()" ; \
     elif [ "$COMPILER" = "openvino" ] ; then \
