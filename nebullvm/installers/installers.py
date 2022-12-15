@@ -429,10 +429,10 @@ class TensorflowInstaller(BaseInstaller):
     @staticmethod
     def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0,<2.11.0"]
+            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0"]
             subprocess.run(cmd)
         else:
-            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0,<2.11.0"]
+            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0"]
             subprocess.run(cmd)
 
         try:
