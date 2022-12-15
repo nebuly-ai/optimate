@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
-    "nebullvm",
+    "nebullvm>=0.6",
 ]
 
 this_directory = Path(__file__).parent
