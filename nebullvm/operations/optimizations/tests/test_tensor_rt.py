@@ -9,12 +9,12 @@ from nebullvm.operations.inference_learners.tensor_rt import (
     TENSOR_RT_INFERENCE_LEARNERS,
     PytorchTensorRTInferenceLearner,
 )
+from nebullvm.operations.optimizations.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
+)
 from nebullvm.operations.optimizations.compilers.tensor_rt import (
     ONNXTensorRTCompiler,
     PyTorchTensorRTCompiler,
-)
-from nebullvm.operations.optimizations.optimizers import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,

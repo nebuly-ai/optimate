@@ -37,7 +37,7 @@ class Operation(abc.ABC):
         self._state = {}
         self.device = Device.CPU
         self.execute_count = 0
-        self.logger = logging.getLogger("nebullvm_logger")
+        self.logger = logger
 
     @abc.abstractmethod
     def execute(self, **kwargs):

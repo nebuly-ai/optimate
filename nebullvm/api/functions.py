@@ -9,7 +9,6 @@ from typing import (
     Optional,
 )
 
-from apps.accelerate.auto_boost.root_op import AutoBoostRootOp
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
@@ -141,6 +140,20 @@ def optimize_model(
             with `model.forward(input)` and `model(input)`), i.e. it will
             take as input and it will return `torch.Tensor`s.
     """
+    try:
+        from autoboost.root_op import AutoBoostRootOp
+    except ImportError:
+        raise ImportError(
+            "Nebullvm requires that the autoboost module is installed to use "
+            "the optimization function. Please install it with "
+            "`pip install autoboost`."
+        )
+
+    logger.warning(
+        "The `optimize_model` function is deprecated and will be removed in "
+        "future releases. Please install and use the autoboost app instead."
+    )
+
     root_op = AutoBoostRootOp()
     device = _check_device(device)
     root_op.to(device).execute(

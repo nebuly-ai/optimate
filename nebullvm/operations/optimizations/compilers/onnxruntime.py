@@ -85,19 +85,19 @@ class ONNXCompiler(Compiler):
             raise_logger_level()
 
         if quantization_type is not None:
-            model = self.quantize_model(
+            model = self._quantize_model(
                 model, train_input_data, quantization_type, input_tfms
             )
 
         if not debug_mode_enabled():
             load_root_logger_state(logger_state)
 
-        self.compiled_model = self.compile_model(model)
+        self.compiled_model = self._compile_model(model)
 
-    def compile_model(self, model: Union[str, Path]):
+    def _compile_model(self, model: Union[str, Path]):
         return model
 
-    def quantize_model(
+    def _quantize_model(
         self,
         model_path: str,
         input_data: List[Tuple[np.ndarray, ...]],

@@ -8,14 +8,14 @@ from nebullvm.operations.inference_learners.deepsparse import (
 )
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import compute_relative_difference
+from nebullvm.operations.optimizations.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
+)
 from nebullvm.operations.optimizations.compilers.deepsparse import (
     DeepSparseCompiler,
 )
 from nebullvm.operations.optimizations.compilers.utils import (
     deepsparse_is_available,
-)
-from nebullvm.operations.optimizations.optimizers import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import initialize_model
 from nebullvm.tools.base import DeepLearningFramework, Device, ModelCompiler

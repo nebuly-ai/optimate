@@ -1,7 +1,7 @@
 import torch
 from transformers import AlbertModel, AlbertTokenizer
 
-from nebullvm import optimize_model
+from autoboost import optimize_model
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.huggingface import (
     HuggingFaceInferenceLearner,

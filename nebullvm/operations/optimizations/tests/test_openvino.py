@@ -8,11 +8,11 @@ from nebullvm.operations.conversions.converters import PytorchConverter
 from nebullvm.operations.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
 )
+from nebullvm.operations.optimizations.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
+)
 from nebullvm.operations.optimizations.compilers.openvino import (
     OpenVINOCompiler,
-)
-from nebullvm.operations.optimizations.optimizers import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,

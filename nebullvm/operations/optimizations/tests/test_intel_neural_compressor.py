@@ -5,14 +5,14 @@ import pytest
 from nebullvm.operations.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
 )
+from nebullvm.operations.optimizations.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
+)
 from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
     IntelNeuralCompressorCompiler,
 )
 from nebullvm.operations.optimizations.compilers.utils import (
     intel_neural_compressor_is_available,
-)
-from nebullvm.operations.optimizations.optimizers import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
