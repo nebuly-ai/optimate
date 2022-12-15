@@ -1,6 +1,6 @@
 # **PyTorch Optimization**
 
-This section contains all the available notebooks that show how to leverage nebullvm to optimize PyTorch models.
+This section contains all the available notebooks that show how to leverage AutoBoost to optimize PyTorch models.
 
 ## PyTorch API quick view:
 
@@ -15,7 +15,7 @@ model = models.resnet50()
 # Provide an input data for the model    
 input_data = [((torch.randn(1, 3, 256, 256), ), torch.tensor([0]))]
 
-# Run nebullvm optimization
+# Run AutoBoost optimization
 optimized_model = optimize_model(
   model, input_data=input_data, optimization_time="unconstrained"
 )

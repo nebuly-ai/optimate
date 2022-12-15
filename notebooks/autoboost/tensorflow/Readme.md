@@ -1,6 +1,6 @@
 # **Tensorflow Optimization**
 
-This section contains all the available notebooks that show how to leverage nebullvm to optimize Tensorflow models.
+This section contains all the available notebooks that show how to leverage AutoBoost to optimize Tensorflow models.
 
 ## Tensorflow API quick view:
 
@@ -15,7 +15,7 @@ model = ResNet50()
 # Provide an input data for the model    
 input_data = [((tf.random.normal([1, 224, 224, 3]),), tf.constant([0]))]
 
-# Run nebullvm optimization
+# Run AutoBoost optimization
 optimized_model = optimize_model(
   model, input_data=input_data, optimization_time="unconstrained"
 )

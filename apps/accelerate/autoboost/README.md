@@ -56,10 +56,10 @@ from autoboost import optimize_model
 optimized_model = optimize_model(model, input_data=input_data)
 ```
 Checkout how to define the `model` and `input_data` parameters depending on which framework you want to use and how to use the optimized model: 
-[PyTorch](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/pytorch#pytorch-api-quick-view), 
-[HuggingFace](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/huggingface#huggingface-api-quick-view), 
-[TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/tensorflow#tensorflow-api-quick-view), 
-[ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/onnx#onnx-api-quick-view).
+[PyTorch](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/autoboost/pytorch#pytorch-api-quick-view), 
+[HuggingFace](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/autoboost/huggingface#huggingface-api-quick-view), 
+[TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/autoboost/tensorflow#tensorflow-api-quick-view), 
+[ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/autoboost/onnx#onnx-api-quick-view).
 
 For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started),  [AutoBoost API](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/nebullvm-api) and [Examples of API options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/examples-of-api-options).
 

@@ -1,6 +1,6 @@
 # **ONNX Optimization**
 
-This section contains all the available notebooks that show how to leverage nebullvm to optimize ONNX models.
+This section contains all the available notebooks that show how to leverage AutoBoost to optimize ONNX models.
 
 ## ONNX API quick view:
 
@@ -16,7 +16,7 @@ model = "resnet50-v1-12.onnx"
 # Provide an input data for the model    
 input_data = [((np.random.randn(1, 3, 224, 224).astype(np.float32), ), np.array([0]))]
 
-# Run nebullvm optimization
+# Run AutoBoost optimization
 optimized_model = optimize_model(
   model, input_data=input_data, optimization_time="unconstrained"
 )

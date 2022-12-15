@@ -1,6 +1,6 @@
 # **Jupyter notebooks**
 
-This folder contains notebooks showing how to use nebullvm to optimize several models. 
+This folder contains notebooks showing how to use the `AutoBoost` app to optimize several models. 
 
 The following frameworks are supported:
 - PyTorch
@@ -8,7 +8,7 @@ The following frameworks are supported:
 - Tensorflow
 - ONNX
 
-Examples of how to use nebullvm are shown for each of these frameworks.
+Examples of how to use `AutoBoost` are shown for each of these frameworks.
 
 In each folder we provide links to google colab where you can easily test the notebooks. 
 If you want to test them on your own hardware, you can follow the guide below.
@@ -16,7 +16,7 @@ If you want to test them on your own hardware, you can follow the guide below.
 ## 1. Setup
 To test notebooks, we have to create an environment where all the required dependencies are installed.
 
-First of all, clone the repository:
+First of all, clone the `nebullvm` repository:
 ```
 git clone https://github.com/nebuly-ai/nebullvm.git
 ```
@@ -25,11 +25,11 @@ Next, navigate to the repo's root directory:
 cd nebullvm
 ```
 
-After cloning the repository there are two options: we can either install nebullvm in a local environment or use a ready-to-use docker container.
+After cloning the repository there are two options: we can either install `AutoBoost` in a local environment or use a ready-to-use docker container.
 
 ### a. Using a local environment
 
-Install nebullvm library:
+Install `AutoBoost` library:
 ```
 pip install autoboost
 ```
@@ -54,7 +54,7 @@ Use the token listed in the output from running the jupyter command to log in, f
 
 `http://[host machine]:8888/?token=aae96ae9387cd28151868fee318c3b3581a2d794f3b25c6b`
 
-You can finally navigate to the notebooks folder and then to the folder of the framework that you want to try and start a notebook.
+You can finally navigate to the `notebooks/autoboost` folder and then to the folder of the framework that you want to try and start a notebook.
 
 
 ### b. Using a Docker container
@@ -77,7 +77,7 @@ You can then check that the gpu can be seen inside the container by running `nvi
 
 Inside the container, we can then navigate to the notebooks folder:
 ```
-cd /nebullvm/notebooks
+cd /nebullvm/autoboost/notebooks
 ```
 We can then run a jupyter session with the following command:
 ```

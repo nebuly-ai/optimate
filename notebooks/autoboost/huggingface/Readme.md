@@ -1,6 +1,6 @@
 # **HuggingFace Optimization**
 
-This section contains all the available notebooks that show how to leverage nebullvm to optimize HuggingFace models.
+This section contains all the available notebooks that show how to leverage AutoBoost to optimize HuggingFace models.
 
 ## HuggingFace API quick view:
 
