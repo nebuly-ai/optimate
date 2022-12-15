@@ -36,11 +36,11 @@ ENV NO_COMPILER_INSTALLATION=1
 RUN if [ "$COMPILER" = "all" ] ; then \
         python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers all" ; \
     elif [ "$COMPILER" = "tensorrt" ] ; then \
-        python3 -c "from nebullvm.installers.installers import install_tensor_rt, install_torch_tensor_rt; install_tensor_rt(); install_torch_tensor_rt()" ; \
+        python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers tensorrt" ; \
     elif [ "$COMPILER" = "openvino" ] ; then \
-        python3 -c "from nebullvm.installers.installers import install_openvino; install_openvino()" ; \
+        python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers openvino" ; \
     elif [ "$COMPILER" = "onnxruntime" ] ; then \
-        python3 -c "from nebullvm.installers.installers import install_onnxruntime; install_onnxruntime()" ; \
+        python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers onnxruntime" ; \
     fi
 
 # Install TVM

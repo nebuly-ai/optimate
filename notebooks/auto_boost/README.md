@@ -36,7 +36,9 @@ pip install autoboost
 
 Install deep learning compilers:
 ```
-python -c "import nebullvm"
+python -m nebullvm.installers.auto_installer \
+    --frameworks torch onnx tensorflow huggingface \
+    --compilers all
 ```
 
 You can find additional options and details on the official [installation guide](https://nebuly.gitbook.io/nebuly/nebullvm/installation).
