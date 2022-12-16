@@ -51,6 +51,7 @@ from nebullvm.tools.utils import (
     get_dl_framework,
     is_huggingface_data,
     check_input_data,
+    is_data_subscriptable,
     extract_info_from_data,
 )
 
@@ -124,7 +125,22 @@ class AutoBoostRootOp(Operation):
             self.data = self.fetch_data_op.get_data()
 
             if isinstance(self.data, (DataLoader, tf.data.Dataset)):
-                self.data = DataManager.from_dataloader(self.data)
+                try:
+                    self.data = DataManager.from_dataloader(self.data)
+                except Exception:
+                    raise ValueError(
+                        "The provided dataloader does not match the expected "
+                        "format.\n"
+                        "AutoBoost supports dataloaders that return tuples in "
+                        "the\n"
+                        "following formats: \n"
+                        "Single input: (input,  label)\n"
+                        "Multiple inputs: ((input1, input2, ...),  label) or "
+                        "(input1, input2, ...,  label)\n"
+                        "Inputs and labels should be either tensors or numpy "
+                        "arrays,\n"
+                        "depending on the framework used.\n"
+                    )
 
             needs_conversion_to_hf = False
             if is_huggingface_data(self.data[0]):
@@ -141,9 +157,22 @@ class AutoBoostRootOp(Operation):
 
             if not isinstance(self.data, DataManager):
                 if check_input_data(self.data):
-                    self.data = DataManager(self.data)
+                    if is_data_subscriptable(self.data):
+                        self.data = DataManager(self.data)
+                    else:
+                        self.data = DataManager.from_iterable(self.data)
                 else:
-                    self.data = DataManager.from_iterable(self.data)
+                    raise ValueError(
+                        "The provided data does not match the expected "
+                        "format.\n"
+                        "AutoBoost supports data in the following formats: \n"
+                        "- PyTorch DataLoader\n"
+                        "- TensorFlow Dataset\n"
+                        "- List of tuples: [((input_0, ... ), label), ...] \n"
+                        "Inputs and labels should be either tensors or numpy "
+                        "arrays,\n"
+                        "depending on the framework used.\n"
+                    )
 
             dl_framework = get_dl_framework(self.model)
 

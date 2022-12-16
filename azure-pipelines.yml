@@ -54,6 +54,10 @@ steps:
 
 - script: |
     export PATH=$PATH:/home/AzDevOps/.local/bin
+    cd apps/accelerate/autoboost
+    pytest
+    cd ../../..
     cd nebullvm
     pytest
+    cd ../
   displayName: 'Run tests'

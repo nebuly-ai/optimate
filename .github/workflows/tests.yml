@@ -96,9 +96,13 @@ jobs:
         # Install requirements for testing
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
-        # Run the tests ignoring tvm
+        # Run the tests
       - name: Run tests
         run: |
+          cd apps/accelerate/autoboost
+          pytest
+          cd ../../..
           cd nebullvm
           pytest
+          cd ../
 
