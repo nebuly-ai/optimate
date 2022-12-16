@@ -57,7 +57,11 @@ steps:
     cd apps/accelerate/autoboost
     pytest
     cd ../../..
+  displayName: 'Run api tests'
+
+- script: |
+    export PATH=$PATH:/home/AzDevOps/.local/bin
     cd nebullvm
     pytest
     cd ../
-  displayName: 'Run tests'
+  displayName: 'Run components tests'

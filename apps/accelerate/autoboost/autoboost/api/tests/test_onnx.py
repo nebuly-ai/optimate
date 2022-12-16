@@ -7,7 +7,7 @@ import torch
 from torchvision import models
 
 from autoboost import optimize_model
-from nebullvm.api.tests.utils import torch_to_onnx
+from autoboost.api.tests.utils import torch_to_onnx
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.onnx import (
     NumpyONNXInferenceLearner,
