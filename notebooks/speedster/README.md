@@ -77,7 +77,7 @@ You can then check that the gpu can be seen inside the container by running `nvi
 
 Inside the container, we can then navigate to the notebooks folder:
 ```
-cd /nebullvm/speedster/notebooks
+cd /nebullvm/notebooks/speedster
 ```
 We can then run a jupyter session with the following command:
 ```

@@ -16,7 +16,7 @@ tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
 text = "This is an example text for the huggingface model."
 input_dict = tokenizer(text, return_tensors="pt")
 
-# Run nebullvm optimization
+# Run Speedster optimization
 optimized_model = optimize_model(
   model, input_data=[input_dict]
 )
@@ -42,7 +42,7 @@ res = optimized_model(**input_dict)
 #     truncation=True,
 # )
 # 
-# # Run nebullvm optimization
+# # Run Speedster optimization
 # optimized_model = optimize_model(
 #   model, input_data=input_data, tokenizer=tokenizer, tokenizer_args=tokenizer_args
 # )
@@ -51,7 +51,7 @@ res = optimized_model(**input_dict)
 ## Notebooks:
 | Notebook                                                                                                                                                                | Description                                                               |                                                                                                                                                                                                                                                                                                             |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Accelerate HuggingFace GPT2](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/pytorch/Accelerate_Hugging_Face_GPT2_with_Speedster.ipynb)            | Show how to optimize with Speedster the GPT2 model from Huggingface.      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1TIylOv6JCMXI_MPBdtGKqiTK8RS66ioh?usp=sharing) |
-| [Accelerate HuggingFace BERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/pytorch/Accelerate_Hugging_Face_BERT_with_Speedster.ipynb)             | Show how to optimize with Speedster the BERT model from Huggingface.       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1dGCVfX7LW-15n5FyCE3wAyX1jtX3jwKJ?usp=sharing) |
-| [Accelerate HuggingFace DistilBERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/pytorch/Accelerate_Hugging_Face_DistilBERT_with_Speedster.ipynb) | Show how to optimize with Speedster the DistilBERT model from Huggingface. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1O6oHzGDKxOoTd2FCLnzqlFND5zFJyXy9?usp=sharing) |
+| [Accelerate HuggingFace GPT2](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/pytorch/Accelerate_Hugging_Face_GPT2_with_Speedster.ipynb)            | Show how to optimize with Speedster the GPT2 model from Huggingface.      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ROAKYp8GtnQXU_VGhps7BIxaRc6_zDii?usp=sharing) |
+| [Accelerate HuggingFace BERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/pytorch/Accelerate_Hugging_Face_BERT_with_Speedster.ipynb)             | Show how to optimize with Speedster the BERT model from Huggingface.       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1r8z6Hqpjcqvi2ZdP18zZ9zIPSmnZsxy7?usp=sharing) |
+| [Accelerate HuggingFace DistilBERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/pytorch/Accelerate_Hugging_Face_DistilBERT_with_Speedster.ipynb) | Show how to optimize with Speedster the DistilBERT model from Huggingface. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1uDDQJc7S4paKM8qfDzSybLAWAsMVwh5H?usp=sharing) |
 
