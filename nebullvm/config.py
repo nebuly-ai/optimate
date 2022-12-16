@@ -1,7 +1,7 @@
 from nebullvm.optional_modules.torch import torch
 
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 LEARNER_METADATA_FILENAME = "metadata.json"
 ONNX_OPSET_VERSION = 13
 NEBULLVM_DEBUG_FILE = "nebullvm_debug.json"
@@ -29,7 +29,6 @@ TVM_FILENAMES = {"engine": "compiled_lib.so"}
 ONNX_FILENAMES = {"model_name": "model.onnx"}
 ONNX_PROVIDERS = {
     "cuda": [
-        "TensorrtExecutionProvider",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
     ],
@@ -62,10 +61,11 @@ TRAIN_TEST_SPLIT_RATIO = 0.8
 
 COMPILER_LIST = [
     "deepsparse",
-    "tensor RT",
+    "tensor_rt",
     "torchscript",
     "onnxruntime",
     "tflite",
+    "xla",
     "tvm",
     "openvino",
     "bladedisc",
@@ -90,3 +90,5 @@ TENSORFLOW_MODULES = []
 HUGGING_FACE_MODULES = []
 
 LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt"]
+
+MIN_NUMBER = 1e-4

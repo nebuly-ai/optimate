@@ -1,0 +1,67 @@
+trigger:
+- main
+- dev
+
+pool:
+  name: gpu-t4-pool
+
+steps:
+#- script: |
+#    export DEBIAN_FRONTEND=noninteractive
+#    apt-get update -y && apt-get upgrade -y
+#    apt-get install -y sudo wget
+#    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
+#    sudo mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
+#    wget https://developer.download.nvidia.com/compute/cuda/11.7.1/local_installers/cuda-repo-ubuntu2004-11-7-local_11.7.1-515.65.01-1_amd64.deb
+#    sudo dpkg -i cuda-repo-ubuntu2004-11-7-local_11.7.1-515.65.01-1_amd64.deb
+#    sudo cp /var/cuda-repo-ubuntu2004-11-7-local/cuda-*-keyring.gpg /usr/share/keyrings/
+#    sudo apt-get update -y
+#    sudo apt-get install -y cuda
+#  displayName: 'Install cuda'
+
+- script: |
+    nvidia-smi
+  displayName: 'Ensure cuda is installed correctly'
+
+#- script: |
+#    export DEBIAN_FRONTEND=noninteractive
+#    sudo apt-get install -y python3-opencv python3-pip
+#    sudo python3 -m pip install --upgrade pip
+#    sudo apt-get -y install git
+#    sudo apt-get -y install python-is-python3
+#  displayName: 'Install python'
+
+- script: |
+    pip uninstall -y nebullvm
+    pip install .
+  displayName: 'Install nebullvm'
+
+- script: |
+    cd apps/accelerate/speedster
+    pip uninstall -y speedster
+    pip install .
+    cd ../../..
+  displayName: 'Install speedster'
+
+- script: python -m pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+  displayName: 'Install PyTorch'
+
+- script: python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers all
+  displayName: 'Install deep learning compilers'
+
+- script: python -m pip install -r "requirements-dev.txt"
+  displayName: 'Install requirements for testing'
+
+- script: |
+    export PATH=$PATH:/home/AzDevOps/.local/bin
+    cd apps/accelerate/speedster
+    pytest
+    cd ../../..
+  displayName: 'Run api tests'
+
+- script: |
+    export PATH=$PATH:/home/AzDevOps/.local/bin
+    cd nebullvm
+    pytest
+    cd ../
+  displayName: 'Run components tests'
