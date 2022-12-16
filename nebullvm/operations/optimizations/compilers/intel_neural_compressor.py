@@ -69,16 +69,16 @@ class IntelNeuralCompressorCompiler(Compiler):
         self.model_orig = model
 
         if quantization_type is not None:
-            quantized_model = self.quantize_model(
+            quantized_model = self._quantize_model(
                 model, quantization_type, input_tfms, train_input_data
             )
-            self.compiled_model = self.compile_model(quantized_model)
+            self.compiled_model = self._compile_model(quantized_model)
 
-    def compile_model(self, model: Union[str, Path]):
+    def _compile_model(self, model: Union[str, Path]):
         return model
 
     @staticmethod
-    def quantize_model(
+    def _quantize_model(
         model: Module,
         quantization_type: QuantizationType,
         input_tfms: MultiStageTransformation,

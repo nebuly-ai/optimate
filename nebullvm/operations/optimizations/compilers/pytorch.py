@@ -72,13 +72,13 @@ class PytorchBackendCompiler(Compiler):
         )
 
         if quantization_type is not None:
-            model = self.quantize_model(
+            model = self._quantize_model(
                 model, quantization_type, input_tfms, train_input_data
             )
 
-        self.compiled_model = self.compile_model(model, input_data)
+        self.compiled_model = self._compile_model(model, input_data)
 
-    def compile_model(
+    def _compile_model(
         self,
         model: Union[Module, GraphModule],
         input_data: DataManager,
@@ -102,7 +102,7 @@ class PytorchBackendCompiler(Compiler):
 
         return model_scripted
 
-    def quantize_model(
+    def _quantize_model(
         self,
         model: Module,
         quantization_type: QuantizationType,

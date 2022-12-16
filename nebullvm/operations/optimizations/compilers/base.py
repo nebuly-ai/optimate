@@ -17,11 +17,11 @@ class Compiler(Operation, abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def compile_model(self, **kwargs) -> Any:
+    def _compile_model(self, **kwargs) -> Any:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def quantize_model(self, **kwargs) -> Any:
+    def _quantize_model(self, **kwargs) -> Any:
         raise NotImplementedError()
 
     def get_result(self) -> Any:

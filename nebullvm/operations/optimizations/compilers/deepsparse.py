@@ -59,11 +59,11 @@ class DeepSparseCompiler(Compiler):
             f"q_type: {quantization_type}."
         )
 
-        self.compiled_model = self.compile_model(
+        self.compiled_model = self._compile_model(
             model, onnx_output_path, input_data, model_params
         )
 
-    def compile_model(
+    def _compile_model(
         self,
         model: Union[Module, GraphModule],
         onnx_output_path: str,
@@ -79,5 +79,5 @@ class DeepSparseCompiler(Compiler):
         return onnx_pruned_path
 
     @staticmethod
-    def quantize_model(**kwargs):
+    def _quantize_model(**kwargs):
         raise NotImplementedError()

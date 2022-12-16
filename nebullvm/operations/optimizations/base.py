@@ -1,13 +1,55 @@
 import abc
 from tempfile import TemporaryDirectory
-from typing import List, Callable, Union, Tuple, Any
+from typing import List, Callable, Union, Tuple, Any, Dict, Type
 
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.operations.base import Operation
+from nebullvm.operations.inference_learners.base import BuildInferenceLearner
+from nebullvm.operations.inference_learners.builders import (
+    PytorchBuildInferenceLearner,
+    DeepSparseBuildInferenceLearner,
+    IntelNeuralCompressorBuildInferenceLearner,
+    PyTorchTensorRTBuildInferenceLearner,
+    ONNXTensorRTBuildInferenceLearner,
+    PyTorchApacheTVMBuildInferenceLearner,
+    ONNXApacheTVMBuildInferenceLearner,
+    ONNXBuildInferenceLearner,
+    OpenVINOBuildInferenceLearner,
+    TFLiteBuildInferenceLearner,
+    TensorflowBuildInferenceLearner,
+)
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import (
     compute_relative_difference,
     compute_optimized_running_time,
+)
+from nebullvm.operations.optimizations.compilers.base import Compiler
+from nebullvm.operations.optimizations.compilers.deepsparse import (
+    DeepSparseCompiler,
+)
+from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
+    IntelNeuralCompressorCompiler,
+)
+from nebullvm.operations.optimizations.compilers.onnxruntime import (
+    ONNXCompiler,
+)
+from nebullvm.operations.optimizations.compilers.openvino import (
+    OpenVINOCompiler,
+)
+from nebullvm.operations.optimizations.compilers.pytorch import (
+    PytorchBackendCompiler,
+)
+from nebullvm.operations.optimizations.compilers.tensor_rt import (
+    PyTorchTensorRTCompiler,
+    ONNXTensorRTCompiler,
+)
+from nebullvm.operations.optimizations.compilers.tensorflow import (
+    TFLiteBackendCompiler,
+    TensorflowBackendCompiler,
+)
+from nebullvm.operations.optimizations.compilers.tvm import (
+    PyTorchApacheTVMCompiler,
+    ONNXApacheTVMCompiler,
 )
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
@@ -60,7 +102,7 @@ class Optimizer(Operation, abc.ABC):
             ignore_compilers=ignore_compilers,
             compilers=compilers,
         )
-        self.optimize(
+        self._optimize(
             model=model,
             input_data=input_data,
             optimization_time=optimization_time,
@@ -80,11 +122,6 @@ class Optimizer(Operation, abc.ABC):
         ignore_compilers: List[ModelCompiler],
         compilers: List[ModelCompiler],
     ):
-        from nebullvm.operations.optimizations.optimizers import (
-            COMPILER_TO_OPTIMIZER_MAP,
-            COMPILER_TO_INFERENCE_LEARNER_MAP,
-        )
-
         compiler_ops = {
             compiler: COMPILER_TO_OPTIMIZER_MAP[compiler][
                 self.pipeline_dl_framework
@@ -104,7 +141,7 @@ class Optimizer(Operation, abc.ABC):
 
         return compiler_ops, build_inference_learner_ops
 
-    def optimize(
+    def _optimize(
         self,
         model: Union[torch.nn.Module, tf.Module, str],
         input_data: DataManager,
@@ -240,3 +277,68 @@ class Optimizer(Operation, abc.ABC):
 
     def get_result(self) -> List:
         return self.optimized_models
+
+
+COMPILER_TO_OPTIMIZER_MAP: Dict[
+    ModelCompiler, Dict[DeepLearningFramework, Type[Compiler]]
+] = {
+    ModelCompiler.TORCHSCRIPT: {
+        DeepLearningFramework.PYTORCH: PytorchBackendCompiler
+    },
+    ModelCompiler.DEEPSPARSE: {
+        DeepLearningFramework.PYTORCH: DeepSparseCompiler
+    },
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: {
+        DeepLearningFramework.PYTORCH: IntelNeuralCompressorCompiler
+    },
+    ModelCompiler.TENSOR_RT: {
+        DeepLearningFramework.PYTORCH: PyTorchTensorRTCompiler,
+        DeepLearningFramework.NUMPY: ONNXTensorRTCompiler,
+    },
+    ModelCompiler.APACHE_TVM: {
+        DeepLearningFramework.PYTORCH: PyTorchApacheTVMCompiler,
+        DeepLearningFramework.NUMPY: ONNXApacheTVMCompiler,
+    },
+    ModelCompiler.ONNX_RUNTIME: {DeepLearningFramework.NUMPY: ONNXCompiler},
+    ModelCompiler.OPENVINO: {DeepLearningFramework.NUMPY: OpenVINOCompiler},
+    ModelCompiler.TFLITE: {
+        DeepLearningFramework.TENSORFLOW: TFLiteBackendCompiler
+    },
+    ModelCompiler.XLA: {
+        DeepLearningFramework.TENSORFLOW: TensorflowBackendCompiler
+    },
+}
+
+COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
+    ModelCompiler, Dict[DeepLearningFramework, Type[BuildInferenceLearner]]
+] = {
+    ModelCompiler.TORCHSCRIPT: {
+        DeepLearningFramework.PYTORCH: PytorchBuildInferenceLearner
+    },
+    ModelCompiler.DEEPSPARSE: {
+        DeepLearningFramework.PYTORCH: DeepSparseBuildInferenceLearner
+    },
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: {
+        DeepLearningFramework.PYTORCH: IntelNeuralCompressorBuildInferenceLearner  # noqa: E501
+    },
+    ModelCompiler.TENSOR_RT: {
+        DeepLearningFramework.PYTORCH: PyTorchTensorRTBuildInferenceLearner,
+        DeepLearningFramework.NUMPY: ONNXTensorRTBuildInferenceLearner,
+    },
+    ModelCompiler.APACHE_TVM: {
+        DeepLearningFramework.PYTORCH: PyTorchApacheTVMBuildInferenceLearner,
+        DeepLearningFramework.NUMPY: ONNXApacheTVMBuildInferenceLearner,
+    },
+    ModelCompiler.ONNX_RUNTIME: {
+        DeepLearningFramework.NUMPY: ONNXBuildInferenceLearner
+    },
+    ModelCompiler.OPENVINO: {
+        DeepLearningFramework.NUMPY: OpenVINOBuildInferenceLearner
+    },
+    ModelCompiler.TFLITE: {
+        DeepLearningFramework.TENSORFLOW: TFLiteBuildInferenceLearner
+    },
+    ModelCompiler.XLA: {
+        DeepLearningFramework.TENSORFLOW: TensorflowBuildInferenceLearner
+    },
+}

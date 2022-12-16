@@ -36,6 +36,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
+        # Install Speedster
+      - name: Install Speedster
+        run: |
+          cd apps/accelerate/speedster
+          pip install .
+          cd ../../..
         # Install PyTorch
       - name: Install PyTorch
         run: python -m pip install torch
@@ -45,11 +51,18 @@ jobs:
         # Install requirements for testing
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
-        # Run the tests ignoring tvm
-      - name: Run tests
+        # Run api tests
+      - name: Run api tests
+        run: |
+          cd apps/accelerate/speedster
+          pytest
+          cd ../../..
+        # Run components tests
+      - name: Run components tests
         run: |
           cd nebullvm
           pytest
+          cd ../
 
   test_on_windows_cpu:
     runs-on: windows-latest
@@ -76,7 +89,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-        # Install PyTorch
+        # Install Speedster
+      - name: Install Speedster
+        run: |
+          cd apps/accelerate/speedster
+          pip install .
+          cd ../../..
       - name: Install PyTorch
         run: python -m pip install torch
         # Install compilers except tvm
@@ -85,9 +103,16 @@ jobs:
         # Install requirements for testing
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
-        # Run the tests ignoring tvm
-      - name: Run tests
+        # Run api tests
+      - name: Run api tests
+        run: |
+          cd apps/accelerate/speedster
+          pytest
+          cd ../../..
+        # Run components tests
+      - name: Run components tests
         run: |
           cd nebullvm
           pytest
+          cd ../
 

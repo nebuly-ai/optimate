@@ -28,7 +28,7 @@ def quantize_apache_tvm(
     quantization_type: QuantizationType,
     input_tfms: MultiStageTransformation,
     input_data: DataManager,
-    params,
+    params: Any,
 ):
     if quantization_type is not None:
         if quantization_type is QuantizationType.HALF:

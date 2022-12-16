@@ -7,14 +7,14 @@ from nebullvm.operations.conversions.converters import PytorchConverter
 from nebullvm.operations.inference_learners.tvm import (
     PytorchApacheTVMInferenceLearner,
 )
+from nebullvm.operations.optimizations.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
+)
 from nebullvm.operations.optimizations.compilers.tvm import (
     ONNXApacheTVMCompiler,
     PyTorchApacheTVMCompiler,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
-from nebullvm.operations.optimizations.optimizers import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
-)
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,

@@ -98,11 +98,11 @@ class ApacheTVMCompiler(Compiler, ABC):
         mod, params = self._build_tvm_model(model, model_params)
 
         if quantization_type is not None:
-            mod = self.quantize_model(
+            mod = self._quantize_model(
                 mod, quantization_type, input_tfms, input_data, params
             )
 
-        self.compiled_model = self.compile_model(mod, params)
+        self.compiled_model = self._compile_model(mod, params)
 
     @abc.abstractmethod
     def _build_tvm_model(self, model: Any, model_params: ModelParams):
@@ -217,7 +217,7 @@ class ApacheTVMCompiler(Compiler, ABC):
             )
         return tuning_records
 
-    def compile_model(self, model: Any, params: Any) -> ExecutorFactoryModule:
+    def _compile_model(self, model: Any, params: Any) -> ExecutorFactoryModule:
         target = self._get_target(self.device)
         tuning_records = self._tune_tvm_model(target, model, params)
         with autotvm.apply_history_best(tuning_records):
@@ -230,7 +230,7 @@ class ApacheTVMCompiler(Compiler, ABC):
         return lib
 
     @staticmethod
-    def quantize_model(
+    def _quantize_model(
         model: Any,
         quantization_type: QuantizationType,
         input_tfms: MultiStageTransformation,

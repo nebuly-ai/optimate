@@ -2,6 +2,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 from packaging import version
 from types import ModuleType
 from typing import (
@@ -107,6 +108,24 @@ def get_dl_framework(model: Any):
 
 
 def check_input_data(input_data: Union[Iterable, Sequence]):
+    try:
+        assert len(input_data) > 0
+        assert isinstance(input_data[0], tuple)
+        assert isinstance(input_data[0][0], tuple)
+        assert isinstance(
+            input_data[0][0][0], (np.ndarray, torch.Tensor, tf.Tensor)
+        )
+        assert isinstance(
+            input_data[0][1],
+            (np.ndarray, torch.Tensor, tf.Tensor, int, float, type(None)),
+        )
+    except:  # noqa E722
+        return False
+    else:
+        return True
+
+
+def is_data_subscriptable(input_data: Union[Iterable, Sequence]):
     try:
         input_data[0]
     except:  # noqa E722

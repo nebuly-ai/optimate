@@ -64,7 +64,10 @@ class BaseInferenceLearner(ABC):
             return shutil.copytree(str(dir_path), str(self._tmp_folder))
 
     def __del__(self, shutil=shutil):
-        shutil.rmtree(self._tmp_folder, ignore_errors=True)
+        try:
+            shutil.rmtree(self._tmp_folder, ignore_errors=True)
+        except Exception:
+            pass
 
     def predict_from_files(
         self, input_files: List[str], output_files: List[str]

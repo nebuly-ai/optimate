@@ -156,6 +156,9 @@ def install_tf2onnx():
         cmd = ["conda", "install", "-y", "tf2onnx>=1.8.4"]
         subprocess.run(cmd)
     else:
+        cmd = ["pip3", "install", "--user", "protobuf<4,>=3.20.2"]
+        subprocess.run(cmd)
+
         cmd = ["pip3", "install", "tf2onnx>=1.8.4"]
         subprocess.run(cmd)
 
@@ -426,10 +429,10 @@ class TensorflowInstaller(BaseInstaller):
     @staticmethod
     def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0,<2.11.0"]
+            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0"]
             subprocess.run(cmd)
         else:
-            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0,<2.11.0"]
+            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0"]
             subprocess.run(cmd)
 
         try:

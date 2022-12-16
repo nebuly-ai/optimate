@@ -125,7 +125,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             for tensor in input_data.get_list(1)[0]
         ]
 
-        self.compiled_model = self.compile_model(
+        self.compiled_model = self._compile_model(
             model=model,
             input_tensors=input_tensors,
             dtype=dtype,
@@ -135,7 +135,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             quantization_type=quantization_type,
         )
 
-    def compile_model(
+    def _compile_model(
         self,
         model: Module,
         input_tensors: List[torch.Tensor],
@@ -188,7 +188,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
         return trt_model
 
     @staticmethod
-    def quantize_model(**kwargs) -> Any:
+    def _quantize_model(**kwargs) -> Any:
         raise NotImplementedError
 
 
@@ -282,7 +282,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             )
 
         if quantization_type is not None:
-            config = self.quantize_model(
+            config = self._quantize_model(
                 quantization_type,
                 model_params,
                 config,
@@ -292,7 +292,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                 else None,
             )
 
-        self.compiled_model = self.compile_model(
+        self.compiled_model = self._compile_model(
             onnx_model_path=str(onnx_model_path),
             model_params=model_params,
             config=config,
@@ -302,7 +302,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         )
         self.model_orig = onnx_model_path
 
-    def compile_model(
+    def _compile_model(
         self,
         onnx_model_path: str,
         model_params: ModelParams,
@@ -349,7 +349,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         return builder.build_serialized_network(network, config)
 
     @staticmethod
-    def quantize_model(
+    def _quantize_model(
         quantization_type: QuantizationType,
         model_params: ModelParams,
         config,

@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-from typing import Tuple, List
+from typing import Tuple, List, Union
 
 import numpy as np
 
@@ -40,7 +40,7 @@ class OpenVINOCompiler(Compiler):
 
     def execute(
         self,
-        model: str,
+        model: Union[str, Path],
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
@@ -84,7 +84,7 @@ class OpenVINOCompiler(Compiler):
         cmd = [
             "mo",
             "--input_model",
-            model,
+            str(model),
             "--output_dir",
             str(Path(model).parent),
             "--input",
@@ -111,7 +111,7 @@ class OpenVINOCompiler(Compiler):
         openvino_model_weights = base_path / f"{Path(model).stem}.bin"
 
         if quantization_type not in [QuantizationType.HALF, None]:
-            openvino_model_path, openvino_model_weights = self.quantize_model(
+            openvino_model_path, openvino_model_weights = self._quantize_model(
                 model_topology=str(openvino_model_path),
                 model_weights=str(openvino_model_weights),
                 input_names=get_input_names(model),
@@ -122,7 +122,7 @@ class OpenVINOCompiler(Compiler):
             Path(openvino_model_path).parent / Path(openvino_model_path).stem
         )
 
-    def compile_model(
+    def _compile_model(
         self,
         model_name: str,
         model_weights: str,
@@ -139,7 +139,7 @@ class OpenVINOCompiler(Compiler):
         return core.compile_model(model=model, device_name="CPU")
 
     @staticmethod
-    def quantize_model(
+    def _quantize_model(
         model_topology: str,
         model_weights: str,
         input_data: List[Tuple[np.ndarray, ...]],

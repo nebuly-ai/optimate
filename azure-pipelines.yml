@@ -19,7 +19,8 @@ steps:
 #    sudo apt-get install -y cuda
 #  displayName: 'Install cuda'
 
-- script: nvidia-smi
+- script: |
+    nvidia-smi
   displayName: 'Ensure cuda is installed correctly'
 
 #- script: |
@@ -35,7 +36,14 @@ steps:
     pip install .
   displayName: 'Install nebullvm'
 
-- script: python -m pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+- script: |
+    cd apps/accelerate/speedster
+    pip uninstall -y speedster
+    pip install .
+    cd ../../..
+  displayName: 'Install speedster'
+
+- script: python -m pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
   displayName: 'Install PyTorch'
 
 - script: python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers all
@@ -46,6 +54,14 @@ steps:
 
 - script: |
     export PATH=$PATH:/home/AzDevOps/.local/bin
+    cd apps/accelerate/speedster
+    pytest
+    cd ../../..
+  displayName: 'Run api tests'
+
+- script: |
+    export PATH=$PATH:/home/AzDevOps/.local/bin
     cd nebullvm
     pytest
-  displayName: 'Run tests'
+    cd ../
+  displayName: 'Run components tests'

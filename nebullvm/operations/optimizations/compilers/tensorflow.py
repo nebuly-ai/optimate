@@ -61,11 +61,11 @@ class TensorflowBackendCompiler(Compiler):
 
         self.compiled_model = model
 
-    def compile_model(self):
+    def _compile_model(self):
         pass
 
     @staticmethod
-    def quantize_model(**kwargs):
+    def _quantize_model(**kwargs):
         raise NotImplementedError()
 
 
@@ -124,13 +124,13 @@ class TFLiteBackendCompiler(Compiler):
         )
 
         if quantization_type is not None:
-            self.compiled_model = self.quantize_model(
+            self.compiled_model = self._quantize_model(
                 model, quantization_type, train_input_data
             )
         else:
-            self.compiled_model = self.compile_model(model)
+            self.compiled_model = self._compile_model(model)
 
-    def compile_model(
+    def _compile_model(
         self,
         model: tf.Module,
     ):
@@ -139,7 +139,7 @@ class TFLiteBackendCompiler(Compiler):
         return tflite_model
 
     @staticmethod
-    def quantize_model(
+    def _quantize_model(
         model: tf.Module,
         quantization_type: QuantizationType,
         input_data_tensorflow: List[Tuple[tf.Tensor, ...]],
