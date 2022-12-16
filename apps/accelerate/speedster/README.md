@@ -1,4 +1,4 @@
-# 💥 Speedster app
+# 💥 Speedster App
 
 Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
 
