@@ -174,7 +174,7 @@ def benchmark(
             raise ValueError(
                 "The provided dataloader does not match the expected "
                 "format.\n"
-                "AutoBoost supports dataloaders that return tuples in "
+                "Speedster supports dataloaders that return tuples in "
                 "the\n"
                 "following formats: \n"
                 "Single input: (input,  label)\n"
@@ -195,7 +195,7 @@ def benchmark(
             raise ValueError(
                 "The provided data does not match the expected "
                 "format.\n"
-                "AutoBoost supports data in the following formats: \n"
+                "Speedster supports data in the following formats: \n"
                 "- PyTorch DataLoader\n"
                 "- TensorFlow Dataset\n"
                 "- List of tuples: [((input_0, ... ), label), ...] \n"

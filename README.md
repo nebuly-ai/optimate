@@ -14,9 +14,9 @@ If you like the idea, give us a star to show your support for the project ⭐
 
 ## Accelerate Apps
 Achieve sub-10ms response time for any AI application, including generative and language models. Improve customer experience by providing near real-time inferences.
-* [AutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/autoboost): Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
+* [Speedster](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/speedster): Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
 * [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/optimate): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
-* [LargeAutoBoost](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/large_auto_boost): Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
+* [LargeSpeedster](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/large_speedster): Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
 * [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/dev/apps/accelerate/cloud_surfer): Discover the optimal inference hardware and cloud platform to run an optimized version of your AI model.
 * [MatrixMaster](https://github.com/nebuly-ai/nebullvm/tree/dev/apps/accelerate/matrix_master): Boost your DL model's performance with MatrixMaster's custom-generated matrix multiplication algorithms.
 

@@ -13,6 +13,7 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
 from nebullvm.tools.utils import gpu_is_available
+from speedster.root_op import SpeedsterRootOp
 
 logger = logging.getLogger("nebullvm_logger")
 
@@ -140,20 +141,6 @@ def optimize_model(
             with `model.forward(input)` and `model(input)`), i.e. it will
             take as input and it will return `torch.Tensor`s.
     """
-    try:
-        from speedster.root_op import SpeedsterRootOp
-    except ImportError:
-        raise ImportError(
-            "Nebullvm requires that the speedster module is installed to use "
-            "the optimization function. Please install it with "
-            "`pip install speedster`."
-        )
-
-    logger.warning(
-        "The `optimize_model` function is deprecated and will be removed in "
-        "future releases. Please install and use the speedster app instead."
-    )
-
     root_op = SpeedsterRootOp()
     device = _check_device(device)
     root_op.to(device).execute(

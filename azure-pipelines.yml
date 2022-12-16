@@ -37,11 +37,11 @@ steps:
   displayName: 'Install nebullvm'
 
 - script: |
-    cd apps/accelerate/autoboost
-    pip uninstall -y autoboost
+    cd apps/accelerate/speedster
+    pip uninstall -y speedster
     pip install .
     cd ../../..
-  displayName: 'Install autoboost'
+  displayName: 'Install speedster'
 
 - script: python -m pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
   displayName: 'Install PyTorch'
@@ -54,7 +54,7 @@ steps:
 
 - script: |
     export PATH=$PATH:/home/AzDevOps/.local/bin
-    cd apps/accelerate/autoboost
+    cd apps/accelerate/speedster
     pytest
     cd ../../..
   displayName: 'Run api tests'

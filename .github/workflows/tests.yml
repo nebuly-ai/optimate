@@ -36,10 +36,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-        # Install autoboost
-      - name: Install autoboost
+        # Install Speedster
+      - name: Install Speedster
         run: |
-          cd apps/accelerate/autoboost
+          cd apps/accelerate/speedster
           pip install .
           cd ../../..
         # Install PyTorch
@@ -54,7 +54,7 @@ jobs:
         # Run api tests
       - name: Run api tests
         run: |
-          cd apps/accelerate/autoboost
+          cd apps/accelerate/speedster
           pytest
           cd ../../..
         # Run components tests
@@ -89,10 +89,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-        # Install autoboost
-      - name: Install autoboost
+        # Install Speedster
+      - name: Install Speedster
         run: |
-          cd apps/accelerate/autoboost
+          cd apps/accelerate/speedster
           pip install .
           cd ../../..
       - name: Install PyTorch
@@ -106,7 +106,7 @@ jobs:
         # Run api tests
       - name: Run api tests
         run: |
-          cd apps/accelerate/autoboost
+          cd apps/accelerate/speedster
           pytest
           cd ../../..
         # Run components tests
