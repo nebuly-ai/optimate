@@ -51,11 +51,18 @@ jobs:
         # Install requirements for testing
       - name: Install requirements for testing
         run: pip install -r "requirements-dev.txt"
-        # Run the tests ignoring tvm
-      - name: Run tests
+        # Run api tests
+      - name: Run api tests
+        run: |
+          cd apps/accelerate/autoboost
+          pytest
+          cd ../../..
+        # Run components tests
+      - name: Run components tests
         run: |
           cd nebullvm
           pytest
+          cd ../
 
   test_on_windows_cpu:
     runs-on: windows-latest
