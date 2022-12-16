@@ -1,8 +1,8 @@
 import json
 import logging
+import shutil
 from abc import ABC
 from pathlib import Path
-import shutil
 from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
 import numpy as np
@@ -15,7 +15,6 @@ from nebullvm.operations.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
-from nebullvm.optional_modules.torch import torch
 from nebullvm.optional_modules.openvino import (
     Core,
     Model,
@@ -23,6 +22,7 @@ from nebullvm.optional_modules.openvino import (
     InferRequest,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import ModelParams, DeepLearningFramework
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation

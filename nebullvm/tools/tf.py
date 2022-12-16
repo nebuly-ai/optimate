@@ -1,7 +1,7 @@
 from typing import Union, List, Tuple, Any, Optional, Dict
 
-from nebullvm.tools.base import InputInfo, DataType, Device
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.tools.base import InputInfo, DataType, Device
 
 
 def get_outputs_sizes_tf(

@@ -6,10 +6,6 @@ import torch
 from keras.applications import ResNet50
 
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
-from speedster import optimize_model
-
-
-# Limit tensorflow gpu memory usage
 from nebullvm.operations.inference_learners.onnx import (
     TensorflowONNXInferenceLearner,
 )
@@ -28,7 +24,9 @@ from nebullvm.operations.inference_learners.tvm import (
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
 from nebullvm.tools.utils import is_python_version_3_10
+from speedster import optimize_model
 
+# Limit tensorflow gpu memory usage
 gpus = tf.config.list_physical_devices("GPU")
 if gpus:
     try:
