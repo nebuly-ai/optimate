@@ -6,6 +6,10 @@ from typing import (
 )
 
 from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.huggingface import (
+    PreTrainedTokenizer,
+    PreTrainedModel,
+)
 from nebullvm.tools.base import Device
 from nebullvm.tools.huggingface import (
     get_output_structure_from_dict,
@@ -13,16 +17,6 @@ from nebullvm.tools.huggingface import (
     TransformerWrapper,
 )
 from nebullvm.tools.utils import is_dict_type
-
-try:
-    from transformers import (
-        PreTrainedModel,
-    )
-    from transformers.tokenization_utils import PreTrainedTokenizer
-except ImportError:
-    # add placeholders for function definition
-    PreTrainedModel = None
-    PreTrainedTokenizer = None
 
 
 class _HFTextDataset(Sequence):

@@ -4,11 +4,11 @@ from typing import Tuple, List, Union, Any
 
 import numpy as np
 
-from nebullvm.tools.base import Device
 from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, Module
+from nebullvm.tools.base import Device
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     convert_to_numpy,

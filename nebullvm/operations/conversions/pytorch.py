@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
 
-from nebullvm.tools.base import ModelParams, Device
 from nebullvm.config import ONNX_OPSET_VERSION
 from nebullvm.optional_modules.torch import torch, Module
+from nebullvm.tools.base import ModelParams, Device
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.pytorch import (
     get_outputs_sizes_torch,
