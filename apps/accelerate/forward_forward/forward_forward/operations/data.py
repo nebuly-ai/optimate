@@ -12,7 +12,10 @@ class MNISTDataLoaderOperation(Operation):
     """DataLoaderOperation"""
 
     def get_result(self) -> Any:
-        return self.state.get("train_data"), self.state.get("test_data")
+        if self.state.get("train_data") is not None:
+            return self.state.get("train_data"), self.state.get("test_data")
+        else:
+            return None
 
     def execute(self, batch_size: int, shuffle: bool):
         train_loader = torch.utils.data.DataLoader(
@@ -138,7 +141,10 @@ class AesopFablesDataLoaderOperation(Operation):
     """DataLoaderOperation"""
 
     def get_result(self) -> Any:
-        return self.state.get("train_data"), self.state.get("test_data")
+        if self.state.get("train_data") is not None:
+            return self.state.get("train_data"), self.state.get("test_data")
+        else:
+            return None
 
     def execute(self, batch_size: int, shuffle: bool):
         train_loader, test_loader = get_dataloader(

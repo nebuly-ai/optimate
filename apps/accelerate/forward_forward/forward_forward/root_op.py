@@ -53,6 +53,7 @@ class ForwardForwardRootOp(Operation):
         epochs: int,
         shuffle: bool,
         theta: float,
+        device: str,
         output_size: int = None,
         **kwargs,
     ):
@@ -82,6 +83,7 @@ class ForwardForwardRootOp(Operation):
                     test_data=test_loader,
                     epochs=epochs,
                     theta=theta,
+                    device=device,
                     **kwargs,
                 )
             if self.train_model.get_result() is not None:

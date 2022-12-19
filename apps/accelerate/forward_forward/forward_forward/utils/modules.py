@@ -108,7 +108,7 @@ class FFLayer(BaseFFLayer):
     def positive_eval(self, input_tensor: torch.Tensor, theta: float):
         """Evaluate the layer with the given input and theta."""
         y = self(input_tensor)
-        return y, torch.square(y).sum(dim=1) - theta
+        return y, torch.square(y).mean(dim=1) - theta
 
 
 class FFNormalization(BaseFFLayer):

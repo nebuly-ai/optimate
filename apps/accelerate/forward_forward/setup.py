@@ -3,9 +3,9 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
-    "nebullvm>=0.6",
     "torch>=1.9",
     "torchvision>=0.10",
+    "nebullvm>=0.6",
 ]
 
 this_directory = Path(__file__).parent

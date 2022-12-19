@@ -23,9 +23,10 @@ def train_with_forward_forward_algorithm(
 
     output_size = None
     if model_type is ForwardForwardModelType.PROGRESSIVE:
-        input_size = 28 * 28 + datasets.MNIST.num_classes
+        input_size = 28 * 28 + len(datasets.MNIST.classes)
     elif model_type is ForwardForwardModelType.RECURRENT:
         input_size = 28 * 28
+        output_size = len(datasets.MNIST.classes)
     else:  # model_type is ForwardForwardModelType.NLP
         input_size = 10  # number of characters
         output_size = 30  # length of vocabulary
@@ -33,7 +34,7 @@ def train_with_forward_forward_algorithm(
             kwargs.get("predicted_tokens") is not None
         ), "predicted_tokens must be specified for NLP model"
 
-    root_op.to(device).execute(
+    root_op.execute(
         input_size=input_size,
         n_layers=n_layers,
         hidden_size=hidden_size,
@@ -42,6 +43,7 @@ def train_with_forward_forward_algorithm(
         loss_fn_name="alternative_loss_fn",
         batch_size=batch_size,
         epochs=epochs,
+        device=device,
         shuffle=shuffle,
         theta=theta,
         output_size=output_size,

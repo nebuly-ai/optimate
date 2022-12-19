@@ -16,6 +16,7 @@ class LabelsInjector:
             for i in range(len(labels))
         ]
 
+    @torch.no_grad()
     def inject_train(self, input_image: torch.Tensor, labels: torch.Tensor):
         # inject label in the input image
         bs = input_image.shape[0]
@@ -40,12 +41,18 @@ class LabelsInjector:
         signs = torch.cat([torch.ones(bs), -torch.ones(bs)], dim=0)
         return images, signs
 
+    @torch.no_grad()
     def inject_eval(self, input_image: torch.Tensor):
         # input image is expected to have batch size 1
-        labels = torch.stack(self.labels)
-        input_image = input_image.reshape(1, -1)
-        replicated_input = input_image.repeat(len(self.labels), 1)
-        return torch.cat([replicated_input, labels], dim=1)
+        # TODO: FIX THIS BEHAVIOUR
+        labels = torch.stack(self.labels).unsqueeze(0)
+        labels = labels.repeat(input_image.shape[0], 1, 1)
+        input_image = input_image.reshape(input_image.shape[0], -1).unsqueeze(
+            1
+        )
+        replicated_input = input_image.repeat(1, len(self.labels), 1)
+        new_input = torch.cat([replicated_input, labels], dim=2)
+        return new_input  # .reshape(-1, new_input.shape[2])
 
 
 def select_random_different_label(labels: torch.Tensor, n_classes: int):
