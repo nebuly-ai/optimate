@@ -6,17 +6,16 @@ from nebullvm.operations.fetch_operations.local import FetchModelFromLocal
 from torch.utils.data import DataLoader
 from torchvision import datasets
 
-
 from forward_forward.operations.data import VOCABULARY
 from forward_forward.operations.fetch_operations import (
     FetchTrainingDataFromLocal,
 )
+from forward_forward.utils.labels import LabelsInjector
+from forward_forward.utils.modules import FCNetFFProgressive
 from forward_forward.utils.utils import (
     ProgressiveTrainingDataset,
     compute_perplexity,
 )
-from forward_forward.utils.labels import LabelsInjector
-from forward_forward.utils.modules import FCNetFFProgressive
 
 
 class BaseForwardForwardTrainer(Operation, ABC):

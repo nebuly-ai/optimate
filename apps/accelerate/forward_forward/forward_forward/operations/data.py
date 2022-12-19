@@ -3,9 +3,8 @@ from typing import Any
 
 import torch
 import torch.utils.data
-from torchvision import datasets, transforms
-
 from nebullvm.operations.base import Operation
+from torchvision import datasets, transforms
 
 
 class MNISTDataLoaderOperation(Operation):

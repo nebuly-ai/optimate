@@ -1,8 +1,7 @@
 from typing import Any
 
-from torch.utils.data import DataLoader
-
 from nebullvm.operations.base import Operation
+from torch.utils.data import DataLoader
 
 
 class FetchTrainingDataFromLocal(Operation):
