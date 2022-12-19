@@ -11,9 +11,14 @@ from nebullvm.operations.base import Operation
 class MNISTDataLoaderOperation(Operation):
     """DataLoaderOperation"""
 
+    def __init__(self):
+        super().__init__()
+        self.train_data = None
+        self.test_data = None
+
     def get_result(self) -> Any:
-        if self.state.get("train_data") is not None:
-            return self.state.get("train_data"), self.state.get("test_data")
+        if self.train_data is not None:
+            return self.train_data, self.test_data
         else:
             return None
 
@@ -47,8 +52,8 @@ class MNISTDataLoaderOperation(Operation):
             batch_size=1000,
             shuffle=False,
         )
-        self.state["train_data"] = train_loader
-        self.state["test_data"] = test_loader
+        self.train_data = train_loader
+        self.test_data = test_loader
 
 
 def download_fables():
@@ -140,9 +145,14 @@ def get_dataloader(batch_size=32, test_size=0.2, shuffle=True):
 class AesopFablesDataLoaderOperation(Operation):
     """DataLoaderOperation"""
 
+    def __init__(self):
+        super().__init__()
+        self.train_data = None
+        self.test_data = None
+
     def get_result(self) -> Any:
-        if self.state.get("train_data") is not None:
-            return self.state.get("train_data"), self.state.get("test_data")
+        if self.train_data is not None:
+            return self.train_data, self.test_data
         else:
             return None
 
@@ -150,5 +160,5 @@ class AesopFablesDataLoaderOperation(Operation):
         train_loader, test_loader = get_dataloader(
             batch_size=batch_size, test_size=0.2, shuffle=shuffle
         )
-        self.state["train_data"] = train_loader
-        self.state["test_data"] = test_loader
+        self.train_data = train_loader
+        self.test_data = test_loader

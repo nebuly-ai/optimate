@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import List
 
 import torch
@@ -38,11 +38,13 @@ def alternative_loss_fn(y, theta, sign):
 
 
 class BaseFFLayer(torch.nn.Module, ABC):
+    @abstractmethod
     def ff_train(
         self, input_tensor: torch.Tensor, signs: torch.Tensor, theta: float
     ):
         raise NotImplementedError
 
+    @abstractmethod
     def positive_eval(self, input_tensor: torch.Tensor, theta: float):
         raise NotImplementedError
 

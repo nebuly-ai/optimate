@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 import torch
 
 from nebullvm.operations.base import Operation
@@ -9,10 +11,12 @@ from forward_forward.utils.modules import (
 )
 
 
-class BaseModelBuildOperation(Operation):
+class BaseModelBuildOperation(Operation, ABC):
     def __init__(self):
         super().__init__()
+        self.model = None
 
+    @abstractmethod
     def execute(
         self,
         input_size: int,
@@ -26,7 +30,7 @@ class BaseModelBuildOperation(Operation):
         raise NotImplementedError
 
     def get_result(self):
-        return self.state.get("model")
+        return self.model
 
 
 class FCNetFFProgressiveBuildOperation(BaseModelBuildOperation):
@@ -55,10 +59,7 @@ class FCNetFFProgressiveBuildOperation(BaseModelBuildOperation):
             output_layer = torch.nn.Linear(layer_sizes[-1], output_size)
             model = torch.nn.Sequential(model, output_layer)
 
-        self.state["model"] = model
-
-    def get_result(self):
-        return self.state.get("model")
+        self.model = model
 
 
 class RecurrentFCNetFFBuildOperation(BaseModelBuildOperation):
@@ -82,10 +83,7 @@ class RecurrentFCNetFFBuildOperation(BaseModelBuildOperation):
             optimizer_kwargs=optimizer_params,
             loss_fn_name=loss_fn_name,
         )
-        self.state["model"] = model
-
-    def get_result(self):
-        return self.state.get("model")
+        self.model = model
 
 
 class LMFFNetBuildOperation(BaseModelBuildOperation):
@@ -113,7 +111,4 @@ class LMFFNetBuildOperation(BaseModelBuildOperation):
             epochs=-1,
             predicted_tokens=-1,
         )
-        self.state["model"] = model
-
-    def get_result(self):
-        return self.state.get("model")
+        self.model = model
