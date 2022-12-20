@@ -11,8 +11,9 @@
 <p align=center>
 <a href="https://pypi.org/project/nebullvm/"><img alt="PyPI" src="https://img.shields.io/pypi/v/nebullvm?label=Release&style=flat-square"></a>
 <a href="https://discord.gg/RbeQMu886J"><img src="https://img.shields.io/badge/Discord-1.1k-blueviolet?logo=discord&amp;logoColor=white&style=flat-square"></a>
-<a href="https://pypistats.org/packages/nebullvm"><img alt="PyPI - Downloads from official pypistats" src="https://img.shields.io/pypi/dm/nebullvm?style=flat-square"></a>
+<a href="https://pypistats.org/packages/nebullvm"><img alt="PyPI - Downloads from official pypistats" src="https://pepy.tech/badge/nebullvm"></a>
 </p>
+
 
 `Nebullvm` is an ecosystem of open-source Apps to boost the performances of your AI systems. The optimization Apps are stack-agnostic and work with any library.
 
