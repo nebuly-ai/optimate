@@ -1,10 +1,19 @@
-![nebullvm nebuly AI accelerate inference optimize DeepLearning](https://user-images.githubusercontent.com/38586138/201391643-a80407e5-2c28-409c-90c9-327795cd27e8.png)
+<p align="center">
+<br><br><br>
+<a href="https://nebuly.gitbook.io/nebuly/welcome/quick-start"><img src="https://user-images.githubusercontent.com/83510798/208247207-861541f0-b968-484c-8a0c-0fb110399c16.png" width="400px"></a>
+<br><br><br>
+</p>
 
+<p align="center">
+<b>AI Optimization AppStore to boost the performances of your AI systems</b>
+</p>
 
+<p align=center>
+<a href="https://pypi.org/project/nebullvm/"><img src="https://badge.fury.io/py/nebullvm.svg"></a>
+<a href="https://discord.gg/77d5kGSa8e"><img src="https://img.shields.io/badge/Discord-1.1k-blueviolet?logo=discord&amp;logoColor=white&style=round">
+<a href="https://pypistats.org/packages/nebullvm"><img src="https://pepy.tech/badge/nebullvm"></a>
+</a>
 
-
-
-# **AI Optimization AppStore**
 
 `Nebullvm` is an ecosystem of open-source Apps to boost the performances of your AI systems. The optimization Apps are stack-agnostic and work with any library.
 
