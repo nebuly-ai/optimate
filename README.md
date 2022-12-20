@@ -27,10 +27,11 @@ Achieve sub-10ms response time for any AI application, including generative and 
 
 
 - [x] [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
-- [ ] [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/optimate): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
+- [x] [Forward-Forward](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/forward_forward): Test the performance of the Forward-Forward algorithm in PyTorch.
+- [ ] [OpenAlphaTensor](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/open_alpha_tensor): Boost your DL model's performance with OpenAlphaTensor's custom-generated matrix multiplication algorithms (AlphaTensor open-source). 
 - [ ] [LargeSpeedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/large_speedster): Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
 - [ ] [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/cloud_surfer): Discover the optimal inference hardware and cloud platform to run an optimized version of your AI model.
-- [ ] [MatrixMaster](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/matrix_master): Boost your DL model's performance with MatrixMaster's custom-generated matrix multiplication algorithms (AlphaTensor open-source). 
+- [ ] [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/optimate): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
 
 ## Maximize Apps
 Make your Kubernetes GPU infrastructure efficient. Simplify cluster management, maximize hardware utilization and minimize costs.
@@ -45,7 +46,7 @@ Don’t settle on generic AI-models. Extract domain-specific knowledge from larg
 ## Simulate Apps
 The time for trial and error is over. Simulate the performances of large models on different computing architectures to reduce time-to-market, maximize accuracy and minimize costs.
 - [ ] [Simulinf](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/simulinf): Simulate inference performances of your AI model on different hardware and cloud platforms.
-- [ ] [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/training_sim): Easily simulate and optimize the training of large AI models on a distributed infrastructure.
+- [ ] [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/training_sim): Easily simulate and optimize the training of large AI models on a distributed infrastructure.
 
 
 Couldn't find the optimization app you were looking for? Please open an issue or contact us at info@nebuly.ai and we will be happy to develop it together.
