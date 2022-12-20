@@ -38,9 +38,14 @@ trained_model = train_with_forward_forward_algorithm(
 )
 ```
 
-Currently the supported architectures are:
+Currently three architectures are supported:
 * `progressive`: the most simple architecture described in the paper. It has a pipeline-like structure and each layer can be trained independently from the following ones. Our implementation differs respect the original one since the labels are injected in the image concatenating them to the flattened tensor instead of replacing the first n_classes pixels value with a one-hot-representation of the label.
 
 * `recurrent`: the recurrent architecture described in the paper. It has a recurrent-like structure and its based on the `GLOM` architecture proposed by Hinton. 
 
 * `nlp`: A simple network which can be used as a language model.
+
+The recurrent and nlp network architectures are shown below.
+<img width="1216" alt="recurrent_net" src="https://user-images.githubusercontent.com/38586138/208651417-498c4bd4-f2dc-4613-a376-0b69317c73d4.png">
+
+<img width="666" alt="nlp_net" src="https://user-images.githubusercontent.com/38586138/208651624-c159b230-f903-4e13-aaa7-b39a0d1c52fc.png">
