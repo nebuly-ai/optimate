@@ -1,4 +1,4 @@
-# Forward-Forward Algorithm
+# Forward-Forward Algorithm App
 
 This app implements a complete open-source version of the forward forward algorithm recently presented by Geoffry Hinton.
 The forward-forward algorithm is a method for training deep neural networks that is based on the idea of using two forward passes on positive and negative data for training the network. Differently respect to the backpropagation approach the forward forward do not need to compute the gradient of the loss function with respect to the parameters of the network. On the contrary each optimization step can be performed locally, meaning that each layer weights can be updated just after the layer has performed its own forward pass.
