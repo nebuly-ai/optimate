@@ -45,7 +45,20 @@ Currently three architectures are supported:
 
 * `nlp`: A simple network which can be used as a language model.
 
-The recurrent and nlp network architectures are shown below.
+The recurrent and nlp network architectures are better explained below.
+
+## Recurrent Architecture
+The recurrent architecture is based in the `GLOM` architecture for videos, proposed by Hinton in the paper [How to represent part-whole hierarchies in a neural network](https://arxiv.org/pdf/2102.12627.pdf). Its application to the forward-forward algorithm aims at enabling each layer to learn not just from the previous layer output, but from the following layers as well. This is done by concatenating the outputs of the previous layer and following layers computed at the previous time-step. A learned representation of the label (positive or negative) it is given as input to the last layer. The following figure shows the structure of the network:
+
 <img width="1216" alt="recurrent_net" src="https://user-images.githubusercontent.com/38586138/208651417-498c4bd4-f2dc-4613-a376-0b69317c73d4.png">
 
+## NLP Architecture
+The forward-forward architecture developed for NLP is a simple network which can be used as a language model. The network is composed by few normalized fully connected layers followed by a ReLU activation. All hidden representations are then concatenated together and given as input to the softmax for predicting the next token. The network can be trained in a progressive way, i.e. each layer can be sequentially trained separately from the following ones. The following figure shows the structure of the network:
 <img width="666" alt="nlp_net" src="https://user-images.githubusercontent.com/38586138/208651624-c159b230-f903-4e13-aaa7-b39a0d1c52fc.png">
+
+## What is missing
+This app implements the main architectures exposed by hinton in its paper. However, there are still some features that are not implemented yet. In particular, the following features are missing:
+
+* [ ] Implement unsupervised training.
+* [ ] Implementation of the `progressive` architecture using local receptive fields instead of fully connected layers.
+* [ ] Add training on CIFAR-10 for CV-based architectures.
