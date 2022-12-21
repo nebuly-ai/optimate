@@ -75,8 +75,8 @@ class TensorFlowTransformerWrapper(tf.keras.Model):
 
 
 def flatten_outputs(
-    outputs: Union[torch.Tensor, Iterable]
-) -> List[torch.Tensor]:
+    outputs: Union[torch.Tensor, tf.Tensor, Iterable]
+) -> List[Union[torch.Tensor, tf.Tensor]]:
     new_outputs = []
     for output in outputs:
         if isinstance(output, (torch.Tensor, tf.Tensor)):
@@ -88,7 +88,7 @@ def flatten_outputs(
 
 
 def get_size_recursively(
-    tensor_tuple: Union[torch.Tensor, Tuple]
+    tensor_tuple: Union[torch.Tensor, tf.Tensor, Tuple]
 ) -> List[int]:
     if isinstance(tensor_tuple[0], (torch.Tensor, tf.Tensor)):
         return [len(tensor_tuple)]
@@ -115,14 +115,14 @@ def get_output_structure_from_text(
     structure = OrderedDict()
     if isinstance(output, tuple):
         for i, value in enumerate(output):
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, (torch.Tensor, tf.Tensor)):
                 structure[f"output_{i}"] = None
             else:
                 size = get_size_recursively(value)
                 structure[f"output_{i}"] = size
     else:
         for key, value in output.items():
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, (torch.Tensor, tf.Tensor)):
                 structure[key] = None
             else:
                 size = get_size_recursively(value)
@@ -148,14 +148,14 @@ def get_output_structure_from_dict(
     structure = OrderedDict()
     if isinstance(output, tuple):
         for i, value in enumerate(output):
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, (torch.Tensor, tf.Tensor)):
                 structure[f"output_{i}"] = None
             else:
                 size = get_size_recursively(value)
                 structure[f"output_{i}"] = size
     else:
         for key, value in output.items():
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, (torch.Tensor, tf.Tensor)):
                 structure[key] = None
             else:
                 size = get_size_recursively(value)
