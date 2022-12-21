@@ -34,8 +34,7 @@ def convert_tf_to_onnx(
             return convert_keras_to_onnx(model, model_params, output_file_path)
         else:
             return convert_tf_saved_model_to_onnx(model, output_file_path)
-    except Exception as ex:
-        raise ex
+    except Exception:
         logger.warning(
             "Something went wrong during conversion from tensorflow"
             " to onnx model. ONNX pipeline will be unavailable."
