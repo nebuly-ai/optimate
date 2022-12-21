@@ -2,7 +2,6 @@ import cpuinfo
 
 import pytest
 import tensorflow as tf
-import torch
 from keras.applications import ResNet50
 
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
@@ -23,7 +22,7 @@ from nebullvm.operations.inference_learners.tvm import (
     TensorflowApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
-from nebullvm.tools.utils import is_python_version_3_10
+from nebullvm.tools.utils import is_python_version_3_10, gpu_is_available
 from speedster import optimize_model
 
 # Limit tensorflow gpu memory usage
@@ -94,7 +93,7 @@ def test_tensorflow_tf_backend():
 
 
 @pytest.mark.skipif(
-    torch.cuda.is_available(),
+    gpu_is_available(),
     reason="TFLite does not support Nvidia GPUs",
 )
 def test_tensorflow_tflite():
@@ -124,7 +123,7 @@ def test_tensorflow_tflite():
 
 
 @pytest.mark.skipif(
-    not torch.cuda.is_available(),
+    not gpu_is_available(),
     reason="Skip because cuda is not available.",
 )
 def test_tensorflow_tensorrt():

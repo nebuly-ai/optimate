@@ -5,20 +5,34 @@ try:
 except Exception:
     pass
 
-NoneType = type(None)
+
+class Model:
+    pass
+
+
+class Dataset:
+    pass
 
 
 class Keras:
-    Model = NoneType
+    Model = Model
+
+
+class Module:
+    pass
+
+
+class Tensor:
+    pass
 
 
 class data:
-    Dataset = NoneType
+    Dataset = Dataset
 
 
 class Tensorflow:
-    Module = NoneType
-    Tensor = NoneType
+    Module = Module
+    Tensor = Tensor
     keras = Keras()
     data = data
 
@@ -32,7 +46,7 @@ try:
 
     tensorflow.get_logger().setLevel("ERROR")
     tensorflow.autograph.set_verbosity(0)
-except ImportError:
+except (ImportError, AttributeError):
     tensorflow = Tensorflow
 
 

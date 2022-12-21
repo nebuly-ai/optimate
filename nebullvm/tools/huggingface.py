@@ -138,12 +138,11 @@ def get_output_structure_from_dict(
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-    device = torch.device("cuda" if device is Device.GPU else "cpu")
 
-    if isinstance(list(input_example.values())[0], torch.Tensor):
-        input_example.to(device)
     if isinstance(model, torch.nn.Module):
+        device = torch.device("cuda" if device is Device.GPU else "cpu")
         model.to(device)
+        input_example.to(device)
 
     output = model(**input_example)
     structure = OrderedDict()
