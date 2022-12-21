@@ -14,7 +14,7 @@ tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
 
 # Case 1: dictionary input format
 text = "This is an example text for the huggingface model."
-input_dict = tokenizer(text, return_tensors="pt")
+input_dict = tokenizer(text, return_tensors="pt")  # set return_tensors="tf" or "np" for tensorflow models
 
 # Run Speedster optimization
 optimized_model = optimize_model(
@@ -37,7 +37,7 @@ res = optimized_model(**input_dict)
 #     "The cat is on the table.",
 # ]
 # tokenizer_args = dict(
-#     return_tensors="pt",
+#     return_tensors="pt",  # set return_tensors="tf" or "np" for tensorflow models
 #     padding="longest",
 #     truncation=True,
 # )

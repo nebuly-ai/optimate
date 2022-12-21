@@ -71,8 +71,8 @@ def _build_static_model(
     model_params = {
         "batch_size": STATIC_BATCH_SIZE,
         "input_infos": [
-            {"size": INPUT_SHAPE, "dtype": "float"},
-            {"size": INPUT_SHAPE, "dtype": "float"},
+            {"size": INPUT_SHAPE, "dtype": "float32"},
+            {"size": INPUT_SHAPE, "dtype": "float32"},
         ],
         "output_sizes": [OUTPUT_SHAPE],
     }
@@ -92,8 +92,8 @@ def _build_dynamic_model(
     model_params = {
         "batch_size": DYNAMIC_BATCH_SIZE,
         "input_infos": [
-            {"size": INPUT_SHAPE, "dtype": "float"},
-            {"size": INPUT_SHAPE, "dtype": "float"},
+            {"size": INPUT_SHAPE, "dtype": "float32"},
+            {"size": INPUT_SHAPE, "dtype": "float32"},
         ],
         "output_sizes": [OUTPUT_SHAPE],
         "dynamic_info": {
