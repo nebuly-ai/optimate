@@ -100,7 +100,7 @@ class SpeedsterRootOp(Operation):
         **kwargs,
     ):
         self.logger.info(
-            f"Running Black Box Nebullvm Optimization on {self.device.name}"
+            f"Running Speedster Optimization on {self.device.name}"
         )
 
         check_dependencies(self.device)
@@ -254,7 +254,7 @@ class SpeedsterRootOp(Operation):
             if len(optimized_models) < 1 or optimized_models[0][0] is None:
                 self.logger.warning(
                     "No optimized model has been created. This is likely "
-                    "due to a bug in Nebullvm. Please open an issue and "
+                    "due to a bug in Speedster. Please open an issue and "
                     "report in details your use case."
                 )
             else:
@@ -276,7 +276,7 @@ class SpeedsterRootOp(Operation):
 
                 self.logger.info(
                     (
-                        f"\n[ Nebullvm results ]\n"
+                        f"\n[ Speedster results ]\n"
                         f"Optimization device: {self.device.name}\n"
                         f"Original model latency: {orig_latency:.4f} "
                         f"sec/batch\n"
