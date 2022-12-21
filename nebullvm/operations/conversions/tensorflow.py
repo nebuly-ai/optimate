@@ -34,7 +34,8 @@ def convert_tf_to_onnx(
             return convert_keras_to_onnx(model, model_params, output_file_path)
         else:
             return convert_tf_saved_model_to_onnx(model, output_file_path)
-    except Exception:
+    except Exception as ex:
+        raise ex
         logger.warning(
             "Something went wrong during conversion from tensorflow"
             " to onnx model. ONNX pipeline will be unavailable."
@@ -105,11 +106,13 @@ def convert_keras_to_onnx(
         names = list(model.inputs_types.keys())
     else:
         names = [f"input_{i}" for i in range(len(model_params.input_infos))]
+
     input_signature = tuple(
         tf.TensorSpec(
             (
                 None
-                if dim in model_params.dynamic_info.inputs[i]
+                if model_params.dynamic_info is not None
+                and dim in model_params.dynamic_info.inputs[i]
                 else shape[dim]
                 for dim in range(len(shape))
             ),

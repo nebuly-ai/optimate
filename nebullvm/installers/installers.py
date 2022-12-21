@@ -153,7 +153,7 @@ def install_torch_tensor_rt():
 
 def install_tf2onnx():
     if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-        cmd = ["conda", "install", "-y", "tf2onnx>=1.8.4", "numpy<1.24"]
+        cmd = ["conda", "install", "-y", "tf2onnx>=1.8.4"]
         subprocess.run(cmd)
     else:
         cmd = ["pip3", "install", "--user", "protobuf<4,>=3.20.2"]
@@ -166,6 +166,8 @@ def install_tf2onnx():
         import tf2onnx  # noqa F401
     except ImportError:
         return False
+    except AttributeError:
+        pass
 
     return True
 
@@ -429,7 +431,7 @@ class TensorflowInstaller(BaseInstaller):
     @staticmethod
     def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0"]
+            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0", "numpy<1.24"]
             subprocess.run(cmd)
         else:
             cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0"]
