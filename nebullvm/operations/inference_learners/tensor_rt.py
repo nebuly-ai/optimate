@@ -46,6 +46,8 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         nvidia_logger (any, optional): Logger used by the Nvidia service
     """
 
+    name = "TensorRT"
+
     def __init__(
         self,
         engine: Any,
@@ -242,6 +244,7 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
 
 class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_optimized.pt"
+    name = "TensorRT"
 
     def __init__(
         self,

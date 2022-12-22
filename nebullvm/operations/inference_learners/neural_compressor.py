@@ -41,6 +41,8 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         model (torch.fx.GraphModule): Torch fx graph model.
     """
 
+    name = "IntelNeuralCompressor"
+
     def __init__(
         self,
         model: Union[Module, GraphModule],

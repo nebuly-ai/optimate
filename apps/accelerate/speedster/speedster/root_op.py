@@ -155,6 +155,17 @@ class SpeedsterRootOp(Operation):
                 )
                 needs_conversion_to_hf = True
 
+                if dynamic_info is None:
+                    self.logger.warning(
+                        "Dynamic shape info has not been provided for the "
+                        "HuggingFace model. The resulting optimized model "
+                        "will be usable only with a fixed input shape. "
+                        "To optimize the model for dynamic shapes, please "
+                        "look here: https://nebuly.gitbook.io/nebuly/speeds"
+                        "ter/get-started/examples-of-api-options#using-dynamic"
+                        "-shape."
+                    )
+
             if not isinstance(self.data, DataManager):
                 if check_input_data(self.data):
                     if is_data_subscriptable(self.data):
@@ -278,6 +289,7 @@ class SpeedsterRootOp(Operation):
                     (
                         f"\n[ Speedster results ]\n"
                         f"Optimization device: {self.device.name}\n"
+                        f"Original model backend: {dl_framework.name}\n"
                         f"Original model latency: {orig_latency:.4f} "
                         f"sec/batch\n"
                         f"Original model throughput: "
@@ -285,6 +297,8 @@ class SpeedsterRootOp(Operation):
                         f"data/sec\n"
                         f"Original model size: "
                         f"{original_model_size / 1e6:.2f} MB\n"
+                        f"Optimized model backend: "
+                        f"{optimized_models[0][0].name}\n"
                         f"Optimized model latency: "
                         f"{optimized_models[0][1]:.4f} "
                         f"sec/batch\n"

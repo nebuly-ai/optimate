@@ -21,6 +21,7 @@ from nebullvm.tools.transformations import MultiStageTransformation
 
 class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_scripted.pt"
+    name = "TorchScript"
 
     def __init__(self, torch_model: ScriptModule, device: Device, **kwargs):
         super().__init__(**kwargs)

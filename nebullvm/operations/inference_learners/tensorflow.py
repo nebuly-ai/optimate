@@ -12,6 +12,8 @@ from nebullvm.tools.base import Device, ModelParams
 
 
 class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
+    name = "XLA"
+
     def __init__(self, tf_model: tf.Module, device: Device, **kwargs):
         super(TensorflowBackendInferenceLearner, self).__init__(**kwargs)
         self.model = tf_model
@@ -53,6 +55,8 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
 
 class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
+    name = "TFLite"
+
     def __init__(self, tflite_file: bytes, device: Device, **kwargs):
         super(TFLiteBackendInferenceLearner, self).__init__(**kwargs)
         self.tflite_file = tflite_file

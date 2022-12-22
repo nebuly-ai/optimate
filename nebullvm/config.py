@@ -1,7 +1,7 @@
 from nebullvm.optional_modules.torch import torch
 
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 LEARNER_METADATA_FILENAME = "metadata.json"
 ONNX_OPSET_VERSION = 13
 NEBULLVM_DEBUG_FILE = "nebullvm_debug.json"
