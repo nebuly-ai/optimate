@@ -127,6 +127,9 @@ class ApacheTVMCompiler(Compiler, ABC):
         if device is not Device.GPU:
             inputs = tuple(input_.cpu() for input_ in inputs)
             torch_model.cpu()
+        else:
+            inputs = tuple(input_.cuda() for input_ in inputs)
+            torch_model.cuda()
         with torch.no_grad():
             _ = torch_model(*inputs)
             model_trace = torch.jit.trace(torch_model, inputs)
