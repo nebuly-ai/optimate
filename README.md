@@ -10,8 +10,8 @@
 
 <p align=center>
 <a href="https://pypi.org/project/nebullvm/"><img src="https://badge.fury.io/py/nebullvm.svg"></a>
-<a href="https://discord.gg/77d5kGSa8e"><img src="https://img.shields.io/badge/Discord-1.1k-blueviolet?logo=discord&amp;logoColor=white&style=round">
 <a href="https://pypistats.org/packages/nebullvm"><img src="https://pepy.tech/badge/nebullvm"></a>
+<a href="https://discord.gg/77d5kGSa8e"><img src="https://img.shields.io/badge/Discord-1.1k-blueviolet?logo=discord&amp;logoColor=white&style=round">
 <a href="https://twitter.com/nebuly_ai"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"></a>
 
 </a>
