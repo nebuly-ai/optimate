@@ -26,8 +26,11 @@ steps:
       sudo apt-get install -y docker-ce docker-ce-cli containerd.io
       sudo groupadd docker
       sudo usermod -aG docker $USER
-      docker run hello-world
     displayName: 'Install docker'
+
+  - script: |
+      docker run hello-world
+    displayName: 'Ensure docker works correctly'
 
   - script: |
       pip uninstall -y nebullvm
