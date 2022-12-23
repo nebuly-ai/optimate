@@ -202,12 +202,17 @@ def compute_relative_difference(
             "It will be ignored."
         )
 
-    assert tensor_1.shape == tensor_2.shape, (
+    tensor_1, tensor_2 = map(convert_to_numpy, (tensor_1, tensor_2))
+
+    assert (
+        tensor_1.shape == tensor_2.shape
+        or (tensor_1.shape[0] == 1 and tensor_1[0].shape == tensor_2.shape)
+        or (tensor_2.shape[0] == 1 and tensor_2[0].shape == tensor_1.shape)
+    ), (
         "The two tensors have different shapes, unable to "
         "compute the difference."
     )
 
-    tensor_1, tensor_2 = map(convert_to_numpy, (tensor_1, tensor_2))
     diff = np.abs(tensor_1 - tensor_2) / (
         np.maximum(np.abs(tensor_1), np.abs(tensor_2)) + eps
     )
