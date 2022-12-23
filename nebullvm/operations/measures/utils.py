@@ -205,8 +205,8 @@ def compute_relative_difference(
     tensor_1, tensor_2 = map(convert_to_numpy, (tensor_1, tensor_2))
 
     assert tensor_1.shape == tensor_2.shape, (
-        "The two tensors have different shapes, unable to "
-        "compute the difference."
+        "The outputs of the original and optimized models have "
+        "different shapes"
     )
 
     diff = np.abs(tensor_1 - tensor_2) / (
