@@ -271,8 +271,12 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device
-        if self.use_gpu:
-            input_tensors = (t.cuda() for t in input_tensors)
+
+        # PyTorch-TensorRT does not support int64
+        input_tensors = (
+            t.cuda() if t.dtype != torch.int64 else t.to(torch.int32).cuda()
+            for t in input_tensors
+        )
 
         with torch.no_grad():
             res = self.model(*input_tensors)
