@@ -80,7 +80,9 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
             self.interpreter.set_tensor(i, input_tensor)
         self.interpreter.invoke()
         return tuple(
-            self.interpreter.get_tensor(output_detail["index"])
+            tf.convert_to_tensor(
+                self.interpreter.get_tensor(output_detail["index"])
+            )
             for output_detail in output_details
         )
 
