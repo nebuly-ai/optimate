@@ -24,7 +24,7 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         with tf.device(self.device.value):
-            res = self.model.predict(input_tensors, verbose=0)
+            res = self.model(input_tensors)
         if not isinstance(res, tuple):
             return (res,)
         return res
