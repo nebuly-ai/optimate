@@ -173,6 +173,10 @@ class PytorchNeuralCompressorInferenceLearner(
         """
         inputs = (t.cpu() for t in input_tensors)
         outputs = self.model_quant(*inputs)
+
+        if isinstance(outputs, torch.Tensor):
+            outputs = (outputs,)
+
         return outputs
 
 
