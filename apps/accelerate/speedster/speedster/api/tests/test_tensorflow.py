@@ -64,7 +64,7 @@ def test_tensorflow_ort():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowONNXInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+    assert abs((res_original - res_optimized)).max() < 1e-2
 
 
 def test_tensorflow_tf_backend():
@@ -148,7 +148,7 @@ def test_tensorflow_tensorrt():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowONNXTensorRTInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+    assert abs((res_original - res_optimized)).max() < 1e-2
 
 
 @pytest.mark.skipif(
@@ -181,7 +181,7 @@ def test_tensorflow_openvino():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowOpenVinoInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+    assert abs((res_original - res_optimized)).max() < 1e-2
 
 
 @pytest.mark.skipif(
@@ -209,4 +209,4 @@ def test_tensorflow_tvm():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowApacheTVMInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+    assert abs((res_original - res_optimized)).max() < 1e-2
