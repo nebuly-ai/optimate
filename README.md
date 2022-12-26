@@ -12,7 +12,8 @@
 <a href="https://pypi.org/project/nebullvm/"><img src="https://badge.fury.io/py/nebullvm.svg"></a>
 <a href="https://pypistats.org/packages/nebullvm"><img src="https://pepy.tech/badge/nebullvm"></a>
 <a href="https://discord.gg/77d5kGSa8e"><img src="https://img.shields.io/badge/Discord-1.1k-blueviolet?logo=discord&amp;logoColor=white&style=round">
-<a href="https://twitter.com/nebuly_ai"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"></a>
+<a href="https://twitter.com/nebuly_ai"><img src="https://img.shields.io/twitter/url.svg?label=Follow%20%40nebuly_ai&style=social&url=https%3A%2F%2Ftwitter.com-nebuly_ai"></a>
+
 
 </a>
   
