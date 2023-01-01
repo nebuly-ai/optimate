@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 from pathlib import Path
@@ -46,13 +47,28 @@ from nebullvm.tools.base import (
     ModelCompressor,
 )
 from nebullvm.tools.data import DataManager
-from nebullvm.tools.feedback_collector import FEEDBACK_COLLECTOR
+from nebullvm.tools.feedback_collector import FeedbackCollector
 from nebullvm.tools.utils import (
     get_dl_framework,
     is_huggingface_data,
     check_input_data,
     is_data_subscriptable,
     extract_info_from_data,
+)
+
+
+from speedster.utils import (
+    get_model_name,
+    read_model_size,
+    generate_model_id,
+    get_hw_info,
+)
+
+
+SPEEDSTER_FEEDBACK_COLLECTOR = FeedbackCollector(
+    url="https://nebuly.cloud/v1/store_speedster_results",
+    disable_telemetry_environ_var="SPEEDSTER_DISABLE_TELEMETRY",
+    app_version="0.0.2",
 )
 
 
@@ -74,6 +90,7 @@ class SpeedsterRootOp(Operation):
         self.onnx_conversion_op = ONNXConverter()
         self.onnx_optimization_op = ONNXOptimizer()
         self.tensorflow_optimization_op = TensorflowOptimizer()
+        self.set_feedback_collector(SPEEDSTER_FEEDBACK_COLLECTOR)
 
     def _get_conversion_op(self, dl_framework: DeepLearningFramework):
         if dl_framework == DeepLearningFramework.PYTORCH:
@@ -99,9 +116,7 @@ class SpeedsterRootOp(Operation):
         store_latencies: bool = False,
         **kwargs,
     ):
-        self.logger.info(
-            f"Running Black Box Nebullvm Optimization on {self.device.name}"
-        )
+        self.logger.info(f"Running Speedster on {self.device.name}")
 
         check_dependencies(self.device)
 
@@ -193,8 +208,20 @@ class SpeedsterRootOp(Operation):
 
             self.data.split(TRAIN_TEST_SPLIT_RATIO)
 
-            FEEDBACK_COLLECTOR.start_collection(
-                self.model, framework=dl_framework, device=self.device
+            model_name = get_model_name(self.model)
+            model_info = {
+                "model_name": model_name,
+                "model_size": read_model_size(model),
+                "framework": dl_framework.value,
+            }
+            self.feedback_collector.store_info(
+                key="model_id", value=generate_model_id(model_name)
+            )
+            self.feedback_collector.store_info(
+                key="model_metadata", value=model_info
+            )
+            self.feedback_collector.store_info(
+                key="hardware_setup", value=get_hw_info(self.device)
             )
 
             # Benchmark original model
@@ -205,13 +232,11 @@ class SpeedsterRootOp(Operation):
             )
 
             # Store original model result
-            FEEDBACK_COLLECTOR.store_compiler_result(
-                compiler=dl_framework,
-                q_type=None,
-                metric_drop_ths=metric_drop_ths,
-                latency=self.orig_latency_measure_op.get_result()[1],
-                pipeline_name=dl_framework,
-            )
+            original_model_dict = {
+                "compiler": dl_framework.value,
+                "technique": "original",
+                "latency": self.orig_latency_measure_op.get_result()[1],
+            }
 
             with TemporaryDirectory() as tmp_dir:
                 tmp_dir = Path(tmp_dir) / "fp32"
@@ -272,8 +297,23 @@ class SpeedsterRootOp(Operation):
 
                 orig_latency = self.orig_latency_measure_op.get_result()[1]
 
-                FEEDBACK_COLLECTOR.send_feedback(store_latencies)
-
+                optimizations = self.feedback_collector.get("optimizations")
+                optimizations.insert(0, original_model_dict)
+                self.feedback_collector.send_feedback()
+                if store_latencies:
+                    model_id = self.feedback_collector.get("model_id", "")
+                    with open(
+                        f"{model_name}_latencies_{model_id[:10]}.json", "w"
+                    ) as f:
+                        json.dump(
+                            {
+                                "optimizations": optimizations,
+                            },
+                            f,
+                        )
+                self.feedback_collector.reset("optimizations")
+                self.feedback_collector.reset("model_id")
+                self.feedback_collector.reset("model_metadata")
                 self.logger.info(
                     (
                         f"\n[ Nebullvm results ]\n"
