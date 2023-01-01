@@ -107,7 +107,7 @@ jobs:
         # Run api tests
       - name: Run api tests
         run: |
-          SETX EVIDENTLY_DISABLE_TELEMETRY 1
+          SETX SPEEDSTER_DISABLE_TELEMETRY 1
           cd apps/accelerate/speedster
           pytest
           cd ../../..
