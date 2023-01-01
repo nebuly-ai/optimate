@@ -245,7 +245,7 @@ class Optimizer(Operation, abc.ABC):
 
                                     opt_info_dict = {
                                         "compiler": f"{self.pipeline_dl_framework.value}_{compiler.value}",  # noqa: E501
-                                        "technique": q_type
+                                        "technique": q_type.value
                                         if q_type
                                         else "none",
                                         "latency": latency,
@@ -282,7 +282,9 @@ class Optimizer(Operation, abc.ABC):
                         optimization_info.append(
                             {
                                 "compiler": compiler.value,
-                                "technique": q_type if q_type else "none",
+                                "technique": q_type.value
+                                if q_type
+                                else "none",
                                 "latency": -1,
                             }
                         )
