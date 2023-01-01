@@ -107,9 +107,10 @@ jobs:
         # Run api tests
       - name: Run api tests
         run: |
-          SET SPEEDSTER_DISABLE_TELEMETRY 1
+          set SPEEDSTER_DISABLE_TELEMETRY=1
+          set SPEEDSTER_DISABLE_TELEMETRY
           cd apps/accelerate/speedster
-          SPEEDSTER_DISABLE_TELEMETRY=1 pytest
+          pytest
           cd ../../..
         # Run components tests
       - name: Run components tests
