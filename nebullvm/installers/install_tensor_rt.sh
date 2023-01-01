@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ "$(shell grep '^ID_LIKE' /etc/os-release)" == *"centos"* ]]
+if [[ "$(grep '^ID_LIKE' /etc/os-release)" == *"centos"* ]]
 then
   # Installation for centos type linux distribution
   # Try installation with pip if fails then install from source
