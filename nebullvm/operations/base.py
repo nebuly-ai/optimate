@@ -3,6 +3,7 @@ import logging
 from typing import Dict, Any, Optional, Union
 
 from nebullvm.tools.base import Device
+from nebullvm.tools.feedback_collector import FeedbackCollector
 from nebullvm.tools.utils import gpu_is_available
 
 logger = logging.getLogger("nebullvm_logger")
@@ -38,6 +39,13 @@ class Operation(abc.ABC):
         self.device = Device.CPU
         self.execute_count = 0
         self.logger = logger
+        self.feedback_collector = None
+
+    def set_feedback_collector(self, feedback_collector: FeedbackCollector):
+        self.feedback_collector = feedback_collector
+        for value in self.__dict__.values():
+            if isinstance(value, Operation):
+                value.set_feedback_collector(feedback_collector)
 
     @abc.abstractmethod
     def execute(self, **kwargs):

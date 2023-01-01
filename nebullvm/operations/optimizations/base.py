@@ -63,7 +63,6 @@ from nebullvm.tools.base import (
     ModelCompressor,
 )
 from nebullvm.tools.data import DataManager
-from nebullvm.tools.feedback_collector import FEEDBACK_COLLECTOR
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
@@ -164,6 +163,7 @@ class Optimizer(Operation, abc.ABC):
         else:
             q_types = [None]
 
+        optimization_info = []
         for compiler, compiler_op, build_inference_learner_op in zip(
             self.compiler_ops.keys(),
             self.compiler_ops.values(),
@@ -242,14 +242,27 @@ class Optimizer(Operation, abc.ABC):
                                             self.validity_check_op.measure_result,  # noqa: E501
                                         )
                                     )
-                                    FEEDBACK_COLLECTOR.store_compiler_result(
-                                        compiler=compiler,
-                                        q_type=q_type,
-                                        metric_drop_ths=metric_drop_ths,
-                                        latency=latency,
-                                        compression=None,
-                                        pipeline_name=self.pipeline_dl_framework,  # noqa: E501
-                                    )
+
+                                    opt_info_dict = {
+                                        "compiler": f"{self.pipeline_dl_framework.value}_{compiler.value}",  # noqa: E501
+                                        "technique": q_type
+                                        if q_type
+                                        else "none",
+                                        "latency": latency,
+                                    }
+                                    if (
+                                        metric_drop_ths is not None
+                                        and q_type is not None
+                                    ):
+                                        opt_info_dict[
+                                            "metric_loss"
+                                        ] = (
+                                            self.validity_check_op.measure_result  # noqa: E501
+                                        )
+                                        opt_info_dict[
+                                            "metric"
+                                        ] = metric.__name__
+                                    optimization_info.append(opt_info_dict)
                                 else:
                                     self.logger.warning(
                                         "The optimized model will be "
@@ -266,14 +279,18 @@ class Optimizer(Operation, abc.ABC):
                             f"documentation for further info or open an issue "
                             f"on GitHub for receiving assistance."
                         )
-                        FEEDBACK_COLLECTOR.store_compiler_result(
-                            compiler=compiler,
-                            q_type=q_type,
-                            metric_drop_ths=metric_drop_ths,
-                            latency=None,
-                            compression=None,
-                            pipeline_name=self.pipeline_dl_framework,
+                        optimization_info.append(
+                            {
+                                "compiler": compiler.value,
+                                "technique": q_type if q_type else "none",
+                                "latency": -1,
+                            }
                         )
+        if self.feedback_collector is not None:
+            self.feedback_collector.store_info(
+                key="optimizations",
+                value=optimization_info,
+            )
 
     def get_result(self) -> List:
         return self.optimized_models
