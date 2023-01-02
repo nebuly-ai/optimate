@@ -24,7 +24,6 @@ from nebullvm.tools.base import (
     QuantizationType,
     ModelCompiler,
 )
-from nebullvm.tools.utils import is_python_version_3_10
 
 
 @pytest.mark.parametrize(
@@ -53,10 +52,6 @@ from nebullvm.tools.utils import is_python_version_3_10
             "numeric_precision",
         ),
     ],
-)
-@pytest.mark.skipif(
-    is_python_version_3_10(),
-    reason="Openvino doesn't support python 3.10 yet.",
 )
 @pytest.mark.skipif(
     "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
