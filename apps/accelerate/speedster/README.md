@@ -43,7 +43,7 @@ python -m nebullvm.installers.auto_installer \
     --compilers all
 ```
 
-For more details on the installation step, please visit [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation).
+For more details on the installation step, please visit [Installation](https://docs.nebuly.com/speedster/installation).
 
 
 # API quick view
@@ -61,7 +61,7 @@ Checkout how to define the `model` and `input_data` parameters depending on whic
 [TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/tensorflow#tensorflow-api-quick-view), 
 [ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/onnx#onnx-api-quick-view).
 
-For more details, please visit also the documentation sections [Get Started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started),  [Speedster API](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/nebullvm-api) and [Examples of API options](https://nebuly.gitbook.io/nebuly/nebullvm/get-started/examples-of-api-options).
+For more details, please visit also the documentation sections [Get Started](https://docs.nebuly.com/speedster/get-started),  [Speedster API](https://docs.nebuly.com/speedster/get-started/speedster-api) and [Examples of API options](https://docs.nebuly.com/speedster/get-started/examples-of-api-options).
 
 # **How it works**
 
@@ -95,18 +95,18 @@ The **optimizer stage** leverages the following open-source projects:
 
 # **Documentation**
 
-- [Installation](https://nebuly.gitbook.io/nebuly/nebullvm/installation)
-- [Get started](https://nebuly.gitbook.io/nebuly/nebullvm/get-started)
+- [Installation](https://docs.nebuly.com/speedster/installation)
+- [Get started](https://docs.nebuly.com/speedster/get-started)
 - [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
-- [Benchmarks](https://nebuly.gitbook.io/nebuly/nebullvm/benchmarks)
-- [Supported features and roadmap](https://nebuly.gitbook.io/nebuly/nebullvm/how-nebullvm-works/supported-features-and-roadmap)
+- [Benchmarks](https://docs.nebuly.com/speedster/benchmarks)
+- [Supported features and roadmap](https://docs.nebuly.com/speedster/how-speedster-works/supported-features-and-roadmap)
 
 # **Community**
 
 - **[Discord](https://discord.gg/RbeQMu886J)**: best for sharing your projects, hanging out with the community and learning about AI acceleration.
-- **[Github issues](https://github.com/nebuly-ai/nebullvm/issues)**: ideal for suggesting new acceleration components, requesting new features, and reporting bugs and improvements.
+- **[GitHub issues](https://github.com/nebuly-ai/nebullvm/issues)**: ideal for suggesting new acceleration components, requesting new features, and reporting bugs and improvements.
 
-We’re developing `Speedster` together with our community so the best way to get started is to pick a `good-first issue`. Please read our [contribution guidelines](https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
+We’re developing `Speedster` together with our community so the best way to get started is to pick a `good-first issue`. Please read our [contribution guidelines](https://docs.nebuly.com/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
 
 Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀
 
@@ -128,13 +128,13 @@ Don't forget to leave a star ⭐ to support the project and happy acceleration �
 
 <p align="center">
   <a href="https://discord.gg/RbeQMu886J">Join the community</a> |
-  <a href="https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions">Contribute to the library</a>
+  <a href="https://docs.nebuly.com/welcome/questions-and-contributions">Contribute to the library</a>
 </p>
 
 
 <p align="center">
-<a href="https://nebuly.gitbook.io/nebuly/nebullvm/installation">Installation</a> •
-<a href="https://nebuly.gitbook.io/nebuly/nebullvm/get-started">Get started</a> •
+<a href="https://docs.nebuly.com/speedster/installation">Installation</a> •
+<a href="https://docs.nebuly.com/speedster/get-started">Get started</a> •
 <a href="https://github.com/nebuly-ai/nebullvm/tree/main/notebooks">Notebooks</a> •
-<a href="https://nebuly.gitbook.io/nebuly/nebullvm/benchmarks">Benchmarks</a>
+<a href="https://docs.nebuly.com/speedster/benchmarks">Benchmarks</a>
 </p>

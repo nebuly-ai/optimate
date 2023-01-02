@@ -53,12 +53,13 @@ steps:
     displayName: 'Install requirements for testing'
 
   - script: |
+      export SPEEDSTER_DISABLE_TELEMETRY=1
       export PATH=$PATH:/home/AzDevOps/.local/bin
       cd apps/accelerate/speedster
       pytest
       cd ../../..
     displayName: 'Run api tests'
-
+    
   - script: |
       export PATH=$PATH:/home/AzDevOps/.local/bin
       cd nebullvm

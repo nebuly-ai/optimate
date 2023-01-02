@@ -1,6 +1,6 @@
 <p align="center">
 <br><br><br>
-<a href="https://nebuly.gitbook.io/nebuly/welcome/quick-start"><img src="https://user-images.githubusercontent.com/83510798/208247207-861541f0-b968-484c-8a0c-0fb110399c16.png" width="400px"></a>
+<a https://docs.nebuly.com/welcome/quick-start"><img src="https://user-images.githubusercontent.com/83510798/208247207-861541f0-b968-484c-8a0c-0fb110399c16.png" width="400px"></a>
 <br><br><br>
 </p>
 
@@ -10,9 +10,13 @@
 
 <p align=center>
 <a href="https://pypi.org/project/nebullvm/"><img src="https://badge.fury.io/py/nebullvm.svg"></a>
-<a href="https://discord.gg/77d5kGSa8e"><img src="https://img.shields.io/badge/Discord-1.1k-blueviolet?logo=discord&amp;logoColor=white&style=round">
 <a href="https://pypistats.org/packages/nebullvm"><img src="https://pepy.tech/badge/nebullvm"></a>
+<a href="https://discord.gg/77d5kGSa8e"><img src="https://img.shields.io/badge/Discord-1.1k-blueviolet?logo=discord&amp;logoColor=white&style=round">
+<a href="https://twitter.com/nebuly_ai"><img src="https://img.shields.io/twitter/url.svg?label=Follow%20%40nebuly_ai&style=social&url=https%3A%2F%2Ftwitter.com-nebuly_ai"></a>
+
+
 </a>
+  
 
 
 `Nebullvm` is an ecosystem of open-source Apps to boost the performances of your AI systems. The optimization Apps are stack-agnostic and work with any library.
@@ -55,13 +59,5 @@ Couldn't find the optimization app you were looking for? Please open an issue or
 
 <p align="center">
   <a href="https://discord.gg/RbeQMu886J">Join the community</a> |
-  <a href="https://nebuly.gitbook.io/nebuly/welcome/questions-and-contributions">Contribute to the library</a>
-</p>
-
-
-<p align="center">
-<a href="https://nebuly.gitbook.io/nebuly/nebullvm/installation">Installation</a> •
-<a href="https://nebuly.gitbook.io/nebuly/nebullvm/get-started">Get started</a> •
-<a href="https://github.com/nebuly-ai/nebullvm/tree/main/notebooks">Notebooks</a> •
-<a href="https://nebuly.gitbook.io/nebuly/nebullvm/benchmarks">Benchmarks</a>
+  <a href="https://docs.nebuly.com/welcome/questions-and-contributions">Contribute to the library</a>
 </p>
