@@ -21,6 +21,9 @@ RUN pip3 install --no-cache-dir tensorflow
 RUN pip3 install --no-cache-dir onnx
 RUN pip3 install --no-cache-dir transformers
 
+# Copy the working dir to the container
+COPY . /nebullvm
+
 # Install nebullvm
 ARG NEBULLVM_VERSION=latest
 RUN if [ "$NEBULLVM_VERSION" = "latest" ] ; then \

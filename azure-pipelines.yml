@@ -14,23 +14,31 @@ steps:
       nvidia-smi
     displayName: 'Ensure cuda is installed correctly'
 
-#  - script: |
-#      export DEBIAN_FRONTEND=noninteractive
-#      sudo apt-get update -y
-#      sudo apt-get install -y ca-certificates curl gnupg lsb-release
-#      sudo mkdir -p /etc/apt/keyrings
-#      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-#      echo \
-#        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-#        $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-#      sudo apt-get update -y
-#      sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-#      sudo chmod 666 /var/run/docker.sock
-#    displayName: 'Install docker'
+  - script: |
+      export DEBIAN_FRONTEND=noninteractive
+      sudo apt-get update -y
+      sudo apt-get install -y ca-certificates curl gnupg lsb-release
+      sudo mkdir -p /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      sudo apt-get update -y
+      sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+      sudo chmod 666 /var/run/docker.sock
+    displayName: 'Install docker'
 
-#  - script: |
-#      docker run hello-world
-#    displayName: 'Ensure docker works correctly'
+  - script: |
+      docker run hello-world
+    displayName: 'Ensure docker works correctly'
+
+  - task: Docker@2
+    displayName: 'Build and push the image to DockerHub'
+    inputs:
+      containerRegistry: 'docker hub'
+      repository: 'nebulydocker/nebullvm'
+      command: 'buildAndPush'
+      Dockerfile: 'Dockerfile'
 
   - script: |
       pip uninstall -y nebullvm
@@ -67,11 +75,3 @@ steps:
       pytest
       cd ../
     displayName: 'Run components tests'
-
-#  - task: Docker@2
-#    displayName: 'Build and push the image to DockerHub'
-#    inputs:
-#      containerRegistry: 'docker hub'
-#      repository: 'nebulydocker/nebullvm'
-#      command: 'buildAndPush'
-#      Dockerfile: 'Dockerfile'
