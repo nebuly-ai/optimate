@@ -5,6 +5,7 @@ from typing import Optional, List, Union
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
 from nebullvm.operations.conversions.tensorflow import convert_tf_to_onnx
+from nebullvm.operations.conversions.onnx import convert_onnx_to_torch
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
@@ -123,6 +124,17 @@ class ONNXConverter(Converter):
         # TODO: Implement conversion from ONNX to Tensorflow
         raise NotImplementedError()
 
-    def pytorch_conversion(self):
+    def pytorch_conversion(self, save_path):
         # TODO: Implement conversion from ONNX to Pytorch
-        raise NotImplementedError()
+        #raise NotImplementedError()
+        torch_path = save_path / f"{self.model_name}{self.TORCH_EXTENSION}"
+        torch_model_path = convert_onnx_to_torch(
+            onnx_model=self.model_onnx,
+            output_file_path=torch_path,
+            device=self.device,
+        )
+        if self.converted_models is None:
+            self.converted_models = [torch_model_path]
+        else:
+            self.converted_models.append(torch_model_path)
+        
