@@ -12,6 +12,8 @@ from nebullvm.tools.base import Device, ModelParams
 
 
 class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
+    name = "XLA"
+
     def __init__(self, tf_model: tf.Module, device: Device, **kwargs):
         super(TensorflowBackendInferenceLearner, self).__init__(**kwargs)
         self.model = tf_model
@@ -22,7 +24,7 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
         with tf.device(self.device.value):
-            res = self.model.predict(input_tensors, verbose=0)
+            res = self.model(input_tensors)
         if not isinstance(res, tuple):
             return (res,)
         return res
@@ -53,6 +55,8 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
 
 class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
+    name = "TFLite"
+
     def __init__(self, tflite_file: bytes, device: Device, **kwargs):
         super(TFLiteBackendInferenceLearner, self).__init__(**kwargs)
         self.tflite_file = tflite_file
@@ -76,7 +80,9 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
             self.interpreter.set_tensor(i, input_tensor)
         self.interpreter.invoke()
         return tuple(
-            self.interpreter.get_tensor(output_detail["index"])
+            tf.convert_to_tensor(
+                self.interpreter.get_tensor(output_detail["index"])
+            )
             for output_detail in output_details
         )
 

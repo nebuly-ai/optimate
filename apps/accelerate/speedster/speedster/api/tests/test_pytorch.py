@@ -3,7 +3,6 @@ import cpuinfo
 import pytest
 import torch
 import torchvision.models as models
-
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.blade_disc import (
     BladeDISCInferenceLearner,
@@ -28,7 +27,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
     bladedisc_is_available,
 )
-from nebullvm.tools.utils import is_python_version_3_10
+
 from speedster import optimize_model
 
 
@@ -138,9 +137,6 @@ def test_torch_tensorrt():
     assert torch.max(abs((res_original - res_optimized))) < 1e-2
 
 
-@pytest.mark.skipif(
-    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
-)
 @pytest.mark.skipif(
     "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
     reason="Openvino is only available for intel processors.",

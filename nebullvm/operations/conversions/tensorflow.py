@@ -5,16 +5,47 @@ from tempfile import TemporaryDirectory
 from typing import Union
 
 from nebullvm.config import ONNX_OPSET_VERSION
-from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf, tf2onnx
-from nebullvm.tools.base import ModelParams, DataType
+from nebullvm.optional_modules.onnx import onnx
+from nebullvm.tools.base import ModelParams
+from nebullvm.tools.huggingface import TensorFlowTransformerWrapper
 
 logger = logging.getLogger("nebullvm_logger")
 
 
-def convert_tf_to_onnx(model: tf.Module, output_file_path: Union[str, Path]):
+def convert_tf_to_onnx(
+    model: Union[tf.Module, tf.keras.Model],
+    model_params: ModelParams,
+    output_file_path: Union[str, Path],
+):
     """Convert TF models into ONNX.
 
+    Args:
+        model (Union[tf.Module, tf.keras.Model]): TF model.
+        model_params (ModelParams): Info about model parameters.
+        output_file_path (Path): Path where storing the output file.
+    """
+
+    try:
+        if isinstance(model, tf.keras.Model) or (
+            isinstance(model, TensorFlowTransformerWrapper)
+            and isinstance(model.core_model, tf.keras.Model)
+        ):
+            return convert_keras_to_onnx(model, model_params, output_file_path)
+        else:
+            return convert_tf_saved_model_to_onnx(model, output_file_path)
+    except Exception:
+        logger.warning(
+            "Something went wrong during conversion from tensorflow"
+            " to onnx model. ONNX pipeline will be unavailable."
+        )
+        return None
+
+
+def convert_tf_saved_model_to_onnx(
+    model: tf.Module, output_file_path: Union[str, Path]
+):
+    """Convert TF models into ONNX.
     Args:
         model (tf.Module): TF model.
         output_file_path (Path): Path where storing the output file.
@@ -39,17 +70,10 @@ def convert_tf_to_onnx(model: tf.Module, output_file_path: Union[str, Path]):
             "--opset",
             f"{ONNX_OPSET_VERSION}",
         ]
-        try:
-            subprocess.run(onnx_cmd)
-            onnx.load(output_file_path)
-        except Exception:
-            logger.warning(
-                "Something went wrong during conversion from tensorflow"
-                " to onnx model. ONNX pipeline will be unavailable."
-            )
-            return None
+        subprocess.run(onnx_cmd)
+        onnx.load(output_file_path)
 
-        return output_file_path
+    return output_file_path
 
 
 def convert_keras_to_onnx(
@@ -60,22 +84,48 @@ def convert_keras_to_onnx(
     """Convert keras models into ONNX.
 
     Args:
-        model (tf.Module): keras model.
+        model (tf.keras.Model): keras model.
         model_params (ModelParams): Model Parameters as input sizes and
             dynamic axis information.
         output_file_path (Path): Path where storing the output file.
     """
-    spec = (
+    # get data types for each input
+    dtypes = [
+        model_params.input_infos[i].dtype.value
+        for i in range(len(model_params.input_infos))
+    ]
+    # get input shapes for each input
+    shapes = [
+        [model_params.batch_size]
+        + [int(x) for x in model_params.input_infos[i].size]
+        for i in range(len(model_params.input_infos))
+    ]
+    # set the dynamic axes for each input
+    if isinstance(model, TensorFlowTransformerWrapper):
+        names = list(model.inputs_types.keys())
+    else:
+        names = [f"input_{i}" for i in range(len(model_params.input_infos))]
+
+    input_signature = tuple(
         tf.TensorSpec(
-            (model_params.batch_size, *input_info.size),
-            tf.float32 if input_info.dtype is DataType.FLOAT else tf.int32,
-            name=f"input_{i}",
+            (
+                None
+                if model_params.dynamic_info is not None
+                and dim in model_params.dynamic_info.inputs[i]
+                else shape[dim]
+                for dim in range(len(shape))
+            ),
+            dtype,
+            name=name,
         )
-        for i, input_info in enumerate(model_params.input_infos)
+        for i, (shape, dtype, name) in enumerate(zip(shapes, dtypes, names))
     )
-    tf2onnx.convert.from_keras(
+
+    onnx_model, _ = tf2onnx.convert.from_keras(
         model,
-        input_signature=spec,
+        input_signature,
         opset=ONNX_OPSET_VERSION,
         output_path=output_file_path,
     )
+
+    return output_file_path

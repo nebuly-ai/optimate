@@ -70,6 +70,8 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             was produced.
     """
 
+    name = "ONNXRuntime"
+
     def __init__(
         self,
         onnx_path: Union[str, Path],

@@ -49,6 +49,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
     """
 
     MODEL_NAME = "model.bin"
+    name = "OpenVINO"
 
     def __init__(
         self,

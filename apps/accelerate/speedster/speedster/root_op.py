@@ -55,7 +55,7 @@ from nebullvm.tools.utils import (
     is_data_subscriptable,
     extract_info_from_data,
 )
-
+from tabulate import tabulate
 
 from speedster.utils import (
     get_model_name,
@@ -170,6 +170,17 @@ class SpeedsterRootOp(Operation):
                 )
                 needs_conversion_to_hf = True
 
+                if dynamic_info is None:
+                    self.logger.warning(
+                        "Dynamic shape info has not been provided for the "
+                        "HuggingFace model. The resulting optimized model "
+                        "will be usable only with a fixed input shape. "
+                        "To optimize the model for dynamic shapes, please "
+                        "look here: https://nebuly.gitbook.io/nebuly/speeds"
+                        "ter/get-started/examples-of-api-options#using-dynamic"
+                        "-shape."
+                    )
+
             if not isinstance(self.data, DataManager):
                 if check_input_data(self.data):
                     if is_data_subscriptable(self.data):
@@ -279,7 +290,7 @@ class SpeedsterRootOp(Operation):
             if len(optimized_models) < 1 or optimized_models[0][0] is None:
                 self.logger.warning(
                     "No optimized model has been created. This is likely "
-                    "due to a bug in Nebullvm. Please open an issue and "
+                    "due to a bug in Speedster. Please open an issue and "
                     "report in details your use case."
                 )
             else:
@@ -314,29 +325,42 @@ class SpeedsterRootOp(Operation):
                 self.feedback_collector.reset("optimizations")
                 self.feedback_collector.reset("model_id")
                 self.feedback_collector.reset("model_metadata")
+
+                table = [
+                    [
+                        "backend",
+                        dl_framework.name,
+                        optimized_models[0][0].name,
+                    ],
+                    [
+                        "latency",
+                        f"{orig_latency:.4f} sec/batch",
+                        f"{optimized_models[0][1]:.4f} sec/batch",
+                    ],
+                    [
+                        "throughput",
+                        f"{(1 / orig_latency) * model_params.batch_size:.2f} "
+                        f"data/sec",
+                        f"{1 / optimized_models[0][1]:.2f} data/sec",
+                    ],
+                    [
+                        "model size",
+                        f"{original_model_size / 1e6:.2f} MB",
+                        f"{optimized_models[0][0].get_size() / 1e6:.2f} MB",
+                    ],
+                    [f"metric drop ({metric_name})", "", opt_metric_drop],
+                    [
+                        "speedup",
+                        "",
+                        f"{orig_latency / optimized_models[0][1]:.2f}x",
+                    ],
+                ]
+                headers = ["Metric", "Original Model", "Optimized Model"]
+
                 self.logger.info(
                     (
-                        f"\n[ Nebullvm results ]\n"
-                        f"Optimization device: {self.device.name}\n"
-                        f"Original model latency: {orig_latency:.4f} "
-                        f"sec/batch\n"
-                        f"Original model throughput: "
-                        f"{(1 / orig_latency) * model_params.batch_size:.2f} "
-                        f"data/sec\n"
-                        f"Original model size: "
-                        f"{original_model_size / 1e6:.2f} MB\n"
-                        f"Optimized model latency: "
-                        f"{optimized_models[0][1]:.4f} "
-                        f"sec/batch\n"
-                        f"Optimized model throughput: "
-                        f"{1 / optimized_models[0][1]:.2f} "
-                        f"data/sec\n"
-                        f"Optimized model size: "
-                        f"{optimized_models[0][0].get_size() / 1e6:.2f} MB\n"
-                        f"Optimized model metric drop: {opt_metric_drop} "
-                        f"({metric_name})\n"
-                        f"Estimated speedup: "
-                        f"{orig_latency / optimized_models[0][1]:.2f}x"
+                        f"\n[ Speedster results on {self.device.name}]\n"
+                        f"{tabulate(table, headers, tablefmt='heavy_outline')}"
                     )
                 )
 

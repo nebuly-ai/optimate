@@ -46,7 +46,7 @@ def create_model_inputs_torch(
 ) -> List[torch.Tensor]:
     input_tensors = (
         torch.randn((batch_size, *input_info.size))
-        if input_info.dtype is DataType.FLOAT
+        if input_info.dtype is DataType.FLOAT32
         else torch.randint(
             size=(batch_size, *input_info.size),
             low=input_info.min_value or 0,
@@ -138,7 +138,11 @@ def extract_info_from_torch_data(
     input_types = ifnone(
         input_types,
         [
-            "int" if isinstance(x.cpu(), torch.LongTensor) else "float"
+            "int64"
+            if isinstance(x.cpu(), torch.LongTensor)
+            else "int32"
+            if isinstance(x.cpu(), torch.IntTensor)
+            else "float32"
             for x in input_row
         ],
     )

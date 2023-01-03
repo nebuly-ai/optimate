@@ -201,7 +201,14 @@ def compute_relative_difference(
             "Received a label for the precision computation. "
             "It will be ignored."
         )
+
     tensor_1, tensor_2 = map(convert_to_numpy, (tensor_1, tensor_2))
+
+    assert tensor_1.shape == tensor_2.shape, (
+        "The outputs of the original and optimized models have "
+        "different shapes"
+    )
+
     diff = np.abs(tensor_1 - tensor_2) / (
         np.maximum(np.abs(tensor_1), np.abs(tensor_2)) + eps
     )

@@ -2,9 +2,7 @@ import cpuinfo
 
 import pytest
 import tensorflow as tf
-import torch
 from keras.applications import ResNet50
-
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.onnx import (
     TensorflowONNXInferenceLearner,
@@ -23,7 +21,8 @@ from nebullvm.operations.inference_learners.tvm import (
     TensorflowApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
-from nebullvm.tools.utils import is_python_version_3_10
+from nebullvm.tools.utils import gpu_is_available
+
 from speedster import optimize_model
 
 # Limit tensorflow gpu memory usage
@@ -65,7 +64,7 @@ def test_tensorflow_ort():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowONNXInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+    assert abs((res_original - res_optimized)).max() < 1e-2
 
 
 def test_tensorflow_tf_backend():
@@ -94,7 +93,7 @@ def test_tensorflow_tf_backend():
 
 
 @pytest.mark.skipif(
-    torch.cuda.is_available(),
+    gpu_is_available(),
     reason="TFLite does not support Nvidia GPUs",
 )
 def test_tensorflow_tflite():
@@ -124,7 +123,7 @@ def test_tensorflow_tflite():
 
 
 @pytest.mark.skipif(
-    not torch.cuda.is_available(),
+    not gpu_is_available(),
     reason="Skip because cuda is not available.",
 )
 def test_tensorflow_tensorrt():
@@ -149,12 +148,9 @@ def test_tensorflow_tensorrt():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowONNXTensorRTInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+    assert abs((res_original - res_optimized)).max() < 1e-2
 
 
-@pytest.mark.skipif(
-    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
-)
 @pytest.mark.skipif(
     "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
     reason="Openvino is only available for intel processors.",
@@ -182,7 +178,7 @@ def test_tensorflow_openvino():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowOpenVinoInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+    assert abs((res_original - res_optimized)).max() < 1e-2
 
 
 @pytest.mark.skipif(
@@ -210,4 +206,4 @@ def test_tensorflow_tvm():
     res_optimized = optimized_model.predict(x)[0]
 
     assert isinstance(optimized_model, TensorflowApacheTVMInferenceLearner)
-    assert abs((res_original - res_optimized)).numpy().max() < 1e-2
+    assert abs((res_original - res_optimized)).max() < 1e-2

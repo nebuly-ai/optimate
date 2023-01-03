@@ -1,5 +1,7 @@
 from typing import Union, List, Tuple, Any, Optional, Dict
 
+import numpy as np
+
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.tools.base import InputInfo, DataType, Device
 
@@ -10,7 +12,7 @@ def get_outputs_sizes_tf(
     device: Device,
 ) -> List[Tuple[int, ...]]:
     with tf.device(device.value):
-        outputs = tf_model(*input_tensors)
+        outputs = tf_model(input_tensors)
     if isinstance(outputs, tf.Tensor) and outputs is not None:
         return [tuple(outputs.shape)]
     return [tuple(x.shape) for x in outputs]
@@ -23,7 +25,7 @@ def create_model_inputs_tf(
         tf.random_normal_initializer()(
             shape=(batch_size, *input_info.size[1:], input_info.size[0])
         )
-        if input_info.dtype is DataType.FLOAT
+        if input_info.dtype is DataType.FLOAT32
         else tf.random.uniform(
             shape=(batch_size, *input_info.size[1:], input_info.size[0]),
             minval=input_info.min_value or 0,
@@ -40,8 +42,8 @@ def run_tf_model(
     device: Device,
 ) -> Tuple[tf.Tensor]:
     with tf.device(device.value):
-        pred = model.predict(input_tensors, verbose=0)
-    if isinstance(pred, tf.Module) and pred is not None:
+        pred = model(input_tensors)
+    if isinstance(pred, tf.Tensor):
         pred = (pred,)
     return pred
 
@@ -94,7 +96,15 @@ def extract_info_from_tf_data(
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
     input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
     input_types = ifnone(
-        input_types, ["int" if x.dtype == int else "float" for x in input_row]
+        input_types,
+        [
+            "int32"
+            if x.dtype in [tf.int32, np.int32]
+            else "int64"
+            if x.dtype in [tf.int64, np.int64]
+            else "float32"
+            for x in input_row
+        ],
     )
     dynamic_axis = ifnone(
         dynamic_axis,

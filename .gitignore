@@ -137,3 +137,6 @@ dmypy.json
 
 # Folder where optimized models are stored
 optimized_model
+
+# Config file for tests coverage
+.coveragerc

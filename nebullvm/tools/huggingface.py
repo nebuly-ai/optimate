@@ -11,6 +11,7 @@ from typing import (
 
 import numpy as np
 
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.tools.base import Device
 
@@ -25,7 +26,7 @@ except ImportError:
     PreTrainedTokenizer = None
 
 
-class TransformerWrapper(Module):
+class PyTorchTransformerWrapper(Module):
     """Class for wrappering the Transformers and give them an API compatible
     with nebullvm. The class takes and input of the forward method positional
     arguments and transform them in the input dictionaries needed by
@@ -52,12 +53,33 @@ class TransformerWrapper(Module):
         return tuple(flatten_outputs(outputs))
 
 
+class TensorFlowTransformerWrapper(tf.keras.Model):
+    def __init__(
+        self,
+        core_model: tf.Module,
+        encoded_input: Dict[str, tf.Tensor],
+    ):
+        super().__init__()
+        self.core_model = core_model
+        self.inputs_types = OrderedDict()
+        for key, value in encoded_input.items():
+            self.inputs_types[key] = value.dtype
+
+    def call(self, *args: tf.Tensor):
+        inputs = {
+            key: value for key, value in zip(self.inputs_types.keys(), args[0])
+        }
+        outputs = self.core_model(**inputs)
+        outputs = outputs.values() if isinstance(outputs, dict) else outputs
+        return tuple(flatten_outputs(list(outputs)))
+
+
 def flatten_outputs(
-    outputs: Union[torch.Tensor, Iterable]
-) -> List[torch.Tensor]:
+    outputs: Union[torch.Tensor, tf.Tensor, Iterable]
+) -> List[Union[torch.Tensor, tf.Tensor]]:
     new_outputs = []
     for output in outputs:
-        if isinstance(output, torch.Tensor):
+        if isinstance(output, (torch.Tensor, tf.Tensor)):
             new_outputs.append(output)
         else:
             flatten_list = flatten_outputs(output)
@@ -66,9 +88,9 @@ def flatten_outputs(
 
 
 def get_size_recursively(
-    tensor_tuple: Union[torch.Tensor, Tuple]
+    tensor_tuple: Union[torch.Tensor, tf.Tensor, Tuple]
 ) -> List[int]:
-    if isinstance(tensor_tuple[0], torch.Tensor):
+    if isinstance(tensor_tuple[0], (torch.Tensor, tf.Tensor)):
         return [len(tensor_tuple)]
     else:
         inner_size = get_size_recursively(tensor_tuple[0])
@@ -85,20 +107,22 @@ def get_output_structure_from_text(
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-    device = torch.device("cuda" if device is Device.GPU else "cpu")
-    encoded_input = tokenizer([text], **tokenizer_args).to(device)
+    encoded_input = tokenizer([text], **tokenizer_args)
+    if isinstance(model, torch.nn.Module):
+        device = torch.device("cuda" if device is Device.GPU else "cpu")
+        encoded_input = encoded_input.to(device)
     output = model(**encoded_input)
     structure = OrderedDict()
     if isinstance(output, tuple):
         for i, value in enumerate(output):
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, (torch.Tensor, tf.Tensor)):
                 structure[f"output_{i}"] = None
             else:
                 size = get_size_recursively(value)
                 structure[f"output_{i}"] = size
     else:
         for key, value in output.items():
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, (torch.Tensor, tf.Tensor)):
                 structure[key] = None
             else:
                 size = get_size_recursively(value)
@@ -114,21 +138,24 @@ def get_output_structure_from_dict(
     """Function needed for saving in a dictionary the output structure of the
     transformers model.
     """
-    device = torch.device("cuda" if device is Device.GPU else "cpu")
-    input_example.to(device)
-    model.to(device)
+
+    if isinstance(model, torch.nn.Module):
+        device = torch.device("cuda" if device is Device.GPU else "cpu")
+        model.to(device)
+        input_example.to(device)
+
     output = model(**input_example)
     structure = OrderedDict()
     if isinstance(output, tuple):
         for i, value in enumerate(output):
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, (torch.Tensor, tf.Tensor)):
                 structure[f"output_{i}"] = None
             else:
                 size = get_size_recursively(value)
                 structure[f"output_{i}"] = size
     else:
         for key, value in output.items():
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, (torch.Tensor, tf.Tensor)):
                 structure[key] = None
             else:
                 size = get_size_recursively(value)
@@ -137,7 +164,7 @@ def get_output_structure_from_dict(
 
 
 def restructure_output(
-    output: Tuple[torch.Tensor],
+    output: Tuple[Union[torch.Tensor, tf.Tensor]],
     structure: OrderedDict,
     output_type: Any = None,
 ):
@@ -152,9 +179,20 @@ def restructure_output(
             idx += 1
         else:
             tensor_shape = output[idx].shape[1:]
+            stack_fn = (
+                torch.stack
+                if isinstance(output[idx], torch.Tensor)
+                else tf.stack
+            )
+            reshape_fn = (
+                torch.reshape
+                if isinstance(output[idx], torch.Tensor)
+                else tf.reshape
+            )
+
             output_dict[key] = list(
-                torch.reshape(
-                    torch.stack(
+                reshape_fn(
+                    stack_fn(
                         output[idx : int(np.prod(value)) + idx]  # noqa E203
                     ),
                     (*value, *tensor_shape),

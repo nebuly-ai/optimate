@@ -10,6 +10,8 @@ from nebullvm.tools.transformations import MultiStageTransformation
 
 
 class BladeDISCInferenceLearner(PytorchBackendInferenceLearner):
+    name = "BladeDISC"
+
     @classmethod
     def from_torch_model(
         cls,

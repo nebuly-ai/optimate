@@ -26,8 +26,9 @@ class Device(Enum):
 
 
 class DataType(str, Enum):
-    FLOAT = "float"
-    INT = "int"
+    FLOAT32 = "float32"
+    INT32 = "int32"
+    INT64 = "int64"
 
 
 class ModelCompiler(Enum):

@@ -15,36 +15,45 @@ RUN apt-get install -y python3-opencv python3-pip && \
 # Install other libraries
 RUN apt-get install -y sudo wget
 
-# Install pytorch
-RUN pip3 install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+# Install dl frameworks
+RUN pip3 install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+RUN pip3 install --no-cache-dir tensorflow
+RUN pip3 install --no-cache-dir onnx
+RUN pip3 install --no-cache-dir transformers
 
 # Install nebullvm
 ARG NEBULLVM_VERSION=latest
 RUN if [ "$NEBULLVM_VERSION" = "latest" ] ; then \
-        # pip install nebullvm ; \
-        pip install git+https://github.com/nebuly-ai/nebullvm.git ; \
+        cd nebullvm ; \
+        pip install . ; \
+        cd apps/accelerate/speedster ; \
+        pip install . ; \
+        cd ../../../.. ; \
+        rm -rf nebullvm ; \
     else \
-        pip install nebullvm==${NEBULLVM_VERSION} ; \
+        pip install --no-cache-dir nebullvm==${NEBULLVM_VERSION} ; \
     fi
 
 # Install required python modules
-RUN pip install cmake
+RUN pip install --no-cache-dir cmake
 
 # Install default deep learning compilers
 ARG COMPILER=all
-ENV NO_COMPILER_INSTALLATION=1
 RUN if [ "$COMPILER" = "all" ] ; then \
-        python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers all" ; \
+        python3 -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers all ; \
     elif [ "$COMPILER" = "tensorrt" ] ; then \
-        python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers tensorrt" ; \
+        python3 -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers tensorrt ; \
     elif [ "$COMPILER" = "openvino" ] ; then \
-        python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers openvino" ; \
+        python3 -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers openvino ; \
     elif [ "$COMPILER" = "onnxruntime" ] ; then \
-        python3 -c "python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers onnxruntime" ; \
+        python3 -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers onnxruntime ; \
     fi
 
 # Install TVM
 RUN if [ "$COMPILER" = "all" ] || [ "$COMPILER" = "tvm" ] ; then \
-        python3 -c "from nebullvm.installers.installers import install_tvm; install_tvm()" ; \
+        pip install --no-cache-dir https://github.com/tlc-pack/tlcpack/releases/download/v0.10.0/apache_tvm_cu116_cu116-0.10.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl ; \
+        pip install --no-cache-dir xgboost ; \
         python3 -c "from tvm.runtime import Module" ; \
     fi
+
+ENV SIGOPT_PROJECT="tmp"
