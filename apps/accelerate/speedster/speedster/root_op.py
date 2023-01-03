@@ -13,8 +13,6 @@ from typing import (
     List,
 )
 
-from tabulate import tabulate
-
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, MIN_NUMBER
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.converters import (
@@ -57,6 +55,7 @@ from nebullvm.tools.utils import (
     is_data_subscriptable,
     extract_info_from_data,
 )
+from tabulate import tabulate
 
 from speedster.utils import (
     get_model_name,
