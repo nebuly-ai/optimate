@@ -23,7 +23,6 @@ from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.utils import (
     gpu_is_available,
     check_module_version,
-    is_python_version_3_10,
 )
 
 logger = logging.getLogger("nebullvm_logger")
@@ -166,6 +165,10 @@ def install_tf2onnx():
         import tf2onnx  # noqa F401
     except ImportError:
         return False
+    except AttributeError:
+        # Sometimes the import could raise an attribute error
+        # if installation fails
+        pass
 
     return True
 
@@ -208,10 +211,6 @@ def install_openvino(with_optimization: bool = True):
         raise RuntimeError(
             f"Openvino can run just on Intel machines. "
             f"You are trying to install it on {processor}"
-        )
-    if is_python_version_3_10():
-        raise RuntimeError(
-            "Openvino does not support python 3.10. " "It won't be installed."
         )
 
     openvino_version = "openvino-dev" if with_optimization else "openvino"
@@ -429,7 +428,7 @@ class TensorflowInstaller(BaseInstaller):
     @staticmethod
     def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0"]
+            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0", "numpy<1.24"]
             subprocess.run(cmd)
         else:
             cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0"]

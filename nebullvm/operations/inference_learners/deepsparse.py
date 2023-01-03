@@ -35,6 +35,8 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
             was produced.
     """
 
+    name = "DeepSparse"
+
     def __init__(
         self,
         onnx_path: Union[str, Path],

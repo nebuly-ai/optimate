@@ -82,14 +82,15 @@ class TensorflowConverter(Converter):
         self.converted_models = [self.model]
         for framework in self.DEST_FRAMEWORKS:
             if framework is DeepLearningFramework.NUMPY:
-                self.onnx_conversion(save_path)
+                self.onnx_conversion(save_path, model_params)
             else:
                 raise NotImplementedError()
 
-    def onnx_conversion(self, save_path):
+    def onnx_conversion(self, save_path, model_params):
         onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
         onnx_model_path = convert_tf_to_onnx(
             model=self.model,
+            model_params=model_params,
             output_file_path=onnx_path,
         )
         if self.converted_models is None:

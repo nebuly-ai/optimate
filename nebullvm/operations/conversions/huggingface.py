@@ -5,6 +5,9 @@ from typing import (
     Optional,
 )
 
+import numpy as np
+
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.optional_modules.huggingface import (
     PreTrainedTokenizer,
@@ -14,7 +17,8 @@ from nebullvm.tools.base import Device
 from nebullvm.tools.huggingface import (
     get_output_structure_from_dict,
     get_output_structure_from_text,
-    TransformerWrapper,
+    PyTorchTransformerWrapper,
+    TensorFlowTransformerWrapper,
 )
 from nebullvm.tools.utils import is_dict_type
 
@@ -79,12 +83,21 @@ class _HFDictDataset(Sequence):
         else:
             mini_batch_y = None
         return (
-            tuple(torch.concat([mini_batch[key]]) for key in self._keys),
+            tuple(self._concatenate(mini_batch, key) for key in self._keys),
             mini_batch_y,
         )
 
     def __len__(self):
         return len(self._input_data)
+
+    @staticmethod
+    def _concatenate(mini_batch, key):
+        if isinstance(mini_batch[key], torch.Tensor):
+            return torch.concat([mini_batch[key]])
+        elif isinstance(mini_batch[key], tf.Tensor):
+            return tf.concat([mini_batch[key]], 0)
+        else:
+            return np.concatenate([mini_batch[key]])
 
 
 def convert_hf_model(
@@ -142,9 +155,15 @@ def convert_hf_model(
             tokenizer=tokenizer,
             tokenizer_args=tokenizer_args,
         )
-    wrapper_model = TransformerWrapper(
-        core_model=model, encoded_input=input_example
-    )
+    if isinstance(model, torch.nn.Module):
+        wrapper_model = PyTorchTransformerWrapper(
+            core_model=model, encoded_input=input_example
+        )
+    else:
+        wrapper_model = TensorFlowTransformerWrapper(
+            core_model=model, encoded_input=input_example
+        )
+
     return (
         wrapper_model,
         input_data,

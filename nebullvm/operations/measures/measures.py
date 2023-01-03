@@ -86,7 +86,7 @@ class LatencyOriginalModelMeasure(Measure):
         self.outputs = [
             tuple(
                 COMPUTE_OUTPUT_FRAMEWORK[dl_framework](
-                    model, list(input_tensors[0]), self.device
+                    model, tuple(input_tensors[0]), self.device
                 )
             )
             for input_tensors in input_data

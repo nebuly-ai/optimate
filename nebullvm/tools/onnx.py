@@ -122,7 +122,15 @@ def extract_info_from_np_data(
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
     input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
     input_types = ifnone(
-        input_types, ["int" if x.dtype == int else "float" for x in input_row]
+        input_types,
+        [
+            "int32"
+            if x.dtype is np.int32
+            else "int64"
+            if x.dtype is np.int64
+            else "float32"
+            for x in input_row
+        ],
     )
     dynamic_axis = ifnone(
         dynamic_axis,
@@ -146,7 +154,7 @@ def create_model_inputs_onnx(
 ) -> List[np.ndarray]:
     input_tensors = (
         np.random.randn(batch_size, *input_info.size).astype(np.float32)
-        if input_info.dtype is DataType.FLOAT
+        if input_info.dtype is DataType.FLOAT32
         else np.random.randint(
             size=(batch_size, *input_info.size),
             low=input_info.min_value or 0,

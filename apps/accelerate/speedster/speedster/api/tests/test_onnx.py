@@ -4,8 +4,6 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pytest
 import torch
-from torchvision import models
-
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.onnx import (
     NumpyONNXInferenceLearner,
@@ -20,7 +18,8 @@ from nebullvm.operations.inference_learners.tvm import (
     NumpyApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
-from nebullvm.tools.utils import is_python_version_3_10
+from torchvision import models
+
 from speedster import optimize_model
 from speedster.api.tests.utils import torch_to_onnx
 
@@ -142,9 +141,6 @@ def test_onnx_tensorrt():
         )
 
 
-@pytest.mark.skipif(
-    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
-)
 @pytest.mark.skipif(
     "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
     reason="Openvino is only available for intel processors.",

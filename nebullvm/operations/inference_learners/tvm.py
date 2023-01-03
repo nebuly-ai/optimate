@@ -52,6 +52,8 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             after loading the model (avoiding double engine serialization).
     """
 
+    name = "ApacheTVM"
+
     def __init__(
         self,
         graph_executor_module: GraphModule,

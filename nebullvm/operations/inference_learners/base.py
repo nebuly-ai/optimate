@@ -154,7 +154,13 @@ class BaseInferenceLearner(ABC):
 
     def predict(self, *args, **kwargs) -> Any:
         """Take as input a tensor and returns a prediction"""
-        return self(*args, **kwargs)
+        out = self(*args, **kwargs)
+
+        # TensorFlow predict method must return a np array
+        if isinstance(out[0], tf.Tensor):
+            out = tuple(t.numpy() for t in out)
+
+        return out
 
     @abstractmethod
     def run(self, *args, **kwargs) -> Any:

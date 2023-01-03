@@ -46,6 +46,8 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         nvidia_logger (any, optional): Logger used by the Nvidia service
     """
 
+    name = "TensorRT"
+
     def __init__(
         self,
         engine: Any,
@@ -242,6 +244,7 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
 
 class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_optimized.pt"
+    name = "TensorRT"
 
     def __init__(
         self,
@@ -268,8 +271,12 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         device = input_tensors[0].device
-        if self.use_gpu:
-            input_tensors = (t.cuda() for t in input_tensors)
+
+        # PyTorch-TensorRT does not support int64
+        input_tensors = (
+            t.cuda() if t.dtype != torch.int64 else t.to(torch.int32).cuda()
+            for t in input_tensors
+        )
 
         with torch.no_grad():
             res = self.model(*input_tensors)
@@ -517,7 +524,7 @@ class TensorflowONNXTensorRTInferenceLearner(
             else None
         )
         out_arrays = self._predict_array(cuda_input_arrays, input_shapes)
-        return tuple(tf.convert_to_tensor(array) for array in out_arrays)
+        return tuple(tf.convert_to_tensor(array[0]) for array in out_arrays)
 
 
 class NumpyONNXTensorRTInferenceLearner(
