@@ -1,6 +1,6 @@
 trigger:
   - main
-  - change_install_method
+  - dev
 
 pool:
   name: gpu-t4-pool
@@ -60,7 +60,7 @@ steps:
       pytest
       cd ../../..
     displayName: 'Run api tests'
-    
+
   - script: |
       export PATH=$PATH:/home/AzDevOps/.local/bin
       cd nebullvm
