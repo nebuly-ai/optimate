@@ -13,6 +13,8 @@ from typing import (
     List,
 )
 
+from tabulate import tabulate
+
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, MIN_NUMBER
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.converters import (
@@ -325,32 +327,42 @@ class SpeedsterRootOp(Operation):
                 self.feedback_collector.reset("optimizations")
                 self.feedback_collector.reset("model_id")
                 self.feedback_collector.reset("model_metadata")
+
+                table = [
+                    [
+                        "backend",
+                        dl_framework.name,
+                        optimized_models[0][0].name,
+                    ],
+                    [
+                        "latency",
+                        f"{orig_latency:.4f} sec/batch",
+                        f"{optimized_models[0][1]:.4f} sec/batch",
+                    ],
+                    [
+                        "throughput",
+                        f"{(1 / orig_latency) * model_params.batch_size:.2f} "
+                        f"data/sec",
+                        f"{1 / optimized_models[0][1]:.2f} data/sec",
+                    ],
+                    [
+                        "model size",
+                        f"{original_model_size / 1e6:.2f} MB",
+                        f"{optimized_models[0][0].get_size() / 1e6:.2f} MB",
+                    ],
+                    [f"metric drop ({metric_name})", "", opt_metric_drop],
+                    [
+                        "speedup",
+                        "",
+                        f"{orig_latency / optimized_models[0][1]:.2f}x",
+                    ],
+                ]
+                headers = ["Metric", "Original Model", "Optimized Model"]
+
                 self.logger.info(
                     (
-                        f"\n[ Speedster results ]\n"
-                        f"Optimization device: {self.device.name}\n"
-                        f"Original model backend: {dl_framework.name}\n"
-                        f"Original model latency: {orig_latency:.4f} "
-                        f"sec/batch\n"
-                        f"Original model throughput: "
-                        f"{(1 / orig_latency) * model_params.batch_size:.2f} "
-                        f"data/sec\n"
-                        f"Original model size: "
-                        f"{original_model_size / 1e6:.2f} MB\n"
-                        f"Optimized model backend: "
-                        f"{optimized_models[0][0].name}\n"
-                        f"Optimized model latency: "
-                        f"{optimized_models[0][1]:.4f} "
-                        f"sec/batch\n"
-                        f"Optimized model throughput: "
-                        f"{1 / optimized_models[0][1]:.2f} "
-                        f"data/sec\n"
-                        f"Optimized model size: "
-                        f"{optimized_models[0][0].get_size() / 1e6:.2f} MB\n"
-                        f"Optimized model metric drop: {opt_metric_drop} "
-                        f"({metric_name})\n"
-                        f"Estimated speedup: "
-                        f"{orig_latency / optimized_models[0][1]:.2f}x"
+                        f"\n[ Speedster results on {self.device.name}]\n"
+                        f"{tabulate(table, headers, tablefmt='heavy_outline')}"
                     )
                 )
 
