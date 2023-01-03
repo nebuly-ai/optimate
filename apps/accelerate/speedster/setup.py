@@ -4,6 +4,7 @@ from setuptools import setup, find_packages
 
 REQUIREMENTS = [
     "nebullvm>=0.6.1",
+    "tabulate",
 ]
 
 this_directory = Path(__file__).parent

@@ -1,12 +1,10 @@
-from transformers import AlbertModel, TFAlbertModel, AlbertTokenizer
-
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.huggingface import (
     HuggingFaceInferenceLearner,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-
+from transformers import AlbertModel, TFAlbertModel, AlbertTokenizer
 
 from speedster import optimize_model
 

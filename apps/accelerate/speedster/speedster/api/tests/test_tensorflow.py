@@ -3,7 +3,6 @@ import cpuinfo
 import pytest
 import tensorflow as tf
 from keras.applications import ResNet50
-
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.onnx import (
     TensorflowONNXInferenceLearner,
@@ -23,6 +22,7 @@ from nebullvm.operations.inference_learners.tvm import (
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
 from nebullvm.tools.utils import gpu_is_available
+
 from speedster import optimize_model
 
 # Limit tensorflow gpu memory usage

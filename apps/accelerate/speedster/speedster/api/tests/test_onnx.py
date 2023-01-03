@@ -4,8 +4,6 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pytest
 import torch
-from torchvision import models
-
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.onnx import (
     NumpyONNXInferenceLearner,
@@ -20,6 +18,8 @@ from nebullvm.operations.inference_learners.tvm import (
     NumpyApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
+from torchvision import models
+
 from speedster import optimize_model
 from speedster.api.tests.utils import torch_to_onnx
 

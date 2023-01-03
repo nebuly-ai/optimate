@@ -166,6 +166,8 @@ def install_tf2onnx():
     except ImportError:
         return False
     except AttributeError:
+        # Sometimes the import could raise an attribute error
+        # if installation fails
         pass
 
     return True

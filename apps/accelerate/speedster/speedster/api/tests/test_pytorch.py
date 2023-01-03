@@ -3,7 +3,6 @@ import cpuinfo
 import pytest
 import torch
 import torchvision.models as models
-
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.blade_disc import (
     BladeDISCInferenceLearner,
@@ -28,6 +27,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
     bladedisc_is_available,
 )
+
 from speedster import optimize_model
 
 

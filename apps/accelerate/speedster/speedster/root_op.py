@@ -58,7 +58,6 @@ from nebullvm.tools.utils import (
     extract_info_from_data,
 )
 
-
 from speedster.utils import (
     get_model_name,
     read_model_size,
