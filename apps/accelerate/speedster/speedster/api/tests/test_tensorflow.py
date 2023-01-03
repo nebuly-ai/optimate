@@ -3,6 +3,7 @@ import cpuinfo
 import pytest
 import tensorflow as tf
 from keras.applications import ResNet50
+
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.onnx import (
     TensorflowONNXInferenceLearner,
@@ -21,8 +22,7 @@ from nebullvm.operations.inference_learners.tvm import (
     TensorflowApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
-from nebullvm.tools.utils import gpu_is_available
-
+from nebullvm.tools.utils import is_python_version_3_10, gpu_is_available
 from speedster import optimize_model
 
 # Limit tensorflow gpu memory usage
@@ -151,6 +151,9 @@ def test_tensorflow_tensorrt():
     assert abs((res_original - res_optimized)).max() < 1e-2
 
 
+@pytest.mark.skipif(
+    is_python_version_3_10(), reason="Openvino doesn't support python 3.10 yet"
+)
 @pytest.mark.skipif(
     "intel" not in cpuinfo.get_cpu_info()["brand_raw"].lower(),
     reason="Openvino is only available for intel processors.",

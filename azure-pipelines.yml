@@ -1,5 +1,6 @@
 trigger:
   - main
+  - change_install_method
 
 pool:
   name: gpu-t4-pool
@@ -46,7 +47,7 @@ steps:
   - script: python -m pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
     displayName: 'Install PyTorch'
 
-  - script: python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers all
+  - script: python -m nebullvm.installers.auto_installer --backends all --compilers all
     displayName: 'Install deep learning compilers'
 
   - script: python -m pip install -r "requirements-dev.txt"
@@ -59,7 +60,7 @@ steps:
       pytest
       cd ../../..
     displayName: 'Run api tests'
-
+    
   - script: |
       export PATH=$PATH:/home/AzDevOps/.local/bin
       cd nebullvm

@@ -18,6 +18,20 @@ from nebullvm.installers.installers import (
 
 logger = logging.getLogger("nebullvm_logger")
 
+SUPPORTED_BACKENDS = [
+    "torch-full",
+    "torch-base",
+    "tensorflow-full",
+    "tensorflow-base",
+    "onnx-full",
+    "onnx-base",
+    "huggingface-full",
+    "huggingface-full-tf",
+    "huggingface-full-torch",
+    "huggingface-tf",
+    "huggingface-torch",
+]
+
 INSTALLERS = {
     "onnx": ONNXInstaller,
     "torch": PytorchInstaller,
@@ -33,29 +47,69 @@ MODULES = {
 }
 
 
+def check_backends(include_backends: Union[List[str], str]) -> List[str]:
+    if isinstance(include_backends, str) and include_backends == "all":
+        new_include_backends = list(INSTALLERS.keys())
+    else:
+        new_include_backends = []
+        for backend in include_backends:
+            if backend not in SUPPORTED_BACKENDS:
+                raise ValueError(
+                    f"Backend {backend} is not supported by nebullvm. "
+                    f"Please check the docs to see all the supported options."
+                )
+
+            elif backend.startswith("torch"):
+                new_include_backends.append("torch")
+                if backend.endswith("full"):
+                    new_include_backends.append("onnx")
+            elif backend.startswith("tensorflow"):
+                new_include_backends.append("tensorflow")
+                if backend.endswith("full"):
+                    new_include_backends.append("onnx")
+            elif backend.startswith("huggingface"):
+                new_include_backends.append("huggingface")
+                if backend.endswith("full") or backend.endswith("tf"):
+                    new_include_backends.append("tensorflow")
+                if backend.endswith("full") or backend.endswith("torch"):
+                    new_include_backends.append("torch")
+                if "full" in backend:
+                    new_include_backends.append("onnx")
+            elif backend.startswith("onnx"):
+                new_include_backends.append("onnx")
+
+    # Remove duplicates
+    new_include_backends = list(set(new_include_backends))
+    new_include_backends.sort()
+
+    return new_include_backends
+
+
 def auto_install_libraries(
-    include_frameworks: List[str],
+    include_backends: Union[List[str], str] = "all",
     include_compilers: Union[List[str], str] = "all",
 ):
     logger.info("Running auto install of nebullvm dependencies")
 
-    for framework in include_frameworks:
-        framework_installer = INSTALLERS[framework](MODULES[framework])
-        if not framework_installer.check_framework():
-            framework_installer.install_framework()
-        framework_installer.install_dependencies(include_frameworks)
-        framework_installer.install_compilers(include_compilers)
+    include_backends = check_backends(include_backends)
+
+    for backend in include_backends:
+        backend_installer = INSTALLERS[backend](MODULES[backend])
+        if not backend_installer.check_backend():
+            backend_installer.install_backend()
+        backend_installer.install_dependencies(include_backends)
+        backend_installer.install_compilers(include_compilers)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Auto install dl frameworks and dependencies"
+        description="Auto install dl backends and dependencies"
     )
     parser.add_argument(
         "-f",
-        "--frameworks",
-        help="The dl frameworks whose compilers will be installed",
-        required=True,
+        "--backends",
+        help="The dl backends whose compilers will be installed",
+        default="all",
         nargs="+",
     )
     parser.add_argument(
@@ -67,13 +121,17 @@ def main():
     )
     args = vars(parser.parse_args())
 
-    framework_list = args["frameworks"]
+    if len(args["backends"]) == 1 and args["backends"][0] == "all":
+        backend_list = "all"
+    else:
+        backend_list = args["backends"]
+
     if len(args["compilers"]) == 1 and args["compilers"][0] == "all":
         compilers_list = "all"
     else:
         compilers_list = args["compilers"]
 
-    auto_install_libraries(framework_list, compilers_list)
+    auto_install_libraries(backend_list, compilers_list)
 
 
 if __name__ == "__main__":
