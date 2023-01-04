@@ -63,6 +63,8 @@ steps:
       repository: 'nebulydocker/nebullvm'
       command: 'buildAndPush'
       Dockerfile: 'Dockerfile'
+      tags: |
+        latest
 
   - script: |
       pip uninstall -y nebullvm
