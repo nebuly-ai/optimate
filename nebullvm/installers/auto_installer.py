@@ -28,8 +28,8 @@ SUPPORTED_BACKENDS = [
     "huggingface-full",
     "huggingface-full-tf",
     "huggingface-full-torch",
-    "huggingface-tf",
-    "huggingface-torch",
+    "huggingface-base-tf",
+    "huggingface-base-torch",
 ]
 
 INSTALLERS = {

@@ -82,7 +82,7 @@ def test_install_huggingface_full_torch():
 
 
 def test_install_huggingface_tf():
-    include_backends = ["huggingface-tf"]
+    include_backends = ["huggingface-base-tf"]
 
     include_backends = check_backends(include_backends)
 
@@ -90,7 +90,7 @@ def test_install_huggingface_tf():
 
 
 def test_install_huggingface_torch():
-    include_backends = ["huggingface-torch"]
+    include_backends = ["huggingface-base-torch"]
 
     include_backends = check_backends(include_backends)
 
