@@ -1,6 +1,5 @@
 trigger:
   - main
-  - dev
 
 pool:
   name: gpu-t4-pool
@@ -13,6 +12,42 @@ steps:
   - script: |
       nvidia-smi
     displayName: 'Ensure cuda is installed correctly'
+
+  - script: |
+      pip uninstall -y nebullvm
+      pip install .
+    displayName: 'Install nebullvm'
+
+  - script: |
+      cd apps/accelerate/speedster
+      pip uninstall -y speedster
+      pip install .
+      cd ../../..
+    displayName: 'Install speedster'
+
+  - script: python -m pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+    displayName: 'Install PyTorch'
+
+  - script: python -m nebullvm.installers.auto_installer --backends all --compilers all
+    displayName: 'Install deep learning compilers'
+
+  - script: python -m pip install -r "requirements-dev.txt"
+    displayName: 'Install requirements for testing'
+
+  - script: |
+      export SPEEDSTER_DISABLE_TELEMETRY=1
+      export PATH=$PATH:/home/AzDevOps/.local/bin
+      cd apps/accelerate/speedster
+      pytest
+      cd ../../..
+    displayName: 'Run api tests'
+
+  - script: |
+      export PATH=$PATH:/home/AzDevOps/.local/bin
+      cd nebullvm
+      pytest
+      cd ../
+    displayName: 'Run components tests'
 
   - script: |
       export DEBIAN_FRONTEND=noninteractive
@@ -65,39 +100,3 @@ steps:
       Dockerfile: 'Dockerfile'
       tags: |
         latest
-
-  - script: |
-      pip uninstall -y nebullvm
-      pip install .
-    displayName: 'Install nebullvm'
-
-  - script: |
-      cd apps/accelerate/speedster
-      pip uninstall -y speedster
-      pip install .
-      cd ../../..
-    displayName: 'Install speedster'
-
-  - script: python -m pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
-    displayName: 'Install PyTorch'
-
-  - script: python -m nebullvm.installers.auto_installer --backends all --compilers all
-    displayName: 'Install deep learning compilers'
-
-  - script: python -m pip install -r "requirements-dev.txt"
-    displayName: 'Install requirements for testing'
-
-  - script: |
-      export SPEEDSTER_DISABLE_TELEMETRY=1
-      export PATH=$PATH:/home/AzDevOps/.local/bin
-      cd apps/accelerate/speedster
-      pytest
-      cd ../../..
-    displayName: 'Run api tests'
-
-  - script: |
-      export PATH=$PATH:/home/AzDevOps/.local/bin
-      cd nebullvm
-      pytest
-      cd ../
-    displayName: 'Run components tests'
