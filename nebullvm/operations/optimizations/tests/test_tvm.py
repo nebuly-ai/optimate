@@ -27,6 +27,8 @@ from nebullvm.tools.base import (
 )
 from nebullvm.tools.utils import gpu_is_available
 
+from nebullvm.operations.optimizations.utils import load_model
+
 device = Device.GPU if gpu_is_available() else Device.CPU
 
 
@@ -129,7 +131,7 @@ def test_tvm_onnx(
 
         # Test save and load functions
         optimized_model.save(tmp_dir)
-        loaded_model = PytorchApacheTVMInferenceLearner.load(tmp_dir)
+        loaded_model = load_model(tmp_dir)
         assert isinstance(loaded_model, PytorchApacheTVMInferenceLearner)
 
         assert isinstance(optimized_model.get_size(), int)

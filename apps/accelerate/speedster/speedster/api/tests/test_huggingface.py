@@ -8,6 +8,9 @@ from transformers import AlbertModel, TFAlbertModel, AlbertTokenizer
 
 from speedster import optimize_model
 
+from nebullvm.operations.optimizations.utils import load_model
+from tempfile import TemporaryDirectory
+
 
 def test_torch_huggingface_ort_input_text():
     tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
@@ -42,6 +45,14 @@ def test_torch_huggingface_ort_input_text():
             truncation=True,
         ),
     )
+
+    #save and load
+    with TemporaryDirectory as tmp_dir:
+        optimized_model.save(tmp_dir)
+        loaded_model = load_model(tmp_dir)
+        assert isinstance(loaded_model, HuggingFaceInferenceLearner)
+
+        assert isinstance(loaded_model.get_size(), int)
 
     x = ["this is a test input to see if the optimized model works."]
     inputs = tokenizer(x, return_tensors="pt").to(device)

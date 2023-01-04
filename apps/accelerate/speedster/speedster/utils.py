@@ -1,12 +1,14 @@
 import os
 import platform
+import torch
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import cpuinfo
 import psutil
 
+from nebullvm.operations.optimizations.utils import load_model
 from nebullvm.optional_modules.torch import Module
 from nebullvm.optional_modules.utils import (
     torch_is_available,
@@ -62,3 +64,24 @@ def read_model_size(model: Any):
         # we assume it is a tf_model
         size = model.count_params() * 4  # assuming full precision 32 bit
     return f"{round(size * 1e-6, 2)} MB"
+
+def save_yolov5_model(model, path: Union[Path, str]):
+    model.save(path)
+
+def load_yolov5_model(path: Union[Path, str]):
+    yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, force_reload=True)
+    optimized_model = load_model(path)
+    last_layer = list(yolo_model.model.model.model.children())[-1]
+    yolo_optimized = _OptimizedYolo(optimized_model, last_layer)
+    yolo_model.model.model = yolo_optimized
+    return yolo_model
+
+class _OptimizedYolo(torch.nn.Module):
+    def __init__(self, optimized_core, head_layer):
+        super().__init__()
+        self.core = optimized_core
+        self.head = head_layer
+    
+    def forward(self, x, *args, **kwargs):
+        x = list(self.core(x)) # it's a tuple
+        return self.head(x)
