@@ -32,6 +32,12 @@ steps:
       docker run hello-world
     displayName: 'Ensure docker works correctly'
 
+  - script: |
+      sudo apt-get install -y nvidia-container-runtime
+      sudo echo {"runtimes": {"nvidia": {"path": "/usr/bin/nvidia-container-runtime", "runtimeArgs": []} }, "default-runtime": "nvidia" } > /etc/docker/daemon.json
+      sudo systemctl restart docker
+    displayName: 'Setup docker to use gpu during build'
+
   - task: Docker@2
     displayName: 'Build and push the image to DockerHub'
     inputs:
