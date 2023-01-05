@@ -1,12 +1,13 @@
 # 🐉 OpenAlphaTensor App (WIP)
-Boost your DL model's performance with OpenAlphaTensor's custom-generated matrix multiplication algorithms.
+OpenAlphaTensor provides an open-source implementation of Deepmind's AlphaTensor algorithm.
 
-If you like this App, give us a star to show your support for the project ⭐
+With OpenAlphaTensor, you can increase the computational performances of an AI model with custom-generated matrix multiplication algorithms. You can train your own AlphaTensor algorithm for a specific matrix size or fine-tune a pre-trained AlphaTensor model to produce optimized kernels for a specific hardware.
 
-## 📖 Description
-The OpenAlphaTensor App provides an open-source implementation of Deepmind's AlphaTensor algorithm for matrix multiplication. The algorithm is based on the paper [Discovering faster matrix multiplication algorithms with reinforcement learning](https://www.nature.com/articles/s41586-022-05172-4).
 
-The App is easy to use: you can either train your own model for a specific matrix size or fine-tune an existing one for producing kernels optimized for a target hardware.
+OpenAlphaTensor is based on Deepmind's paper [Discovering faster matrix multiplication algorithms with reinforcement learning](https://www.nature.com/articles/s41586-022-05172-4).
+
+If you appreciate the project, show it by leaving a star ⭐
+
 
 ## 🚀 Get started
 For training your AlphaTensor model, you can exectute the following command:
