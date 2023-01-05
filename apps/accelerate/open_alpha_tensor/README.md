@@ -4,9 +4,9 @@ OpenAlphaTensor provides an open-source implementation of Deepmind's AlphaTensor
 With OpenAlphaTensor, you can increase the computational performances of an AI model with custom-generated matrix multiplication algorithms. You can train your own AlphaTensor algorithm for a specific matrix size or fine-tune a pre-trained AlphaTensor model to produce optimized kernels for a specific hardware.
 
 
-OpenAlphaTensor is based on Deepmind's paper [Discovering faster matrix multiplication algorithms with reinforcement learning](https://www.nature.com/articles/s41586-022-05172-4).
+OpenAlphaTensor is based on Deepmind's paper [Discovering Faster Matrix Multiplication Algorithms with Reinforcement Learning](https://www.nature.com/articles/s41586-022-05172-4).
 
-If you appreciate the project, show it by leaving a star ⭐
+If you appreciate the project, show it by [leaving a star ⭐](https://github.com/nebuly-ai/nebullvm)
 
 
 ## 🚀 Get started
