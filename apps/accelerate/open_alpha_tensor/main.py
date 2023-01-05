@@ -3,17 +3,7 @@ import os
 from argparse import ArgumentParser
 from pathlib import Path
 
-import torch
-
-try:
-    from open_alpha_tensor.core.modules.alpha_tensor import AlphaTensorModel
-    from open_alpha_tensor.core.training import Trainer
-except ImportError or ModuleNotFoundError:
-    import sys
-
-    sys.path.insert(0, str(Path(__file__).parent))
-    from open_alpha_tensor.core.modules.alpha_tensor import AlphaTensorModel
-    from open_alpha_tensor.core.training import Trainer
+from open_alpha_tensor import train_alpha_tensor
 
 
 def _compute_largest_divisor(n: int) -> int:
@@ -50,6 +40,7 @@ def main():
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--random_seed", type=int, default=None)
     parser.add_argument("--checkpoint_dir", type=str, default=None)
+    parser.add_argument("--checkpoint_data_dir", type=str, default=None)
     parser.add_argument("--matrix_size", type=int, default=3)
     parser.add_argument("--embed_dim", type=int, default=1024)
     parser.add_argument("--actions_sampled", type=int, default=10)
@@ -65,6 +56,7 @@ def main():
         default=100,
         help="N_bar parameter for policy temperature.",
     )
+    parser.add_argument("--save_dir", type=str, default=None)
     parser.add_argument("extra_devices", nargs="*", type=str, default=[])
     parser.set_defaults(**config)
     args = parser.parse_args()
@@ -74,10 +66,9 @@ def main():
     input_size = args.matrix_size**2
     n_steps = _compute_largest_divisor(input_size)
     n_actions = cardinality_vector ** (3 * input_size // n_steps)
-    print(n_actions)
     loss_params = (args.alpha, args.beta)
-    print("Creating model...")
-    model = AlphaTensorModel(
+
+    train_alpha_tensor(
         tensor_length=args.action_memory + 1,
         input_size=input_size,
         scalars_size=1,
@@ -85,93 +76,31 @@ def main():
         n_steps=n_steps,
         n_logits=n_actions,
         n_samples=args.actions_sampled,
-    )
-    print("Model created.")
-    if args.optimizer == "adam":
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    elif args.optimizer == "adamw":
-        optimizer = torch.optim.AdamW(
-            model.parameters(), lr=args.lr, weight_decay=args.weight_decay
-        )
-    elif args.optimizer == "sgd":
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
-    else:
-        raise ValueError(f"Optimizer {args.optimizer} not supported")
-
-    games_store_dir = Path("games")
-
-    if (
-        args.checkpoint_dir is not None
-        and Path(args.checkpoint_dir).exists()
-        and len(list(Path(args.checkpoint_dir).glob("*.pt"))) > 0
-    ):
-
-        def key_func(x):
-            return int(x.stem.split("_")[-1])
-
-        checkpoint_path = sorted(
-            Path(args.checkpoint_dir).glob("*.pt"), key=key_func
-        )[-1]
-        print(f"Loading checkpoint from {checkpoint_path}")
-        checkpoint = torch.load(checkpoint_path)
-        model.load_state_dict(checkpoint["model_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        last_epoch = int(checkpoint_path.stem.split("_")[-1])
-    else:
-        last_epoch = 0
-
-    trainer = Trainer(
-        model=model,
-        tensor_size=input_size,
-        n_steps=n_steps,
-        batch_size=args.batch_size,
-        optimizer=optimizer,
         device=args.device,
         len_data=args.len_data,
-        pct_synth=args.pct_synth,
         n_synth_data=args.n_synth_data,
-        limit_rank=args.limit_rank,
-        loss_params=loss_params,
-        random_seed=args.random_seed,
-        checkpoint_dir=args.checkpoint_dir,
-        data_augmentation=args.data_augmentation or False,
-        cob_prob=args.cob_prob,
-        n_cob=args.n_cob,
-    )
-
-    # if games_store_dir contains games, load them
-    if (
-        games_store_dir.exists()
-        and (games_store_dir / "game_data.json").exists()
-    ):
-        trainer.dataset.load_games(games_store_dir)
-
-    # train for max_epochs
-    trainer.train(
-        n_epochs=args.max_epochs,
-        n_games=args.n_actors,
-        mc_n_sim=args.mc_n_sim,
-        N_bar=N_bar,
-        starting_epoch=last_epoch,
-        initial_lr=args.lr,
+        pct_synth=args.pct_synth,
+        batch_size=args.batch_size,
+        epochs=args.max_epochs,
+        lr=args.lr,
         lr_decay_factor=args.lr_decay_factor,
         lr_decay_steps=args.lr_decay_steps,
+        weight_decay=args.weight_decay,
+        optimizer_name=args.optimizer,
+        loss_params=loss_params,
+        limit_rank=args.limit_rank,
+        random_seed=args.random_seed,
+        checkpoint_dir=args.checkpoint_dir,
+        checkpoint_data_dir=args.checkpoint_data_dir,
+        n_actors=args.n_actors,
+        mc_n_sim=args.mc_n_sim,
+        n_cob=args.n_cob,
+        cob_prob=args.cob_prob,
+        data_augmentation=args.data_augmentation or False,
+        N_bar=N_bar,
+        extra_devices=args.extra_devices,
+        save_dir=args.save_dir,
     )
-
-    # save model and parameters
-    torch.save(model.state_dict(), "final_model.pt")
-    model_params = {
-        "input_size": args.matrix_size**2,
-        "tensor_length": args.action_memory + 1,
-        "scalars_size": 1,
-        "emb_dim": args.embed_dim,
-        "n_steps": 1,
-        "n_logits": n_actions,
-        "n_samples": args.actions_sampled,
-    }
-    # save parameters in a json file
-    with open("model_params.json", "w") as f:
-        json.dump(model_params, f)
 
 
 if __name__ == "__main__":
