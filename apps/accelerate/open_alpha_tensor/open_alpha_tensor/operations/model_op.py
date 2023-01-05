@@ -39,6 +39,37 @@ class BuildModelOp(Operation):
         pass
 
 
+class BuildOptimizerOp(Operation):
+    def __init__(self):
+        super().__init__()
+        self._optimizer = None
+
+    def execute(
+        self,
+        optimizer_name: str,
+        model: AlphaTensorModel,
+        lr: float,
+        weight_decay: float,
+    ):
+        if optimizer_name == "adam":
+            optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        elif optimizer_name == "adamw":
+            optimizer = torch.optim.AdamW(
+                model.parameters(), lr=lr, weight_decay=weight_decay
+            )
+        elif optimizer_name == "sgd":
+            optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+        else:
+            raise ValueError(f"Optimizer {optimizer_name} not supported")
+        self._optimizer = optimizer
+
+    def get_optimizer(self) -> torch.optim.Optimizer:
+        return self._optimizer
+
+    def get_result(self) -> Any:
+        pass
+
+
 class SaveModelOp(Operation):
     def get_result(self) -> Any:
         pass

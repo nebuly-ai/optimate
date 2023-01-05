@@ -12,6 +12,7 @@ class LoadCheckPointOp(Operation):
         super().__init__()
         self._last_epoch = None
         self._model = None
+        self._optimizer = None
 
     def execute(
         self,
@@ -41,12 +42,16 @@ class LoadCheckPointOp(Operation):
 
         self._last_epoch = last_epoch
         self._model = model
+        self._optimizer = optimizer
 
     def get_last_epoch(self) -> int:
         return self._last_epoch
 
     def get_model(self) -> AlphaTensorModel:
         return self._model
+
+    def get_optimizer(self) -> torch.optim.Optimizer:
+        return self._optimizer
 
     def get_result(self) -> Any:
         pass
