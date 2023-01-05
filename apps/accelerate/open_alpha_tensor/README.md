@@ -6,7 +6,7 @@ With OpenAlphaTensor, you can increase the computational performances of an AI m
 
 OpenAlphaTensor is based on Deepmind's paper [Discovering Faster Matrix Multiplication Algorithms with Reinforcement Learning](https://www.nature.com/articles/s41586-022-05172-4).
 
-If you appreciate the project, show it by [leaving a star ⭐](https://github.com/nebuly-ai/nebullvm)
+If you appreciate the project, show it by [leaving a star ⭐](https://github.com/nebuly-ai/nebullvm/stargazers)
 
 
 ## 🚀 Get started
