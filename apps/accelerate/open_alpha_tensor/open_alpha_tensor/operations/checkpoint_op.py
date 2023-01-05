@@ -5,6 +5,7 @@ import torch
 from nebullvm.operations.base import Operation
 
 from open_alpha_tensor.core.modules.alpha_tensor import AlphaTensorModel
+from open_alpha_tensor.core.training import Trainer
 
 
 class LoadCheckPointOp(Operation):
@@ -55,3 +56,21 @@ class LoadCheckPointOp(Operation):
 
     def get_result(self) -> Any:
         pass
+
+
+class LoadCheckpointDataOp(Operation):
+    def __init__(self):
+        super().__init__()
+        self._loaded = False
+
+    def execute(self, games_store_dir: Path, trainer: Trainer):
+        # if games_store_dir contains games, load them
+        if (
+            games_store_dir.exists()
+            and (games_store_dir / "game_data.json").exists()
+        ):
+            trainer.dataset.load_games(games_store_dir)
+        self._loaded = True
+
+    def get_result(self) -> bool:
+        return self._loaded

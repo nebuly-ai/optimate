@@ -5,12 +5,15 @@ from nebullvm.operations.base import Operation
 
 from open_alpha_tensor.core.modules.alpha_tensor import AlphaTensorModel
 from open_alpha_tensor.core.training import Trainer
+from open_alpha_tensor.operations.checkpoint_op import LoadCheckpointDataOp
 
 
 class TrainingOperation(Operation):
     def __init__(self):
         super().__init__()
         self._trained_model = None
+
+        self._load_checkpoint_data_op = LoadCheckpointDataOp()
 
     def execute(
         self,
@@ -35,11 +38,13 @@ class TrainingOperation(Operation):
         loss_params: Tuple[float, float] = None,
         random_seed: int = None,
         checkpoint_dir: str = None,
+        checkpoint_data_dir: str = None,
         n_cob: int = 0,
         cob_prob: float = 0.0,
         data_augmentation: bool = False,
         extra_devices: List[str] = None,
     ):
+        checkpoint_data_dir = checkpoint_data_dir or "games"
         # build trainer
         trainer = Trainer(
             model=model,
@@ -55,11 +60,13 @@ class TrainingOperation(Operation):
             loss_params=loss_params,
             random_seed=random_seed,
             checkpoint_dir=checkpoint_dir,
+            checkpoint_data_dir=checkpoint_data_dir,
             data_augmentation=data_augmentation,
             cob_prob=cob_prob,
             n_cob=n_cob,
             extra_devices=extra_devices,
         )
+
         # train
         trainer.train(
             n_epochs=max_epochs,

@@ -95,6 +95,7 @@ class Trainer:
         loss_params: Tuple[float, float] = None,
         random_seed: int = None,
         checkpoint_dir: str = None,
+        checkpoint_data_dir: str = None,
         extra_devices: List[str] = None,
     ):
         self.model = model
@@ -123,6 +124,9 @@ class Trainer:
             checkpoint_dir if checkpoint_dir else "checkpoints"
         )
         self.checkpoint_dir.mkdir(exist_ok=True, parents=True)
+        self.checkpoint_data_dir = Path(
+            checkpoint_data_dir if checkpoint_data_dir else "games"
+        )
         self.change_of_basis = ChangeOfBasis(
             tensor_size, n_cob, cob_prob, device, random_seed
         )
@@ -272,6 +276,7 @@ class Trainer:
                     checkpoint,
                     self.checkpoint_dir / checkpoint_name,
                 )
+                self.dataset.save_game_data(self.checkpoint_data_dir)
             # exit strategy
             if self.dataset.games_are_good():
                 break
