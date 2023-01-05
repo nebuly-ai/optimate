@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Tuple, Any, List
 
 import torch.optim
@@ -44,7 +45,7 @@ class TrainingOperation(Operation):
         data_augmentation: bool = False,
         extra_devices: List[str] = None,
     ):
-        checkpoint_data_dir = checkpoint_data_dir or "games"
+        checkpoint_data_dir = Path(checkpoint_data_dir or "games")
         # build trainer
         trainer = Trainer(
             model=model,
@@ -65,6 +66,12 @@ class TrainingOperation(Operation):
             cob_prob=cob_prob,
             n_cob=n_cob,
             extra_devices=extra_devices,
+        )
+
+        # load checkpoint data
+        self._load_checkpoint_data_op.execute(
+            games_store_dir=checkpoint_data_dir,
+            trainer=trainer,
         )
 
         # train
