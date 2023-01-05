@@ -65,6 +65,7 @@ def main():
         default=100,
         help="N_bar parameter for policy temperature.",
     )
+    parser.add_argument("extra_devices", nargs="*", type=str, default=[])
     parser.set_defaults(**config)
     args = parser.parse_args()
 

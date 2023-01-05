@@ -1,4 +1,4 @@
-from typing import Tuple, Any
+from typing import Tuple, Any, List
 
 import torch.optim
 from nebullvm.operations.base import Operation
@@ -38,6 +38,7 @@ class TrainingOperation(Operation):
         n_cob: int = 0,
         cob_prob: float = 0.0,
         data_augmentation: bool = False,
+        extra_devices: List[str] = None,
     ):
         # build trainer
         trainer = Trainer(
@@ -57,6 +58,7 @@ class TrainingOperation(Operation):
             data_augmentation=data_augmentation,
             cob_prob=cob_prob,
             n_cob=n_cob,
+            extra_devices=extra_devices,
         )
         # train
         trainer.train(

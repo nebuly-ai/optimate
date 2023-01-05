@@ -5,7 +5,7 @@ import torch.optim
 import tqdm
 from torch.utils.data import DataLoader
 
-from open_alpha_tensor.core.actors import actor_prediction
+from open_alpha_tensor.core.actors.stage import actor_prediction
 from open_alpha_tensor.core.data.basis_change import ChangeOfBasis
 from open_alpha_tensor.core.data.dataset import TensorGameDataset
 from open_alpha_tensor.core.data.generation import f_prob_distribution
@@ -95,6 +95,7 @@ class Trainer:
         loss_params: Tuple[float, float] = None,
         random_seed: int = None,
         checkpoint_dir: str = None,
+        extra_devices: List[str] = None,
     ):
         self.model = model
         self.optimizer = optimizer
@@ -126,6 +127,7 @@ class Trainer:
             tensor_size, n_cob, cob_prob, device, random_seed
         )
         self.data_augmentation = data_augmentation
+        self.extra_devices = extra_devices
 
     def train_step(self):
         self.dataset.recompute_synthetic_indexes()
@@ -156,24 +158,27 @@ class Trainer:
         best_reward = -1e10
         best_game = None
 
-        if self.device == "cuda:1":
+        if self.extra_devices:
             from joblib import Parallel, delayed
 
             # this means that there is an empty GPU available
             # thus we can use it to parallelize the acting step
             # use joblib to parallelize the acting step
             # we should use _single_act as a function to be parallelized
-            device = "cuda:0"
+            extra_devices = (
+                self.extra_devices * (n_games // len(self.extra_devices))
+                + self.extra_devices[: n_games % len(self.extra_devices)]
+            )
             self.model.to("cpu")
             input_tensor = input_tensor.to("cpu")
 
             print(f"Starting acting phase with {n_games} games")
-            results = Parallel(n_jobs=10)(
+            results = Parallel(n_jobs=len(self.extra_devices))(
                 delayed(_single_act)(
                     actor_id,
                     self.model,
                     input_tensor,
-                    device,
+                    extra_devices[actor_id],
                     mc_n_sim,
                     N_bar,
                     self.change_of_basis,
@@ -182,7 +187,6 @@ class Trainer:
                 for actor_id in range(n_games)
             )
             self.model.to(self.device)
-            input_tensor = input_tensor.to(self.device)
 
             for actor_id, states, policies, rewards in results:
                 if rewards[-1] > best_reward:
