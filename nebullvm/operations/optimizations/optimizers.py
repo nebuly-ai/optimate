@@ -52,6 +52,8 @@ class TensorflowOptimizer(Optimizer):
         if tensorflow_is_available():
             compilers.append(ModelCompiler.XLA)
             compilers.append(ModelCompiler.TFLITE)
+        if self.device is Device.CPU and openvino_is_available():
+            compilers.append(ModelCompiler.OPENVINO)
         return compilers
 
 

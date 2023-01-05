@@ -146,6 +146,25 @@ class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
         )
 
 
+class TensorFlowOpenVINOBuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: str,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        source_dl_framework: DeepLearningFramework,
+        **kwargs,
+    ):
+        self.inference_learner = OPENVINO_INFERENCE_LEARNERS[
+            source_dl_framework
+        ].from_model_name(
+            model_name=model + ".xml",
+            model_weights=model + ".bin",
+            input_tfms=input_tfms,
+            network_parameters=model_params,
+        )
+
+
 class PyTorchTensorRTBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
