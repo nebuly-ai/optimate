@@ -127,6 +127,7 @@ class Trainer:
         self.checkpoint_data_dir = (
             checkpoint_data_dir if checkpoint_data_dir else Path("games")
         )
+        self.checkpoint_data_dir.mkdir(exist_ok=True, parents=True)
         self.change_of_basis = ChangeOfBasis(
             tensor_size, n_cob, cob_prob, device, random_seed
         )

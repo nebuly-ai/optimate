@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -77,22 +78,20 @@ class SaveModelOp(Operation):
     def execute(
         self,
         model: AlphaTensorModel,
-        matrix_size,
-        action_memory: int,
-        embed_dim: int,
-        n_actions,
-        actions_sampled: int,
+        save_dir: str,
     ):
-        torch.save(model.state_dict(), "final_model.pt")
+        save_dir = Path(save_dir if save_dir else ".")
+        save_dir.mkdir(parents=True, exist_ok=True)
+        torch.save(model.state_dict(), save_dir / "final_model.pt")
         model_params = {
-            "input_size": matrix_size**2,
-            "tensor_length": action_memory + 1,
+            "input_size": model.input_size,
+            "tensor_length": model.tensor_length,
             "scalars_size": 1,
-            "emb_dim": embed_dim,
-            "n_steps": 1,
-            "n_logits": n_actions,
-            "n_samples": actions_sampled,
+            "emb_dim": model.emb_dim,
+            "n_steps": model.n_steps,
+            "n_logits": model.n_logits,
+            "n_samples": model.n_samples,
         }
         # save parameters in a json file
-        with open("model_params.json", "w") as f:
+        with open(save_dir / "model_params.json", "w") as f:
             json.dump(model_params, f)

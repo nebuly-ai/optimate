@@ -116,6 +116,12 @@ class TrainAlphaTensorRootOp(Operation):
                 data_augmentation=data_augmentation,
                 extra_devices=extra_devices,
             )
+        if self._training_op.get_trained_model() is not None:
+            self._model = self._training_op.get_trained_model()
+            self._save_model_op.execute(
+                model=self._model,
+                save_dir=save_dir,
+            )
 
     def get_result(self) -> AlphaTensorModel:
         return self._model

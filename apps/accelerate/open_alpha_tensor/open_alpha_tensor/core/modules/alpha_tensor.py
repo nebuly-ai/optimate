@@ -25,6 +25,8 @@ class AlphaTensorModel(torch.nn.Module):
         # emb_dim = c
         super().__init__()
         self.tensor_length = tensor_length
+        self.input_size = input_size
+        self.emb_dim = emb_dim
         self.torso = TorsoModel(
             scalars_size, input_size, tensor_length, emb_dim
         )
@@ -93,3 +95,7 @@ class AlphaTensorModel(torch.nn.Module):
     @property
     def n_steps(self):
         return self.policy_head.n_steps
+
+    @property
+    def n_samples(self):
+        return self.policy_head.n_samples
