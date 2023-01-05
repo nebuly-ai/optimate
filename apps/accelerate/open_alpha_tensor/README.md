@@ -1,11 +1,25 @@
 # 🐉 OpenAlphaTensor App (WIP)
-Boost your DL model's performance with OpenAlphaTensor's custom-generated matrix multiplication algorithms.
+OpenAlphaTensor provides an open-source implementation of Deepmind's AlphaTensor algorithm.
 
-If you like this App, give us a star to show your support for the project ⭐
+With OpenAlphaTensor, you can increase the computational performances of an AI model with custom-generated matrix multiplication algorithms. You can train your own AlphaTensor algorithm for a specific matrix size or fine-tune a pre-trained AlphaTensor model to produce optimized kernels for a specific hardware.
 
-## 📖 Description
-The OpenAlphaTensor App is a powerful tool to optimize deep learning models leveraging the open source implementation of AlphaTensor. It leverages custom-generated algorithms for matrix multiplications to provide significant acceleration for transformer architectures across all hardware devices. With MatrixMaster, users can improve their models’ performance without sacrificing accuracy.
 
-The App is easy to use: simply input your model and let OpenAlphaTensor do the rest. The App analyzes the matrix multiplications and fine-tune itself for your hardware, returning an optimized version of the algorithms that can be integrated into a standard DL optimization framework. The resulting model is packed into a self-contained module that can be deployed without any extra dependencies.
+OpenAlphaTensor is based on Deepmind's paper [Discovering Faster Matrix Multiplication Algorithms with Reinforcement Learning](https://www.nature.com/articles/s41586-022-05172-4).
 
-Overall, OpenAlphaTensor is the go-to tool for deep learning professionals who want to get the most out of their models without sacrificing accuracy. Try it out today, and reach out if you have any feedback!
+If you appreciate the project, show it by [leaving a star ⭐](https://github.com/nebuly-ai/nebullvm/stargazers)
+
+
+## 🚀 Get started
+For training your AlphaTensor model, you can exectute the following command:
+```bash
+python main.py 
+```
+
+Model parameters can be given either as command line arguments or as a JSON file. The `config.json` file contains the default parameters for training a model for matrix size 4x4x4.
+
+## 🧪 Missing features
+- [ ] Add support for fine-tuning on target hardware.
+- [ ] Release Pre-trained models.
+- [ ] Support training on Multiple GPUs (it allows training on a larger batch size).
+- [ ] Reduce memory footprint of the Acting Agent.
+- [ ] Improve acting speed.
