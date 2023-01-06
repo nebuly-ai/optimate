@@ -279,7 +279,7 @@ def monte_carlo_tree_search(
     for _ in range(n_sim):
         simulate_game(model, state, t_time, n_steps, game_tree, state_dict)
     # return next state
-    possible_states, repetitions, N_s_a, q_values, _ = state_dict[state_hash]
+    possible_states, _, repetitions, N_s_a, q_values, _ = state_dict[state_hash]
     next_state_idx = select_future_state(
         possible_states, q_values, N_s_a, repetitions, return_idx=True
     )
