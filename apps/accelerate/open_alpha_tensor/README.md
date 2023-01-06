@@ -1,4 +1,4 @@
-# 🐉 OpenAlphaTensor App
+# 🐉 OpenAlphaTensor
 OpenAlphaTensor provides an open-source implementation of Deepmind's AlphaTensor algorithm.
 
 With OpenAlphaTensor, you can increase the computational performances of an AI model with custom-generated matrix multiplication algorithms. You can train your own AlphaTensor algorithm for a specific matrix size or fine-tune a pre-trained AlphaTensor model to produce optimized kernels for a specific hardware.
