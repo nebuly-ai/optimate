@@ -1,4 +1,4 @@
-# 🛰️ GPU Manager (WIP)
+# 🛰️ GPU Partitioner (WIP)
 Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
 
 If you like this modeule, give us a star to show your support for the project ⭐
