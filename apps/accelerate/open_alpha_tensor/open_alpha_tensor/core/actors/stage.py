@@ -272,7 +272,7 @@ def monte_carlo_tree_search(
     state_hash = to_hash(extract_present_state(state))
     if state_hash in state_dict:
         with torch.no_grad():
-            N_s_a = state_dict[state_hash][2]
+            N_s_a = state_dict[state_hash][3]
             n_sim -= int(N_s_a.sum())
             n_sim = max(n_sim, 0)
 
@@ -302,8 +302,8 @@ def compute_improved_policy(
     policies = torch.zeros(len(states), model_n_steps, model_n_logits)
     N_bar = torch.tensor(N_bar)
     for idx, state in enumerate(states):
-        N_s_a = state_dict[state][2]
-        actions = state_dict[state][4]
+        N_s_a = state_dict[state][3]
+        actions = state_dict[state][5]
         if N_s_a.sum() > N_bar:
             tau = (torch.log(N_s_a.sum()) / torch.log(N_bar)).item()
         else:
@@ -361,7 +361,7 @@ def actor_prediction(
         torch.tensor([-1] * (len(policies) - 1) + [reward]), dim=0
     )
     if return_actions:
-        actions = [state_dict[hash_state][4] for hash_state in hash_states]
+        actions = [state_dict[hash_state][5] for hash_state in hash_states]
         return actions
     # policies do not have the batch size, but states still have it
     states = [s.squeeze(0) for s in states]
