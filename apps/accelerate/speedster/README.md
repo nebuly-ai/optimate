@@ -39,8 +39,7 @@ pip install speedster
 Install the deep learning compilers:
 ```
 python -m nebullvm.installers.auto_installer \
-    --frameworks torch onnx tensorflow huggingface \
-    --compilers all
+    --backends all --compilers all
 ```
 
 For more details on the installation step, please visit [Installation](https://docs.nebuly.com/speedster/installation).

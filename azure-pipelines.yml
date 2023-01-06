@@ -13,24 +13,6 @@ steps:
       nvidia-smi
     displayName: 'Ensure cuda is installed correctly'
 
-#  - script: |
-#      export DEBIAN_FRONTEND=noninteractive
-#      sudo apt-get update -y
-#      sudo apt-get install -y ca-certificates curl gnupg lsb-release
-#      sudo mkdir -p /etc/apt/keyrings
-#      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-#      echo \
-#        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-#        $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-#      sudo apt-get update -y
-#      sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-#      sudo chmod 666 /var/run/docker.sock
-#    displayName: 'Install docker'
-
-#  - script: |
-#      docker run hello-world
-#    displayName: 'Ensure docker works correctly'
-
   - script: |
       pip uninstall -y nebullvm
       pip install .
@@ -46,7 +28,7 @@ steps:
   - script: python -m pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
     displayName: 'Install PyTorch'
 
-  - script: python -m nebullvm.installers.auto_installer --frameworks torch onnx tensorflow huggingface --compilers all
+  - script: python -m nebullvm.installers.auto_installer --backends all --compilers all
     displayName: 'Install deep learning compilers'
 
   - script: python -m pip install -r "requirements-dev.txt"
@@ -67,10 +49,54 @@ steps:
       cd ../
     displayName: 'Run components tests'
 
-#  - task: Docker@2
-#    displayName: 'Build and push the image to DockerHub'
-#    inputs:
-#      containerRegistry: 'docker hub'
-#      repository: 'nebulydocker/nebullvm'
-#      command: 'buildAndPush'
-#      Dockerfile: 'Dockerfile'
+  - script: |
+      export DEBIAN_FRONTEND=noninteractive
+      sudo apt-get update -y
+      sudo apt-get install -y ca-certificates curl gnupg lsb-release
+      sudo mkdir -p /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      sudo apt-get update -y
+      sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+      sudo chmod 666 /var/run/docker.sock
+    displayName: 'Install docker'
+
+  - script: |
+      docker run hello-world
+    displayName: 'Ensure docker works correctly'
+
+  - script: |
+      curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | \
+        sudo apt-key add -
+      distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+      curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
+        sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+      sudo apt-get update
+      sudo apt-get install -y nvidia-docker2
+      sudo pkill -SIGHUP dockerd
+      sudo mkdir -p /etc/docker
+      sudo tee /etc/docker/daemon.json <<EOF
+      {
+        "runtimes": {
+          "nvidia": {
+            "path": "nvidia-container-runtime",
+            "runtimeArgs": []
+          }
+        },
+        "default-runtime": "nvidia"
+      }
+      EOF
+      sudo pkill -SIGHUP dockerd
+    displayName: 'Setup docker to use nvidia'
+
+  - task: Docker@2
+    displayName: 'Build and push the image to DockerHub'
+    inputs:
+      containerRegistry: 'docker hub'
+      repository: 'nebulydocker/nebullvm'
+      command: 'buildAndPush'
+      Dockerfile: 'Dockerfile'
+      tags: |
+        latest
