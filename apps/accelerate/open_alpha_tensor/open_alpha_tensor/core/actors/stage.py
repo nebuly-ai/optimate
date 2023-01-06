@@ -34,11 +34,17 @@ def remove_duplicates(reducing_tensor: torch.Tensor):
                 idx_map[idx] = []
 
     # idx_map = {i: len(v) for i, v in enumerate(idx_map.values())}
-    cloned_idx_to_idx_map = {}
-    for key, values in idx_map.items():
+    old_idx_to_new_idx_map = {}
+    for new_idx, (key, values) in enumerate(idx_map.items()):
+        old_idx_to_new_idx_map[key] = new_idx
         for second_idx in values:
-            cloned_idx_to_idx_map[second_idx] = key
-    return reducing_tensor[:, indexes], cloned_idx_to_idx_map, indexes
+            old_idx_to_new_idx_map[second_idx] = new_idx
+    return (
+        reducing_tensor[:, indexes],
+        old_idx_to_new_idx_map,
+        idx_map,
+        indexes,
+    )
 
 
 def extract_children_states_from_actions(
@@ -64,9 +70,12 @@ def extract_children_states_from_actions(
     )
     w = actions[:, :, 2 * vec_dim :].reshape(bs, k, 1, 1, vec_dim)  # noqa E203
     reducing_tensor = u * v * w
-    reducing_tensor, repetition_map, duplicate_indexes = remove_duplicates(
-        reducing_tensor
-    )
+    (
+        reducing_tensor,
+        old_idx_to_new_idx,
+        repetition_map,
+        not_duplicate_indexes,
+    ) = remove_duplicates(reducing_tensor)
     old_state = state[:, 0]
     new_state = old_state.unsqueeze(1) - reducing_tensor
     rolling_states = torch.roll(state, 1)[:, 2:]
@@ -82,8 +91,9 @@ def extract_children_states_from_actions(
             )
             for i in range(k)
         ],
+        old_idx_to_new_idx,
         repetition_map,
-        duplicate_indexes,
+        not_duplicate_indexes,
     )
 
 
@@ -115,15 +125,20 @@ def select_future_state(
     possible_states: List[torch.Tensor],
     q_values: torch.Tensor,
     N_s_a: torch.Tensor,
-    repetitions: Dict[int, int],
+    repetitions: Dict[int, list],
     c_1: float = 1.25,
     c_2: float = 19652,
     return_idx: bool = False,
 ) -> torch.Tensor:
     """Select the future state maximizing the upper confidence bound."""
     # q_values (1, K, 1)
+    # we should not use repetitions here! Fix the bug
     pi = torch.tensor(
-        [repetitions.get(i, 0) for i in range(len(possible_states))]
+        [
+            len(repetitions[i])
+            for i in range(len(possible_states))
+            if i in repetitions
+        ]
     ).to(q_values.device)
     if pi.shape[0] != N_s_a.shape[1]:
         print(pi)
@@ -155,6 +170,7 @@ def simulate_game(
     while state_hash in game_tree:
         (
             possible_states,
+            old_idx_to_new_idx,
             repetition_map,
             N_s_a,
             q_values,
@@ -178,6 +194,7 @@ def simulate_game(
             actions, probs, q_values = model(state, scalars)
             (
                 possible_states,
+                cloned_idx_to_idx,
                 repetitions,
                 not_dupl_indexes,
             ) = extract_children_states_from_actions(
@@ -192,6 +209,7 @@ def simulate_game(
             present_state = extract_present_state(state)
             states_dict[to_hash(present_state)] = (
                 [s.to("cpu") for s in possible_states],
+                cloned_idx_to_idx,
                 repetitions,
                 N_s_a,
                 not_dupl_q_values,
@@ -215,14 +233,19 @@ def backward_pass(trajectory, states_dict, leaf_q_value: torch.Tensor):
         if action_idx is None:  # leaf node
             reward += leaf_q_value
         else:
-            possible_states, repetitions, N_s_a, q_values, _ = states_dict[
-                state
-            ]
+            (
+                possible_states,
+                old_idx_to_new_idx,
+                _,
+                N_s_a,
+                q_values,
+                _,
+            ) = states_dict[state]
             if isinstance(reward, torch.Tensor):
                 reward = reward.to(q_values.device)
             action_idx = int(action_idx)
-            if action_idx in repetitions:
-                not_dupl_index = repetitions[int(action_idx)]
+            if action_idx in old_idx_to_new_idx:
+                not_dupl_index = old_idx_to_new_idx[int(action_idx)]
             else:
                 not_dupl_index = action_idx
             reward -= 1
