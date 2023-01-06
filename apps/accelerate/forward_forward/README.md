@@ -1,4 +1,4 @@
-# Forward-Forward Algorithm App
+# Forward-Forward Algorithm
 
 This app implements a complete open-source version of [Geoffrey Hinton's Forward Forward](https://www.cs.toronto.edu/~hinton/FFA13.pdf) Algorithm, an alternative approach to backpropagation.
 
