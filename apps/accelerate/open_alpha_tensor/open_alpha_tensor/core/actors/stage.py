@@ -132,7 +132,6 @@ def select_future_state(
 ) -> torch.Tensor:
     """Select the future state maximizing the upper confidence bound."""
     # q_values (1, K, 1)
-    # we should not use repetitions here! Fix the bug
     pi = torch.tensor(
         [
             len(repetitions[i])
@@ -169,13 +168,16 @@ def simulate_game(
     # selection
     while state_hash in game_tree:
         (
-            possible_states,
+            (state_tensor, full_actions),
             old_idx_to_new_idx,
             repetition_map,
             N_s_a,
             q_values,
             actions,
         ) = states_dict[state_hash]
+        possible_states = extract_children_states_from_actions(
+            state_tensor, full_actions
+        )[0]
         state_idx = select_future_state(
             possible_states, q_values, N_s_a, repetition_map, return_idx=True
         )
@@ -208,7 +210,7 @@ def simulate_game(
             N_s_a = torch.zeros_like(not_dupl_q_values).to("cpu")
             present_state = extract_present_state(state)
             states_dict[to_hash(present_state)] = (
-                [s.to("cpu") for s in possible_states],
+                (state, actions),
                 cloned_idx_to_idx,
                 repetitions,
                 N_s_a,
@@ -234,7 +236,7 @@ def backward_pass(trajectory, states_dict, leaf_q_value: torch.Tensor):
             reward += leaf_q_value
         else:
             (
-                possible_states,
+                _,
                 old_idx_to_new_idx,
                 _,
                 N_s_a,
@@ -279,7 +281,12 @@ def monte_carlo_tree_search(
     for _ in range(n_sim):
         simulate_game(model, state, t_time, n_steps, game_tree, state_dict)
     # return next state
-    possible_states, _, repetitions, N_s_a, q_values, _ = state_dict[state_hash]
+    (state_tensor, actions), _, repetitions, N_s_a, q_values, _ = state_dict[
+        state_hash
+    ]
+    possible_states = extract_children_states_from_actions(
+        state_tensor, actions
+    )[0]
     next_state_idx = select_future_state(
         possible_states, q_values, N_s_a, repetitions, return_idx=True
     )
