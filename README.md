@@ -27,7 +27,7 @@ If you like the idea, give us a star to show your support for the project ⭐
 
 ## Documentation
 
-Please find [here](https://docs.nebuly.com/) the full documentation on:
+Please find [here](https://docs.nebuly.com/welcome/quick-start) the full documentation on:
 - Installation
 - Getting started (quick view and examples)
 - Notebooks
