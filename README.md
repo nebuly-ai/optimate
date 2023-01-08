@@ -19,7 +19,7 @@
   
 
 
-`Nebullvm` is an ecosystem of plug and play modules to boost the performances of your AI systems. The optimization modules are stack-agnostic and work with any library. 
+`Nebullvm` is an ecosystem of plug and play modules to boost the performances of your AI systems. The optimization modules are stack-agnostic and work with any library. The optimization modules are designed to be easily integrated into your system, providing a quick and seamless boost to its performance. Simply plug and play to start realizing the benefits of optimized performance right away.
 
 The performances of language, vision and generative models strongly depend on input data/prompting, model architecture and hardware. These are not independent factors, and making optimal choices on all fronts is hard. Our open source modules help you to automatically combine these factors, thus bringing incredibly fast and efficient AI systems to your fingertips. 
 
