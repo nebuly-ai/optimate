@@ -34,7 +34,7 @@ Please find [here](https://docs.nebuly.com/welcome/quick-start) the full documen
 
 ## **What can this help with?**
 
-Our optimization modules are designed to be easily integrated into your system, providing a quick and seamless boost to its performance. Simply plug and play to start realizing the benefits of optimized performance right away:
+There are multiple modules we actually provide to boost the performances of your AI systems:
 
 ✅ [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): Automatically apply the best set of SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
 
