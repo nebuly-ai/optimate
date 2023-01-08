@@ -3,7 +3,7 @@
 Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
 
 
-## 📖 Description 
+## 📖 What is this? 
 `Speedster` is an open-source module designed to speed up AI inference in just a few lines of code. The library boosts your model to achieve the maximum acceleration that is physically possible on your hardware.
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
