@@ -8,8 +8,7 @@ Automatically apply SOTA optimization techniques to achieve the maximum inferenc
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
-
-![readmespeedster](https://user-images.githubusercontent.com/83510798/211213268-f4bd0de3-dc15-4abd-b2d3-516738bfa4be.png)
+![benchmarks_speedster](https://user-images.githubusercontent.com/83510798/211219698-a1938b65-1d2c-4a28-8e2a-6c3217ff9057.png)
 
 
 The core `Speedster` workflow consists of 3 steps:
