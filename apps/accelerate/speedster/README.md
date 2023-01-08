@@ -57,11 +57,21 @@ Checkout how to define the `model` and `input_data` parameters depending on whic
 [TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/tensorflow#tensorflow-api-quick-view), 
 [ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/onnx#onnx-api-quick-view).
 
-For more details, please visit also the documentation sections [Get Started](https://docs.nebuly.com/speedster/get-started),  [Speedster API](https://docs.nebuly.com/speedster/get-started/speedster-api) and [Examples of API options](https://docs.nebuly.com/speedster/get-started/examples-of-api-options).
+For more details, please visit also the documentation sections [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+
+# **Documentation**
+
+- [Installation](https://docs.nebuly.com/modules/speedster/installation)
+- [Getting started](https://docs.nebuly.com/modules/speedster/getting-started)
+- [Key concepts](https://docs.nebuly.com/modules/speedster/key-concepts)
+- [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
+- [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides)
+- [Benchmarks](https://docs.nebuly.com/modules/speedster/benchmarks)
+
 
 # **Key concepts**
 
-We are not here to reinvent the wheel, but to build an all-in-one open-source product to master all the available AI acceleration techniques and deliver the **fastest AI ever.** As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that the community can benefit from it.
+`Speedster`'s design reflects the mission to automatically master all the available AI acceleration techniques and deliver the **fastest AI ever.** As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that the community can benefit from it.
 
 `Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
 
@@ -87,13 +97,7 @@ The **optimizer stage** leverages the following open-source projects:
 - [TensorRT](https://github.com/NVIDIA/TensorRT): C++ library for high performance inference on NVIDIA GPUs and deep learning accelerators.
 - [TFlite](https://github.com/tensorflow/tflite-micro) and [XLA](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/compiler/xla): open-source libraries to accelerate TensorFlow models.
 
-# **Documentation**
 
-- [Installation](https://docs.nebuly.com/speedster/installation)
-- [Get started](https://docs.nebuly.com/speedster/get-started)
-- [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
-- [Benchmarks](https://docs.nebuly.com/speedster/benchmarks)
-- [Supported features and roadmap](https://docs.nebuly.com/speedster/how-speedster-works/supported-features-and-roadmap)
 
 # **Community**
 
