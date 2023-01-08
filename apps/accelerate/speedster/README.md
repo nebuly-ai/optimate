@@ -59,11 +59,9 @@ Checkout how to define the `model` and `input_data` parameters depending on whic
 
 For more details, please visit also the documentation sections [Get Started](https://docs.nebuly.com/speedster/get-started),  [Speedster API](https://docs.nebuly.com/speedster/get-started/speedster-api) and [Examples of API options](https://docs.nebuly.com/speedster/get-started/examples-of-api-options).
 
-# **How it works**
+# **Key concepts**
 
 We are not here to reinvent the wheel, but to build an all-in-one open-source product to master all the available AI acceleration techniques and deliver the **fastest AI ever.** As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that the community can benefit from it.
-
-### **Product design**
 
 `Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
 
