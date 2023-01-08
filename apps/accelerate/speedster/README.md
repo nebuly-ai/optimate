@@ -24,23 +24,21 @@ The core `Speedster` workflow consists of 3 steps:
 
 # Installation
 
-> :warning: For **MacOS** with **ARM processors**, please use a conda environment.
+
 
 Install Speedster and its base requirements:
 ```
 pip install speedster
 ```
 
-> :warning: If you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
+Then make sure to install the deep learning compilers to leverage during the optimization:
+```
+python -m nebullvm.installers.auto_installer --backends all --compilers all
+```
+> :warning: For **MacOS** with **ARM processors**, please use a conda environment.
+> Moreover, if you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
 > on your environment before proceeding to the next step, please install it from this 
 > [link](https://pytorch.org/get-started/locally/).
-
-
-Install the deep learning compilers:
-```
-python -m nebullvm.installers.auto_installer \
-    --backends all --compilers all
-```
 
 For more details on the installation step, please visit [Installation](https://docs.nebuly.com/speedster/installation).
 
