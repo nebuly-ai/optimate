@@ -2,9 +2,6 @@ import subprocess
 from pathlib import Path
 from typing import Tuple, List, Union
 
-import tempfile
-import shutil
-
 import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
@@ -20,7 +17,7 @@ from nebullvm.optional_modules.openvino import (
     Model,
     CompiledModel,
 )
-from nebullvm.tools import tf
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.tools.base import (
     QuantizationType,
     ModelParams,
@@ -46,9 +43,8 @@ class TensorFlowOpenVINOCompiler(Compiler):
 
     def execute(
         self,
-        model: Model,
+        model: tf.keras.Model,
         model_params: ModelParams,
-        temp_file_path: Path,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -91,18 +87,17 @@ class TensorFlowOpenVINOCompiler(Compiler):
         )
 
 
-        # save model to temporary folder
-        dirpath = tempfile.mkdtemp()
-        model.save(dirpath)
-        # shutil.rmtree(dirpath)
+        # save model to temporary folder   
+        tmp_dir_path = Compiler.onnx_output_path     
+        model.save(tmp_dir_path)
 
 
         cmd = [
             "mo",
             "--saved_model_dir",
-            str(dirpath),
+            str(tmp_dir_path),
             "--output_dir",
-            str(dirpath),
+            str(tmp_dir_path),
             "--input",
             ",".join(get_input_names(model)),
             "--input_shape",
