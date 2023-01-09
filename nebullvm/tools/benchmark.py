@@ -1,10 +1,10 @@
-import logging
 import time
 from abc import abstractmethod, ABC
-from tqdm import tqdm
 from typing import Any, Dict, Type
 
 import numpy as np
+from loguru import logger
+from tqdm import tqdm
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
@@ -18,8 +18,6 @@ from nebullvm.tools.utils import (
     extract_info_from_data,
     is_data_subscriptable,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def _get_dl_framework(model: Any):

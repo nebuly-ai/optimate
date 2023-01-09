@@ -1,5 +1,5 @@
 import cpuinfo
-import logging
+from loguru import logger
 
 from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
@@ -13,8 +13,6 @@ from nebullvm.operations.optimizations.compilers.utils import (
 )
 from nebullvm.tools.base import Device
 from nebullvm.tools.utils import gpu_is_available, check_module_version
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def torch_is_available() -> bool:

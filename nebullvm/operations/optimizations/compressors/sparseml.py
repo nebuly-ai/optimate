@@ -1,18 +1,16 @@
 import json
-import logging
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Callable, Dict
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.operations.optimizations.compressors.base import Compressor
 from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.pytorch import save_with_torch_fx, load_with_torch_fx
 from nebullvm.tools.venv import run_in_different_venv
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def _save_model(model: Module, path: Path):

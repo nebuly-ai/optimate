@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 from abc import ABC
@@ -6,6 +5,7 @@ from pathlib import Path
 from typing import Union, List, Generator, Tuple, Dict, Type
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import ONNX_FILENAMES
 from nebullvm.operations.inference_learners.base import (
@@ -17,8 +17,6 @@ from nebullvm.optional_modules.deepsparse import cpu, compile_model
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import ModelParams, DeepLearningFramework
 from nebullvm.tools.transformations import MultiStageTransformation
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):

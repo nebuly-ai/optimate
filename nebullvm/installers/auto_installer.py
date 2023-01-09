@@ -1,6 +1,7 @@
 import argparse
-import logging
 from typing import List, Union
+
+from loguru import logger
 
 from nebullvm.config import (
     ONNX_MODULES,
@@ -15,8 +16,6 @@ from nebullvm.installers.installers import (
     HuggingFaceInstaller,
 )
 
-
-logger = logging.getLogger("nebullvm_logger")
 
 SUPPORTED_BACKENDS = [
     "torch-full",
