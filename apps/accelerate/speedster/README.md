@@ -38,7 +38,7 @@ python -m nebullvm.installers.auto_installer --backends all --compilers all
 > on your environment before proceeding to the next step, please install it from this 
 > [link](https://pytorch.org/get-started/locally/).
 
-For more details on the installation step, please visit [Installation](https://docs.nebuly.com/speedster/installation).
+For more details on the installation step, please visit [Installation](https://docs.nebuly.com/modules/speedster/installation).
 
 
 # API quick view
@@ -130,8 +130,8 @@ Don't forget to leave a star ⭐ to support the project and happy acceleration �
 
 
 <p align="center">
-<a href="https://docs.nebuly.com/speedster/installation">Installation</a> •
-<a href="https://docs.nebuly.com/speedster/get-started">Get started</a> •
+<a href="https://docs.nebuly.com/modules/speedster/installation">Installation</a> •
+<a href="https://docs.nebuly.com/modules/speedster/getting-started">Get started</a> •
 <a href="https://github.com/nebuly-ai/nebullvm/tree/main/notebooks">Notebooks</a> •
-<a href="https://docs.nebuly.com/speedster/benchmarks">Benchmarks</a>
+<a href="https://docs.nebuly.com/modules/speedster/benchmarks">Benchmarks</a>
 </p>
