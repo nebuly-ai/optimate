@@ -1,4 +1,4 @@
-# ✒️ Promptify App (WIP)
+# ✒️ Promptify (WIP)
 Effortlessly fine-tune large language and multi-modal models with minimal data and hardware requirements using p-tuning
 
 If you like this App, give us a star to show your support for the project ⭐
