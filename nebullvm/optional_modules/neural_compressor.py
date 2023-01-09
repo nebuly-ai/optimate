@@ -1,10 +1,3 @@
-from nebullvm.tools.logger import (
-    save_root_logger_state,
-    load_root_logger_state,
-)
-
-logger_state = save_root_logger_state()
-
 try:
     import neural_compressor  # noqa F401
     from neural_compressor.adaptor.pytorch import (
@@ -22,5 +15,3 @@ except ImportError:
 except ValueError:
     # MacOS
     MixedPrecision = Quantization = Pruning = object
-
-load_root_logger_state(logger_state)

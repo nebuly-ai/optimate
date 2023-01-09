@@ -14,12 +14,6 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
 )
 from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
-from nebullvm.tools.logger import (
-    debug_mode_enabled,
-    save_root_logger_state,
-    raise_logger_level,
-    load_root_logger_state,
-)
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
@@ -80,17 +74,10 @@ class ONNXCompiler(Compiler):
             QUANTIZATION_DATA_NUM
         )
 
-        if not debug_mode_enabled():
-            logger_state = save_root_logger_state()
-            raise_logger_level()
-
         if quantization_type is not None:
             model = self._quantize_model(
                 model, train_input_data, quantization_type, input_tfms
             )
-
-        if not debug_mode_enabled():
-            load_root_logger_state(logger_state)
 
         self.compiled_model = self._compile_model(model)
 

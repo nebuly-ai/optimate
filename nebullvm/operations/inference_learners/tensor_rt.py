@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 from abc import ABC
 from pathlib import Path
@@ -7,6 +6,7 @@ from tempfile import TemporaryDirectory
 from typing import Any, Union, Dict, Type, List, Tuple, Generator, Optional
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import NVIDIA_FILENAMES
 from nebullvm.operations.inference_learners.base import (
@@ -25,8 +25,6 @@ from nebullvm.tools.transformations import (
     MultiStageTransformation,
     VerifyContiguity,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):

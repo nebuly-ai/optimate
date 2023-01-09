@@ -9,13 +9,15 @@ from typing import (
     Optional,
 )
 
+from loguru import logger
+
+from nebullvm import debug_mode_enabled, LoggingContext
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
 from nebullvm.tools.utils import gpu_is_available
-from speedster.root_op import SpeedsterRootOp
 
-logger = logging.getLogger("nebullvm_logger")
+from speedster.root_op import SpeedsterRootOp
 
 
 def _check_device(device: Optional[str]) -> Device:
@@ -143,18 +145,22 @@ def optimize_model(
     """
     root_op = SpeedsterRootOp()
     device = _check_device(device)
-    root_op.to(device).execute(
-        model=model,
-        input_data=input_data,
-        metric_drop_ths=metric_drop_ths,
-        metric=metric,
-        optimization_time=optimization_time,
-        dynamic_info=dynamic_info,
-        config_file=config_file,
-        ignore_compilers=ignore_compilers,
-        ignore_compressors=ignore_compressors,
-        store_latencies=store_latencies,
-        **kwargs,
-    )
+
+    disable_log = True if not debug_mode_enabled() else False
+
+    with LoggingContext(logging.getLogger(), disabled=disable_log):
+        root_op.to(device).execute(
+            model=model,
+            input_data=input_data,
+            metric_drop_ths=metric_drop_ths,
+            metric=metric,
+            optimization_time=optimization_time,
+            dynamic_info=dynamic_info,
+            config_file=config_file,
+            ignore_compilers=ignore_compilers,
+            ignore_compressors=ignore_compressors,
+            store_latencies=store_latencies,
+            **kwargs,
+        )
 
     return root_op.get_result()

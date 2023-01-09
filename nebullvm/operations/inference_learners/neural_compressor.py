@@ -1,8 +1,9 @@
-import logging
 import pickle
 from abc import ABC
 from pathlib import Path
 from typing import Union, Tuple, Dict, Type
+
+from loguru import logger
 
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
@@ -28,8 +29,6 @@ from nebullvm.tools.pytorch import (
 )
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.utils import check_module_version
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):

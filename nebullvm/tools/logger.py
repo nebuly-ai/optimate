@@ -1,7 +1,16 @@
-import logging
 import os
+import sys
 import warnings
-from copy import copy
+
+from loguru import logger
+
+
+levels_map = {
+    0: "ERROR",
+    1: "WARNING",
+    2: "INFO",
+    3: "DEBUG",
+}
 
 
 def debug_mode_enabled():
@@ -12,28 +21,37 @@ def setup_logger():
     if not debug_mode_enabled():
         warnings.filterwarnings("ignore")
 
-    logger = logging.getLogger("nebullvm_logger")
-    logger.setLevel(logging.INFO)
+    logging_level = int(os.environ.get("NEBULLVM_LOG_LEVEL", "2"))
 
-    ch = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "%(asctime)s [ %(levelname)s ] %(message)s", "%d/%m/%Y %I:%M:%S %p"
+    logger.remove()
+    logger.add(
+        sys.stdout,
+        colorize=True,
+        format=(
+            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | <level>{message}</level>"
+        ),
+        level=levels_map[logging_level],
     )
-    ch.setFormatter(formatter)
-    logger.handlers = [ch]
-    logger.propagate = False
 
 
-def save_root_logger_state():
-    orig_root_logger_handlers = copy(logging.getLogger().handlers)
-    orig_root_logger_level = copy(logging.getLogger().level)
-    return orig_root_logger_handlers, orig_root_logger_level
+class LoggingContext(object):
+    def __init__(self, logger, disabled=False, handler=None, close=True):
+        self.logger = logger
+        self.disabled = disabled
+        self.handler = handler
+        self.close = close
 
+    def __enter__(self):
+        self.logger.disabled = self.disabled
+        if self.handler:
+            self.logger.addHandler(self.handler)
 
-def raise_logger_level(level=logging.ERROR):
-    logging.getLogger().setLevel(level)
-
-
-def load_root_logger_state(state):
-    logging.getLogger().level = state[1]
-    logging.getLogger().handlers = state[0]
+    def __exit__(self, et, ev, tb):
+        if self.disabled is True:
+            self.logger.disabled = False
+        if self.handler:
+            self.logger.removeHandler(self.handler)
+        if self.handler and self.close:
+            self.handler.close()
+        # implicit return of None => don't swallow exceptions

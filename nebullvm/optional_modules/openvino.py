@@ -1,7 +1,5 @@
 import logging
 
-logger = logging.getLogger("nebullvm_logger")
-
 try:
     from openvino.runtime import Core, Model, CompiledModel, InferRequest
     from openvino.tools.pot import DataLoader

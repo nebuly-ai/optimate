@@ -1,8 +1,6 @@
-import logging
+from loguru import logger
 
 from nebullvm.tools.base import QuantizationType
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def check_quantization(

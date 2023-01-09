@@ -1,6 +1,7 @@
 import argparse
-import logging
 from typing import List, Union
+
+from loguru import logger
 
 from nebullvm.config import (
     ONNX_MODULES,
@@ -16,7 +17,19 @@ from nebullvm.installers.installers import (
 )
 
 
-logger = logging.getLogger("nebullvm_logger")
+SUPPORTED_BACKENDS = [
+    "torch-full",
+    "torch-base",
+    "tensorflow-full",
+    "tensorflow-base",
+    "onnx-full",
+    "onnx-base",
+    "huggingface-full",
+    "huggingface-full-tf",
+    "huggingface-full-torch",
+    "huggingface-base-tf",
+    "huggingface-base-torch",
+]
 
 SUPPORTED_BACKENDS = [
     "torch-full",

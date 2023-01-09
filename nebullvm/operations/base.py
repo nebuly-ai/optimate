@@ -1,12 +1,11 @@
 import abc
-import logging
 from typing import Dict, Any, Optional, Union
+
+from loguru import logger
 
 from nebullvm.tools.base import Device
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from nebullvm.tools.utils import gpu_is_available
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def _check_device(device: Optional[str]) -> Device:

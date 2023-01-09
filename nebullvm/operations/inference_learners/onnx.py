@@ -1,4 +1,3 @@
-import logging
 import multiprocessing
 import os
 import shutil
@@ -8,6 +7,7 @@ from typing import Union, List, Generator, Tuple, Dict, Type
 
 import cpuinfo
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import (
     ONNX_FILENAMES,
@@ -26,8 +26,6 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import DeepLearningFramework, Device, ModelParams
 from nebullvm.tools.transformations import MultiStageTransformation
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def _running_on_intel_cpu(use_gpu):

@@ -1,4 +1,3 @@
-import logging
 from typing import (
     Union,
     Iterable,
@@ -9,12 +8,12 @@ from typing import (
     Optional,
 )
 
+from loguru import logger
+
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
 from nebullvm.tools.utils import gpu_is_available
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def _check_device(device: Optional[str]) -> Device:

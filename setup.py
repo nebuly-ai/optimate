@@ -10,6 +10,7 @@ REQUIREMENTS = [
     "requests>=2.26.0",
     "tqdm>=4.36.0",
     "packaging>=21.3",
+    "loguru>=0.5.3",
 ]
 
 this_directory = Path(__file__).parent
