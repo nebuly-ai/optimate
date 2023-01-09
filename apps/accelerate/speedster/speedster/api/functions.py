@@ -10,11 +10,10 @@ from typing import (
 )
 
 from loguru import logger
-
-from nebullvm import debug_mode_enabled, LoggingContext
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
+from nebullvm.tools.logger import debug_mode_enabled, LoggingContext
 from nebullvm.tools.utils import gpu_is_available
 
 from speedster.root_op import SpeedsterRootOp

@@ -31,20 +31,6 @@ SUPPORTED_BACKENDS = [
     "huggingface-base-torch",
 ]
 
-SUPPORTED_BACKENDS = [
-    "torch-full",
-    "torch-base",
-    "tensorflow-full",
-    "tensorflow-base",
-    "onnx-full",
-    "onnx-base",
-    "huggingface-full",
-    "huggingface-full-tf",
-    "huggingface-full-torch",
-    "huggingface-base-tf",
-    "huggingface-base-torch",
-]
-
 INSTALLERS = {
     "onnx": ONNXInstaller,
     "torch": PytorchInstaller,
