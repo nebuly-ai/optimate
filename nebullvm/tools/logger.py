@@ -1,6 +1,8 @@
+import logging
 import os
 import sys
 import warnings
+from typing import Any
 
 from loguru import logger
 
@@ -36,7 +38,13 @@ def setup_logger():
 
 
 class LoggingContext(object):
-    def __init__(self, logger, disabled=False, handler=None, close=True):
+    def __init__(
+        self,
+        logger: logging.Logger,
+        disabled: bool = False,
+        handler: Any = None,
+        close: bool = True,
+    ):
         self.logger = logger
         self.disabled = disabled
         self.handler = handler
@@ -47,7 +55,7 @@ class LoggingContext(object):
         if self.handler:
             self.logger.addHandler(self.handler)
 
-    def __exit__(self, et, ev, tb):
+    def __exit__(self, et: Any, ev: Any, tb: Any):
         if self.disabled is True:
             self.logger.disabled = False
         if self.handler:
