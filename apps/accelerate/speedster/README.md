@@ -106,21 +106,6 @@ The **optimizer stage** leverages the following open-source projects:
 We’re developing `Speedster` together with our community so the best way to get started is to pick a `good-first issue`. Please read our [contribution guidelines](https://docs.nebuly.com/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
 
 Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀
-
-# **Status**
-
-- **Model converter backends**
-    - [x]  ONNX, PyTorch, TensorFlow
-    - [ ]  Jax
-- **Compressor**
-    - [x]  Pruning and sparsity
-    - [ ]  Quantized-aware training, distillation, layer replacement and low rank compression
-- **Optimizer**
-    - [x]  TensorRT, OpenVINO, ONNX Runtime, TVM, PyTorch, DeepSparse, BladeDisc, TFlite, XLA
-- **Inference learners**
-    - [x]  PyTorch, ONNX, Hugging Face, TensorFlow
-    - [ ]  Jax
-
 ---
 
 <p align="center">
