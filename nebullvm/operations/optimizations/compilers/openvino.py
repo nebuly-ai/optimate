@@ -2,6 +2,9 @@ import subprocess
 from pathlib import Path
 from typing import Tuple, List, Union
 
+import tempfile
+import shutil
+
 import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
@@ -14,8 +17,10 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
 )
 from nebullvm.optional_modules.openvino import (
     Core,
+    Model,
     CompiledModel,
 )
+from nebullvm.tools import tf
 from nebullvm.tools.base import (
     QuantizationType,
     ModelParams,
@@ -41,8 +46,9 @@ class TensorFlowOpenVINOCompiler(Compiler):
 
     def execute(
         self,
-        model: Union[str, Path],
+        model: Model,
         model_params: ModelParams,
+        temp_file_path: Path,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -52,8 +58,10 @@ class TensorFlowOpenVINOCompiler(Compiler):
         """Compile the input model using TF-OPENVINO library.
 
         Args:
-            model (str): The onnx model path.
+            model (tf.keras.Model()): The tensorflow model.
             model_params (ModelParams): The model parameters.
+            output_file_path (str or Path): Path where storing the output
+            TensorFlow file.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -82,13 +90,19 @@ class TensorFlowOpenVINOCompiler(Compiler):
             QUANTIZATION_DATA_NUM
         )
 
-      
+
+        # save model to temporary folder
+        dirpath = tempfile.mkdtemp()
+        model.save(dirpath)
+        # shutil.rmtree(dirpath)
+
+
         cmd = [
             "mo",
             "--saved_model_dir",
-            str(Path(model)),
+            str(dirpath),
             "--output_dir",
-            str(Path(model)),
+            str(dirpath),
             "--input",
             ",".join(get_input_names(model)),
             "--input_shape",
@@ -157,7 +171,7 @@ class OpenVINOCompiler(Compiler):
 
     def execute(
         self,
-        model: Union[str, Path],
+        model: tf.keras.Model(),
         model_params: ModelParams,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
