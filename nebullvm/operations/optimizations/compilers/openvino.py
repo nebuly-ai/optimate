@@ -25,7 +25,7 @@ from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
-# classe di base. Contains generic methods.
+
 class TensorFlowOpenVINOCompiler(Compiler):
     supported_ops = {
         "cpu": [
@@ -82,17 +82,7 @@ class TensorFlowOpenVINOCompiler(Compiler):
             QUANTIZATION_DATA_NUM
         )
 
-        #   SYNTAX for MO command
-        #        f"""mo
-        #                 --saved_model_dir "{model_path}"
-        #                 --input_shape "[1,224,224,3]"
-        #                 --mean_values="[127.5,127.5,127.5]"
-        #                 --scale_values="[127.5]"
-        #                 --model_name "{model_path.name}"
-        #                 --compress_to_fp16
-        #                 --output_dir "{model_path.parent}"
-        #                 """
-
+      
         cmd = [
             "mo",
             "--saved_model_dir",
@@ -150,10 +140,6 @@ class TensorFlowOpenVINOCompiler(Compiler):
 
         return core.compile_model(model=model, device_name="CPU")
 
-
-# ____________________________________________________________________________________________________________________________________________________________________________
-# ____________________________________________________________________________________________________________________________________________________________________________
-# ____________________________________________________________________________________________________________________________________________________________________________
 
 
 class OpenVINOCompiler(Compiler):
