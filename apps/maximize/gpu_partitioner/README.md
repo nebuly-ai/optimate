@@ -1,5 +1,5 @@
 # 🛰️ GPU Partitioner (WIP)
-Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
+Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning and elastic quotas.
 
 If you like this modeule, give us a star to show your support for the project ⭐
 
