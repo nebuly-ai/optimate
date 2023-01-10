@@ -45,7 +45,7 @@ There are multiple modules we actually provide to boost the performances of your
 ## Next modules and roadmap
 We are actively working on incorporating the following modules, as requested by members of our community, in upcoming releases:
 
-- [ ]  [GPU partitioner](https://github.com/nebuly-ai/nebullvm/tree/main/apps/maximize/gpu_partitioner): Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning and elastic quotas.
+- [ ]  [Nos](https://github.com/nebuly-ai/nos): Automatically maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning and elastic quotas - Effortless optimization at its finest!
 - [ ]  [Promptify](https://github.com/nebuly-ai/nebullvm/blob/main/apps/extract/promptify): Effortlessly personalize large APIs generative models from OpenAI, Cohere, HF to your specific context and requirements.
 
 - [ ]  [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/cloud_surfer): Automatically discover the optimal cloud configuration and hardware on AWS, GCP and Azure to run your AI models.
