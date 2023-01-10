@@ -187,7 +187,7 @@ class Optimizer(Operation, abc.ABC):
                             else None,
                             quantization_type=q_type,
                             input_tfms=input_tfms,
-                            onnx_output_path=tmp_dir,
+                            tmp_dir_path=tmp_dir,
                         )
 
                         compiled_model = compiler_op.get_result()

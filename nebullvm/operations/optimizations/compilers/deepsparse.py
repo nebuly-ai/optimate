@@ -29,7 +29,7 @@ class DeepSparseCompiler(Compiler):
     def execute(
         self,
         model: Module,
-        onnx_output_path: str,
+        tmp_dir_path : str,
         model_params: ModelParams,
         quantization_type: QuantizationType = None,
         input_data: DataManager = None,
@@ -39,7 +39,7 @@ class DeepSparseCompiler(Compiler):
 
         Args:
             model (torch.nn.Module): The pytorch model.
-            onnx_output_path (str): Path where the converted ONNX model will be
+            tmp_dir_path  (str): Path where the converted ONNX model will be
                 stored.
             model_params (ModelParams): The model parameters.
             quantization_type (QuantizationType): The desired
@@ -60,18 +60,18 @@ class DeepSparseCompiler(Compiler):
         )
 
         self.compiled_model = self._compile_model(
-            model, onnx_output_path, input_data, model_params
+            model, tmp_dir_path, input_data, model_params
         )
 
     def _compile_model(
         self,
         model: Union[Module, GraphModule],
-        onnx_output_path: str,
+        tmp_dir_path: str,
         input_data: DataManager,
         model_params: ModelParams,
     ) -> str:
         self.conversion_op.model_name = "model_pruned"
-        onnx_pruned_path = Path(onnx_output_path)
+        onnx_pruned_path = Path(tmp_dir_path)
         self.conversion_op.to(self.device).set_state(
             model, input_data
         ).execute(onnx_pruned_path, model_params)

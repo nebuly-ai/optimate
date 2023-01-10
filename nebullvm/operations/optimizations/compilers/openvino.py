@@ -45,6 +45,7 @@ class TensorFlowOpenVINOCompiler(Compiler):
         self,
         model: tf.keras.Model,
         model_params: ModelParams,
+        tmp_dir_path : str,
         input_tfms: MultiStageTransformation = None,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
@@ -86,11 +87,7 @@ class TensorFlowOpenVINOCompiler(Compiler):
             QUANTIZATION_DATA_NUM
         )
 
-
-        # save model to temporary folder   
-        tmp_dir_path = Compiler.onnx_output_path     
         model.save(tmp_dir_path)
-
 
         cmd = [
             "mo",
