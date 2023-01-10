@@ -4,9 +4,19 @@ on:
   push:
     branches:
       - "main"
+    paths-ignore:
+      - ".github/**"
+      - "*.md"
+      - "docs/**"
+      - "nodebooks/**"
   pull_request:
     branches:
       - "main"
+    paths-ignore:
+      - ".github/**"
+      - "*.md"
+      - "docs/**"
+      - "nodebooks/**"
 
 jobs:
   test_on_ubuntu_cpu:
