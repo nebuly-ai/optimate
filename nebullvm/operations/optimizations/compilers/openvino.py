@@ -32,8 +32,8 @@ class TensorFlowOpenVINOCompiler(Compiler):
     supported_ops = {
         "cpu": [
             None,
-            # QuantizationType.STATIC,
-            # QuantizationType.HALF,
+            QuantizationType.STATIC,
+            QuantizationType.HALF,
         ],
         "gpu": [],
     }
