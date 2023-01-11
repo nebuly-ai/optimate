@@ -387,7 +387,7 @@ class SpeedsterRootOp(Operation):
                         f"the following:\n"
                         f"- Include more backends for optimization, "
                         f"i.e. set --backend all\n"
-                        f"- Increase the metric_drop by 5%, if possible\n"
+                        f"- Increase the metric_drop_ths by 5%, if possible\n"
                         f"- Verify that your device {device} is supported by "
                         f"your version of speedster https://docs.nebuly.com/"
                         f"modules/speedster/key-concepts/supported-hardware"
