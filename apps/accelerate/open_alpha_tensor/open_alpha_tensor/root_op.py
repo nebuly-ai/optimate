@@ -13,7 +13,7 @@ from open_alpha_tensor.operations.training_op import TrainingOperation
 
 
 class TrainAlphaTensorRootOp(Operation):
-    r"""Root operation which trains an AlphaTensor model to learn more efficient matrix multiplications."""
+    """Root operation which trains an AlphaTensor model to learn more efficient matrix multiplications."""
 
     def __init__(self):
         super().__init__()
@@ -60,10 +60,10 @@ class TrainAlphaTensorRootOp(Operation):
         data_augmentation: bool,
         extra_devices: List[str],
     ):
-        r"""Trains an AlphaTensor model to learn more efficient matrix multiplications.
+        """Trains an AlphaTensor model to learn more efficient matrix multiplications.
 
         Args:
-            tensor_length (int): Number of tensors to as history,
+            tensor_length (int): Number of step tensors fed to the model (history and current state),
             input_size (int): Flattened size of the matrices to be multiplied,
             scalars_size (int): Size of the scalar vectors fed to the torso model,
             emb_dim (int): Embedding dimension,

@@ -9,7 +9,7 @@ from open_alpha_tensor.core.modules.alpha_tensor import AlphaTensorModel
 
 
 class BuildModelOp(Operation):
-    r"""An operation which builds an OpenAlphaTensor model."""
+    """An operation which builds an OpenAlphaTensor model."""
 
     def __init__(self):
         super().__init__()
@@ -25,15 +25,15 @@ class BuildModelOp(Operation):
         n_logits: int,
         n_samples: int,
     ):
-        r"""Builds the OpenAlphaTensor model.
+        """Builds the OpenAlphaTensor model.
 
         Args:
-            tensor_length (int): Number of tensors to as history,
-            input_size (int): Flattened size of the matrices to be multiplied,
-            scalars_size (int): Size of the scalar vectors fed to the torso model,
-            emb_dim (int): Embedding dimension,
-            n_steps (int): Number of steps used to get a single action out of a triplet,
-            n_logits (int): Number of logits output by the policy head,
+            tensor_length (int): Number of tensors to as history.
+            input_size (int): Flattened size of the matrices to be multiplied.
+            scalars_size (int): Size of the scalar vectors fed to the torso model.
+            emb_dim (int): Embedding dimension.
+            n_steps (int): Number of steps used to get a single action out of a triplet.
+            n_logits (int): Number of logits output by the policy head.
             n_samples (int): Number of samples used by the policy head at evaluation time.
         """
         self._model = AlphaTensorModel(
@@ -47,7 +47,7 @@ class BuildModelOp(Operation):
         )
 
     def get_model(self) -> AlphaTensorModel:
-        r"""Returns the built model."""
+        """Returns the built model."""
         return self._model
 
     def get_result(self) -> Any:
@@ -55,7 +55,7 @@ class BuildModelOp(Operation):
 
 
 class BuildOptimizerOp(Operation):
-    r"""An operation which builds an optimizer for an OpenAlphaTensor model."""
+    """An operation which builds an optimizer for an OpenAlphaTensor model."""
 
     def __init__(self):
         super().__init__()
@@ -68,13 +68,13 @@ class BuildOptimizerOp(Operation):
         lr: float,
         weight_decay: float,
     ):
-        r"""Builds the optimizer for the OpenAlphaTensor model.
+        """Builds the optimizer for the OpenAlphaTensor model.
 
         Args:
-            optimizer_name (str): Name of the optimizer used,
-            model (AlphaTensorModel): OpenAlphaTensor model to be trained,
-            lr (float): Learning rate,
-            weight_decay (float): Weight decay used by the optimizer,
+            optimizer_name (str): Name of the optimizer used.
+            model (AlphaTensorModel): OpenAlphaTensor model to be trained.
+            lr (float): Learning rate.
+            weight_decay (float): Weight decay used by the optimizer.
         """
         if optimizer_name == "adam":
             optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -89,7 +89,7 @@ class BuildOptimizerOp(Operation):
         self._optimizer = optimizer
 
     def get_optimizer(self) -> torch.optim.Optimizer:
-        r"""Returns the built optimizer."""
+        """Returns the built optimizer."""
         return self._optimizer
 
     def get_result(self) -> Any:
@@ -97,7 +97,7 @@ class BuildOptimizerOp(Operation):
 
 
 class SaveModelOp(Operation):
-    r"""An operation which saves an OpenAlphaTensor model.
+    """An operation which saves an OpenAlphaTensor model.
     The model parameters are stored in a json file, while the model weights are stored in a .pt file."""
 
     def get_result(self) -> Any:
@@ -108,10 +108,10 @@ class SaveModelOp(Operation):
         model: AlphaTensorModel,
         save_dir: str,
     ):
-        r"""Saves the OpenAlphaTensor model.
+        """Saves the OpenAlphaTensor model.
 
         Args:
-            model (AlphaTensorModel): OpenAlphaTensor model to be saved,
+            model (AlphaTensorModel): OpenAlphaTensor model to be saved.
             save_dir (str): Directory where the model will be saved.
         """
         save_dir = Path(save_dir if save_dir else ".")

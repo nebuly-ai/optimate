@@ -10,7 +10,7 @@ from open_alpha_tensor.core.modules.alpha_tensor import AlphaTensorModel
 
 
 def game_is_finished(state):
-    r"""Tells if the game is finished or not.
+    """Tells if the game is finished or not.
 
     Args:
         state (torch.Tensor): The state of the game.
@@ -20,7 +20,7 @@ def game_is_finished(state):
 
 
 def remove_duplicates(reducing_tensor: torch.Tensor):
-    r"""Remove duplicates from a tensor.
+    """Remove duplicates from a tensor.
 
     Args:
         reducing_tensor (torch.Tensor): The tensor to remove duplicates from.
@@ -62,8 +62,7 @@ def extract_children_states_from_actions(
     actions: torch.Tensor,
     vec_cardinality: int = 5,
 ):
-    r"""
-    Extract the children states from the actions.
+    """Extract the children states from the actions.
 
     Args:
         state (torch.Tensor): The state of the game.
@@ -118,7 +117,7 @@ def extract_present_state(state: torch.Tensor) -> torch.Tensor:
 
 
 def to_hash(tensor: torch.Tensor) -> str:
-    r"""Converts a tensor to a hash string.
+    """Converts a tensor to a hash string.
 
     Args:
         tensor: The tensor to convert.
@@ -129,8 +128,8 @@ def to_hash(tensor: torch.Tensor) -> str:
     return hashable_tensor
 
 
-def from_hush(hashable_tensor: str, shape: tuple) -> torch.Tensor:
-    f"""Converts a hash string back to the original tensor.
+def from_hash(hashable_tensor: str, shape: tuple) -> torch.Tensor:
+    """Converts a hash string back to the original tensor.
 
     Args:
         hashable_tensor (str): The hash string.
@@ -140,7 +139,7 @@ def from_hush(hashable_tensor: str, shape: tuple) -> torch.Tensor:
 
 
 def record_action(tree_dict: Dict, state: str, action: str):
-    r"""Record the action in the tree dictionary.
+    """Record the action in the tree dictionary.
 
     Args:
         tree_dict (Dict): The tree dictionary.
@@ -193,7 +192,7 @@ def simulate_game(
     states_dict: Dict,
     horizon: int = 5,
 ):
-    r"""Simulates a game from a given state.
+    """Simulates a game from a given state.
 
     Args:
         model: The model to use for the simulation.
@@ -310,12 +309,12 @@ def monte_carlo_tree_search(
     """Runs the monte carlo tree search algorithm.
 
     Args:
-        model: The model to use for the simulation,
-        state (torch.Tensor): The initial state,
-        n_sim (int): The number of simulations to run,
-        t_time (int): The current time step,
-        n_steps (int): The maximum number of steps to simulate,
-        game_tree (Dict): The game tree,
+        model (torch.nn.Module): The model to use for the simulation.
+        state (torch.Tensor): The initial state.
+        n_sim (int): The number of simulations to run.
+        t_time (int): The current time step.
+        n_steps (int): The maximum number of steps to simulate.
+        game_tree (Dict): The game tree.
         state_dict (Dict): The dictionary containing the states.
     """
     # Note that game tree is not the full tree, but just the one having as root
@@ -383,14 +382,14 @@ def actor_prediction(
     N_bar: int,
     return_actions: bool = False,
 ):
-    r"""Runs the monte carlo tree search algorithm to obtain the next states, policies and rewards.
+    """Runs the monte carlo tree search algorithm to obtain the next states, policies and rewards.
 
     Args:
-        model: The model to use for the simulation,
-        input_tensor (torch.Tensor): The initial state,
-        maximum_rank (int): The maximum number of steps to simulate,
-        mc_n_sim (int): The number of simulations to run,
-        N_bar (int): The parameter used to compute the improved policy,
+        model (AlphaTensorModel): The model to use for the simulation.
+        input_tensor (torch.Tensor): The initial state.
+        maximum_rank (int): The maximum number of steps to simulate.
+        mc_n_sim (int): The number of simulations to run.
+        N_bar (int): The parameter used to compute the improved policy.
         return_actions (bool): If True, only actions are returned.
     """
     # input_tensor has shape (1, T, S, S, S)

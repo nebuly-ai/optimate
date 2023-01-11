@@ -4,7 +4,7 @@ import torch
 
 
 def get_scalars(input_tensor: torch.Tensor, t_step: int, with_bs: bool = True):
-    r"""Adds the time step to the current state tensor.
+    """Adds the time step to the current state tensor.
 
     Args:
         input_tensor (torch.Tensor): Current state tensor.
@@ -27,11 +27,10 @@ def map_triplet_to_action(
     n_steps: int,
     add_bias: bool = True,
 ):
-    r"""
-    Maps a triplet of tensors to an action.
+    """Maps a triplet of tensors to an action.
 
     Args:
-        triplet (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): Triplet of u, v, w tensors,
+        triplet (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): Triplet of tensors u, v, and w.
         base (int): Base used for the conversion.
         n_steps (int): Number of steps in the action.
         add_bias (bool, optional): Whether to add a bias to the action.
@@ -61,15 +60,14 @@ def _single_action_to_triplet(
     bias: int,
     device: str,
 ):
-    r"""
-    Converts an action to the original triplet u, v, w that generated it.
+    """Converts an action to the original triplet (u, v, w) that generated it.
 
     Args:
-        action_val (int): Action to convert,
-        basis (int): Basis used for the conversion,
-        out_dim (int): Output dimension,
-        bias (int): Bias to subtract from the action,
-        device (str): Name of the torch device to use,
+        action_val (int): Action to convert.
+        basis (int): Basis used for the conversion.
+        out_dim (int): Output dimension.
+        bias (int): Bias to subtract from the action.
+        device (str): Name of the torch device to use.
     """
     triplet = torch.zeros(out_dim).to(device)
     if action_val > 0:
@@ -90,14 +88,13 @@ def map_action_to_triplet(
     vector_size: int = 5,
     add_bias: bool = True,
 ):
-    r"""
-    Maps a batch of actions to the batch of triplets that generated them.
+    """Maps a batch of actions to the batch of triplets that generated them.
 
     Args:
-        action_tensor (torch.Tensor): Batch of actions,
-        cardinality (int, optional): Cardinality of the action space,
-        vector_size (int, optional): Size of the vector,
-        add_bias (bool, optional): Whether to use bias,
+        action_tensor (torch.Tensor): Batch of actions.
+        cardinality (int, optional): Cardinality of the action space.
+        vector_size (int, optional): Size of the vector.
+        add_bias (bool, optional): Whether to use bias.
     """
     # map the action to a triplet. The action is converted to a base 5
     # representation and then the three elements are extracted from it.

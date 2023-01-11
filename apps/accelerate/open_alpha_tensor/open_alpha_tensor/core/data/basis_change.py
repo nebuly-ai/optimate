@@ -14,9 +14,9 @@ def get_change_basis_matrix(
     """Generate a list of change of basis matrices.
 
     Args:
-        tensor_size (int): Size of the tensor,
-        n_cob (int): Number of change of basis matrices,
-        entry_distribution (Callable, optional): Distribution of the entries of the change of basis matrices,
+        tensor_size (int): Size of the tensor.
+        n_cob (int): Number of change of basis matrices.
+        entry_distribution (Callable, optional): Distribution of the entries of the change of basis matrices.
         random_seed (int, optional): Random seed for reproducibility.
     """
     if random_seed is not None:
@@ -54,14 +54,13 @@ class ChangeOfBasis:
         device: str,
         random_seed: int = None,
     ):
-        """
-        Builds a ChangeOfBasis object.
+        """Builds a ChangeOfBasis object.
 
         Args:
-            tensor_size (int): Size of the tensor,
-            n_cob (int): Number of change of basis matrices,
-            cob_prob (float): Probability of applying a change of basis,
-            device (str): Name of the torch device to use,
+            tensor_size (int): Size of the tensor.
+            n_cob (int): Number of change of basis matrices.
+            cob_prob (float): Probability of applying a change of basis.
+            device (str): Name of the torch device to use.
             random_seed (int, optional): Random seed for reproducibility.
         """
         self.tmp_dir = Path.home() / ".data_alpha_tensor/cob_matrices"
@@ -82,7 +81,7 @@ class ChangeOfBasis:
         """Apply a change of basis to a tensor.
 
         Args:
-            tensor (torch.Tensor): Tensor to apply the change of basis to,
+            tensor (torch.Tensor): Tensor to apply the change of basis to.
             return_basis (bool, optional): Whether to return the change of basis matrix as well.
         """
         cob_prob = torch.rand(1).item()

@@ -19,17 +19,17 @@ SAVE_DIR_SYNT = str(Path.home() / ".data_alpha_tensor/synthetic_data")
 
 
 def compute_move(triplets: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
-    r"""Computes the outer product of the three tensors in the triplet that will be subtracted from the current state.
+    """Computes the outer product of the three tensors in the triplet that will be subtracted from the current state.
 
     Args:
-        triplets (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): u, v, w tensors
+        triplets (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): Tensors u, v, and w.
     """
     u, v, w = triplets
     return u.reshape(-1, 1, 1) * v.reshape(1, -1, 1) * w.reshape(1, 1, -1)
 
 
 class SyntheticDataBuffer(Dataset):
-    r"""Dataset of synthetically generated demonstrations"""
+    """Dataset of synthetically generated demonstrations."""
 
     def __init__(
         self,
@@ -42,18 +42,17 @@ class SyntheticDataBuffer(Dataset):
         n_steps: int,
         random_seed=None,
     ):
-        r"""
-        Builds a dataset of synthetic demonstrations.
+        """Builds a dataset of synthetic demonstrations.
 
         Args:
-            tensor_size (int): size of the tensor,
-            n_data (int): number of demonstrations to generate,
-            limit_rank (int): maximum rank of the generated tensors,
-            prob_distr (Callable): probability distribution to use to generate the tensors,
-            n_prev_actions (int): number of previous actions to use as input,
-            device (str): name of the torch device to use,
-            n_steps (int): number of steps to perform in the environment,
-            random_seed (int, optional): random seed to use.
+            tensor_size (int): Size of the tensor.
+            n_data (int): Number of demonstrations to generate.
+            limit_rank (int): Maximum rank of the generated tensors.
+            prob_distr (Callable): Probability distribution to use to generate the tensors.
+            n_prev_actions (int): Number of previous actions to use as input.
+            device (str): Name of the torch device to use.
+            n_steps (int): Number of steps to perform in the environment.
+            random_seed (int, optional): Random seed to use.
         """
         self.device = device
         self.len_data = 0
@@ -139,11 +138,11 @@ class SyntheticDataBuffer(Dataset):
         tensor: torch.Tensor,
         moves: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
     ):
-        r"""Given an initial state and a list of moves, applies the moves to the state.
+        """Given an initial state and a list of moves, applies the moves to the state.
 
         Args:
-            tensor (torch.Tensor): initial state,
-            moves (List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]): list of moves.
+            tensor (torch.Tensor): Initial state.
+            moves (List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]): List of moves.
         """
         for u, v, w in moves:
             tensor = tensor - u.reshape(-1, 1, 1) * v.reshape(1, -1, 1) * w.reshape(
@@ -153,14 +152,14 @@ class SyntheticDataBuffer(Dataset):
 
 
 class GameDataBuffer(Dataset):
-    r"""Buffer to store the data from the games played by the MCTS agent."""
+    """Buffer to store the data from the games played by the MCTS agent."""
 
     def __init__(self, device: str, max_buffer_size: int):
-        r"""Initializes the buffer.
+        """Initializes the buffer.
 
         Args:
-            device (str): name of the torch device to use,
-            max_buffer_size (int): maximum size of the buffer.
+            device (str): Name of the torch device to use.
+            max_buffer_size (int): Maximum size of the buffer.
         """
         self.num_games = 0
         self.temp_dir = tempfile.mkdtemp("game_data_buffer")
@@ -177,13 +176,12 @@ class GameDataBuffer(Dataset):
         policies: List[torch.Tensor],
         rewards: List[torch.Tensor],
     ):
-        r"""
-        Adds a played game to the buffer.
+        """Adds a played game to the buffer.
 
         Args:
-            states (List[torch.Tensor]): observed game states,
-            policies (List[torch.Tensor]): list of policies,
-            rewards (List[torch.Tensor]): observed rewards.
+            states (List[torch.Tensor]): Observed game states.
+            policies (List[torch.Tensor]): List of policies.
+            rewards (List[torch.Tensor]): Observed rewards.
         """
         self.game_data[self.num_games] = len(states)
         torch.save(states, os.path.join(self.temp_dir, f"states_{self.num_games}.pt"))

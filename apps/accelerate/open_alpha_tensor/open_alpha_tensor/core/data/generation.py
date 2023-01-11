@@ -10,14 +10,13 @@ def generate_synthetic_data(
     prob_distr: Callable = torch.randn,
     random_seed: int = None,
 ):
-    r"""
-    Generates synthetic demonstrations.
+    """Generates synthetic demonstrations.
 
     Args:
-        tensor_size (int): Size of the tensor,
-        n_data (int): Number of demonstrations,
-        limit_rank (int): Limit rank of each tensor,
-        prob_distr (Callable, optional): Distribution of the entries of the tensor,
+        tensor_size (int): Size of the tensor.
+        n_data (int): Number of demonstrations.
+        limit_rank (int): Limit rank of each tensor.
+        prob_distr (Callable, optional): Distribution of the entries of the tensor.
         random_seed (int, optional): Random seed for reproducibility.
     """
     if random_seed is not None:
@@ -44,11 +43,10 @@ def generate_synthetic_data(
 
 
 def f_prob_distribution(size):
-    """
-    Samples a tensor of values from a distribution with a peak at 0 and a tail at -2 and 2.
+    """Samples a tensor of values from a distribution with a peak at 0 and a tail at -2 and 2.
 
     Args:
-        size (int): Number of values to sample
+        size (int): Number of values to sample.
     """
     f_vals = torch.tensor([-2, -1, 0, 1, 2])
     f_probs = torch.tensor([0.001, 0.099, 0.8, 0.099, 0.001]).unsqueeze(0)
@@ -60,10 +58,9 @@ def f_prob_distribution(size):
 
 
 def z2_prob_distribution(size):
-    """
-    Samples a binary tensor with uniform probability of 0 and 1.
+    """Samples a binary tensor with uniform probability of 0 and 1.
 
     Args:
-        size (int): Number of values to sample
+        size (int): Number of values to sample.
     """
     return (torch.rand(size) > 0.5).int()

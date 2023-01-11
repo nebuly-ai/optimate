@@ -27,12 +27,12 @@ class TorsoAttentiveModes(torch.nn.Module):
 
 
 class TorsoModel(torch.nn.Module):
-    r"""Torso model of OpenAlphaTensor.
+    """Torso model of OpenAlphaTensor.
 
     It maps an input tensor of shape (N, T, S, S, S) to (N, 3S*S, c), where:
 
         N is the batch size;
-        T is the size of the history;
+        T is the context size (size of the history + 1);
         S is the number of elements in each matrix to be multiplied;
         c is the output dimensionality.
     """
