@@ -1,6 +1,7 @@
 import json
 import os
 import pickle
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
@@ -13,6 +14,7 @@ from typing import (
     List,
 )
 
+from nebullvm import setup_logger
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, MIN_NUMBER
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.converters import (
@@ -45,6 +47,7 @@ from nebullvm.tools.base import (
     ModelParams,
     OptimizationTime,
     ModelCompressor,
+    Device,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FeedbackCollector
@@ -357,12 +360,41 @@ class SpeedsterRootOp(Operation):
                 ]
                 headers = ["Metric", "Original Model", "Optimized Model"]
 
+                # change format to the logger, avoiding printing verbose info
+                # to the console (as date, time, etc.)
+                self.logger.remove()
+                handler_id = self.logger.add(
+                    sys.stdout, format="<level>{message}</level>"
+                )
                 self.logger.info(
                     (
                         f"\n[ Speedster results on {self.device.name}]\n"
                         f"{tabulate(table, headers, tablefmt='heavy_outline')}"
                     )
                 )
+
+                if orig_latency < optimized_models[0][1]:
+                    hw_info = get_hw_info(self.device)
+                    if self.device is Device.CPU:
+                        device = hw_info["cpu"]
+                    else:
+                        device = hw_info["gpu"]
+
+                    self.logger.warning(
+                        f"\nUnfortunately with your input requirements the "
+                        f"speedup is not great, sorry. For {model_name} "
+                        f"running on {device} we strongly suggest you try "
+                        f"the following:\n"
+                        f"- Include more backends for optimization, "
+                        f"i.e. set --backend all\n"
+                        f"- Increase the metric_drop_ths by 5%, if possible\n"
+                        f"- Verify that your device {device} is supported by "
+                        f"your version of speedster https://docs.nebuly.com/"
+                        f"modules/speedster/key-concepts/supported-hardware"
+                    )
+
+                self.logger.remove(handler_id)
+                setup_logger()
 
                 if needs_conversion_to_hf:
                     from nebullvm.operations.inference_learners.huggingface import (  # noqa: E501

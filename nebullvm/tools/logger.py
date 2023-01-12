@@ -35,6 +35,7 @@ def setup_logger():
         ),
         level=levels_map[logging_level],
     )
+    logger.level("WARNING", color="<fg #d3d3d3>")
 
 
 class LoggingContext(object):
