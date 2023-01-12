@@ -364,7 +364,7 @@ class SpeedsterRootOp(Operation):
                         "model size",
                         f"{original_model_size / 1e6:.2f} MB",
                         f"{optimized_models[0][0].get_size() / 1e6:.2f} MB",
-                        f"{int((optimized_models[0][0].get_size()-original_model_size) / original_model_size)}%",  # noqa: E501
+                        f"{min(int((optimized_models[0][0].get_size()-original_model_size) / original_model_size * 100), 0)}%",  # noqa: E501
                     ],
                     ["metric drop", "", opt_metric_drop, ""],
                     [
