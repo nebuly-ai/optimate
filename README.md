@@ -38,9 +38,9 @@ There are multiple modules we actually provide to boost the performances of your
 
 ✅ [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): Automatically apply the best set of SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
 
-✅ [OpenAlphaTensor](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/open_alpha_tensor): Increase the computational performances of an AI model with custom-generated matrix multiplication algorithms.
-
 ✅ [Nos](https://github.com/nebuly-ai/nos): Automatically maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning and elastic quotas - Effortless optimization at its finest!
+
+✅ [OpenAlphaTensor](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/open_alpha_tensor): Increase the computational performances of an AI model with custom-generated matrix multiplication algorithm fine-tuned for your specific hardware.
 
 ✅ [Forward-Forward](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/forward_forward): The Forward Forward algorithm is a method for training deep neural networks that replaces the backpropagation forward and backward passes with two forward passes.
 
