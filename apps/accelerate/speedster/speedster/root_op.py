@@ -75,6 +75,18 @@ SPEEDSTER_FEEDBACK_COLLECTOR = FeedbackCollector(
 )
 
 
+def _convert_technique(technique: str):
+    if technique == "none":  # use fp32 instead of none
+        technique = "fp32"
+    elif technique == "HALF":
+        technique = "fp16"
+    elif technique == "STATIC":
+        technique = "int8"
+    else:
+        technique = "int8_dynamic"
+    return technique
+
+
 class SpeedsterRootOp(Operation):
     def __init__(self):
         super().__init__()
@@ -303,15 +315,14 @@ class SpeedsterRootOp(Operation):
                     else "0"
                 )
 
-                metric_name = (
-                    "compute_relative_difference"
-                    if metric is None
-                    else metric.__name__
-                )
-
                 orig_latency = self.orig_latency_measure_op.get_result()[1]
 
                 optimizations = self.feedback_collector.get("optimizations")
+                best_technique = _convert_technique(
+                    sorted(optimizations, key=lambda x: x["latency"])[0][
+                        "technique"
+                    ]
+                )
                 optimizations.insert(0, original_model_dict)
                 self.feedback_collector.send_feedback()
                 if store_latencies:
@@ -334,31 +345,41 @@ class SpeedsterRootOp(Operation):
                         "backend",
                         dl_framework.name,
                         optimized_models[0][0].name,
+                        "",
                     ],
                     [
                         "latency",
                         f"{orig_latency:.4f} sec/batch",
                         f"{optimized_models[0][1]:.4f} sec/batch",
+                        f"{orig_latency / optimized_models[0][1]:.2f}x",
                     ],
                     [
                         "throughput",
                         f"{(1 / orig_latency) * model_params.batch_size:.2f} "
                         f"data/sec",
                         f"{1 / optimized_models[0][1]:.2f} data/sec",
+                        f"{(1 / optimized_models[0][1]) / (1 / orig_latency):.2f}x",  # noqa: E501
                     ],
                     [
                         "model size",
                         f"{original_model_size / 1e6:.2f} MB",
                         f"{optimized_models[0][0].get_size() / 1e6:.2f} MB",
+                        f"{int((optimized_models[0][0].get_size()-original_model_size) / original_model_size)}%",  # noqa: E501
                     ],
-                    [f"metric drop ({metric_name})", "", opt_metric_drop],
+                    ["metric drop", "", opt_metric_drop, ""],
                     [
-                        "speedup",
+                        "techniques",
                         "",
-                        f"{orig_latency / optimized_models[0][1]:.2f}x",
+                        f"{best_technique}",
+                        "",
                     ],
                 ]
-                headers = ["Metric", "Original Model", "Optimized Model"]
+                headers = [
+                    "Metric",
+                    "Original Model",
+                    "Optimized Model",
+                    "Improvement",
+                ]
 
                 # change format to the logger, avoiding printing verbose info
                 # to the console (as date, time, etc.)
@@ -366,31 +387,44 @@ class SpeedsterRootOp(Operation):
                 handler_id = self.logger.add(
                     sys.stdout, format="<level>{message}</level>"
                 )
+                hw_info = get_hw_info(self.device)
+                hw_name = hw_info[
+                    "cpu" if self.device is Device.CPU else "gpu"
+                ]
                 self.logger.info(
                     (
-                        f"\n[ Speedster results on {self.device.name}]\n"
+                        f"\n[Speedster results on {hw_name}]\n"
                         f"{tabulate(table, headers, tablefmt='heavy_outline')}"
                     )
                 )
 
-                if orig_latency < optimized_models[0][1]:
-                    hw_info = get_hw_info(self.device)
+                if orig_latency / optimized_models[0][1] < 2:
                     if self.device is Device.CPU:
                         device = hw_info["cpu"]
                     else:
                         device = hw_info["gpu"]
 
                     self.logger.warning(
-                        f"\nUnfortunately with your input requirements the "
-                        f"speedup is not great, sorry. For {model_name} "
-                        f"running on {device} we strongly suggest you try "
-                        f"the following:\n"
-                        f"- Include more backends for optimization, "
+                        f"\nUnfortunately, with the optimization parameters "
+                        f"you selected it is not possible to achieve "
+                        f"speed-ups higher than "
+                        f"{orig_latency / optimized_models[0][1]:.2f}x. "
+                        f"We therefore suggest the following "
+                        f"options to further accelerate the model:\n"
+                        f"1) Include more backends for optimization, "
                         f"i.e. set --backend all\n"
-                        f"- Increase the metric_drop_ths by 5%, if possible\n"
-                        f"- Verify that your device {device} is supported by "
-                        f"your version of speedster https://docs.nebuly.com/"
-                        f"modules/speedster/key-concepts/supported-hardware"
+                        f"2) Increase the metric_drop_ths by 5%, if possible: "
+                        f"https://docs.nebuly.com/modules/speedster/getting-"
+                        f"started/run-the-optimization#optimize_model-api\n"
+                        f"3) Verify that your device {device} is supported by "
+                        f"your version of speedster: https://docs.nebuly.com/"
+                        f"modules/speedster/key-concepts/supported-hardware\n"
+                        f"4) Try to accelerate your model on a different "
+                        f"hardware or consider using the CloudSurfer module "
+                        f"to automatically understand which is the best "
+                        f"hardware for your model: https:/"
+                        f"/github.com/nebuly-ai/nebullvm/tree/main/apps"
+                        f"/accelerate/cloud_surfer."
                     )
 
                 self.logger.remove(handler_id)
