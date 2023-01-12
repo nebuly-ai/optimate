@@ -1,7 +1,7 @@
 # 🏄 CloudSurfer (WIP)
 Automatically discover the optimal cloud configuration and hardware on AWS, GCP and Azure to run your AI models.
 
-If you like this App, give us a star to show your support for the project ⭐
+If you like this module, give us a star to show your support for the project ⭐
 
 ## 📚 Description
 The CloudSurfer module allows users to automatically compare the inference performance of their deep learning model across hardware and cloud providers. It leverages state-of-the-art optimization techniques to custom-accelerate the models on each platform, providing the user with an accurate benchmark of their model performances in terms of speed, accuracy, and cost.
