@@ -10,6 +10,8 @@ from typing import (
 )
 
 from loguru import logger
+
+from nebullvm.config import DEFAULT_METRIC_DROP_THS
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
@@ -46,7 +48,7 @@ def _check_device(device: Optional[str]) -> Device:
 def optimize_model(
     model: Union[torch.nn.Module, tf.Module, str],
     input_data: Union[Iterable, Sequence],
-    metric_drop_ths: float = None,
+    metric_drop_ths: float = DEFAULT_METRIC_DROP_THS,
     metric: Union[str, Callable] = None,
     optimization_time: str = "constrained",
     dynamic_info: Dict = None,
