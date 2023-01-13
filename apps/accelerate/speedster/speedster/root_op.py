@@ -405,26 +405,26 @@ class SpeedsterRootOp(Operation):
                         device = hw_info["gpu"]
 
                     self.logger.warning(
-                        f"\nUnfortunately, with the optimization parameters "
+                        f"\n\nUnfortunately, with the optimization parameters "
                         f"you selected it is not possible to achieve "
                         f"speed-ups higher than "
                         f"{orig_latency / optimized_models[0][1]:.2f}x. "
                         f"We therefore suggest the following "
-                        f"options to further accelerate the model:\n"
+                        f"options to further accelerate the model:\n\n"
                         f"1) Include more backends for optimization, "
-                        f"i.e. set --backend all\n"
+                        f"i.e. set --backend all\n\n"
                         f"2) Increase the metric_drop_ths by 5%, if possible: "
                         f"https://docs.nebuly.com/modules/speedster/getting-"
-                        f"started/run-the-optimization#optimize_model-api\n"
+                        f"started/run-the-optimization#optimize_model-api\n\n"
                         f"3) Verify that your device {device} is supported by "
                         f"your version of speedster: https://docs.nebuly.com/"
                         f"modules/speedster/key-concepts/supported-hardware\n"
-                        f"4) Try to accelerate your model on a different "
+                        f"\n4) Try to accelerate your model on a different "
                         f"hardware or consider using the CloudSurfer module "
                         f"to automatically understand which is the best "
                         f"hardware for your model: https:/"
                         f"/github.com/nebuly-ai/nebullvm/tree/main/apps"
-                        f"/accelerate/cloud_surfer."
+                        f"/accelerate/cloud_surfer.\n"
                     )
 
                 self.logger.remove(handler_id)
