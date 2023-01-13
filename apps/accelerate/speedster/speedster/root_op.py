@@ -71,7 +71,7 @@ from speedster.utils import (
 SPEEDSTER_FEEDBACK_COLLECTOR = FeedbackCollector(
     url="https://nebuly.cloud/v1/store_speedster_results",
     disable_telemetry_environ_var="SPEEDSTER_DISABLE_TELEMETRY",
-    app_version="0.1.2",
+    app_version="0.1.3",
 )
 
 
