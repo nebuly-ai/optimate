@@ -267,7 +267,7 @@ class Trainer:
                     self.dataset.input_tensor, n_games, mc_n_sim, N_bar
                 )
             # save checkpoint
-            if epoch + 1 % 1000 == 0:
+            if epoch + 1 % 100 == 0:
                 checkpoint_name = f"checkpoint_{epoch + 1}.pt"
                 checkpoint = {
                     "model_state_dict": self.model.state_dict(),
