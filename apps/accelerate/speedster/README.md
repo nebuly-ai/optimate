@@ -1,16 +1,14 @@
-# 💥 Speedster App
+# 💥 Speedster
 
 Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
 
 
-## 📖 Description 
-`Speedster` is an open-source App designed to speed up AI inference in just a few lines of code. The library boosts your model to achieve the maximum acceleration that is physically possible on your hardware.
+## 📖 What is this? 
+`Speedster` is an open-source module designed to speed up AI inference in just a few lines of code. The library boosts your model to achieve the maximum acceleration that is physically possible on your hardware.
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
-
-![nebullvm benchmarks](https://user-images.githubusercontent.com/28647171/201156822-00a307d7-e3b9-4121-aa83-c7d2a167f791.png)
-
+![benchmarks_speedster](https://user-images.githubusercontent.com/83510798/211219698-a1938b65-1d2c-4a28-8e2a-6c3217ff9057.png)
 
 
 The core `Speedster` workflow consists of 3 steps:
@@ -18,31 +16,29 @@ The core `Speedster` workflow consists of 3 steps:
 - [x]  **Select**: input your model in your preferred DL framework and express your preferences regarding:
     - Accuracy loss: do you want to trade off a little accuracy for much higher performance?
     - Optimization time: stellar accelerations can be time-consuming. Can you wait, or do you need an instant answer?
-- [x]  **Search**: the App automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
+- [x]  **Search**: the library automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
 - [x]  **Serve**: finally, `Speedster` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
 
 
 # Installation
 
-> :warning: For **MacOS** with **ARM processors**, please use a conda environment.
+
 
 Install Speedster and its base requirements:
 ```
 pip install speedster
 ```
 
-> :warning: If you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
+Then make sure to install the deep learning compilers to leverage during the optimization:
+```
+python -m nebullvm.installers.auto_installer --backends all --compilers all
+```
+> :warning: For **MacOS** with **ARM processors**, please use a conda environment.
+> Moreover, if you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
 > on your environment before proceeding to the next step, please install it from this 
 > [link](https://pytorch.org/get-started/locally/).
 
-
-Install the deep learning compilers:
-```
-python -m nebullvm.installers.auto_installer \
-    --backends all --compilers all
-```
-
-For more details on the installation step, please visit [Installation](https://docs.nebuly.com/speedster/installation).
+For more details on the installation step, please visit [Installation](https://docs.nebuly.com/modules/speedster/installation).
 
 
 # API quick view
@@ -60,13 +56,21 @@ Checkout how to define the `model` and `input_data` parameters depending on whic
 [TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/tensorflow#tensorflow-api-quick-view), 
 [ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/onnx#onnx-api-quick-view).
 
-For more details, please visit also the documentation sections [Get Started](https://docs.nebuly.com/speedster/get-started),  [Speedster API](https://docs.nebuly.com/speedster/get-started/speedster-api) and [Examples of API options](https://docs.nebuly.com/speedster/get-started/examples-of-api-options).
+For more details, please visit also the documentation sections [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
 
-# **How it works**
+# **Documentation**
 
-We are not here to reinvent the wheel, but to build an all-in-one open-source product to master all the available AI acceleration techniques and deliver the **fastest AI ever.** As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that the community can benefit from it.
+- [Installation](https://docs.nebuly.com/modules/speedster/installation)
+- [Getting started](https://docs.nebuly.com/modules/speedster/getting-started)
+- [Key concepts](https://docs.nebuly.com/modules/speedster/key-concepts)
+- [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
+- [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides)
+- [Benchmarks](https://docs.nebuly.com/modules/speedster/benchmarks)
 
-### **Product design**
+
+# **Key concepts**
+
+`Speedster`'s design reflects the mission to automatically master all the available AI acceleration techniques and deliver the **fastest AI ever.** As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that the community can benefit from it.
 
 `Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
 
@@ -92,13 +96,7 @@ The **optimizer stage** leverages the following open-source projects:
 - [TensorRT](https://github.com/NVIDIA/TensorRT): C++ library for high performance inference on NVIDIA GPUs and deep learning accelerators.
 - [TFlite](https://github.com/tensorflow/tflite-micro) and [XLA](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/compiler/xla): open-source libraries to accelerate TensorFlow models.
 
-# **Documentation**
 
-- [Installation](https://docs.nebuly.com/speedster/installation)
-- [Get started](https://docs.nebuly.com/speedster/get-started)
-- [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
-- [Benchmarks](https://docs.nebuly.com/speedster/benchmarks)
-- [Supported features and roadmap](https://docs.nebuly.com/speedster/how-speedster-works/supported-features-and-roadmap)
 
 # **Community**
 
@@ -109,20 +107,6 @@ We’re developing `Speedster` together with our community so the best way to ge
 
 Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀
 
-# **Status**
-
-- **Model converter backends**
-    - [x]  ONNX, PyTorch, TensorFlow
-    - [ ]  Jax
-- **Compressor**
-    - [x]  Pruning and sparsity
-    - [ ]  Quantized-aware training, distillation, layer replacement and low rank compression
-- **Optimizer**
-    - [x]  TensorRT, OpenVINO, ONNX Runtime, TVM, PyTorch, DeepSparse, BladeDisc, TFlite, XLA
-- **Inference learners**
-    - [x]  PyTorch, ONNX, Hugging Face, TensorFlow
-    - [ ]  Jax
-
 ---
 
 <p align="center">
@@ -132,8 +116,8 @@ Don't forget to leave a star ⭐ to support the project and happy acceleration �
 
 
 <p align="center">
-<a href="https://docs.nebuly.com/speedster/installation">Installation</a> •
-<a href="https://docs.nebuly.com/speedster/get-started">Get started</a> •
+<a href="https://docs.nebuly.com/modules/speedster/installation">Installation</a> •
+<a href="https://docs.nebuly.com/modules/speedster/getting-started">Get started</a> •
 <a href="https://github.com/nebuly-ai/nebullvm/tree/main/notebooks">Notebooks</a> •
-<a href="https://docs.nebuly.com/speedster/benchmarks">Benchmarks</a>
+<a href="https://docs.nebuly.com/modules/speedster/benchmarks">Benchmarks</a>
 </p>

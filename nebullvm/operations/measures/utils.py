@@ -1,8 +1,8 @@
-import logging
 import time
 from typing import Tuple, List, Union, Any
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
@@ -15,8 +15,6 @@ from nebullvm.tools.onnx import (
     get_input_names,
     get_output_names,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def compute_torch_latency(

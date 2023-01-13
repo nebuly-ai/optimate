@@ -1,6 +1,7 @@
 import json
 import os
 import pickle
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
@@ -13,6 +14,7 @@ from typing import (
     List,
 )
 
+from nebullvm import setup_logger
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, MIN_NUMBER
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.converters import (
@@ -45,6 +47,7 @@ from nebullvm.tools.base import (
     ModelParams,
     OptimizationTime,
     ModelCompressor,
+    Device,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FeedbackCollector
@@ -68,8 +71,20 @@ from speedster.utils import (
 SPEEDSTER_FEEDBACK_COLLECTOR = FeedbackCollector(
     url="https://nebuly.cloud/v1/store_speedster_results",
     disable_telemetry_environ_var="SPEEDSTER_DISABLE_TELEMETRY",
-    app_version="0.0.2",
+    app_version="0.1.3",
 )
+
+
+def _convert_technique(technique: str):
+    if technique == "none":  # use fp32 instead of none
+        technique = "fp32"
+    elif technique == "HALF":
+        technique = "fp16"
+    elif technique == "STATIC":
+        technique = "int8"
+    else:
+        technique = "int8_dynamic"
+    return technique
 
 
 class SpeedsterRootOp(Operation):
@@ -300,15 +315,14 @@ class SpeedsterRootOp(Operation):
                     else "0"
                 )
 
-                metric_name = (
-                    "compute_relative_difference"
-                    if metric is None
-                    else metric.__name__
-                )
-
                 orig_latency = self.orig_latency_measure_op.get_result()[1]
 
                 optimizations = self.feedback_collector.get("optimizations")
+                best_technique = _convert_technique(
+                    sorted(optimizations, key=lambda x: x["latency"])[0][
+                        "technique"
+                    ]
+                )
                 optimizations.insert(0, original_model_dict)
                 self.feedback_collector.send_feedback()
                 if store_latencies:
@@ -331,38 +345,90 @@ class SpeedsterRootOp(Operation):
                         "backend",
                         dl_framework.name,
                         optimized_models[0][0].name,
+                        "",
                     ],
                     [
                         "latency",
                         f"{orig_latency:.4f} sec/batch",
                         f"{optimized_models[0][1]:.4f} sec/batch",
+                        f"{orig_latency / optimized_models[0][1]:.2f}x",
                     ],
                     [
                         "throughput",
                         f"{(1 / orig_latency) * model_params.batch_size:.2f} "
                         f"data/sec",
                         f"{1 / optimized_models[0][1]:.2f} data/sec",
+                        f"{(1 / optimized_models[0][1]) / (1 / orig_latency):.2f}x",  # noqa: E501
                     ],
                     [
                         "model size",
                         f"{original_model_size / 1e6:.2f} MB",
                         f"{optimized_models[0][0].get_size() / 1e6:.2f} MB",
+                        f"{min(int((optimized_models[0][0].get_size()-original_model_size) / original_model_size * 100), 0)}%",  # noqa: E501
                     ],
-                    [f"metric drop ({metric_name})", "", opt_metric_drop],
+                    ["metric drop", "", opt_metric_drop, ""],
                     [
-                        "speedup",
+                        "techniques",
                         "",
-                        f"{orig_latency / optimized_models[0][1]:.2f}x",
+                        f"{best_technique}",
+                        "",
                     ],
                 ]
-                headers = ["Metric", "Original Model", "Optimized Model"]
+                headers = [
+                    "Metric",
+                    "Original Model",
+                    "Optimized Model",
+                    "Improvement",
+                ]
 
+                # change format to the logger, avoiding printing verbose info
+                # to the console (as date, time, etc.)
+                self.logger.remove()
+                handler_id = self.logger.add(
+                    sys.stdout, format="<level>{message}</level>"
+                )
+                hw_info = get_hw_info(self.device)
+                hw_name = hw_info[
+                    "cpu" if self.device is Device.CPU else "gpu"
+                ]
                 self.logger.info(
                     (
-                        f"\n[ Speedster results on {self.device.name}]\n"
+                        f"\n[Speedster results on {hw_name}]\n"
                         f"{tabulate(table, headers, tablefmt='heavy_outline')}"
                     )
                 )
+
+                if orig_latency / optimized_models[0][1] < 2:
+                    if self.device is Device.CPU:
+                        device = hw_info["cpu"]
+                    else:
+                        device = hw_info["gpu"]
+
+                    self.logger.warning(
+                        f"\n\nUnfortunately, with the optimization parameters "
+                        f"you selected it is not possible to achieve "
+                        f"speed-ups higher than "
+                        f"{orig_latency / optimized_models[0][1]:.2f}x. "
+                        f"We therefore suggest the following "
+                        f"options to further accelerate the model:\n\n"
+                        f"1) Include more backends for optimization, "
+                        f"i.e. set --backend all\n\n"
+                        f"2) Increase the metric_drop_ths by 5%, if possible: "
+                        f"https://docs.nebuly.com/modules/speedster/getting-"
+                        f"started/run-the-optimization#optimize_model-api\n\n"
+                        f"3) Verify that your device {device} is supported by "
+                        f"your version of speedster: https://docs.nebuly.com/"
+                        f"modules/speedster/key-concepts/supported-hardware\n"
+                        f"\n4) Try to accelerate your model on a different "
+                        f"hardware or consider using the CloudSurfer module "
+                        f"to automatically understand which is the best "
+                        f"hardware for your model: https:/"
+                        f"/github.com/nebuly-ai/nebullvm/tree/main/apps"
+                        f"/accelerate/cloud_surfer.\n"
+                    )
+
+                self.logger.remove(handler_id)
+                setup_logger()
 
                 if needs_conversion_to_hf:
                     from nebullvm.operations.inference_learners.huggingface import (  # noqa: E501

@@ -1,4 +1,3 @@
-import logging
 import os
 import platform
 import subprocess
@@ -8,6 +7,7 @@ from pathlib import Path
 from typing import List, Union
 
 import cpuinfo
+from loguru import logger
 
 from nebullvm.config import (
     LIBRARIES_GPU,
@@ -24,8 +24,6 @@ from nebullvm.tools.utils import (
     gpu_is_available,
     check_module_version,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def get_cpu_arch():

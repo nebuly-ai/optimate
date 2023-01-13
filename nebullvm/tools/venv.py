@@ -1,9 +1,8 @@
-import logging
 import subprocess
 import tempfile
 import venv
 
-logger = logging.getLogger("nebullvm_logger")
+from loguru import logger
 
 
 class EnvBuilder(venv.EnvBuilder):

@@ -40,7 +40,7 @@ python -m nebullvm.installers.auto_installer \
     --backends all --compilers all
 ```
 
-You can find additional options and details on the official [installation guide](https://docs.nebuly.com/speedster/installation).
+You can find additional options and details on the official [installation guide](https://docs.nebuly.com/modules/speedster/installation).
 
 After everything has been installed, you can start a jupyter session with the following command:
 
