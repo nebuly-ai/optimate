@@ -92,6 +92,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
 
 ```python
 from transformers import AlbertModel, AlbertTokenizer
+from speedster import optimize_model
 
 #1a. Provide input model: Load Albert as example
 model = AlbertModel.from_pretrained("albert-base-v1")
@@ -138,6 +139,7 @@ In this section, we will learn about the 4 main steps needed to optimize TensorF
 ```python
 import tensorflow as tf
 from tensorflow.keras.applications.resnet50 import ResNet50
+from speedster import optimize_model
 
 #1 Provide input model and data
 model = ResNet50() 
@@ -178,6 +180,7 @@ In this section, we will learn about the 4 main steps needed to optimize TensorF
 
 ```python
 import numpy as np
+from speedster import optimize_model
 
 #1 Provide input model and data
 # Model was downloaded from here: 
