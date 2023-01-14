@@ -74,7 +74,9 @@ class PolicyHeadCore(torch.nn.Module):
         self.position_encoding = PositionEncoding(n_feat * n_heads)
         self.decoders = torch.nn.ModuleList(
             [
-                PolicyHeadDoubleAttention(n_steps, n_heads, n_feat, emb_size, emb_dim)
+                PolicyHeadDoubleAttention(
+                    n_steps, n_heads, n_feat, emb_size, emb_dim
+                )
                 for _ in range(n_layers)
             ]
         )
@@ -132,7 +134,9 @@ class PolicyHead(torch.nn.Module):
 
     def _eval_forward(self, e: torch.Tensor):
         bs = e.shape[0]
-        future_g = torch.zeros((bs, self.n_samples, self.n_steps)).long().to(e.device)
+        future_g = (
+            torch.zeros((bs, self.n_samples, self.n_steps)).long().to(e.device)
+        )
         ps = torch.ones((bs, self.n_samples)).to(e.device)
         e = e.unsqueeze(1).repeat(1, self.n_samples, 1, 1)
 
@@ -168,7 +172,9 @@ class ValueHeadCore(torch.nn.Module):
 
 
 class ValueHead(torch.nn.Module):
-    def __init__(self, input_size: int, hidden_size: int = 512, output_size: int = 8):
+    def __init__(
+        self, input_size: int, hidden_size: int = 512, output_size: int = 8
+    ):
         super().__init__()
         self.layers = torch.nn.Sequential(
             *(

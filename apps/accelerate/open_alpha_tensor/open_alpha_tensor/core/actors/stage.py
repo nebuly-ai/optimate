@@ -82,7 +82,9 @@ def extract_children_states_from_actions(
     actions = actions.reshape(bs, k, n_steps * len_token)
     vec_dim = state.shape[2]
     u = actions[:, :, :vec_dim].reshape(bs, k, vec_dim, 1, 1)
-    v = actions[:, :, vec_dim : 2 * vec_dim].reshape(bs, k, 1, vec_dim, 1)  # noqa E203
+    v = actions[:, :, vec_dim : 2 * vec_dim].reshape(
+        bs, k, 1, vec_dim, 1
+    )  # noqa E203
     w = actions[:, :, 2 * vec_dim :].reshape(bs, k, 1, 1, vec_dim)  # noqa E203
     reducing_tensor = u * v * w
     (
@@ -135,7 +137,9 @@ def from_hash(hashable_tensor: str, shape: tuple) -> torch.Tensor:
         hashable_tensor (str): The hash string.
         shape (tuple): The shape of the original tensor.
     """
-    return torch.tensor([float(x) for x in hashable_tensor.split("_")]).resize(shape)
+    return torch.tensor([float(x) for x in hashable_tensor.split("_")]).resize(
+        shape
+    )
 
 
 def record_action(tree_dict: Dict, state: str, action: str):
@@ -174,9 +178,9 @@ def select_future_state(
         print(pi)
         print(pi.shape, q_values.shape, N_s_a.shape)
         pi = pi[: N_s_a.shape[1]]
-    ucb = q_values.reshape(-1) + pi * torch.sqrt(torch.sum(N_s_a) / (1 + N_s_a)) * (
-        c_1 + torch.log((torch.sum(N_s_a) + c_2 + 1) / c_2)
-    )
+    ucb = q_values.reshape(-1) + pi * torch.sqrt(
+        torch.sum(N_s_a) / (1 + N_s_a)
+    ) * (c_1 + torch.log((torch.sum(N_s_a) + c_2 + 1) / c_2))
     if return_idx:
         return ucb.argmax()
     return possible_states[ucb.argmax()]
@@ -246,7 +250,9 @@ def simulate_game(
                 actions,
             )
             not_dupl_actions = actions[:, not_dupl_indexes].to("cpu")
-            not_dupl_q_values = torch.zeros(not_dupl_actions.shape[:-1]).to("cpu")
+            not_dupl_q_values = torch.zeros(not_dupl_actions.shape[:-1]).to(
+                "cpu"
+            )
             N_s_a = torch.zeros_like(not_dupl_q_values).to("cpu")
             present_state = extract_present_state(state)
             states_dict[to_hash(present_state)] = (
@@ -353,9 +359,9 @@ def compute_improved_policy(
     model_n_logits: int,
     N_bar: int,
 ):
-    """Compute the improved policy given the state_dict, the list of states. The
-    improved policy is computed as (N_s_a / N_s_a.sum())ˆ(1/tau) where tau is
-    (log(N_s_a.sum()) / log(N_bar))
+    """Compute the improved policy given the state_dict, the list of states.
+    The improved policy is computed as (N_s_a / N_s_a.sum())ˆ(1/tau) where tau
+    is (log(N_s_a.sum()) / log(N_bar))
     """
     policies = torch.zeros(len(states), model_n_steps, model_n_logits)
     N_bar = torch.tensor(N_bar)
@@ -370,7 +376,9 @@ def compute_improved_policy(
         for sample_id in range(actions.shape[1]):
             action_ids = actions[0, sample_id]
             for step_id, action_id in enumerate(action_ids):
-                policies[idx, step_id, action_id] += improved_policy[0, sample_id]
+                policies[idx, step_id, action_id] += improved_policy[
+                    0, sample_id
+                ]
     return policies
 
 
@@ -382,7 +390,8 @@ def actor_prediction(
     N_bar: int,
     return_actions: bool = False,
 ):
-    """Runs the monte carlo tree search algorithm to obtain the next states, policies and rewards.
+    """Runs the monte carlo tree search algorithm to obtain the next states,
+    policies and rewards.
 
     Args:
         model (AlphaTensorModel): The model to use for the simulation.
@@ -423,7 +432,9 @@ def actor_prediction(
         if not game_is_finished(final_state)
         else 0
     )
-    rewards = torch.cumsum(torch.tensor([-1] * (len(policies) - 1) + [reward]), dim=0)
+    rewards = torch.cumsum(
+        torch.tensor([-1] * (len(policies) - 1) + [reward]), dim=0
+    )
     if return_actions:
         actions = [state_dict[hash_state][5] for hash_state in hash_states]
         return actions

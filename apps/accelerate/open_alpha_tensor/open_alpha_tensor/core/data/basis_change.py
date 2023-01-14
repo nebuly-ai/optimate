@@ -16,7 +16,8 @@ def get_change_basis_matrix(
     Args:
         tensor_size (int): Size of the tensor.
         n_cob (int): Number of change of basis matrices.
-        entry_distribution (Callable, optional): Distribution of the entries of the change of basis matrices.
+        entry_distribution (Callable, optional): Distribution of the entries
+        of the change of basis matrices.
         random_seed (int, optional): Random seed for reproducibility.
     """
     if random_seed is not None:
@@ -82,15 +83,16 @@ class ChangeOfBasis:
 
         Args:
             tensor (torch.Tensor): Tensor to apply the change of basis to.
-            return_basis (bool, optional): Whether to return the change of basis matrix as well.
+            return_basis (bool, optional): Whether to return the change of
+            basis matrix as well.
         """
         cob_prob = torch.rand(1).item()
         if cob_prob > self.cob_prob:
             return tensor
         random_cob = torch.randint(low=0, high=self.n_cob, size=(1,))
-        cob_matrix = torch.load(f"{self.tmp_dir}/cob_matrix_{int(random_cob)}.pt").to(
-            self.device
-        )
+        cob_matrix = torch.load(
+            f"{self.tmp_dir}/cob_matrix_{int(random_cob)}.pt"
+        ).to(self.device)
 
         # apply change of basis to each tensor dimension
         inner_tensor = tensor[0, 0]

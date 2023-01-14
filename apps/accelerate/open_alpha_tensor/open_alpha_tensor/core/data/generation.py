@@ -16,7 +16,8 @@ def generate_synthetic_data(
         tensor_size (int): Size of the tensor.
         n_data (int): Number of demonstrations.
         limit_rank (int): Limit rank of each tensor.
-        prob_distr (Callable, optional): Distribution of the entries of the tensor.
+        prob_distr (Callable, optional): Distribution of the entries of the
+        tensor.
         random_seed (int, optional): Random seed for reproducibility.
     """
     if random_seed is not None:
@@ -33,7 +34,9 @@ def generate_synthetic_data(
                 v = prob_distr(tensor_size)
                 w = prob_distr(tensor_size)
                 generated_tensor = (
-                    u.reshape(-1, 1, 1) * v.reshape(1, -1, 1) * w.reshape(1, 1, -1)
+                    u.reshape(-1, 1, 1)
+                    * v.reshape(1, -1, 1)
+                    * w.reshape(1, 1, -1)
                 )
                 if not (generated_tensor == 0).all():
                     valid_triplet = True
@@ -43,7 +46,8 @@ def generate_synthetic_data(
 
 
 def f_prob_distribution(size):
-    """Samples a tensor of values from a distribution with a peak at 0 and a tail at -2 and 2.
+    """Samples a tensor of values from a distribution with a peak at 0 and a
+    tail at -2 and 2.
 
     Args:
         size (int): Number of values to sample.

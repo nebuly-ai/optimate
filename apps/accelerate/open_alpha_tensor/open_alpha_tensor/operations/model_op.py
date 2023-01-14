@@ -30,11 +30,14 @@ class BuildModelOp(Operation):
         Args:
             tensor_length (int): Number of tensors to as history.
             input_size (int): Flattened size of the matrices to be multiplied.
-            scalars_size (int): Size of the scalar vectors fed to the torso model.
+            scalars_size (int): Size of the scalar vectors fed to the torso
+            model.
             emb_dim (int): Embedding dimension.
-            n_steps (int): Number of steps used to get a single action out of a triplet.
+            n_steps (int): Number of steps used to get a single action out of
+            a triplet.
             n_logits (int): Number of logits output by the policy head.
-            n_samples (int): Number of samples used by the policy head at evaluation time.
+            n_samples (int): Number of samples used by the policy head at
+            evaluation time.
         """
         self._model = AlphaTensorModel(
             tensor_length=tensor_length,
@@ -98,7 +101,8 @@ class BuildOptimizerOp(Operation):
 
 class SaveModelOp(Operation):
     """An operation which saves an OpenAlphaTensor model.
-    The model parameters are stored in a json file, while the model weights are stored in a .pt file."""
+    The model parameters are stored in a json file, while the model weights
+    are stored in a .pt file."""
 
     def get_result(self) -> Any:
         pass
