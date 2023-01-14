@@ -36,7 +36,7 @@ For more details on how to install Speedster, please visit our [Installation](h
 
 # Quick start
 
-Only a single line of code is needed to get your accelerated model! Find below your getting started guide depending on your input model framework:
+Only line of code - that’s what you need to accelerate your model! Find below your getting started guide for 4 different input model frameworks:
 
 <details>
 <summary>🔥 PyTorch </summary>
