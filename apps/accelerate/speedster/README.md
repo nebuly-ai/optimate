@@ -82,7 +82,47 @@ For more details, please visit [Getting Started](https://docs.nebuly.com/modules
 </details>
 <details>
 <summary>🤗 Huggingface Transformers </summary>
+    
+In this section, we will learn about the 4 main steps needed to optimize 🤗 Huggingface Transformer models:
 
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
+
+```python
+from transformers import AlbertModel, AlbertTokenizer
+
+#1a. Provide input model: Load Albert as example
+model = AlbertModel.from_pretrained("albert-base-v1")
+tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
+
+#1b. Dictionary input format (also string format is accepted, see the docs to learn more)
+text = "This is an example text for the huggingface model."
+input_dict = tokenizer(text, return_tensors="pt")
+input_data = [input_dict for _ in range(100)]
+
+#2 Run Speedster optimization
+optimized_model = optimize_model(
+  model, input_data=input_data, optimization_time="constrained"
+)
+
+#3 Save the optimized model
+optimized_model.save("model_save_path")
+```
+
+After the optimization, you can start using your accelerated model in the DL framework of your choice (just on steroids 🚀).
+
+```python
+#4 Load and run your PyTorch accelerated model in production
+from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+output = optimized_model(input_sample)
+```
+For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+    
 </details>
 <details>
     <summary>🌊 TensorFlow/Keras </summary>
