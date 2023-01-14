@@ -103,7 +103,8 @@ text = "This is an example text for the huggingface model."
 input_dict = tokenizer(text, return_tensors="pt")
 input_data = [input_dict for _ in range(100)]
 
-#2 Run Speedster optimization
+#2 Run Speedster optimization (if input data is in string format, also the tokenizer 
+# should be given as input argument, see the docs to learn more)
 optimized_model = optimize_model(
   model, input_data=input_data, optimization_time="constrained"
 )
@@ -141,7 +142,7 @@ import tensorflow as tf
 from tensorflow.keras.applications.resnet50 import ResNet50
 from speedster import optimize_model
 
-#1 Provide input model and data
+#1 Provide input model and data (we support Keras dataset and custom input, see the docs to learn more)
 model = ResNet50() 
 input_data = [((tf.random.normal([1, 224, 224, 3]),), tf.constant([0])) for _ in range(100)]
 
