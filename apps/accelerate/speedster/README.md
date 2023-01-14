@@ -23,7 +23,7 @@ Install `Speedster` and its base requirements:
 pip install speedster
 ```
 
-Then make sure to install the deep learning compilers to leverage during the optimization:
+Then make sure to install all the available deep learning compilers.
 ```
 python -m nebullvm.installers.auto_installer --backends all --compilers all
 ```
