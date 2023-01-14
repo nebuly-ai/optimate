@@ -255,6 +255,7 @@ The **optimizer stage** leverages the following open-source projects:
 We’re developing `Speedster` for and together with our community, so plase get in touch on GitHub or Discord. 
 
 • **[GitHub issues](https://github.com/nebuly-ai/nebullvm/issues)**: suggest new acceleration components, request new features, and report bugs and improvements.
+
 • **[Discord](https://discord.gg/RbeQMu886J)**: learn about AI acceleration, share exciting projects and hang out with our global community.
 
 The best way to get started is to pick a good-first issue. Please read our [contribution guidelines](https://docs.nebuly.com/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
