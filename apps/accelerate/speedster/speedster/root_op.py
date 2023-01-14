@@ -399,32 +399,19 @@ class SpeedsterRootOp(Operation):
                 )
 
                 if orig_latency / optimized_models[0][1] < 2:
-                    if self.device is Device.CPU:
-                        device = hw_info["cpu"]
-                    else:
-                        device = hw_info["gpu"]
+                    # if self.device is Device.CPU:
+                    #     device = hw_info["cpu"]
+                    # else:
+                    #     device = hw_info["gpu"]
 
                     self.logger.warning(
-                        f"\n\nUnfortunately, with the optimization parameters "
-                        f"you selected it is not possible to achieve "
-                        f"speed-ups higher than "
+                        f"\nMax speed-up with your input parameters is "
                         f"{orig_latency / optimized_models[0][1]:.2f}x. "
-                        f"We therefore suggest the following "
-                        f"options to further accelerate the model:\n\n"
-                        f"1) Include more backends for optimization, "
-                        f"i.e. set --backend all\n\n"
-                        f"2) Increase the metric_drop_ths by 5%, if possible: "
+                        f"If you want to get a faster optimized model, "
+                        f"see the following link for some suggestions: "
                         f"https://docs.nebuly.com/modules/speedster/getting-"
-                        f"started/run-the-optimization#optimize_model-api\n\n"
-                        f"3) Verify that your device {device} is supported by "
-                        f"your version of speedster: https://docs.nebuly.com/"
-                        f"modules/speedster/key-concepts/supported-hardware\n"
-                        f"\n4) Try to accelerate your model on a different "
-                        f"hardware or consider using the CloudSurfer module "
-                        f"to automatically understand which is the best "
-                        f"hardware for your model: https:/"
-                        f"/github.com/nebuly-ai/nebullvm/tree/main/apps"
-                        f"/accelerate/cloud_surfer.\n"
+                        f"started/run-the-optimization#acceleration-sugges"
+                        f"tions\n"
                     )
 
                 self.logger.remove(handler_id)
