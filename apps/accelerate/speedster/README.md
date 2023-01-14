@@ -81,8 +81,28 @@ For more details, please visit [Getting Started](https://docs.nebuly.com/modules
     
 </details>
 <details>
-    <summary>🤗 Huggingface Transformers </summary>
-    Foldable Content[enter image description here][1]
+<summary>🤗 Huggingface Transformers </summary>
+    
+In this section, we will learn about the 4 main steps needed to optimize Huggingface Transformer models:
+
+Input your model and data
+Run the optimization
+Save your optimized model
+Load and run your optimized model in production
+
+```python
+from transformers import AlbertModel, AlbertTokenizer
+
+# Load Albert as example
+model = AlbertModel.from_pretrained("albert-base-v1")
+tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
+
+# Dictionary input format (also string are accepted, see Docs to learn more)
+text = "This is an example text for the huggingface model."
+input_dict = tokenizer(text, return_tensors="pt")
+input_data = [input_dict for _ in range(100)]
+``
+
 </details>
 <details>
     <summary>🌊 TensorFlow/Keras </summary>
