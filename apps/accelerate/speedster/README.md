@@ -4,10 +4,10 @@
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
-![benchmarks_speedster](https://user-images.githubusercontent.com/83510798/211219698-a1938b65-1d2c-4a28-8e2a-6c3217ff9057.png)
-
+![speedster_benchmarks](https://user-images.githubusercontent.com/42771598/212486740-431328f3-f1e5-47bf-b6c9-b6629399ad09.png)
 
 The core `Speedster` workflow consists of 3 steps:
+
 
 - [x]  **Select**: input your model in your preferred DL framework and express your preferences regarding:
     - Accuracy loss: do you want to trade off a little accuracy for much higher performance?
@@ -125,8 +125,45 @@ For more details, please visit [Getting Started](https://docs.nebuly.com/modules
     
 </details>
 <details>
-    <summary>🌊 TensorFlow/Keras </summary>
-    Foldable Content[enter image description here][1]
+    
+<summary>🌊 TensorFlow/Keras </summary>
+    
+In this section, we will learn about the 4 main steps needed to optimize TensorFlow/Keras models:
+
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
+
+```python
+import tensorflow as tf
+from tensorflow.keras.applications.resnet50 import ResNet50
+
+#1 Provide input model and data
+model = ResNet50() 
+input_data = [((tf.random.normal([1, 224, 224, 3]),), tf.constant([0])) for _ in range(100)]
+
+#2 Run Speedster optimization
+optimized_model = optimize_model(
+  model, input_data=input_data, optimization_time="constrained"
+)
+
+#3 Save the optimized model
+optimized_model.save("model_save_path")
+```
+
+After the optimization, you can start using your accelerated model in the DL framework of your choice (just on steroids 🚀).
+
+```python
+#4 Load and run your PyTorch accelerated model in production
+from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+output = optimized_model(input_sample)
+```
+For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+
 </details>
 <details>
     <summary> ⚡ ONNX </summary>
