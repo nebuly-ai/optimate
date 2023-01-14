@@ -223,14 +223,14 @@ For more details, please visit [Getting Started](https://docs.nebuly.com/modules
 
 # **Key concepts**
 
-`Speedster`'s design reflects the mission to automatically master all the available AI acceleration techniques and deliver the **fastest AI ever.** As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that the community can benefit from it.
+`Speedster`'s design reflects our mission to automatically master each and every existing AI acceleration techniques to deliver the **fastest AI ever**. As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that our community can benefit from it.
 
-`Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
+`Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the software to hardware stack.
 
-- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `Speedster`, namely PyTorch, TensorFlow, and ONNX. This allows the Compressor and Optimizer modules to apply any optimization technique to the model.
+- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `Speedster`, namely PyTorch, ONNX and TensorFlow. This allows the Compressor and Optimizer modules to apply any optimization technique to the model.
 - [x]  **Compressor:** applies various compression techniques to the model, such as pruning, knowledge distillation, or quantization-aware training.
 - [x]  **Optimizer:** converts the compressed models to the intermediate representation (IR) of the supported deep learning compilers. The compilers apply both post-training quantization techniques and graph optimizations, to produce compiled binary files.
-- [x]  **Inference Learner:** takes the best performing compiled model and converts it to the same interface as the original input model.
+- [x]  **Inference Learner:** takes the best performing compiled model and converts it back into the same interface as the original input model.
 
 ![nebullvm nebuly ai](https://user-images.githubusercontent.com/100476561/180975206-3a3a1f80-afc6-42b0-9953-4b8426c09b62.png)
 
