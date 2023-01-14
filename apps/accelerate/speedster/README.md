@@ -171,7 +171,7 @@ For more details, please visit [Getting Started](https://docs.nebuly.com/modules
     
 <summary> ⚡ ONNX </summary>
 
-In this section, we will learn about the 4 main steps needed to optimize TensorFlow/Keras models:
+In this section, we will learn about the 4 main steps needed to optimize ONNX models:
 
 1) Input your model and data
 2) Run the optimization
