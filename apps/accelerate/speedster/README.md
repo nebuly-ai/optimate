@@ -66,7 +66,7 @@ optimized_model = optimize_model(
 optimized_model.save("model_save_path")
 ```
 
-After the optimization, you can start using your accelerated model in the DL framework of your choice (just on steroids 🚀).
+Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
 ```python
 #4 Load and run your PyTorch accelerated model in production
@@ -112,7 +112,7 @@ optimized_model = optimize_model(
 optimized_model.save("model_save_path")
 ```
 
-After the optimization, you can start using your accelerated model in the DL framework of your choice (just on steroids 🚀).
+Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
 ```python
 #4 Load and run your Huggingface accelerated model in production
@@ -154,7 +154,7 @@ optimized_model = optimize_model(
 optimized_model.save("model_save_path")
 ```
 
-After the optimization, you can start using your accelerated model in the DL framework of your choice (just on steroids 🚀).
+Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
 ```python
 #4 Load and run your TensorFlow accelerated model in production
@@ -197,7 +197,7 @@ optimized_model = optimize_model(
 optimized_model.save("model_save_path")
 ```
 
-After the optimization, you can start using your accelerated model in the DL framework of your choice (just on steroids 🚀).
+Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
 ```python
 #4 Load and run your ONNX accelerated model in production
