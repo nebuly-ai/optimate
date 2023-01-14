@@ -1,9 +1,6 @@
 # 💥 Speedster
 
-Automatically apply the best set of SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
-
-## 📖 What is this? 
-`Speedster` is an open-source module designed to speed up AI inference in just a few lines of code. The library boosts your model to achieve the maximum acceleration that is physically possible on your hardware.
+`Speedster` is an open-source module designed to speed up AI inference in just a few lines of code. The library automatically apply the best set of SOTA optimization techniques to achieve the maximum inference speed-up that is physically possible on your hardware.
 
 We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
 
@@ -21,9 +18,7 @@ The core `Speedster` workflow consists of 3 steps:
 
 # Installation
 
-
-
-Install Speedster and its base requirements:
+Install `Speedster` and its base requirements:
 ```
 pip install speedster
 ```
@@ -40,22 +35,63 @@ python -m nebullvm.installers.auto_installer --backends all --compilers all
 For more details on the installation step, please visit [Installation](https://docs.nebuly.com/modules/speedster/installation).
 
 
-# API quick view
+# Quick start
 
-Only a single line of code is needed to get your accelerated model:
+Only a single line of code is needed to get your accelerated model! Find below your getting started guide depending on your input model framework:
+
+<details>
+<summary>🔥 PyTorch </summary>
+    
+In this section, we will learn about the 4 main steps needed to optimize PyTorch models:
+
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
 
 ```python
+import torch
+import torchvision.models as models
 from speedster import optimize_model
 
-optimized_model = optimize_model(model, input_data=input_data)
-```
-Checkout how to define the `model` and `input_data` parameters depending on which framework you want to use and how to use the optimized model: 
-[PyTorch](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/pytorch#pytorch-api-quick-view), 
-[HuggingFace](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/huggingface#huggingface-api-quick-view), 
-[TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/tensorflow#tensorflow-api-quick-view), 
-[ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/onnx#onnx-api-quick-view).
+#1 Provide input model and data
+model = models.resnet50()  
+input_data = [((torch.randn(1, 3, 256, 256), ), torch.tensor([0])) for _ in range(100)]
 
-For more details, please visit also the documentation sections [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+#2 Run Speedster optimization
+optimized_model = optimize_model(
+  model, input_data=input_data, optimization_time="constrained"
+)
+
+#3 Save the optimized model
+optimized_model.save("model_save_path")
+```
+
+After the optimization, you can start using your accelerated model in the DL framework of your choice (just on steroids 🚀).
+
+```python
+#4 Load and run your PyTorch accelerated model in production
+from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+output = optimized_model(input_sample)
+```
+For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+    
+</details>
+<details>
+    <summary>🤗 Huggingface Transformers </summary>
+    Foldable Content[enter image description here][1]
+</details>
+<details>
+    <summary>🌊 TensorFlow/Keras </summary>
+    Foldable Content[enter image description here][1]
+</details>
+<details>
+    <summary> ⚡ ONNX </summary>
+    Foldable Content[enter image description here][1]
+</details>
 
 # **Documentation**
 
