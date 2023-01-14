@@ -54,7 +54,7 @@ import torch
 import torchvision.models as models
 from speedster import optimize_model
 
-#1 Provide input model and data
+#1 Provide input model and data (we support PyTorch Dataloaders and custom input, see the docs to learn more)
 model = models.resnet50()  
 input_data = [((torch.randn(1, 3, 256, 256), ), torch.tensor([0])) for _ in range(100)]
 
