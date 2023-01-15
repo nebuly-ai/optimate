@@ -11,6 +11,15 @@ def get_change_basis_matrix(
     entry_distribution: Callable = torch.randn,
     random_seed: int = None,
 ):
+    """Generate a list of change of basis matrices.
+
+    Args:
+        tensor_size (int): Size of the tensor.
+        n_cob (int): Number of change of basis matrices.
+        entry_distribution (Callable, optional): Distribution of the entries
+        of the change of basis matrices.
+        random_seed (int, optional): Random seed for reproducibility.
+    """
     if random_seed is not None:
         torch.random.manual_seed(random_seed)
     for _ in range(n_cob):
@@ -36,6 +45,10 @@ def cob_entry_prob_distribution(size):
 
 
 class ChangeOfBasis:
+    """Change of Basis class."""
+
+    """Change of Basis class."""
+
     def __init__(
         self,
         tensor_size: int,
@@ -44,6 +57,15 @@ class ChangeOfBasis:
         device: str,
         random_seed: int = None,
     ):
+        """Builds a ChangeOfBasis object.
+
+        Args:
+            tensor_size (int): Size of the tensor.
+            n_cob (int): Number of change of basis matrices.
+            cob_prob (float): Probability of applying a change of basis.
+            device (str): Name of the torch device to use.
+            random_seed (int, optional): Random seed for reproducibility.
+        """
         self.tmp_dir = Path.home() / ".data_alpha_tensor/cob_matrices"
         self.tmp_dir.mkdir(exist_ok=True, parents=True)
         for i, cob_matrix in enumerate(
@@ -59,6 +81,13 @@ class ChangeOfBasis:
 
     @torch.no_grad()
     def __call__(self, tensor: torch.Tensor, return_basis: bool = False):
+        """Apply a change of basis to a tensor.
+
+        Args:
+            tensor (torch.Tensor): Tensor to apply the change of basis to.
+            return_basis (bool, optional): Whether to return the change of
+            basis matrix as well.
+        """
         cob_prob = torch.rand(1).item()
         if cob_prob > self.cob_prob:
             return tensor

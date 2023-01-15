@@ -24,6 +24,22 @@ def _single_act(
     cob: ChangeOfBasis,
     max_rank: int,
 ):
+    """Executes an episode for a single actor using the MCTS.
+    The method is called multiple times in parallel with different actor ids.
+
+    Args:
+        actor_id (int): The id of the actor.
+        model (torch.nn.Module): The model used to take the action.
+        input_tensor (torch.Tensor): State of the game.
+        device (str): The name of the torch device used for training.
+        mc_n_sim (int): Number of simulations during Monte Carlo tree search.
+        N_bar (int): N_bar parameter used to compute tau when improving the
+        policy.
+        cob (ChangeOfBasis): The change of basis used to generate the input
+        tensor.
+        max_rank (int): The maximum matrix rank achieved by the actor before
+        tree search is stopped.
+    """
     print(f"Acting with actor {actor_id}")
     model.to(device)
     cob.device = device
@@ -43,6 +59,13 @@ def swap_data(
     states: List[torch.Tensor],
     actions: List[torch.Tensor],
 ):
+    """Swaps the last action with a random one and updates the states
+    accordingly for a single game.
+
+    Args:
+        states (List[torch.Tensor]): All the states for a single game.
+        actions (List[torch.Tensor]): All the actions through the game.
+    """
     last_action = actions[-1]
     swap_index = torch.randint(0, len(states) - 1, (1,)).item()
     actions[-1] = actions[swap_index]
@@ -57,9 +80,9 @@ def swap_data(
         vector_size = actual_state.shape[-1] // 3
         bs = actual_state.shape[0]
         u = triplet[:, :vector_size].reshape(bs, -1, 1, 1)
-        v = triplet[:, vector_size : 2 * vector_size].reshape(  # noqa E203
+        v = triplet[:, vector_size : 2 * vector_size].reshape(
             bs, 1, -1, 1
-        )
+        )  # noqa E203
         w = triplet[:, 2 * vector_size :].reshape(bs, 1, 1, -1)  # noqa E203
         reduced_state = u * v * w
         fut_state = actual_state[:, 0] - reduced_state
@@ -98,6 +121,38 @@ class Trainer:
         checkpoint_data_dir: Path = None,
         extra_devices: List[str] = None,
     ):
+        """Initializes the trainer.
+
+        Args:
+            model (AlphaTensorModel): The model to train.
+            tensor_size (int): Flattened size of the matrices to be multiplied.
+            n_steps (int): Number of steps used to get a single action out of
+            a triplet.
+            batch_size (int): Batch size.
+            optimizer (torch.optim.Optimizer): The optimizer used to train the
+            model.
+            device (str): The name of the torch device used for training.
+            len_data (int): Number of training samples used (both actor
+            generated and synthetic).
+            pct_synth (float): Initial percentage of synthetic samples used
+            for training.
+            n_synth_data (int): Number of synthetic training samples.
+            limit_rank (int): Maximum rank for synthetically-generated
+            matrices.
+            n_cob (int): Number of change of basis (cob) used for a single
+            training sample.
+            cob_prob (float): Probability of applying a change of basis.
+            data_augmentation (bool): Whether to randomly swap the last
+            operation of an episode with another operation.
+            loss_params (Tuple[float, float]): Alpha and Beta parameters used
+            in the loss function.
+            random_seed (int): Randomizing seed.
+            checkpoint_dir (str): Directory used to store model checkpoints.
+            checkpoint_data_dir (str): Directory used to store games as JSON
+            files.
+            extra_devices (List[str]): Extra devices names used for multi-GPU
+            training.
+        """
         self.model = model
         self.optimizer = optimizer
         self.device = device
@@ -135,6 +190,8 @@ class Trainer:
         self.extra_devices = extra_devices
 
     def train_step(self):
+        """Executes a single training step by optimizing the current model
+        parameters."""
         self.dataset.recompute_synthetic_indexes()
         self.model.train()
         total_loss = 0
@@ -159,6 +216,19 @@ class Trainer:
         mc_n_sim: int,
         N_bar: int,
     ):
+        """Runs actors in parallel to generate multiple games starting from
+        the same input tensor.
+
+        Args:
+            input_tensor (torch.Tensor): The input tensor used to generate the
+            games.
+            n_games (int): Number of games to generate / actors to be run in
+            parallel.
+            mc_n_sim (int): Number of simulations used in the Monte Carlo tree
+            search.
+            N_bar (int): N_bar parameter used to compute tau when improving
+            the policy.
+        """
         self.model.eval()
         best_reward = -1e10
         best_game = None
@@ -242,6 +312,22 @@ class Trainer:
         lr_decay_steps: int,
         starting_epoch: int = 0,
     ):
+        """Trains the model for a given number of epochs.
+
+        Args:
+            n_epochs (int): Number of training epochs.
+            n_games (int): Number of games to generate / actors to be run in
+            parallel at each step.
+            mc_n_sim (int): Number of simulations used in the Monte Carlo tree
+            search at each step.
+            N_bar (int): N_bar parameter used to compute tau when improving
+            the policy.
+            initial_lr (float): Initial learning rate.
+            lr_decay_factor (float): Learning rate's decay factor.
+            lr_decay_steps (int): Number of learning rate's decay steps.
+            starting_epoch (int, optional): Epoch from which to start / resume
+            training.
+        """
         self.model = self.model.to(self.device)
         if starting_epoch + 1 > n_epochs // 50:
             self.dataset.change_training_split(0.7, 0.05)

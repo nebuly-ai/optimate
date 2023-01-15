@@ -19,11 +19,20 @@ SAVE_DIR_SYNT = str(Path.home() / ".data_alpha_tensor/synthetic_data")
 
 
 def compute_move(triplets: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
+    """Computes the outer product of the three tensors in the triplet that
+    will be subtracted from the current state.
+
+    Args:
+        triplets (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): Tensors u,
+        v, and w.
+    """
     u, v, w = triplets
     return u.reshape(-1, 1, 1) * v.reshape(1, -1, 1) * w.reshape(1, 1, -1)
 
 
 class SyntheticDataBuffer(Dataset):
+    """Dataset of synthetically generated demonstrations."""
+
     def __init__(
         self,
         tensor_size,
@@ -35,6 +44,19 @@ class SyntheticDataBuffer(Dataset):
         n_steps: int,
         random_seed=None,
     ):
+        """Builds a dataset of synthetic demonstrations.
+
+        Args:
+            tensor_size (int): Size of the tensor.
+            n_data (int): Number of demonstrations to generate.
+            limit_rank (int): Maximum rank of the generated tensors.
+            prob_distr (Callable): Probability distribution to use to generate
+            the tensors.
+            n_prev_actions (int): Number of previous actions to use as input.
+            device (str): Name of the torch device to use.
+            n_steps (int): Number of steps to perform in the environment.
+            random_seed (int, optional): Random seed to use.
+        """
         self.device = device
         self.len_data = 0
         self.n_prev_actions = n_prev_actions
@@ -125,6 +147,14 @@ class SyntheticDataBuffer(Dataset):
         tensor: torch.Tensor,
         moves: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
     ):
+        """Given an initial state and a list of moves, applies the moves to
+        the state.
+
+        Args:
+            tensor (torch.Tensor): Initial state.
+            moves (List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]):
+            List of moves.
+        """
         for u, v, w in moves:
             tensor = tensor - u.reshape(-1, 1, 1) * v.reshape(
                 1, -1, 1
@@ -133,7 +163,15 @@ class SyntheticDataBuffer(Dataset):
 
 
 class GameDataBuffer(Dataset):
+    """Buffer to store the data from the games played by the MCTS agent."""
+
     def __init__(self, device: str, max_buffer_size: int):
+        """Initializes the buffer.
+
+        Args:
+            device (str): Name of the torch device to use.
+            max_buffer_size (int): Maximum size of the buffer.
+        """
         self.num_games = 0
         self.temp_dir = tempfile.mkdtemp("game_data_buffer")
         self.game_data = {}
@@ -149,6 +187,13 @@ class GameDataBuffer(Dataset):
         policies: List[torch.Tensor],
         rewards: List[torch.Tensor],
     ):
+        """Adds a played game to the buffer.
+
+        Args:
+            states (List[torch.Tensor]): Observed game states.
+            policies (List[torch.Tensor]): List of policies.
+            rewards (List[torch.Tensor]): Observed rewards.
+        """
         self.game_data[self.num_games] = len(states)
         torch.save(
             states, os.path.join(self.temp_dir, f"states_{self.num_games}.pt")
