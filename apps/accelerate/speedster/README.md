@@ -89,40 +89,85 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
 3) Save your optimized model 
 4) Load and run your optimized model in production
 
-```python
-from transformers import AlbertModel, AlbertTokenizer
-from speedster import optimize_model
+* <details><summary><b>✅ For Decoder-only or Encoder-only architectures (Bert, GPT, etc)</b></summary>
 
-#1a. Provide input model: Load Albert as example
-model = AlbertModel.from_pretrained("albert-base-v1")
-tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
+    ```python
+    from transformers import AlbertModel, AlbertTokenizer
+    from speedster import optimize_model
 
-#1b. Dictionary input format (also string format is accepted, see the docs to learn more)
-text = "This is an example text for the huggingface model."
-input_dict = tokenizer(text, return_tensors="pt")
-input_data = [input_dict for _ in range(100)]
+    #1a. Provide input model: Load Albert as example
+    model = AlbertModel.from_pretrained("albert-base-v1")
+    tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
 
-#2 Run Speedster optimization (if input data is in string format, also the tokenizer 
-# should be given as input argument, see the docs to learn more)
-optimized_model = optimize_model(
-  model, input_data=input_data, optimization_time="constrained"
-)
+    #1b. Dictionary input format (also string format is accepted, see the docs to learn more)
+    text = "This is an example text for the huggingface model."
+    input_dict = tokenizer(text, return_tensors="pt")
+    input_data = [input_dict for _ in range(100)]
 
-#3 Save the optimized model
-optimized_model.save("model_save_path")
-```
+    #2 Run Speedster optimization (if input data is in string format, also the tokenizer 
+    # should be given as input argument, see the docs to learn more)
+    optimized_model = optimize_model(
+      model, input_data=input_data, optimization_time="constrained"
+    )
 
-Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
+    #3 Save the optimized model
+    optimized_model.save("model_save_path")
+    ```
 
-```python
-#4 Load and run your Huggingface accelerated model in production
-from nebullvm.operations.inference_learners.base import LearnerMetadata
+    Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
-optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+    ```python
+    #4 Load and run your Huggingface accelerated model in production
+    from nebullvm.operations.inference_learners.base import LearnerMetadata
 
-output = optimized_model(input_sample)
-```
-For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+    optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+    output = optimized_model(input_sample)
+    ```
+    For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+
+    </details>
+
+* <details><summary><b>✅ For Encoder-Decoder architectures (T5 etc)</b></summary>
+
+
+    ```python
+    from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+    #1a. Provide input model: Load T5 as example
+    model = T5ForConditionalGeneration.from_pretrained("t5-small")
+    tokenizer = T5Tokenizer.from_pretrained("t5-small") 
+
+    #1b. Dictionary input format
+    question = "What's the meaning of life?"
+    answer = "The answer is:"
+    input_dict = tokenizer(question, return_tensors="pt")
+    input_dict["decoder_input_ids"] = tokenizer(answer, return_tensors="pt").input_ids
+    input_data = [input_dict for _ in range(100)]
+
+    #2 Run Speedster optimization (if input data is in string format, also the tokenizer 
+    # should be given as input argument, see the docs to learn more)
+    optimized_model = optimize_model(
+      model, input_data=input_data, optimization_time="constrained"
+    )
+
+    #3 Save the optimized model
+    optimized_model.save("model_save_path")
+    ```
+
+    Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
+
+    ```python
+    #4 Load and run your Huggingface accelerated model in production
+    from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+    optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+    output = optimized_model(input_sample)
+    ```
+    For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+
+    </details>
     
 </details>
 <details>
