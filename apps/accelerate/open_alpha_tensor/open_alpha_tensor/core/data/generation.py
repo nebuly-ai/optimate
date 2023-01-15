@@ -34,7 +34,9 @@ def generate_synthetic_data(
                 v = prob_distr(tensor_size)
                 w = prob_distr(tensor_size)
                 generated_tensor = (
-                    u.reshape(-1, 1, 1) * v.reshape(1, -1, 1) * w.reshape(1, 1, -1)
+                    u.reshape(-1, 1, 1)
+                    * v.reshape(1, -1, 1)
+                    * w.reshape(1, 1, -1)
                 )
                 if not (generated_tensor == 0).all():
                     valid_triplet = True

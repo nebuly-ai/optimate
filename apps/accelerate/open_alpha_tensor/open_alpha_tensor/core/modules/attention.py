@@ -18,7 +18,8 @@ class AttentionHead(torch.nn.Module):
         keys = self.keys_proj_layer(y)
         values = self.values_proj_layer(y)
         attention = F.softmax(
-            torch.matmul(queries, keys.transpose(-2, -1)) * self.proj_dim_isqrt,
+            torch.matmul(queries, keys.transpose(-2, -1))
+            * self.proj_dim_isqrt,
             dim=-1,
         )
         if mask:
@@ -33,7 +34,9 @@ class AttentionDenseBlock(torch.nn.Module):
         self.norm = torch.nn.LayerNorm(inner_size)
         self.linear = torch.nn.Linear(inner_size, inner_size * multiplier)
         self.activation = torch.nn.GELU()
-        self.linear_final = torch.nn.Linear(inner_size * multiplier, inner_size)
+        self.linear_final = torch.nn.Linear(
+            inner_size * multiplier, inner_size
+        )
 
     def forward(self, x: torch.Tensor):
         x_temp = self.activation(self.linear(self.norm(x)))
@@ -61,7 +64,9 @@ class AlphaMultiHeadAttention(torch.nn.Module):
 
         self.dense = AttentionDenseBlock(x_dim, multiplier)
 
-    def forward(self, x: torch.nn.Module, y: torch.nn.Module, mask: bool = False):
+    def forward(
+        self, x: torch.nn.Module, y: torch.nn.Module, mask: bool = False
+    ):
         # x.size = (Nx, c1), y.size = (Ny, c2)
         x_norm = self.norm_layer_x(x)
         y_norm = self.norm_layer_y(y)

@@ -40,9 +40,9 @@ class LoadCheckPointOp(Operation):
             def key_func(x):
                 return int(x.stem.split("_")[-1])
 
-            checkpoint_path = sorted(Path(checkpoint_dir).glob("*.pt"), key=key_func)[
-                -1
-            ]
+            checkpoint_path = sorted(
+                Path(checkpoint_dir).glob("*.pt"), key=key_func
+            )[-1]
             print(f"Loading checkpoint from {checkpoint_path}")
             checkpoint = torch.load(checkpoint_path)
             model.load_state_dict(checkpoint["model_state_dict"])
@@ -87,7 +87,10 @@ class LoadCheckpointDataOp(Operation):
             trainer: The trainer to load the games into.
         """
         # if games_store_dir contains games, load them
-        if games_store_dir.exists() and (games_store_dir / "game_data.json").exists():
+        if (
+            games_store_dir.exists()
+            and (games_store_dir / "game_data.json").exists()
+        ):
             trainer.dataset.load_games(games_store_dir)
         self._loaded = True
 

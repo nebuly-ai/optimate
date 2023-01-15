@@ -27,12 +27,18 @@ class AlphaTensorModel(torch.nn.Module):
         self.tensor_length = tensor_length
         self.input_size = input_size
         self.emb_dim = emb_dim
-        self.torso = TorsoModel(scalars_size, input_size, tensor_length, emb_dim)
+        self.torso = TorsoModel(
+            scalars_size, input_size, tensor_length, emb_dim
+        )
         emb_size = 3 * input_size * input_size
         print("Build policy head")
-        self.policy_head = PolicyHead(emb_size, emb_dim, n_steps, n_logits, n_samples)
+        self.policy_head = PolicyHead(
+            emb_size, emb_dim, n_steps, n_logits, n_samples
+        )
         print("Build value head")
-        self.value_head = ValueHead(2048)  # value dependent on num_head and proj_dim
+        self.value_head = ValueHead(
+            2048
+        )  # value dependent on num_head and proj_dim
         self.policy_loss_fn = torch.nn.CrossEntropyLoss(reduction="sum")
         self.quantile_loss_fn = QuantileLoss()
         self.risk_value_management = ValueRiskManagement()
@@ -55,7 +61,9 @@ class AlphaTensorModel(torch.nn.Module):
         # g_value = (N, )
         e = self.torso(x, s)
         o, z1 = self.policy_head(e, g_action)
-        l_policy = self.policy_loss_fn(o.reshape(-1, o.shape[-1]), g_action.reshape(-1))
+        l_policy = self.policy_loss_fn(
+            o.reshape(-1, o.shape[-1]), g_action.reshape(-1)
+        )
         q = self.value_head(z1)
         l_value = self.quantile_loss_fn(q, g_value.float())
         return l_policy, l_value

@@ -49,7 +49,9 @@ def map_triplet_to_action(
         action = action.squeeze(0)
     if add_bias:
         action = action + base // 2
-    action = action * torch.tensor([base**i for i in range(action.shape[-1])])
+    action = action * torch.tensor(
+        [base**i for i in range(action.shape[-1])]
+    )
     action = action.sum(dim=-1)
     return action
 
@@ -73,7 +75,10 @@ def _single_action_to_triplet(
     """
     triplet = torch.zeros(out_dim).to(device)
     if action_val > 0:
-        idx = int(torch.log(torch.tensor(action_val)) // torch.log(torch.tensor(basis)))
+        idx = int(
+            torch.log(torch.tensor(action_val))
+            // torch.log(torch.tensor(basis))
+        )
     else:
         idx = 0
     while idx >= 0:
