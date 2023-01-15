@@ -178,9 +178,9 @@ def select_future_state(
         print(pi)
         print(pi.shape, q_values.shape, N_s_a.shape)
         pi = pi[: N_s_a.shape[1]]
-    ucb = q_values.reshape(-1) + pi * torch.sqrt(
-        torch.sum(N_s_a) / (1 + N_s_a)
-    ) * (c_1 + torch.log((torch.sum(N_s_a) + c_2 + 1) / c_2))
+    ucb = q_values.reshape(-1) + pi * torch.sqrt(torch.sum(N_s_a) / (1 + N_s_a)) * (
+        c_1 + torch.log((torch.sum(N_s_a) + c_2 + 1) / c_2)
+    )
     if return_idx:
         return ucb.argmax()
     return possible_states[ucb.argmax()]
@@ -250,9 +250,7 @@ def simulate_game(
                 actions,
             )
             not_dupl_actions = actions[:, not_dupl_indexes].to("cpu")
-            not_dupl_q_values = torch.zeros(not_dupl_actions.shape[:-1]).to(
-                "cpu"
-            )
+            not_dupl_q_values = torch.zeros(not_dupl_actions.shape[:-1]).to("cpu")
             N_s_a = torch.zeros_like(not_dupl_q_values).to("cpu")
             present_state = extract_present_state(state)
             states_dict[to_hash(present_state)] = (
@@ -376,9 +374,7 @@ def compute_improved_policy(
         for sample_id in range(actions.shape[1]):
             action_ids = actions[0, sample_id]
             for step_id, action_id in enumerate(action_ids):
-                policies[idx, step_id, action_id] += improved_policy[
-                    0, sample_id
-                ]
+                policies[idx, step_id, action_id] += improved_policy[0, sample_id]
     return policies
 
 
@@ -432,9 +428,7 @@ def actor_prediction(
         if not game_is_finished(final_state)
         else 0
     )
-    rewards = torch.cumsum(
-        torch.tensor([-1] * (len(policies) - 1) + [reward]), dim=0
-    )
+    rewards = torch.cumsum(torch.tensor([-1] * (len(policies) - 1) + [reward]), dim=0)
     if return_actions:
         actions = [state_dict[hash_state][5] for hash_state in hash_states]
         return actions

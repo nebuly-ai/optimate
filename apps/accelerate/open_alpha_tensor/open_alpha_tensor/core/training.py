@@ -74,9 +74,7 @@ def swap_data(
     actual_state = states[swap_index]
     for i in range(swap_index + 1, len(states) + 1):
         prev_action = actions[i - 1]
-        triplet = map_action_to_triplet(
-            prev_action, vector_size=actual_state.shape[-1]
-        )
+        triplet = map_action_to_triplet(prev_action, vector_size=actual_state.shape[-1])
         vector_size = actual_state.shape[-1] // 3
         bs = actual_state.shape[0]
         u = triplet[:, :vector_size].reshape(bs, -1, 1, 1)
@@ -175,9 +173,7 @@ class Trainer:
             self.beta = 1
         else:
             self.alpha, self.beta = loss_params
-        self.checkpoint_dir = Path(
-            checkpoint_dir if checkpoint_dir else "checkpoints"
-        )
+        self.checkpoint_dir = Path(checkpoint_dir if checkpoint_dir else "checkpoints")
         self.checkpoint_dir.mkdir(exist_ok=True, parents=True)
         self.checkpoint_data_dir = (
             checkpoint_data_dir if checkpoint_data_dir else Path("games")
@@ -198,9 +194,7 @@ class Trainer:
         dl = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
         print("Training AlphaTensor")
         for states, scalars, policies, rewards in tqdm.tqdm(dl):
-            loss_policy, loss_value = self.model(
-                states, scalars, policies, rewards
-            )
+            loss_policy, loss_value = self.model(states, scalars, policies, rewards)
             loss = self.alpha * loss_policy + self.beta * loss_value
             self.optimizer.zero_grad()
             loss.backward()
@@ -276,9 +270,7 @@ class Trainer:
                 self.dataset.add_best_game(*best_game)
         else:
             for actor_id in range(n_games):
-                input_tensor_cob = self.change_of_basis(input_tensor).to(
-                    self.device
-                )
+                input_tensor_cob = self.change_of_basis(input_tensor).to(self.device)
                 print(f"Running actor {actor_id} / {n_games}")
                 states, policies, rewards = actor_prediction(
                     self.model,
@@ -287,9 +279,7 @@ class Trainer:
                     mc_n_sim,
                     N_bar,
                 )
-                print(
-                    f"Actor {actor_id} finished. Final reward: {rewards[-1]}"
-                )
+                print(f"Actor {actor_id} finished. Final reward: {rewards[-1]}")
                 if rewards[-1] > best_reward:
                     print("New best actor!")
                     best_reward = rewards[-1]
@@ -331,9 +321,7 @@ class Trainer:
         self.model = self.model.to(self.device)
         if starting_epoch + 1 > n_epochs // 50:
             self.dataset.change_training_split(0.7, 0.05)
-        if (
-            starting_epoch + 1 > n_epochs // 10
-        ):  # when restarting from a checkpoint
+        if starting_epoch + 1 > n_epochs // 10:  # when restarting from a checkpoint
             mc_n_sim = mc_n_sim * 4
         for epoch in range(starting_epoch, n_epochs):
             if epoch + 1 == n_epochs // 50:
@@ -349,9 +337,7 @@ class Trainer:
             print(f"Epoch {epoch} / {n_epochs}")
             self.train_step()
             if epoch % 10 == 0:
-                self.act_step(
-                    self.dataset.input_tensor, n_games, mc_n_sim, N_bar
-                )
+                self.act_step(self.dataset.input_tensor, n_games, mc_n_sim, N_bar)
             # save checkpoint
             if epoch + 1 % 100 == 0:
                 checkpoint_name = f"checkpoint_{epoch + 1}.pt"

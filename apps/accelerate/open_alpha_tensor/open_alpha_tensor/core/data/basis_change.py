@@ -47,6 +47,8 @@ def cob_entry_prob_distribution(size):
 class ChangeOfBasis:
     """Change of Basis class."""
 
+    """Change of Basis class."""
+
     def __init__(
         self,
         tensor_size: int,
@@ -90,9 +92,9 @@ class ChangeOfBasis:
         if cob_prob > self.cob_prob:
             return tensor
         random_cob = torch.randint(low=0, high=self.n_cob, size=(1,))
-        cob_matrix = torch.load(
-            f"{self.tmp_dir}/cob_matrix_{int(random_cob)}.pt"
-        ).to(self.device)
+        cob_matrix = torch.load(f"{self.tmp_dir}/cob_matrix_{int(random_cob)}.pt").to(
+            self.device
+        )
 
         # apply change of basis to each tensor dimension
         inner_tensor = tensor[0, 0]

@@ -135,7 +135,7 @@ class TrainingOperation(Operation):
         self._trained_model = trainer.model
 
     def get_trained_model(self):
-        r"""Returns the trained model."""
+        """Returns the trained model."""
         return self._trained_model
 
     def get_result(self) -> Any:
