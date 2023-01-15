@@ -19,11 +19,18 @@ SAVE_DIR_SYNT = str(Path.home() / ".data_alpha_tensor/synthetic_data")
 
 
 def compute_move(triplets: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
+    r"""Computes the outer product of the three tensors in the triplet that will be subtracted from the current state.
+
+    Args:
+        triplets (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): u, v, w tensors
+    """
     u, v, w = triplets
     return u.reshape(-1, 1, 1) * v.reshape(1, -1, 1) * w.reshape(1, 1, -1)
 
 
 class SyntheticDataBuffer(Dataset):
+    r"""Dataset of synthetically generated demonstrations"""
+
     def __init__(
         self,
         tensor_size,
@@ -35,6 +42,19 @@ class SyntheticDataBuffer(Dataset):
         n_steps: int,
         random_seed=None,
     ):
+        r"""
+        Builds a dataset of synthetic demonstrations.
+
+        Args:
+            tensor_size (int): size of the tensor,
+            n_data (int): number of demonstrations to generate,
+            limit_rank (int): maximum rank of the generated tensors,
+            prob_distr (Callable): probability distribution to use to generate the tensors,
+            n_prev_actions (int): number of previous actions to use as input,
+            device (str): name of the torch device to use,
+            n_steps (int): number of steps to perform in the environment,
+            random_seed (int, optional): random seed to use.
+        """
         self.device = device
         self.len_data = 0
         self.n_prev_actions = n_prev_actions
@@ -56,15 +76,11 @@ class SyntheticDataBuffer(Dataset):
             ):
                 torch.save(
                     output_tensor,
-                    os.path.join(
-                        self.save_dir, f"output_tensor_{self.len_data}.pt"
-                    ),
+                    os.path.join(self.save_dir, f"output_tensor_{self.len_data}.pt"),
                 )
                 torch.save(
                     list_of_triplets,
-                    os.path.join(
-                        self.save_dir, f"list_of_triplets_{self.len_data}.pt"
-                    ),
+                    os.path.join(self.save_dir, f"list_of_triplets_{self.len_data}.pt"),
                 )
                 self.len_data += 1
         else:
@@ -77,9 +93,7 @@ class SyntheticDataBuffer(Dataset):
     def __getitem__(self, idx):
         i = idx // self.limit_rank
         j = idx % self.limit_rank
-        output_tensor = torch.load(
-            os.path.join(self.save_dir, f"output_tensor_{i}.pt")
-        )
+        output_tensor = torch.load(os.path.join(self.save_dir, f"output_tensor_{i}.pt"))
         list_of_triplets = torch.load(
             os.path.join(self.save_dir, f"list_of_triplets_{i}.pt")
         )
@@ -125,15 +139,29 @@ class SyntheticDataBuffer(Dataset):
         tensor: torch.Tensor,
         moves: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
     ):
+        r"""Given an initial state and a list of moves, applies the moves to the state.
+
+        Args:
+            tensor (torch.Tensor): initial state,
+            moves (List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]): list of moves.
+        """
         for u, v, w in moves:
-            tensor = tensor - u.reshape(-1, 1, 1) * v.reshape(
-                1, -1, 1
-            ) * w.reshape(1, 1, -1)
+            tensor = tensor - u.reshape(-1, 1, 1) * v.reshape(1, -1, 1) * w.reshape(
+                1, 1, -1
+            )
         return tensor
 
 
 class GameDataBuffer(Dataset):
+    r"""Buffer to store the data from the games played by the MCTS agent."""
+
     def __init__(self, device: str, max_buffer_size: int):
+        r"""Initializes the buffer.
+
+        Args:
+            device (str): name of the torch device to use,
+            max_buffer_size (int): maximum size of the buffer.
+        """
         self.num_games = 0
         self.temp_dir = tempfile.mkdtemp("game_data_buffer")
         self.game_data = {}
@@ -149,10 +177,16 @@ class GameDataBuffer(Dataset):
         policies: List[torch.Tensor],
         rewards: List[torch.Tensor],
     ):
+        r"""
+        Adds a played game to the buffer.
+
+        Args:
+            states (List[torch.Tensor]): observed game states,
+            policies (List[torch.Tensor]): list of policies,
+            rewards (List[torch.Tensor]): observed rewards.
+        """
         self.game_data[self.num_games] = len(states)
-        torch.save(
-            states, os.path.join(self.temp_dir, f"states_{self.num_games}.pt")
-        )
+        torch.save(states, os.path.join(self.temp_dir, f"states_{self.num_games}.pt"))
         torch.save(
             policies,
             os.path.join(self.temp_dir, f"policies_{self.num_games}.pt"),
@@ -234,20 +268,14 @@ class TensorGameDataset(Dataset):
             device=device,
             random_seed=random_seed,
         )
-        self.game_data_buffer = GameDataBuffer(
-            device=device, max_buffer_size=100000
-        )
-        self.best_game_data_buffer = GameDataBuffer(
-            device=device, max_buffer_size=1000
-        )
+        self.game_data_buffer = GameDataBuffer(device=device, max_buffer_size=100000)
+        self.best_game_data_buffer = GameDataBuffer(device=device, max_buffer_size=1000)
         self.len_data = len_data
         self.pct_synth = pct_synth
         self.pct_best_game = 0
         self.synth_bool = torch.ones(len_data, dtype=torch.bool)
         self.synth_idx = torch.from_numpy(
-            np.random.choice(
-                len(self.synthetic_data_buffer), len_data, replace=False
-            )
+            np.random.choice(len(self.synthetic_data_buffer), len_data, replace=False)
         )
         self.game_idx = None
         self.best_game_idx = None
@@ -275,12 +303,8 @@ class TensorGameDataset(Dataset):
                     (1 - self.pct_synth - self.pct_best_game) * self.len_data
                 )
                 replace_game = len_game_data > len(self.game_data_buffer)
-                len_best_game_data = (
-                    self.len_data - len_synth_data - len_game_data
-                )
-                replace_best_game = len_best_game_data > len(
-                    self.best_game_data_buffer
-                )
+                len_best_game_data = self.len_data - len_synth_data - len_game_data
+                replace_best_game = len_best_game_data > len(self.best_game_data_buffer)
                 self.game_idx = torch.from_numpy(
                     np.random.choice(
                         len(self.game_data_buffer),
@@ -320,9 +344,7 @@ class TensorGameDataset(Dataset):
                 else:
                     return self.game_data_buffer[
                         self.game_idx[
-                            idx
-                            - self.synth_bool[:idx].sum()
-                            - len(self.best_game_idx)
+                            idx - self.synth_bool[:idx].sum() - len(self.best_game_idx)
                         ]
                     ]
             else:
@@ -351,15 +373,11 @@ class TensorGameDataset(Dataset):
 
     def save_game_data(self, path):
         self.game_data_buffer.save_game_data(os.path.join(path, "game_data"))
-        self.best_game_data_buffer.save_game_data(
-            os.path.join(path, "best_game_data")
-        )
+        self.best_game_data_buffer.save_game_data(os.path.join(path, "best_game_data"))
 
     def load_game_data(self, path):
         self.game_data_buffer.load_game_data(os.path.join(path, "game_data"))
-        self.best_game_data_buffer.load_game_data(
-            os.path.join(path, "best_game_data")
-        )
+        self.best_game_data_buffer.load_game_data(os.path.join(path, "best_game_data"))
 
     @property
     def input_tensor(self) -> torch.Tensor:
@@ -372,11 +390,7 @@ class TensorGameDataset(Dataset):
             self.tensor_size,
         )
         matrix_dims = (
-            torch.randint(1, max_matrix_size, (3,))
-            .detach()
-            .cpu()
-            .numpy()
-            .tolist()
+            torch.randint(1, max_matrix_size, (3,)).detach().cpu().numpy().tolist()
         )
         operation_tensor = self._build_tensor_game_input(
             *matrix_dims, action_memory_len=self.action_memory_len
@@ -406,9 +420,7 @@ class TensorGameDataset(Dataset):
         )
         for r in range(dim_1 * dim_2):
             for k in range(dim_k):
-                input_tensor[
-                    0, (r // dim_2) * dim_k + k, k * dim_2 + r % dim_2, r
-                ] = 1
+                input_tensor[0, (r // dim_2) * dim_k + k, k * dim_2 + r % dim_2, r] = 1
         return input_tensor
 
     def games_are_good(self):

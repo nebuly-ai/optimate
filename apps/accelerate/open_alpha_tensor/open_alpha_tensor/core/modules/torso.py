@@ -27,6 +27,16 @@ class TorsoAttentiveModes(torch.nn.Module):
 
 
 class TorsoModel(torch.nn.Module):
+    r"""Torso model of OpenAlphaTensor.
+
+    It maps an input tensor of shape (N, T, S, S, S) to (N, 3S*S, c), where:
+
+        N is the batch size;
+        T is the size of the history;
+        S is the number of elements in each matrix to be multiplied;
+        c is the output dimensionality.
+    """
+
     def __init__(
         self,
         scalars_size: int,
@@ -40,10 +50,7 @@ class TorsoModel(torch.nn.Module):
         # out_size = c
         super(TorsoModel, self).__init__()
         self.linears_1 = torch.nn.ModuleList(
-            [
-                torch.nn.Linear(scalars_size, input_size * input_size)
-                for _ in range(3)
-            ]
+            [torch.nn.Linear(scalars_size, input_size * input_size) for _ in range(3)]
         )
         self.linears_2 = torch.nn.ModuleList(
             [
@@ -72,6 +79,4 @@ class TorsoModel(torch.nn.Module):
         x1, x2, x3 = input_list
         for layer in self.attentive_modes:
             x1, x2, x3 = layer(x1, x2, x3)
-        return torch.stack([x1, x2, x3], dim=2).reshape(
-            batch_size, 3 * S * S, -1
-        )
+        return torch.stack([x1, x2, x3], dim=2).reshape(batch_size, 3 * S * S, -1)
