@@ -168,15 +168,11 @@ def select_future_state(
     """Select the future state maximizing the upper confidence bound."""
     # q_values (1, K, 1)
     pi = torch.tensor(
-<<<<<<< HEAD
         [
             len(repetitions[i])
             for i in range(len(possible_states))
             if i in repetitions
         ]
-=======
-        [repetitions.get(i, 0) for i in range(len(possible_states))]
->>>>>>> fefa07e (Run Black and AutoFlake)
     ).to(q_values.device)
     if pi.shape[0] != N_s_a.shape[1]:
         print(pi)
@@ -285,7 +281,6 @@ def backward_pass(trajectory, states_dict, leaf_q_value: torch.Tensor):
         if action_idx is None:  # leaf node
             reward += leaf_q_value
         else:
-<<<<<<< HEAD
             (
                 _,
                 old_idx_to_new_idx,
@@ -294,11 +289,6 @@ def backward_pass(trajectory, states_dict, leaf_q_value: torch.Tensor):
                 q_values,
                 _,
             ) = states_dict[state]
-=======
-            possible_states, repetitions, N_s_a, q_values, _ = states_dict[
-                state
-            ]
->>>>>>> fefa07e (Run Black and AutoFlake)
             if isinstance(reward, torch.Tensor):
                 reward = reward.to(q_values.device)
             action_idx = int(action_idx)
