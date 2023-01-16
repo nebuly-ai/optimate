@@ -36,7 +36,6 @@ import torch
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
 trained_model = train_with_forward_forward_algorithm(
     model_type="progressive",
     n_layers=3,
