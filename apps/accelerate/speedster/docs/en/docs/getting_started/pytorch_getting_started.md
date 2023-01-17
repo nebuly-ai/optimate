@@ -74,7 +74,7 @@ For PyTorch models we support two types of input data:
     Now your input `model` and `input_data` are ready, you can move on to the [Run the optimization]() section.
 
 ## 2) Run the optimization
-Once the `model` and `input_data` have been defined, everything is ready to use Speedster's `optimize_model` function to optimize the chosen model. 
+Once the `model` and `input_data` have been defined, everything is ready to use Speedster's `optimize_model` function to optimize your model. 
 
 The function accepts as input the model in your preferred framework (PyTorch in this case) and returns the accelerated version of your model:
 
