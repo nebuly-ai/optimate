@@ -1,11 +1,10 @@
 import os
 from pathlib import Path
-from typing import Tuple, Optional, Any, Callable
+from typing import Any, Callable, Optional, Tuple
 
-import torch
 import tensorflow as tf
 import tensorflow.keras as keras
-from tensorflow.keras import Model, layers
+import torch
 from transformers import AlbertModel, AlbertTokenizer
 
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, CONSTRAINED_METRIC_DROP_THS

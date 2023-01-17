@@ -4,12 +4,13 @@ import pytest
 import requests
 import torch
 import types
-
-from PIL import Image
 from tempfile import TemporaryDirectory
 
-from apps.accelerate.speedster.speedster.utils import save_yolov5_model, load_yolov5_model, OptimizedYolo
-from apps.accelerate.speedster import optimize_model
+from PIL import Image
+
+from speedster.utils import save_yolov5_model, load_yolov5_model, OptimizedYolo
+from speedster import optimize_model
+
 
 def test_yolov5_save_and_load():
     # Images
@@ -32,7 +33,7 @@ def test_yolov5_save_and_load():
     )
     final_core = OptimizedYolo(model_optimized, last_layer)
     yolo_model.model.model = final_core
-    with TemporaryDirectory as tmp_dir:
+    with TemporaryDirectory() as tmp_dir:
         save_yolov5_model(model_optimized, tmp_dir)
         loaded_model = load_yolov5_model(tmp_dir)
         

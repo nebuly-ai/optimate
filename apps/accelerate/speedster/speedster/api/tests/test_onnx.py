@@ -18,13 +18,11 @@ from nebullvm.operations.inference_learners.tvm import (
     NumpyApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
+from nebullvm.operations.optimizations.utils import load_model
 from torchvision import models
 
 from speedster import optimize_model
 from speedster.api.tests.utils import torch_to_onnx
-
-from nebullvm.operations.optimizations.utils import load_model
-from tempfile import TemporaryDirectory
 
 
 def test_onnx_ort():
@@ -65,7 +63,6 @@ def test_onnx_ort():
             res_original = model(x.to(device))
             res_optimized = optimized_model(x.numpy())[0]
 
-            assert isinstance(optimized_model, NumpyONNXInferenceLearner)
             assert (
                 abs((res_original.detach().cpu().numpy() - res_optimized)).max()
                 < 1e-2

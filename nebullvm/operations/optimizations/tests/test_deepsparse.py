@@ -18,9 +18,8 @@ from nebullvm.operations.optimizations.compilers.utils import (
     deepsparse_is_available,
 )
 from nebullvm.operations.optimizations.tests.utils import initialize_model
-from nebullvm.tools.base import DeepLearningFramework, Device, ModelCompiler
-
 from nebullvm.operations.optimizations.utils import load_model
+from nebullvm.tools.base import DeepLearningFramework, Device, ModelCompiler
 
 device = Device.CPU
 

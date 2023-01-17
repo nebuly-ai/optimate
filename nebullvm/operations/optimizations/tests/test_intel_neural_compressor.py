@@ -18,14 +18,13 @@ from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
+from nebullvm.operations.optimizations.utils import load_model
 from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
     Device,
     ModelCompiler,
 )
-
-from nebullvm.operations.optimizations.utils import load_model
 
 device = Device.CPU
 
