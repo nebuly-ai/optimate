@@ -1,6 +1,7 @@
 import copy
-import logging
 from typing import List, Tuple, Union
+
+from loguru import logger
 
 from nebullvm.optional_modules.torch import (
     torch,
@@ -20,8 +21,6 @@ from nebullvm.tools.transformations import (
     HalfPrecisionTransformation,
 )
 from nebullvm.tools.utils import check_module_version
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 class _QuantWrapper(Module):

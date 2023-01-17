@@ -1,4 +1,5 @@
 import abc
+import copy
 import os
 import subprocess
 from pathlib import Path
@@ -153,7 +154,9 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
 
         with torch_tensorrt.logging.errors():
             trt_model = torch_tensorrt.compile(
-                model,
+                model
+                if dtype is not torch.half
+                else copy.deepcopy(model).half(),
                 inputs=[
                     torch_tensorrt.Input(
                         tensor.shape,

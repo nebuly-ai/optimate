@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
-    "nebullvm>=0.6.1",
+    "nebullvm>=0.7.3",
     "tabulate>=0.8.0",
 ]
 
@@ -12,7 +12,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf8")
 
 setup(
     name="speedster",
-    version="0.0.2",
+    version="0.1.3",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     long_description=long_description,

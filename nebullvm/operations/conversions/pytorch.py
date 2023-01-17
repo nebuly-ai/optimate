@@ -1,5 +1,6 @@
-import logging
 from pathlib import Path
+
+from loguru import logger
 
 from nebullvm.config import ONNX_OPSET_VERSION
 from nebullvm.optional_modules.torch import torch, Module
@@ -9,8 +10,6 @@ from nebullvm.tools.pytorch import (
     get_outputs_sizes_torch,
     create_model_inputs_torch,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def convert_torch_to_onnx(

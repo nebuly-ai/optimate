@@ -1,11 +1,11 @@
 import json
-import logging
 import shutil
 from abc import ABC
 from pathlib import Path
 from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import OPENVINO_FILENAMES
 from nebullvm.operations.inference_learners.base import (
@@ -26,8 +26,6 @@ from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import ModelParams, DeepLearningFramework
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-<b>AI Optimization AppStore to boost the performances of your AI systems</b>
+<b>Plug and play modules to boost the performances of your AI systems</b>
 </p>
 
 <p align=center>
@@ -19,41 +19,41 @@
   
 
 
-`Nebullvm` is an ecosystem of open-source Apps to boost the performances of your AI systems. The optimization Apps are stack-agnostic and work with any library.
+`Nebullvm` is an ecosystem of plug and play modules to boost the performances of your AI systems. The optimization modules are stack-agnostic and work with any library. They are designed to be easily integrated into your system, providing a quick and seamless boost to its performance. Simply plug and play to start realizing the benefits of optimized performance right away.
 
-Data. Models. Hardware. These are not independent factors, and making optimal choices on all fronts is hard. Our open source Apps help you to combine these 3 factors seamlessly, thus bringing incredibly fast and efficient AI systems to your fingertips.
-Four Apps categories to push the boundaries of AI efficiency. Dozens of Apps.
+If you like the idea, give us a star to show your support for the project ⭐
 
-If you like the idea, give us a star to show your support for the project ⭐
+## Documentation
 
-## Accelerate Apps
-Achieve sub-10ms response time for any AI application, including generative and language models. Improve customer experience by providing near real-time inferences.
+Please find [here](https://docs.nebuly.com/welcome/quick-start) the full documentation on:
+- Installation
+- Getting started (quick view and examples)
+- Notebooks
+- Ecosystem and integrations
+- Product structure
 
+## **What can this help with?**
 
-- [x] [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
-- [x] [Forward-Forward](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/forward_forward): Test the performance of the Forward-Forward algorithm in PyTorch.
-- [ ] [OpenAlphaTensor](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/open_alpha_tensor): Boost your DL model's performance with OpenAlphaTensor's custom-generated matrix multiplication algorithms (AlphaTensor open-source). 
-- [ ] [LargeSpeedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/large_speedster): Automatically apply SOTA optimization techniques on large AI models to achieve the maximum acceleration on your hardware.
-- [ ] [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/cloud_surfer): Discover the optimal inference hardware and cloud platform to run an optimized version of your AI model.
-- [ ] [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/optimate): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
+There are multiple modules we actually provide to boost the performances of your AI systems:
 
-## Maximize Apps
-Make your Kubernetes GPU infrastructure efficient. Simplify cluster management, maximize hardware utilization and minimize costs.
-- [ ] [GPU Partitioner](https://github.com/nebuly-ai/nebullvm/blob/main/apps/maximize/gpu_partitioner): Effortlessly maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning.
-- [ ] [GPUs Elasticity](https://github.com/nebuly-ai/nebullvm/blob/main/apps/maximize/gpus_elasticity): Maximize your GPUs Kubernetes resource utilization with flexible and efficient elastic quotas.
+✅ [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): Automatically apply the best set of SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
 
-## Extract Apps
-Don’t settle on generic AI-models. Extract domain-specific knowledge from large foundational models to create portable, super efficient AI models tailored for your use case.
-- [ ] [Promptify](https://github.com/nebuly-ai/nebullvm/blob/main/apps/extract/promptify): Effortlessly fine-tune large language and multi-modal models with minimal data and hardware requirements using p-tuning.
-- [ ] [LargeOracle Distillation](https://github.com/nebuly-ai/nebullvm/blob/main/apps/extract/large_oracle_distillation): Leverage advanced knowledge distillation to extract a small and efficient model out of a larger model.
+✅ [Nos](https://github.com/nebuly-ai/nos): Automatically maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning and elastic quotas - Effortless optimization at its finest!
 
-## Simulate Apps
-The time for trial and error is over. Simulate the performances of large models on different computing architectures to reduce time-to-market, maximize accuracy and minimize costs.
-- [ ] [Simulinf](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/simulinf): Simulate inference performances of your AI model on different hardware and cloud platforms.
-- [ ] [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/training_sim): Easily simulate and optimize the training of large AI models on a distributed infrastructure.
+✅ [OpenAlphaTensor](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/open_alpha_tensor): Increase the computational performances of an AI model with custom-generated matrix multiplication algorithm fine-tuned for your specific hardware.
 
+✅ [Forward-Forward](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/forward_forward): The Forward Forward algorithm is a method for training deep neural networks that replaces the backpropagation forward and backward passes with two forward passes.
 
-Couldn't find the optimization app you were looking for? Please open an issue or contact us at info@nebuly.ai and we will be happy to develop it together.
+## Next modules and roadmap
+We are actively working on incorporating the following modules, as requested by members of our community, in upcoming releases:
+
+- [ ]  [Promptify](https://github.com/nebuly-ai/nebullvm/blob/main/apps/extract/promptify): Effortlessly personalize large APIs generative models from OpenAI, Cohere, HF to your specific context and requirements.
+- [ ]  [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/cloud_surfer): Automatically discover the optimal cloud configuration and hardware on AWS, GCP and Azure to run your AI models.
+- [ ]  [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/optimate): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
+- [ ]  [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/training_sim): Easily simulate the training of large AI models on a distributed infrastructure to predict training behaviours without actual implementation.
+
+## Contributing
+As an open source project in a rapidly evolving field, we welcome contributions of all kinds, including new features, improved infrastructure, and better documentation. If you're interested in contributing, please see the [linked](https://docs.nebuly.com/welcome/questions-and-contributions) page for more information on how to get involved.
 
 ---
 

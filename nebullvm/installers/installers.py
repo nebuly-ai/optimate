@@ -1,4 +1,3 @@
-import logging
 import os
 import platform
 import subprocess
@@ -8,6 +7,7 @@ from pathlib import Path
 from typing import List, Union
 
 import cpuinfo
+from loguru import logger
 
 from nebullvm.config import (
     LIBRARIES_GPU,
@@ -24,8 +24,6 @@ from nebullvm.tools.utils import (
     gpu_is_available,
     check_module_version,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def get_cpu_arch():
@@ -357,25 +355,25 @@ class BaseInstaller(ABC):
                 logger.info(f"{library} installed successfully!")
 
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
+    def install_dependencies(include_backend: List[str]):
         raise NotImplementedError
 
     @staticmethod
-    def check_framework():
+    def check_backend():
         raise NotImplementedError
 
     @staticmethod
-    def install_framework():
+    def install_backend():
         raise NotImplementedError
 
 
 class PytorchInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
+    def install_dependencies(include_backend: List[str]):
         return
 
     @staticmethod
-    def check_framework():
+    def check_backend():
         try:
             import torch  # noqa F401
         except ImportError:
@@ -393,8 +391,8 @@ class PytorchInstaller(BaseInstaller):
         return True
 
     @staticmethod
-    def install_framework():
-        cmd = ["pip3", "install", "torch>=1.10.0, <1.13.0"]
+    def install_backend():
+        cmd = ["pip3", "install", "torch>=1.10.0"]
         subprocess.run(cmd)
 
         try:
@@ -407,26 +405,24 @@ class PytorchInstaller(BaseInstaller):
 
 class TensorflowInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
-        if "onnx" in include_frameworks:
+    def install_dependencies(include_backend: List[str]):
+        if "onnx" in include_backend:
             install_tf2onnx()
 
     @staticmethod
-    def check_framework():
+    def check_backend():
         try:
             import tensorflow  # noqa F401
         except ImportError:
             return False
 
-        if not check_module_version(
-            tensorflow, min_version="2.7.0", max_version="2.10.0"
-        ):
+        if not check_module_version(tensorflow, min_version="2.7.0"):
             return False
 
         return True
 
     @staticmethod
-    def install_framework():
+    def install_backend():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
             cmd = ["conda", "install", "-y", "tensorflow>=2.7.0", "numpy<1.24"]
             subprocess.run(cmd)
@@ -444,14 +440,14 @@ class TensorflowInstaller(BaseInstaller):
 
 class ONNXInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
+    def install_dependencies(include_backend: List[str]):
         install_onnxruntime()
         cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
         subprocess.run(cmd)
         install_onnx_simplifier()
 
     @staticmethod
-    def check_framework():
+    def check_backend():
         try:
             import onnx  # noqa F401
         except ImportError:
@@ -463,7 +459,7 @@ class ONNXInstaller(BaseInstaller):
         return True
 
     @staticmethod
-    def install_framework():
+    def install_backend():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
             cmd = ["pip3", "install", "cmake"]
             subprocess.run(cmd)
@@ -481,11 +477,11 @@ class ONNXInstaller(BaseInstaller):
 
 class HuggingFaceInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
+    def install_dependencies(include_backend: List[str]):
         pass
 
     @staticmethod
-    def check_framework():
+    def check_backend():
         try:
             import transformers  # noqa F401
         except ImportError:
@@ -494,7 +490,7 @@ class HuggingFaceInstaller(BaseInstaller):
         return True
 
     @staticmethod
-    def install_framework():
+    def install_backend():
         cmd = ["pip3", "install", "transformers"]
         subprocess.run(cmd)
 
