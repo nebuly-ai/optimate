@@ -15,4 +15,4 @@ The core `Speedster` workflow consists of 3 steps:
 - [x]  **Search**: the library automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
 - [x]  **Serve**: finally, `Speedster` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
 
-Now you are ready to start accelerating your models, visit the (Installation)[] section to start right away!
+Now you are ready to start accelerating your models, visit the Installation section to start right away!
