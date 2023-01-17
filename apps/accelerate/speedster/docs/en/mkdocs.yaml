@@ -1,3 +1,10 @@
 site_name: Speedster
 
 docs_dir: ./docs
+
+nav:
+  - Overview: overview.md
+  - Installation: installation.md
+  - Getting started:
+    - PyTorch: getting_started/pytorch_getting_started.md
+    - 🤗 HuggingFace: getting_started/hf_getting_started.md
