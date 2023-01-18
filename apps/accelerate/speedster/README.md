@@ -272,19 +272,19 @@ For more details, please visit [Getting Started](https://docs.nebuly.com/modules
 
 `Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the software to hardware stack.
 
-- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `Speedster`, namely PyTorch, ONNX and TensorFlow. This allows the Compressor and Optimizer modules to apply any optimization technique to the model.
+- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `Speedster`, namely PyTorch, ONNX and TensorFlow. This allows the Compressor and Compiler modules to apply any optimization technique to the model.
 - [x]  **Compressor:** applies various compression techniques to the model, such as pruning, knowledge distillation, or quantization-aware training.
-- [x]  **Optimizer:** converts the compressed models to the intermediate representation (IR) of the supported deep learning compilers. The compilers apply both post-training quantization techniques and graph optimizations, to produce compiled binary files.
+- [x]  **Compiler:** converts the compressed models to the intermediate representation (IR) of the supported deep learning compilers. The compilers apply both post-training quantization techniques and graph optimizations, to produce compiled binary files.
 - [x]  **Inference Learner:** takes the best performing compiled model and converts it back into the same interface as the original input model.
 
-![nebullvm nebuly ai](https://user-images.githubusercontent.com/100476561/180975206-3a3a1f80-afc6-42b0-9953-4b8426c09b62.png)
+![speedster_blocks](https://user-images.githubusercontent.com/42771598/213177175-a76908a2-5eef-4e82-9d54-0fc812131463.png)
 
 The **compressor** stage leverages the following open-source projects:
 
 - [Intel/neural-compressor](https://github.com/intel/neural-compressor): targeting to provide unified APIs for network compression technologies, such as low precision quantization, sparsity, pruning, knowledge distillation, across different deep learning frameworks to pursue optimal inference performance.
 - [SparseML](https://github.com/neuralmagic/sparseml): libraries for applying sparsification recipes to neural networks with a few lines of code, enabling faster and smaller models.
 
-The **optimizer stage** leverages the following open-source projects:
+The **compiler stage** leverages the following open-source projects:
 
 - [Apache TVM](https://github.com/apache/tvm): open deep learning compiler stack for cpu, gpu and specialized accelerators.
 - [BladeDISC](https://github.com/alibaba/BladeDISC): end-to-end Dynamic Shape Compiler project for machine learning workloads.
