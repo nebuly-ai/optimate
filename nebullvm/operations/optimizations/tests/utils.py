@@ -5,6 +5,7 @@ from typing import Any, Callable, Optional, Tuple
 import tensorflow as tf
 import tensorflow.keras as keras
 import torch
+from tensorflow.keras import Model, layers
 from transformers import AlbertModel, AlbertTokenizer
 
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, CONSTRAINED_METRIC_DROP_THS
