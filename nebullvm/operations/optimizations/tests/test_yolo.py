@@ -1,12 +1,13 @@
 import copy
+import os
+
 import numpy as np
 import pytest
 import requests
 import torch
 import types
-from tempfile import TemporaryDirectory
-
 from PIL import Image
+from tempfile import TemporaryDirectory
 
 from speedster.utils import save_yolov5_model, load_yolov5_model, OptimizedYolo
 from speedster import optimize_model
@@ -34,11 +35,15 @@ def test_yolov5_save_and_load():
     final_core = OptimizedYolo(model_optimized, last_layer)
     yolo_model.model.model = final_core
     with TemporaryDirectory() as tmp_dir:
-        save_yolov5_model(model_optimized, tmp_dir)
+        save_yolov5_model(yolo_model, tmp_dir)
         loaded_model = load_yolov5_model(tmp_dir)
-        
-        assert isinstance(loaded_model, OptimizedYolo)
-        assert isinstance(loaded_model.get_size(), int)
+
+        size_saved = yolo_model.model.model.get_size()
+        size_loaded = loaded_model.model.model.get_size()
+
+        assert isinstance(loaded_model.model.model, OptimizedYolo)
+        assert ((size_loaded - size_loaded * 0.002) < size_saved < (size_loaded + size_loaded * 0.002))
+
 
 def _forward_once(self, x, profile=False, visualize=False):
     y, dt = [], []  # outputs
@@ -71,7 +76,7 @@ class CoreModelWrapper(torch.nn.Module):
         super().__init__()
         self.core = core_model
         self.idxs = output_idxs
-        
+
     def forward(self, *args, **kwargs):
         x = self.core(*args, **kwargs)
         return tuple(x if j == -1 else self.core.last_y[j] for j in self.idxs)
