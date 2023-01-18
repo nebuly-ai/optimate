@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pytest
 import torch
+from torchvision import models
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.onnx import (
     NumpyONNXInferenceLearner,
@@ -19,7 +20,6 @@ from nebullvm.operations.inference_learners.tvm import (
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
 from nebullvm.operations.optimizations.utils import load_model
-from torchvision import models
 
 from speedster import optimize_model
 from speedster.api.tests.utils import torch_to_onnx
@@ -49,7 +49,7 @@ def test_onnx_ort():
             # metric_drop_ths=2,
         )
 
-        with TemporaryDirectory as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             optimized_model.save(tmp_dir)
             loaded_model = load_model(tmp_dir)
             assert isinstance(loaded_model, NumpyONNXInferenceLearner)
