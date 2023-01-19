@@ -1,4 +1,4 @@
-# Getting started with HuggingFaces optimization
+# Getting started with HuggingFace optimization
 In this section, we will learn about the 4 main steps needed to optimize your 🤗 HuggingFace models:
 
 1. [Input your model and data]()
