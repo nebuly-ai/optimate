@@ -6,4 +6,3 @@ psutil>=5.0.0
 requests>=2.26.1
 tqdm>=4.36.0
 loguru>=0.5.3
-ipython>=8.8.0
