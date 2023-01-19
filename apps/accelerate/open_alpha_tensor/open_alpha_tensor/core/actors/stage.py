@@ -10,11 +10,21 @@ from open_alpha_tensor.core.modules.alpha_tensor import AlphaTensorModel
 
 
 def game_is_finished(state):
+    """Tells if the game is finished or not.
+
+    Args:
+        state (torch.Tensor): The state of the game.
+    """
     # state size (1, S, S, S)
     return (state == 0).all()
 
 
 def remove_duplicates(reducing_tensor: torch.Tensor):
+    """Remove duplicates from a tensor.
+
+    Args:
+        reducing_tensor (torch.Tensor): The tensor to remove duplicates from.
+    """
     # reducing tensor has shape (1, N_mc, S, S, S)
     n_mc = reducing_tensor.shape[1]
     indexes = []
@@ -52,6 +62,13 @@ def extract_children_states_from_actions(
     actions: torch.Tensor,
     vec_cardinality: int = 5,
 ):
+    """Extract the children states from the actions.
+
+    Args:
+        state (torch.Tensor): The state of the game.
+        actions (torch.Tensor): The actions to apply to the state.
+        vec_cardinality (int, optional): The cardinality of the vectors.
+    """
     # state (1, T, S, S, S)
     # actions (1, K, N_steps)
     # we assume actions to be with N_steps = 1,
@@ -65,9 +82,9 @@ def extract_children_states_from_actions(
     actions = actions.reshape(bs, k, n_steps * len_token)
     vec_dim = state.shape[2]
     u = actions[:, :, :vec_dim].reshape(bs, k, vec_dim, 1, 1)
-    v = actions[:, :, vec_dim : 2 * vec_dim].reshape(  # noqa E203
+    v = actions[:, :, vec_dim : 2 * vec_dim].reshape(
         bs, k, 1, vec_dim, 1
-    )
+    )  # noqa E203
     w = actions[:, :, 2 * vec_dim :].reshape(bs, k, 1, 1, vec_dim)  # noqa E203
     reducing_tensor = u * v * w
     (
@@ -102,19 +119,37 @@ def extract_present_state(state: torch.Tensor) -> torch.Tensor:
 
 
 def to_hash(tensor: torch.Tensor) -> str:
+    """Converts a tensor to a hash string.
+
+    Args:
+        tensor: The tensor to convert.
+    """
     hashable_tensor = "_".join(
         tensor.reshape(-1).long().detach().cpu().numpy().astype(str).tolist()
     )
     return hashable_tensor
 
 
-def from_hush(hashable_tensor: str, shape: tuple) -> torch.Tensor:
+def from_hash(hashable_tensor: str, shape: tuple) -> torch.Tensor:
+    """Converts a hash string back to the original tensor.
+
+    Args:
+        hashable_tensor (str): The hash string.
+        shape (tuple): The shape of the original tensor.
+    """
     return torch.tensor([float(x) for x in hashable_tensor.split("_")]).resize(
         shape
     )
 
 
 def record_action(tree_dict: Dict, state: str, action: str):
+    """Record the action in the tree dictionary.
+
+    Args:
+        tree_dict (Dict): The tree dictionary.
+        state (str): The state as a hash string.
+        action (str): The action as a hash string.
+    """
     if state in tree_dict:
         tree_dict[state].append(action)
     else:
@@ -161,6 +196,17 @@ def simulate_game(
     states_dict: Dict,
     horizon: int = 5,
 ):
+    """Simulates a game from a given state.
+
+    Args:
+        model: The model to use for the simulation.
+        state (torch.Tensor): The initial state.
+        t_time (int): The current time step.
+        max_steps (int): The maximum number of steps to simulate.
+        game_tree (Dict): The game tree.
+        states_dict (Dict): The states dictionary.
+        horizon (int): The horizon to use for the simulation.
+    """
     idx = t_time
     max_steps = min(max_steps, t_time + horizon)
     state_hash = to_hash(extract_present_state(state))
@@ -266,6 +312,17 @@ def monte_carlo_tree_search(
     game_tree: Dict,
     state_dict: Dict,
 ):
+    """Runs the monte carlo tree search algorithm.
+
+    Args:
+        model (torch.nn.Module): The model to use for the simulation.
+        state (torch.Tensor): The initial state.
+        n_sim (int): The number of simulations to run.
+        t_time (int): The current time step.
+        n_steps (int): The maximum number of steps to simulate.
+        game_tree (Dict): The game tree.
+        state_dict (Dict): The dictionary containing the states.
+    """
     # Note that game tree is not the full tree, but just the one having as root
     #  the current node(state).
     # should we accept also previous updated trajectories for the current node?
@@ -302,9 +359,9 @@ def compute_improved_policy(
     model_n_logits: int,
     N_bar: int,
 ):
-    """Compute the improved policy given the state_dict, the list of states. The
-    improved policy is computed as (N_s_a / N_s_a.sum())ˆ(1/tau) where tau is
-    (log(N_s_a.sum()) / log(N_bar))
+    """Compute the improved policy given the state_dict, the list of states.
+    The improved policy is computed as (N_s_a / N_s_a.sum())ˆ(1/tau) where tau
+    is (log(N_s_a.sum()) / log(N_bar))
     """
     policies = torch.zeros(len(states), model_n_steps, model_n_logits)
     N_bar = torch.tensor(N_bar)
@@ -333,6 +390,17 @@ def actor_prediction(
     N_bar: int,
     return_actions: bool = False,
 ):
+    """Runs the monte carlo tree search algorithm to obtain the next states,
+    policies and rewards.
+
+    Args:
+        model (AlphaTensorModel): The model to use for the simulation.
+        input_tensor (torch.Tensor): The initial state.
+        maximum_rank (int): The maximum number of steps to simulate.
+        mc_n_sim (int): The number of simulations to run.
+        N_bar (int): The parameter used to compute the improved policy.
+        return_actions (bool): If True, only actions are returned.
+    """
     # input_tensor has shape (1, T, S, S, S)
     state = input_tensor
     rank = 0

@@ -9,6 +9,9 @@ from open_alpha_tensor.core.training import Trainer
 
 
 class LoadCheckPointOp(Operation):
+    """An operation which loads a checkpoint during training of an
+    OpenAlphaTensor model."""
+
     def __init__(self):
         super().__init__()
         self._last_epoch = None
@@ -21,6 +24,13 @@ class LoadCheckPointOp(Operation):
         optimizer: torch.optim.Optimizer,
         checkpoint_dir: str,
     ):
+        """Load a checkpoint from a directory.
+
+        Args:
+            model: The model to load the checkpoint into.
+            optimizer: The optimizer to load the checkpoint into.
+            checkpoint_dir: The directory to load the checkpoint from.
+        """
         if (
             checkpoint_dir is not None
             and Path(checkpoint_dir).exists()
@@ -46,12 +56,15 @@ class LoadCheckPointOp(Operation):
         self._optimizer = optimizer
 
     def get_last_epoch(self) -> int:
+        """Returns the last epoch of the loaded checkpoint."""
         return self._last_epoch
 
     def get_model(self) -> AlphaTensorModel:
+        """Returns the model loaded from the checkpoint."""
         return self._model
 
     def get_optimizer(self) -> torch.optim.Optimizer:
+        """Returns the optimizer loaded from the checkpoint."""
         return self._optimizer
 
     def get_result(self) -> Any:
@@ -59,11 +72,20 @@ class LoadCheckPointOp(Operation):
 
 
 class LoadCheckpointDataOp(Operation):
+    """An operation which loads the games played while training an
+    OpenAlphaTensor model."""
+
     def __init__(self):
         super().__init__()
         self._loaded = False
 
     def execute(self, games_store_dir: Path, trainer: Trainer):
+        """Load the games played while training an OpenAlphaTensor model.
+
+        Args:
+            games_store_dir: The directory where the games are stored.
+            trainer: The trainer to load the games into.
+        """
         # if games_store_dir contains games, load them
         if (
             games_store_dir.exists()
@@ -73,4 +95,5 @@ class LoadCheckpointDataOp(Operation):
         self._loaded = True
 
     def get_result(self) -> bool:
+        """Returns whether the games were loaded or not."""
         return self._loaded

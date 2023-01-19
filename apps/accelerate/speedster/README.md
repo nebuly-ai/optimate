@@ -1,17 +1,13 @@
 # 💥 Speedster
 
-Automatically apply SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
+`Speedster` is an open-source module designed to speed up AI inference in just a few lines of code. The library automatically applies the best set of SOTA optimization techniques to achieve the maximum inference speed-up (latency, throughput, model size) physically possible on your hardware (single machine).
 
+`Speedster` makes it easy to combine optimization techniques across the whole software to hardware stack, delivering best in class speed-ups. If you like the idea, give us a star to support the project ⭐
 
-## 📖 What is this? 
-`Speedster` is an open-source module designed to speed up AI inference in just a few lines of code. The library boosts your model to achieve the maximum acceleration that is physically possible on your hardware.
-
-We are building a new AI inference acceleration product leveraging state-of-the-art open-source optimization tools enabling the optimization of the whole software to hardware stack. If you like the idea, give us a star to support the project ⭐
-
-![benchmarks_speedster](https://user-images.githubusercontent.com/83510798/211219698-a1938b65-1d2c-4a28-8e2a-6c3217ff9057.png)
-
+![speedster_benchmarks](https://user-images.githubusercontent.com/42771598/212486740-431328f3-f1e5-47bf-b6c9-b6629399ad09.png)
 
 The core `Speedster` workflow consists of 3 steps:
+
 
 - [x]  **Select**: input your model in your preferred DL framework and express your preferences regarding:
     - Accuracy loss: do you want to trade off a little accuracy for much higher performance?
@@ -22,14 +18,12 @@ The core `Speedster` workflow consists of 3 steps:
 
 # Installation
 
-
-
-Install Speedster and its base requirements:
+Install `Speedster` and its base requirements:
 ```
 pip install speedster
 ```
 
-Then make sure to install the deep learning compilers to leverage during the optimization:
+Then make sure to install all the available deep learning compilers.
 ```
 python -m nebullvm.installers.auto_installer --backends all --compilers all
 ```
@@ -38,25 +32,229 @@ python -m nebullvm.installers.auto_installer --backends all --compilers all
 > on your environment before proceeding to the next step, please install it from this 
 > [link](https://pytorch.org/get-started/locally/).
 
-For more details on the installation step, please visit [Installation](https://docs.nebuly.com/modules/speedster/installation).
+For more details on how to install Speedster, please visit our [Installation](https://docs.nebuly.com/modules/speedster/installation) guide.
 
+# Quick start
 
-# API quick view
+Only one line of code - that’s what you need to accelerate your model! Find below your getting started guide for 4 different input model frameworks:
 
-Only a single line of code is needed to get your accelerated model:
+<details>
+<summary>🔥 PyTorch </summary>
+    
+In this section, we will learn about the 4 main steps needed to optimize PyTorch models:
+
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
 
 ```python
+import torch
+import torchvision.models as models
 from speedster import optimize_model
 
-optimized_model = optimize_model(model, input_data=input_data)
-```
-Checkout how to define the `model` and `input_data` parameters depending on which framework you want to use and how to use the optimized model: 
-[PyTorch](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/pytorch#pytorch-api-quick-view), 
-[HuggingFace](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/huggingface#huggingface-api-quick-view), 
-[TensorFlow](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/tensorflow#tensorflow-api-quick-view), 
-[ONNX](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/onnx#onnx-api-quick-view).
+#1 Provide input model and data (we support PyTorch Dataloaders and custom input, see the docs to learn more)
+model = models.resnet50()  
+input_data = [((torch.randn(1, 3, 256, 256), ), torch.tensor([0])) for _ in range(100)]
 
-For more details, please visit also the documentation sections [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+#2 Run Speedster optimization
+optimized_model = optimize_model(
+  model, input_data=input_data, optimization_time="constrained"
+)
+
+#3 Save the optimized model
+optimized_model.save("model_save_path")
+```
+
+Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
+
+```python
+#4 Load and run your PyTorch accelerated model in production
+from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+output = optimized_model(input_sample)
+```
+For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+    
+</details>
+<details>
+<summary>🤗 Huggingface Transformers </summary>
+    
+In this section, we will learn about the 4 main steps needed to optimize 🤗 Huggingface Transformer models:
+
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
+
+* <details><summary><b>✅ For Decoder-only or Encoder-only architectures (Bert, GPT, etc)</b></summary>
+
+    ```python
+    from transformers import AlbertModel, AlbertTokenizer
+    from speedster import optimize_model
+
+    #1a. Provide input model: Load Albert as example
+    model = AlbertModel.from_pretrained("albert-base-v1")
+    tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
+
+    #1b. Dictionary input format (also string format is accepted, see the docs to learn more)
+    text = "This is an example text for the huggingface model."
+    input_dict = tokenizer(text, return_tensors="pt")
+    input_data = [input_dict for _ in range(100)]
+
+    #2 Run Speedster optimization (if input data is in string format, also the tokenizer 
+    # should be given as input argument, see the docs to learn more)
+    optimized_model = optimize_model(
+      model, input_data=input_data, optimization_time="constrained"
+    )
+
+    #3 Save the optimized model
+    optimized_model.save("model_save_path")
+    ```
+
+    Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
+
+    ```python
+    #4 Load and run your Huggingface accelerated model in production
+    from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+    optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+    output = optimized_model(input_sample)
+    ```
+    For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+
+    </details>
+
+* <details><summary><b>✅ For Encoder-Decoder architectures (T5 etc)</b></summary>
+
+
+    ```python
+    from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+    #1a. Provide input model: Load T5 as example
+    model = T5ForConditionalGeneration.from_pretrained("t5-small")
+    tokenizer = T5Tokenizer.from_pretrained("t5-small") 
+
+    #1b. Dictionary input format
+    question = "What's the meaning of life?"
+    answer = "The answer is:"
+    input_dict = tokenizer(question, return_tensors="pt")
+    input_dict["decoder_input_ids"] = tokenizer(answer, return_tensors="pt").input_ids
+    input_data = [input_dict for _ in range(100)]
+
+    #2 Run Speedster optimization (if input data is in string format, also the tokenizer 
+    # should be given as input argument, see the docs to learn more)
+    optimized_model = optimize_model(
+      model, input_data=input_data, optimization_time="constrained"
+    )
+
+    #3 Save the optimized model
+    optimized_model.save("model_save_path")
+    ```
+
+    Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
+
+    ```python
+    #4 Load and run your Huggingface accelerated model in production
+    from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+    optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+    output = optimized_model(input_sample)
+    ```
+    For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+
+    </details>
+    
+</details>
+<details>
+    
+<summary>🌊 TensorFlow/Keras </summary>
+    
+In this section, we will learn about the 4 main steps needed to optimize TensorFlow/Keras models:
+
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
+
+```python
+import tensorflow as tf
+from tensorflow.keras.applications.resnet50 import ResNet50
+from speedster import optimize_model
+
+#1 Provide input model and data (we support Keras dataset and custom input, see the docs to learn more)
+model = ResNet50() 
+input_data = [((tf.random.normal([1, 224, 224, 3]),), tf.constant([0])) for _ in range(100)]
+
+#2 Run Speedster optimization
+optimized_model = optimize_model(
+  model, input_data=input_data, optimization_time="constrained"
+)
+
+#3 Save the optimized model
+optimized_model.save("model_save_path")
+```
+
+Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
+
+```python
+#4 Load and run your TensorFlow accelerated model in production
+from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+output = optimized_model(input_sample)
+```
+For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+
+</details>
+<details>
+    
+<summary> ⚡ ONNX </summary>
+
+In this section, we will learn about the 4 main steps needed to optimize ONNX models:
+
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
+
+```python
+import numpy as np
+from speedster import optimize_model
+
+#1 Provide input model and data
+# Model was downloaded from here: 
+# https://github.com/onnx/models/tree/main/vision/classification/resnet
+model = "resnet50-v1-12.onnx" 
+input_data = [((np.random.randn(1, 3, 224, 224).astype(np.float32), ), np.array([0])) for _ in range(100)]
+
+#2 Run Speedster optimization
+optimized_model = optimize_model(
+  model, input_data=input_data, optimization_time="constrained"
+)
+
+#3 Save the optimized model
+optimized_model.save("model_save_path")
+```
+
+Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
+
+```python
+#4 Load and run your ONNX accelerated model in production
+from nebullvm.operations.inference_learners.base import LearnerMetadata
+
+optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+
+output = optimized_model(input_sample)
+```
+For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+    
+</details>
 
 # **Documentation**
 
@@ -70,23 +268,23 @@ For more details, please visit also the documentation sections [Getting Started]
 
 # **Key concepts**
 
-`Speedster`'s design reflects the mission to automatically master all the available AI acceleration techniques and deliver the **fastest AI ever.** As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that the community can benefit from it.
+`Speedster`'s design reflects our mission to automatically master each and every existing AI acceleration techniques to deliver the **fastest AI ever**. As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that our community can benefit from it.
 
-`Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the stack.
+`Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the software to hardware stack.
 
-- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `Speedster`, namely PyTorch, TensorFlow, and ONNX. This allows the Compressor and Optimizer modules to apply any optimization technique to the model.
+- [x]  **Converter:** converts the input model from its original framework to the framework backends supported by `Speedster`, namely PyTorch, ONNX and TensorFlow. This allows the Compressor and Compiler modules to apply any optimization technique to the model.
 - [x]  **Compressor:** applies various compression techniques to the model, such as pruning, knowledge distillation, or quantization-aware training.
-- [x]  **Optimizer:** converts the compressed models to the intermediate representation (IR) of the supported deep learning compilers. The compilers apply both post-training quantization techniques and graph optimizations, to produce compiled binary files.
-- [x]  **Inference Learner:** takes the best performing compiled model and converts it to the same interface as the original input model.
+- [x]  **Compiler:** converts the compressed models to the intermediate representation (IR) of the supported deep learning compilers. The compilers apply both post-training quantization techniques and graph optimizations, to produce compiled binary files.
+- [x]  **Inference Learner:** takes the best performing compiled model and converts it back into the same interface as the original input model.
 
-![nebullvm nebuly ai](https://user-images.githubusercontent.com/100476561/180975206-3a3a1f80-afc6-42b0-9953-4b8426c09b62.png)
+![speedster_blocks](https://user-images.githubusercontent.com/42771598/213177175-a76908a2-5eef-4e82-9d54-0fc812131463.png)
 
 The **compressor** stage leverages the following open-source projects:
 
 - [Intel/neural-compressor](https://github.com/intel/neural-compressor): targeting to provide unified APIs for network compression technologies, such as low precision quantization, sparsity, pruning, knowledge distillation, across different deep learning frameworks to pursue optimal inference performance.
 - [SparseML](https://github.com/neuralmagic/sparseml): libraries for applying sparsification recipes to neural networks with a few lines of code, enabling faster and smaller models.
 
-The **optimizer stage** leverages the following open-source projects:
+The **compiler stage** leverages the following open-source projects:
 
 - [Apache TVM](https://github.com/apache/tvm): open deep learning compiler stack for cpu, gpu and specialized accelerators.
 - [BladeDISC](https://github.com/alibaba/BladeDISC): end-to-end Dynamic Shape Compiler project for machine learning workloads.
@@ -99,11 +297,13 @@ The **optimizer stage** leverages the following open-source projects:
 
 
 # **Community**
+We’re developing `Speedster` for and together with our community, so plase get in touch on GitHub or Discord. 
 
-- **[Discord](https://discord.gg/RbeQMu886J)**: best for sharing your projects, hanging out with the community and learning about AI acceleration.
-- **[GitHub issues](https://github.com/nebuly-ai/nebullvm/issues)**: ideal for suggesting new acceleration components, requesting new features, and reporting bugs and improvements.
+• **[GitHub issues](https://github.com/nebuly-ai/nebullvm/issues)**: suggest new acceleration components, request new features, and report bugs and improvements.
 
-We’re developing `Speedster` together with our community so the best way to get started is to pick a `good-first issue`. Please read our [contribution guidelines](https://docs.nebuly.com/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
+• **[Discord](https://discord.gg/RbeQMu886J)**: learn about AI acceleration, share exciting projects and hang out with our global community.
+
+The best way to get started is to pick a good-first issue. Please read our [contribution guidelines](https://docs.nebuly.com/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
 
 Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀
 
