@@ -81,3 +81,8 @@ This app implements the main architectures exposed by hinton in its paper. Howev
 And don't forget to [leave a star ⭐](https://github.com/nebuly-ai/nebullvm/stargazers) if you appreciate the project!
 If you have any questions about the implementation, [open an issue](https://github.com/nebuly-ai/nebullvm/issues) or contact us in the [community chat](https://discord.gg/RbeQMu886J).
 
+## Contributing
+
+We welcome contributions of all kinds, including new features, improved infrastructure, and better documentation. If you're interested in contributing, please see the linked page for more information on how to get involved.
+
+A special thanks to [Additi Pandey](https://github.com/cyclotomicextension) for her amazing contribution to the Forward-Forward module.
