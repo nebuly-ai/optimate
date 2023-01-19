@@ -1,4 +1,4 @@
-from typing import List, Callable, Union
+from typing import Callable, List, Union
 from pathlib import Path
 from nebullvm.operations.inference_learners.base import LearnerMetadata
 
