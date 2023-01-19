@@ -1,5 +1,6 @@
-from typing import Callable, List, Union
 from pathlib import Path
+from typing import Callable, List, Union
+
 from nebullvm.operations.inference_learners.base import LearnerMetadata
 
 def map_compilers_and_compressors(ignore_list: List, enum_class: Callable):
