@@ -1,10 +1,10 @@
 # Getting started with ONNX optimization
 In this section, we will learn about the 4 main steps needed to optimize your ONNX models:
 
-1. [Input your model and data]()
-2. [Run the optimization]()
-3. [Save your optimized model]()
-4. [Load and run your optimized model in production]()
+1. [Input your model and data](#1-input-model-and-data)
+2. [Run the optimization](#2-run-the-optimization)
+3. [Save your optimized model](#3-save-your-optimized-model)
+4. [Load and run your optimized model in production](#4-load-and-run-your-optimized-model-in-production)
 
 ## 1) Input model and data
 
@@ -88,4 +88,4 @@ output = optimized_model(input_sample)
 !!! info
     The first 1-2 inferences could be a bit slower than expected because some compilers still perform some optimizations during the first iterations. After this warm-up time, the next ones will be faster than ever.
 
-If you want to know more about how to squeeze out more performances from your models, please visit the [Advanced options](../how_to_guides.md) section.
+If you want to know more about how to squeeze out more performances from your models, please visit the [Advanced options](../advanced_options.md) section.

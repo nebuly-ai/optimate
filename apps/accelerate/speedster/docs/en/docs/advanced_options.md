@@ -258,7 +258,7 @@ optimized_backbone = OptimizedWrapper(optimized_model, backbone_wrapper.output_n
 
 ```
 
-You can find other examples in the [notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks) section available on GitHub.
+You can find other examples in the [notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster) section available on GitHub.
 
 ## Store the performances of all the optimization techniques
 
