@@ -5,7 +5,7 @@ In this installation guide we will learn:
 
 - [Selective installation](#optional-selective-installation-of-speedster-requirements) of the requirements **(Optional)** 
 
-- [Installation](#download-docker-images-with-frameworks-and-optimizers) with docker **(Optional)** 
+- [Installation](#optional-download-docker-images-with-frameworks-and-optimizers) with docker **(Optional)** 
 
 ## Quick installation 
 You can easily install `Speedster` using pip.
@@ -29,28 +29,19 @@ Great, now you are now ready to accelerate your model 🚀 Please visit the foll
 
 
 ## (Optional) Selective installation of Speedster requirements
-As an alternative of the Quick installation of Speedster, in this section we explain how to selectively install the requirements and avoid the installation of libraries that are not needed for your use case. 
-
-!!! info
-    We refer to PyTorch, ONNX, TensorFlow or HuggingFace as optimization backends and to TensorRT, ONNX Runtime, Openvino, etc. as optimizers.
-    
-In principle not all the backends and compilers that would be installed may be relevant for a specific use case. For example, if you want to optimize a model with a PyTorch-only optimization pipeline, you would not need to install TensorFlow and TensorFlow-specific backends and optimizers.
-
-To selectively install Speedster requirements, there are 2 options:
-
-- [Use the auto-installer](### Use the auto-installer) (recommended)
-- Manual installation
-
-### Use the auto-installer (recommended)
-
-Speedster's auto_installer can be used with the command:
-
-    python -m nebullvm.installers.auto_installer --backends fr1 fr2 --compilers comp1 comp2
-
-The supported arguments are the following:
-
-- `backends`: list of deep learning backends you want to support among torch, onnx, tensorflow and huggingface. By default, this argument is set to "all". Each framework includes a base option and a full option. With the base option, only the single selected framework will be installed, while with the full option also all the other frameworks that support conversion starting from the selected framework will be included. The following table shows the full list of supported options:
 
 TODO
 
-## Download Docker images with frameworks and optimizers
+## (Optional) Download Docker images with frameworks and optimizers
+
+Instead of installing the frameworks and compilers needed for optimization, which can be a time-consuming task, you can simply download a docker container with all compilers preinstalled.
+
+To pull up the docker image, run:
+
+    docker pull nebulydocker/nebullvm:latest
+
+and then run and access the docker with:
+
+    docker run -ti --gpus=all nebulydocker/nebullvm:latest
+
+After optimizing the model, you may decide to deploy it to production. Note that you need to have the deep learning compiler used to optimize the model and other components inside the production docker. For this reason, we have created several versions of the Docker nebullvm container in the [Docker Hub](https://hub.docker.com/repository/docker/nebulydocker/nebullvm), each containing only one compiler. Pull the image with the compiler that has optimized your model!
