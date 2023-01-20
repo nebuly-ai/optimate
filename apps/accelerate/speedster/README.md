@@ -122,7 +122,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
 
     optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
 
-    output = optimized_model(input_sample)
+    output = optimized_model(**input_sample)
     ```
     For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
 
@@ -163,7 +163,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
 
     optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
 
-    output = optimized_model(input_sample)
+    output = optimized_model(**input_sample)
     ```
     For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
 
