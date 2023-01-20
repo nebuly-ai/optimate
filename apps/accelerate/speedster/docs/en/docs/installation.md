@@ -1,11 +1,11 @@
 # Installation
-In this installation guide you will learn:
+In this installation guide we will learn:
 
-- [Quick installation](## Quick installation ) of `Speedster` with pip **(Recommended)** 
+- [Quick installation](#quick-installation) of `Speedster` with pip **(Recommended)** 
 
-- [Selective installation](## (Optional) Selective installation of Speedster requirements) of the requirements **(Optional)** 
+- [Selective installation](#optional-selective-installation-of-speedster-requirements) of the requirements **(Optional)** 
 
-- [Installation](## Download Docker images with frameworks and optimizers) with docker **(Optional)** 
+- [Installation](#download-docker-images-with-frameworks-and-optimizers) with docker **(Optional)** 
 
 ## Quick installation 
 You can easily install `Speedster` using pip.
@@ -18,10 +18,15 @@ Then make sure to install all the available deep learning compilers:
 
 
 !!! info
-    For Mac computers with M1/M2 processors, please use a conda environment, or you may run into problems when installing some of the deep learning compilers.
-    Moreover, if you want to optimize PyTorch or HuggingFace models, PyTorch must be pre-installed in the environment before using the auto-installer, please install it from this link.
+    If you want to optimize PyTorch or HuggingFace models, PyTorch must be pre-installed in the environment before using the auto-installer, please install it from [this](https://pytorch.org/get-started/locally/) link. Moreover, for Mac computers with M1/M2 processors, please use a conda environment, or you may run into problems when installing some of the deep learning compilers.
 
-Great, you are now ready to accelerate your model 🚀 Let's move on to the Getting started.
+Great, now you are now ready to accelerate your model 🚀 Please visit the following pages to get started based on the DL framework of your input model:
+
+- [Getting started with PyTorch optimization](./getting_started/pytorch_getting_started.md)
+- [Getting started with 🤗 HuggingFace optimization](./getting_started/hf_getting_started.md)
+- [Getting started with TensorFlow/Keras optimization](./getting_started/tf_getting_started.md)
+- [Getting started with ONNX optimization](./getting_started/onnx_getting_started.md)
+
 
 ## (Optional) Selective installation of Speedster requirements
 As an alternative of the Quick installation of Speedster, in this section we explain how to selectively install the requirements and avoid the installation of libraries that are not needed for your use case. 

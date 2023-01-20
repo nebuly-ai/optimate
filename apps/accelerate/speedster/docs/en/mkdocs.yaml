@@ -10,9 +10,9 @@ nav:
     - 🤗 HuggingFace: getting_started/hf_getting_started.md
     - TensorFlow/Keras: getting_started/tf_getting_started.md
     - ONNX: getting_started/onnx_getting_started.md
+  - Notebooks: notebooks.md
   - Key concepts: key_concepts.md
   - Supported hardware: hardware.md
-  - Notebooks: notebooks.md
-  - How-to guides: how_to_guides.md
+  - Advanced options: advanced_options.md
   - Benchmarks: benchmarks.md
   - Telemetry: telemetry.md

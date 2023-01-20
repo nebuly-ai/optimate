@@ -33,7 +33,7 @@ For TensorFlow models we support two types of input data:
     input_data = [((tf.random.normal([1, 224, 224, 3]),), tf.constant([0])) for _ in range(100)]
     ```
 
-    Now your input model and data are ready, you can move on to [Run the optimization]() section 🚀.
+    Now your input model and data are ready, you can move on to [Run the optimization](#2-run-the-optimization) section 🚀.
 
 === "TensorFlow DataLoader"
     We support the following DataLoader types:
@@ -58,12 +58,19 @@ For TensorFlow models we support two types of input data:
     input_data = <insert your TensorFlow DataLoader here>
     ```
 
-    Now your input `model` and `input_data` are ready, you can move on to the [Run the optimization]() section.
+    Now your input `model` and `input_data` are ready, you can move on to the [Run the optimization](#2-run-the-optimization) section.
 
 ## 2) Run the optimization
 Once the `model` and `input_data` have been defined, everything is ready to use Speedster's `optimize_model` function to optimize your model. 
 
-The function accepts as input the model in your preferred framework (TensorFlow in this case) and returns the accelerated version of your model:
+The function takes the following arguments as inputs:
+
+- `model`: model to be optimized in your preferred framework (TensorFlow in this case)
+- `input_data`: sample data needed to test the optimization performances (latency, throughput, accuracy loss, etc)
+- `optimization_time`: if "constrained" mode, `Speedster` takes advantage only of compilers and precision reduction techniques, such as quantization. "unconstrained" optimization_time allows it to exploit more time-consuming techniques, such as pruning and distillation 
+- `metric_drop_ths`: maximum drop in your preferred accuracy metric that you are willing to trade to gain in acceleration
+
+and returns the accelerated version of your model 🚀.
 
 ``` python
 from speedster import optimize_model
@@ -72,35 +79,39 @@ from speedster import optimize_model
 optimized_model = optimize_model(
     model, 
     input_data=input_data, 
-    optimization_time="constrained"
+    optimization_time="constrained",
+    metric_drop_ths=0.05
 )
 ```
 
-Internally, `Speedster` tries to use all the compilers and optimization techniques at its disposal along the software to hardware stack to optimise the model. From these, it will choose the ones with the lowest latency on the specific hardware. 
+Internally, `Speedster` tries to use all the compilers and optimization techniques at its disposal along the software to hardware stack to optimize the model. From these, it will choose the ones with the lowest latency on the specific hardware.
 
-At the end of the optimization you are going to see the results of the optimization in a summary table like the following:
+At the end of the optimization, you are going to see the results in a summary table like the following:
 
-![speedster_benchmarks](https://files.gitbook.com/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FOfr7q1XcUfo7iYMV6A0C%2Fuploads%2FatlsMFyCdXniR6c7kyJG%2FMicrosoftTeams-image%20(17).png?alt=media&token=2bcf4e93-91b1-4345-bd70-27fc991ea2a1)
+![pt](../images/hf_table.png)
 
-If the speedup you obtained is good enough for your application, you can move to the [Save your optimized model]() section to save your model and use it in production.
+If the speedup you obtained is good enough for your application, you can move to the [Save your optimized model](#3-save-your-optimized-model) section to save your model and use it in production.
 
-If you want to squeeze out even more acceleration out of the model, please see the [Optimize_model API]() section. Consider if in your application you can trade off a little accuracy for much higher performance and use the `metric`, `metric_drop_ths` and `optimization_time` arguments accordingly.
+If you want to squeeze out even more acceleration out of the model, please see the [`optimize_model` API](../advanced_options.md#optimize_model-api) section. Consider if in your application you can trade off a little accuracy for much higher performance and use the `metric`, `metric_drop_ths` and `optimization_time` arguments accordingly.
 
 ## 3) Save your optimized model
-After accelerating the model, it can be saved using the save method:
+After accelerating the model, it can be saved using the `save_model` function:
 
 ```python
-optimized_model.save("model_save_path")
+from speedster import save_model
+
+save_model(optimized_model, "model_save_path")
 ```
 
-Now you are all set to use your optimized model in production. To explore how to do it, see the [Load and run your optimized model]() in production section.
+Now you are all set to use your optimized model in production. To explore how to do it, see the [Load and run your optimized model in production](#4-load-and-run-your-optimized-model-in-production) section.
 
 ## 4) Load and run your optimized model in production
-Once the optimized model has been saved,  it can be loaded in the following way:
-```python
-from nebullvm.operations.inference_learners.base import LearnerMetadata
+Once the optimized model has been saved,  it can be loaded with the `load_model` function:
 
-optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+```python
+from speedster import load_model
+
+optimized_model = load_model("model_save_path")
 ```
 
 The optimized model can be used for accelerated inference in the same way as the original model:
@@ -113,3 +124,4 @@ output = optimized_model(input_sample)
 !!! info
     The first 1-2 inferences could be a bit slower than expected because some compilers still perform some optimizations during the first iterations. After this warm-up time, the next ones will be faster than ever.
 
+If you want to know more about how to squeeze out more performances from your models, please visit the [Advanced options](../how_to_guides.md) section.
