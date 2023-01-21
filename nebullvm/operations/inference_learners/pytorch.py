@@ -76,7 +76,7 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
             input_tfms=MultiStageTransformation.from_dict(metadata.input_tfms)
             if metadata.input_tfms is not None
             else None,
-            device=metadata.device,
+            device=Device(metadata.device),
         )
 
     @classmethod
