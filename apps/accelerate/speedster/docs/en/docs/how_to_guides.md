@@ -223,7 +223,7 @@ optimized_model = optimize_model(
 # You can find the list of all compilers and compressors below
 # COMPILER_LIST = [
 #     "deepsparse",
-#     "tensor RT",
+#     "tensor_rt",
 #     "torchscript",
 #     "onnxruntime",
 #     "tflite",
