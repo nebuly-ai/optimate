@@ -49,7 +49,7 @@ We are actively working on incorporating the following modules, as requested by 
 - [ ]  [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/training_sim): Easily simulate the training of large AI models on a distributed infrastructure to predict training behaviours without actual implementation.
 
 ## Contributing
-As an open source project in a rapidly evolving field, we welcome contributions of all kinds, including new features, improved infrastructure, and better documentation. If you're interested in contributing, please see the [linked](https://docs.nebuly.com/welcome/questions-and-contributions) page for more information on how to get involved.
+As an open source project in a rapidly evolving field, we welcome contributions of all kinds, including new features, improved infrastructure, and better documentation. If you're interested in contributing, please see the [linked](https://docs.nebuly.com/contributions) page for more information on how to get involved.
 
 ---
 
