@@ -1,10 +1,6 @@
 import subprocess
 import sys
 from pathlib import Path
-
-import numpy as np
-from loguru import logger
-from packaging import version
 from types import ModuleType
 from typing import (
     Tuple,
@@ -17,6 +13,10 @@ from typing import (
     Optional,
     Callable,
 )
+
+import numpy as np
+from loguru import logger
+from packaging import version
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
