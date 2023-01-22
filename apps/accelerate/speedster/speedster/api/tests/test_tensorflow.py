@@ -1,6 +1,6 @@
-import cpuinfo
 from tempfile import TemporaryDirectory
 
+import cpuinfo
 import pytest
 import tensorflow as tf
 from keras.applications import ResNet50
