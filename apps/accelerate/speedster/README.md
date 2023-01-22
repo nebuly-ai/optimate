@@ -25,7 +25,7 @@ pip install speedster
 
 Then make sure to install all the available deep learning compilers.
 ```
-python -m nebullvm.installers.auto_installer --backends all --compilers all
+python -m nebullvm.installers.auto_installer --compilers all
 ```
 > :warning: For **MacOS** with **ARM processors**, please use a conda environment.
 > Moreover, if you want to optimize a **PyTorch model**, PyTorch must be pre-installed 
@@ -51,7 +51,7 @@ In this section, we will learn about the 4 main steps needed to optimize PyTorch
 ```python
 import torch
 import torchvision.models as models
-from speedster import optimize_model
+from speedster import optimize_model, save_model
 
 #1 Provide input model and data (we support PyTorch Dataloaders and custom input, see the docs to learn more)
 model = models.resnet50()  
@@ -59,24 +59,27 @@ input_data = [((torch.randn(1, 3, 256, 256), ), torch.tensor([0])) for _ in rang
 
 #2 Run Speedster optimization
 optimized_model = optimize_model(
-  model, input_data=input_data, optimization_time="constrained"
+    model, 
+    input_data=input_data, 
+    optimization_time="constrained",
+    metric_drop_ths=0.05
 )
 
 #3 Save the optimized model
-optimized_model.save("model_save_path")
+save_model(optimized_model, "model_save_path")
 ```
 
 Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
 ```python
 #4 Load and run your PyTorch accelerated model in production
-from nebullvm.operations.inference_learners.base import LearnerMetadata
+from speedster import load_model
 
-optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+optimized_model = load_model("model_save_path")
 
 output = optimized_model(input_sample)
 ```
-For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+For more details, please visit [Getting Started with PyTorch optimization](https://docs.nebuly.com/modules/speedster/getting_started/pytorch_getting_started/).
     
 </details>
 <details>
@@ -93,7 +96,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
 
     ```python
     from transformers import AlbertModel, AlbertTokenizer
-    from speedster import optimize_model
+    from speedster import optimize_model, save_model
 
     #1a. Provide input model: Load Albert as example
     model = AlbertModel.from_pretrained("albert-base-v1")
@@ -107,24 +110,27 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
     #2 Run Speedster optimization (if input data is in string format, also the tokenizer 
     # should be given as input argument, see the docs to learn more)
     optimized_model = optimize_model(
-      model, input_data=input_data, optimization_time="constrained"
+        model, 
+        input_data=input_data, 
+        optimization_time="constrained",
+        metric_drop_ths=0.05
     )
 
     #3 Save the optimized model
-    optimized_model.save("model_save_path")
+    save_model(optimized_model, "model_save_path")
     ```
 
     Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
     ```python
     #4 Load and run your Huggingface accelerated model in production
-    from nebullvm.operations.inference_learners.base import LearnerMetadata
+    from speedster import load_model
 
-    optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+    optimized_model = load_model("model_save_path")
 
     output = optimized_model(**input_sample)
     ```
-    For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+    For more details, please visit [Getting Started with HuggingFace optimization](https://docs.nebuly.com/modules/speedster/getting_started/hf_getting_started/).
 
     </details>
 
@@ -133,6 +139,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
 
     ```python
     from transformers import T5Tokenizer, T5ForConditionalGeneration
+    from speedster import optimize_model, save_model
 
     #1a. Provide input model: Load T5 as example
     model = T5ForConditionalGeneration.from_pretrained("t5-small")
@@ -148,24 +155,27 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
     #2 Run Speedster optimization (if input data is in string format, also the tokenizer 
     # should be given as input argument, see the docs to learn more)
     optimized_model = optimize_model(
-      model, input_data=input_data, optimization_time="constrained"
+        model, 
+        input_data=input_data, 
+        optimization_time="constrained",
+        metric_drop_ths=0.05
     )
 
     #3 Save the optimized model
-    optimized_model.save("model_save_path")
+    save_model(optimized_model, "model_save_path")
     ```
 
     Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
     ```python
     #4 Load and run your Huggingface accelerated model in production
-    from nebullvm.operations.inference_learners.base import LearnerMetadata
+    from speedster import load_model
 
-    optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+    optimized_model = load_model("model_save_path")
 
     output = optimized_model(**input_sample)
     ```
-    For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+    For more details, please visit [Getting Started with HuggingFace optimization](https://docs.nebuly.com/modules/speedster/getting_started/hf_getting_started/).
 
     </details>
     
@@ -184,7 +194,7 @@ In this section, we will learn about the 4 main steps needed to optimize TensorF
 ```python
 import tensorflow as tf
 from tensorflow.keras.applications.resnet50 import ResNet50
-from speedster import optimize_model
+from speedster import optimize_model, save_model
 
 #1 Provide input model and data (we support Keras dataset and custom input, see the docs to learn more)
 model = ResNet50() 
@@ -192,24 +202,27 @@ input_data = [((tf.random.normal([1, 224, 224, 3]),), tf.constant([0])) for _ in
 
 #2 Run Speedster optimization
 optimized_model = optimize_model(
-  model, input_data=input_data, optimization_time="constrained"
+    model, 
+    input_data=input_data, 
+    optimization_time="constrained",
+    metric_drop_ths=0.05
 )
 
 #3 Save the optimized model
-optimized_model.save("model_save_path")
+save_model(optimized_model, "model_save_path")
 ```
 
 Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
 ```python
 #4 Load and run your TensorFlow accelerated model in production
-from nebullvm.operations.inference_learners.base import LearnerMetadata
+from speedster import load_model
 
-optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+optimized_model = load_model("model_save_path")
 
 output = optimized_model(input_sample)
 ```
-For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+For more details, please visit [Getting Started with TensorFlow optimization](https://docs.nebuly.com/modules/speedster/getting_started/tf_getting_started/).
 
 </details>
 <details>
@@ -225,7 +238,7 @@ In this section, we will learn about the 4 main steps needed to optimize ONNX mo
 
 ```python
 import numpy as np
-from speedster import optimize_model
+from speedster import optimize_model, save_model
 
 #1 Provide input model and data
 # Model was downloaded from here: 
@@ -235,34 +248,40 @@ input_data = [((np.random.randn(1, 3, 224, 224).astype(np.float32), ), np.array(
 
 #2 Run Speedster optimization
 optimized_model = optimize_model(
-  model, input_data=input_data, optimization_time="constrained"
+    model, 
+    input_data=input_data, 
+    optimization_time="constrained",
+    metric_drop_ths=0.05
 )
 
 #3 Save the optimized model
-optimized_model.save("model_save_path")
+save_model(optimized_model, "model_save_path")
 ```
 
 Once the optimization is completed, start using the accelerated model (on steroids 🚀) in your DL framework of choice.
 
 ```python
 #4 Load and run your ONNX accelerated model in production
-from nebullvm.operations.inference_learners.base import LearnerMetadata
+from speedster import load_model
 
-optimized_model = LearnerMetadata.read("model_save_path").load_model("model_save_path")
+optimized_model = load_model("model_save_path")
 
 output = optimized_model(input_sample)
 ```
-For more details, please visit [Getting Started](https://docs.nebuly.com/modules/speedster/getting-started) and [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides).
+For more details, please visit [Getting Started with ONNX optimization](https://docs.nebuly.com/modules/speedster/getting_started/onnx_getting_started/).
     
 </details>
 
 # **Documentation**
 
 - [Installation](https://docs.nebuly.com/modules/speedster/installation)
-- [Getting started](https://docs.nebuly.com/modules/speedster/getting-started)
-- [Key concepts](https://docs.nebuly.com/modules/speedster/key-concepts)
+- [Getting started with PyTorch optimization](https://docs.nebuly.com/modules/speedster/getting_started/pytorch_getting_started/)
+- [Getting started with HuggingFace optimization](https://docs.nebuly.com/modules/speedster/getting_started/hf_getting_started/)
+- [Getting started with TensorFlow optimization](https://docs.nebuly.com/modules/speedster/getting_started/tf_getting_started/)
+- [Getting started with ONNX optimization](https://docs.nebuly.com/modules/speedster/getting_started/onnx_getting_started/)
+- [Key concepts](https://docs.nebuly.com/modules/speedster/key_concepts)
 - [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
-- [How-to guides](https://docs.nebuly.com/modules/speedster/how-to-guides)
+- [Advanced options](https://docs.nebuly.com/modules/speedster/advanced_options)
 - [Benchmarks](https://docs.nebuly.com/modules/speedster/benchmarks)
 
 
@@ -303,7 +322,7 @@ We’re developing `Speedster` for and together with our community, so plase g
 
 • **[Discord](https://discord.gg/RbeQMu886J)**: learn about AI acceleration, share exciting projects and hang out with our global community.
 
-The best way to get started is to pick a good-first issue. Please read our [contribution guidelines](https://docs.nebuly.com/welcome/questions-and-contributions) for a deep dive on how to best contribute to our project!
+The best way to get started is to pick a good-first issue. Please read our [contribution guidelines](https://docs.nebuly.com/contributions/) for a deep dive on how to best contribute to our project!
 
 Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀
 
