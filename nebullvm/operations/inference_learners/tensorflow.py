@@ -2,7 +2,6 @@ import pickle
 from pathlib import Path
 from typing import Tuple, Union, Dict, Type
 
-import nebullvm.operations.inference_learners.utils
 from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
 from nebullvm.operations.inference_learners.base import (
     TensorflowBaseInferenceLearner,
@@ -43,7 +42,7 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         metadata = LearnerMetadata.read(path)
         network_parameters = ModelParams(**metadata.network_parameters)
         input_tfms = metadata.input_tfms
-        model = nebullvm.operations.inference_learners.utils.load_model(
+        model = tf.keras.models.load_model(
             path / TENSORFLOW_BACKEND_FILENAMES["tf_model"]
         )
         device = Device(metadata.device)
