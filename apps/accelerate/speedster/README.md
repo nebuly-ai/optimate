@@ -32,7 +32,7 @@ python -m nebullvm.installers.auto_installer --compilers all
 > on your environment before proceeding to the next step, please install it from this 
 > [link](https://pytorch.org/get-started/locally/).
 
-For more details on how to install Speedster, please visit our [Installation](https://docs.nebuly.com/modules/speedster/installation) guide.
+For more details on how to install Speedster, please visit our [Installation](https://docs.nebuly.com/Speedster/installation/) guide.
 
 # Quick start
 
@@ -79,7 +79,7 @@ optimized_model = load_model("model_save_path")
 
 output = optimized_model(input_sample)
 ```
-For more details, please visit [Getting Started with PyTorch optimization](https://docs.nebuly.com/modules/speedster/getting_started/pytorch_getting_started/).
+For more details, please visit [Getting Started with PyTorch optimization](https://docs.nebuly.com/Speedster/getting_started/pytorch_getting_started/).
     
 </details>
 <details>
@@ -130,7 +130,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
 
     output = optimized_model(**input_sample)
     ```
-    For more details, please visit [Getting Started with HuggingFace optimization](https://docs.nebuly.com/modules/speedster/getting_started/hf_getting_started/).
+    For more details, please visit [Getting Started with HuggingFace optimization](https://docs.nebuly.com/Speedster/getting_started/hf_getting_started/).
 
     </details>
 
@@ -175,7 +175,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
 
     output = optimized_model(**input_sample)
     ```
-    For more details, please visit [Getting Started with HuggingFace optimization](https://docs.nebuly.com/modules/speedster/getting_started/hf_getting_started/).
+    For more details, please visit [Getting Started with HuggingFace optimization](https://docs.nebuly.com/Speedster/getting_started/hf_getting_started/).
 
     </details>
     
@@ -222,7 +222,7 @@ optimized_model = load_model("model_save_path")
 
 output = optimized_model(input_sample)
 ```
-For more details, please visit [Getting Started with TensorFlow optimization](https://docs.nebuly.com/modules/speedster/getting_started/tf_getting_started/).
+For more details, please visit [Getting Started with TensorFlow optimization](https://docs.nebuly.com/Speedster/getting_started/tf_getting_started/).
 
 </details>
 <details>
@@ -268,21 +268,21 @@ optimized_model = load_model("model_save_path")
 
 output = optimized_model(input_sample)
 ```
-For more details, please visit [Getting Started with ONNX optimization](https://docs.nebuly.com/modules/speedster/getting_started/onnx_getting_started/).
+For more details, please visit [Getting Started with ONNX optimization](https://docs.nebuly.com/Speedster/getting_started/onnx_getting_started/).
     
 </details>
 
 # **Documentation**
 
-- [Installation](https://docs.nebuly.com/modules/speedster/installation)
-- [Getting started with PyTorch optimization](https://docs.nebuly.com/modules/speedster/getting_started/pytorch_getting_started/)
-- [Getting started with HuggingFace optimization](https://docs.nebuly.com/modules/speedster/getting_started/hf_getting_started/)
-- [Getting started with TensorFlow optimization](https://docs.nebuly.com/modules/speedster/getting_started/tf_getting_started/)
-- [Getting started with ONNX optimization](https://docs.nebuly.com/modules/speedster/getting_started/onnx_getting_started/)
-- [Key concepts](https://docs.nebuly.com/modules/speedster/key_concepts)
+- [Installation](https://docs.nebuly.com/Speedster/installation/)
+- [Getting started with PyTorch optimization](https://docs.nebuly.com/Speedster/getting_started/pytorch_getting_started/)
+- [Getting started with HuggingFace optimization](https://docs.nebuly.com/Speedster/getting_started/hf_getting_started/)
+- [Getting started with TensorFlow optimization](https://docs.nebuly.com/Speedster/getting_started/tf_getting_started/)
+- [Getting started with ONNX optimization](https://docs.nebuly.com/Speedster/getting_started/onnx_getting_started/)
+- [Key concepts](https://docs.nebuly.com/Speedster/key_concepts/)
 - [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
-- [Advanced options](https://docs.nebuly.com/modules/speedster/advanced_options)
-- [Benchmarks](https://docs.nebuly.com/modules/speedster/benchmarks)
+- [Advanced options](https://docs.nebuly.com/Speedster/advanced_options/)
+- [Benchmarks](https://docs.nebuly.com/Speedster/benchmarks/)
 
 
 # **Key concepts**
