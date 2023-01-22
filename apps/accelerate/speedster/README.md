@@ -325,18 +325,3 @@ We’re developing `Speedster` for and together with our community, so plase g
 The best way to get started is to pick a good-first issue. Please read our [contribution guidelines](https://docs.nebuly.com/contributions/) for a deep dive on how to best contribute to our project!
 
 Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀
-
----
-
-<p align="center">
-  <a href="https://discord.gg/RbeQMu886J">Join the community</a> |
-  <a href="https://docs.nebuly.com/welcome/questions-and-contributions">Contribute to the library</a>
-</p>
-
-
-<p align="center">
-<a href="https://docs.nebuly.com/modules/speedster/installation">Installation</a> •
-<a href="https://docs.nebuly.com/modules/speedster/getting-started">Get started</a> •
-<a href="https://github.com/nebuly-ai/nebullvm/tree/main/notebooks">Notebooks</a> •
-<a href="https://docs.nebuly.com/modules/speedster/benchmarks">Benchmarks</a>
-</p>
