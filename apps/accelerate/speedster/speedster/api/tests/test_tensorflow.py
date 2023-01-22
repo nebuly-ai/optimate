@@ -22,10 +22,9 @@ from nebullvm.operations.inference_learners.tvm import (
     TensorflowApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
-from nebullvm.operations.optimizations.utils import load_model
 from nebullvm.tools.utils import gpu_is_available
 
-from speedster import optimize_model
+from speedster import optimize_model, load_model
 
 # Limit tensorflow gpu memory usage
 gpus = tf.config.list_physical_devices("GPU")

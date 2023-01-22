@@ -8,7 +8,7 @@ import cpuinfo
 import numpy as np
 import psutil
 
-from nebullvm.operations.optimizations.utils import load_model
+from nebullvm.operations.inference_learners.utils import load_model
 from nebullvm.optional_modules.torch import Module, torch
 from nebullvm.optional_modules.utils import (
     torch_is_available,
@@ -95,5 +95,3 @@ class OptimizedYolo(torch.nn.Module):
         core_size = self.core.get_size()
         head_size = np.sum([p.element_size() for p in self.head.parameters()])
         return core_size + head_size
-
-
