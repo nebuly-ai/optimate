@@ -9,40 +9,14 @@ from typing import (
     Optional,
 )
 
-from loguru import logger
-
 from nebullvm.config import DEFAULT_METRIC_DROP_THS
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import Device
 from nebullvm.tools.logger import debug_mode_enabled, LoggingContext
-from nebullvm.tools.utils import gpu_is_available
 
 from speedster.root_op import SpeedsterRootOp
 
-
-def _check_device(device: Optional[str]) -> Device:
-    if device is None:
-        if gpu_is_available():
-            device = Device.GPU
-        else:
-            device = Device.CPU
-    else:
-        if device.lower() == "gpu":
-            if not gpu_is_available():
-                logger.warning(
-                    "Selected GPU device but no available GPU found on this "
-                    "platform. CPU will be used instead. Please make sure "
-                    "that the gpu is installed and can be used by your "
-                    "framework."
-                )
-                device = Device.CPU
-            else:
-                device = Device.GPU
-        else:
-            device = Device.CPU
-
-    return device
+from nebullvm.tools.utils import check_device
 
 
 def optimize_model(
@@ -145,7 +119,7 @@ def optimize_model(
             take as input and it will return `torch.Tensor`s.
     """
     root_op = SpeedsterRootOp()
-    device = _check_device(device)
+    device = check_device(device)
 
     disable_log = True if not debug_mode_enabled() else False
 

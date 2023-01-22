@@ -171,7 +171,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = path / ONNX_FILENAMES["model_name"]
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
-        device = metadata.device
+        device = Device(metadata.device)
         if input_tfms is not None:
             input_tfms = MultiStageTransformation.from_dict(
                 metadata.input_tfms

@@ -67,7 +67,7 @@ docker pull nebulydocker/nebullvm:latest
 ```
 Once pulled, the container can be launched with the following command:
 ```
-docker run --rm --gpus all -ti -v $PWD:/nebullvm nebulydocker/nebullvm:latest
+docker run --rm --gpus all -ti -p 8888:8888 -v $PWD:/nebullvm nebulydocker/nebullvm:latest
 ```
 The `-v` option in the command above allows to persist all the changes that will be done to the notebooks inside the container.
 Please note that, in order to enable gpu inside docker, you have to ensure that nvidia docker is installed. Please follow the "Setting up NVIDIA Container Toolkit" part from the 
