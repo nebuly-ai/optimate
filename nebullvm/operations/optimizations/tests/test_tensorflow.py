@@ -17,6 +17,7 @@ from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
+from nebullvm.operations.optimizations.utils import load_model
 from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
@@ -24,7 +25,6 @@ from nebullvm.tools.base import (
     ModelCompiler,
 )
 from nebullvm.tools.utils import gpu_is_available
-
 
 @pytest.mark.parametrize(
     (
@@ -88,7 +88,7 @@ def test_tensorflow_backend(
 
         # Test save and load functions
         optimized_model.save(tmp_dir)
-        loaded_model = TensorflowBackendInferenceLearner.load(tmp_dir)
+        loaded_model = load_model(tmp_dir)
         assert isinstance(loaded_model, TensorflowBackendInferenceLearner)
 
         assert isinstance(optimized_model.get_size(), int)

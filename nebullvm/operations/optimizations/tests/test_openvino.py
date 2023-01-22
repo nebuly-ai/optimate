@@ -18,13 +18,13 @@ from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
+from nebullvm.operations.optimizations.utils import load_model
 from nebullvm.tools.base import (
     Device,
     DeepLearningFramework,
     QuantizationType,
     ModelCompiler,
 )
-
 
 @pytest.mark.parametrize(
     (
@@ -122,9 +122,7 @@ def test_openvino(
 
         # Test save and load functions
         optimized_model.save(tmp_dir)
-        loaded_model = OPENVINO_INFERENCE_LEARNERS[output_library].load(
-            tmp_dir
-        )
+        loaded_model = load_model(tmp_dir)
         assert isinstance(
             loaded_model, OPENVINO_INFERENCE_LEARNERS[output_library]
         )

@@ -1,3 +1,5 @@
 pytest
 torchvision
 sentencepiece
+ipython
+seaborn

@@ -1,4 +1,5 @@
 import cpuinfo
+from tempfile import TemporaryDirectory
 
 import pytest
 import torch
@@ -27,6 +28,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
     bladedisc_is_available,
 )
+from nebullvm.operations.optimizations.utils import load_model
 
 from speedster import optimize_model
 
@@ -44,6 +46,13 @@ def test_torch_ort():
         ],
         ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
+
+    with TemporaryDirectory() as tmp_dir:
+        optimized_model.save(tmp_dir)
+        loaded_model = load_model(tmp_dir)
+        assert isinstance(loaded_model, PytorchONNXInferenceLearner)
+
+        assert isinstance(loaded_model.get_size(), int)
 
     # Try the optimized model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

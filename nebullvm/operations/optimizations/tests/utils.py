@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
-from typing import Tuple, Optional, Any, Callable
+from typing import Any, Callable, Optional, Tuple
 
-import torch
 import tensorflow as tf
 import tensorflow.keras as keras
+import torch
 from tensorflow.keras import Model, layers
 from transformers import AlbertModel, AlbertTokenizer
 

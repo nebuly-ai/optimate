@@ -1,4 +1,5 @@
 import cpuinfo
+from tempfile import TemporaryDirectory
 
 import pytest
 import tensorflow as tf
@@ -21,6 +22,7 @@ from nebullvm.operations.inference_learners.tvm import (
     TensorflowApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
+from nebullvm.operations.optimizations.utils import load_model
 from nebullvm.tools.utils import gpu_is_available
 
 from speedster import optimize_model
@@ -57,6 +59,13 @@ def test_tensorflow_ort():
         ],
         ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
     )
+
+    with TemporaryDirectory() as tmp_dir:
+        optimized_model.save(tmp_dir)
+        loaded_model = load_model(tmp_dir)
+        assert isinstance(loaded_model, TensorflowONNXInferenceLearner)
+
+        assert isinstance(loaded_model.get_size(), int)
 
     # Try the optimized model
     x = tf.random.normal([1, 224, 224, 3])
