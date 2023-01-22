@@ -280,7 +280,7 @@ For more details, please visit [Getting Started with ONNX optimization](https://
 - [Getting started with TensorFlow optimization](https://docs.nebuly.com/Speedster/getting_started/tf_getting_started/)
 - [Getting started with ONNX optimization](https://docs.nebuly.com/Speedster/getting_started/onnx_getting_started/)
 - [Key concepts](https://docs.nebuly.com/Speedster/key_concepts/)
-- [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks)
+- [Notebooks](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster)
 - [Advanced options](https://docs.nebuly.com/Speedster/advanced_options/)
 - [Benchmarks](https://docs.nebuly.com/Speedster/benchmarks/)
 
