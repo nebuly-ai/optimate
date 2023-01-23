@@ -101,7 +101,9 @@ class DynamicAxisInfo:
         output_tag = self.outputs[output_idx][dimension_idx]
         for input_dict, input_shape in zip(self.inputs, input_shapes):
             for key, value in input_dict.items():
-                if value == output_tag:
+                if (
+                    isinstance(value, dict) and value.get("name") == output_tag
+                ) or value == output_tag:
                     return input_shape[key]
         return default_output_value
 

@@ -84,6 +84,14 @@ def run_test_torchscript(
         res = optimized_model(*inputs_example)
         assert res is not None
 
+        res_loaded = loaded_model(*inputs_example)
+        assert all(
+            [
+                torch.allclose(res_tensor, res_loaded_tensor)
+                for (res_tensor, res_loaded_tensor) in zip(res, res_loaded)
+            ]
+        )
+
         # Test validity of the model
         valid = check_model_validity(
             optimized_model,
@@ -96,11 +104,26 @@ def run_test_torchscript(
         assert valid
 
         if dynamic:  # Check also with a smaller bath_size
+            torch_device = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
+
             inputs_example = [
-                input_[: len(input_) // 2] for input_ in inputs_example
+                input_[: len(input_) // 2].to(torch_device)
+                for input_ in inputs_example
             ]
             res = optimized_model(*inputs_example)
             assert res is not None
+
+            res_orig = tuple(model(*inputs_example))
+            assert all(
+                [
+                    torch.allclose(
+                        res_tensor.float(), res_orig_tensor, rtol=2e-01
+                    )
+                    for (res_tensor, res_orig_tensor) in zip(res, res_orig)
+                ]
+            )
 
 
 @pytest.mark.parametrize(

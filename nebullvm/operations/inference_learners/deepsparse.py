@@ -15,7 +15,7 @@ from nebullvm.operations.inference_learners.base import (
 )
 from nebullvm.optional_modules.deepsparse import cpu, compile_model
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import ModelParams, DeepLearningFramework
+from nebullvm.tools.base import ModelParams, DeepLearningFramework, Device
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
@@ -40,6 +40,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path: Union[str, Path],
         input_names: List[str],
         output_names: List[str],
+        device: Device,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -55,6 +56,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
 
         self.input_names = input_names
         self.output_names = output_names
+        self.device = device
 
     def get_size(self):
         return os.path.getsize(self.onnx_path)
@@ -112,6 +114,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
             onnx_path=onnx_path,
             input_names=metadata["input_names"],
             output_names=metadata["output_names"],
+            device=Device(metadata["device"]),
         )
 
     def _predict_arrays(self, input_arrays: Generator[np.ndarray, None, None]):

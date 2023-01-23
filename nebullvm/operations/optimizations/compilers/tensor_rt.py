@@ -48,6 +48,51 @@ class TensorRTCompiler(Compiler, abc.ABC):
         super().__init__()
         self.model_orig = None
 
+    @staticmethod
+    def _extract_dynamic_shape_ranges(model_params: ModelParams):
+        inputs_shapes = []
+
+        for i, info in enumerate(model_params.input_infos):
+            static_shape = (model_params.batch_size, *info.size)
+
+            if model_params.dynamic_info is not None:
+                input_dict = model_params.dynamic_info.inputs[i]
+
+                assert all(
+                    key in dim
+                    for dim in input_dict.values()
+                    for key in ["min_val", "opt_val", "max_val"]
+                ), (
+                    "Missing min/opt/max ranges, TensorRT needs them to "
+                    "enable dynamic shape properly"
+                )
+
+                shape_dict = {
+                    "min_shape": [
+                        static_shape[j]
+                        if j not in input_dict
+                        else input_dict[j]["min_val"]
+                        for j in range(len(static_shape))
+                    ],
+                    "opt_shape": [
+                        static_shape[j]
+                        if j not in input_dict
+                        else input_dict[j]["opt_val"]
+                        for j in range(len(static_shape))
+                    ],
+                    "max_shape": [
+                        static_shape[j]
+                        if j not in input_dict
+                        else input_dict[j]["max_val"]
+                        for j in range(len(static_shape))
+                    ],
+                }
+                inputs_shapes.append(shape_dict)
+            else:
+                inputs_shapes.append({"shape": static_shape})
+
+        return inputs_shapes
+
     @abc.abstractmethod
     def execute(self, *args, **kwargs):
         pass
@@ -99,6 +144,12 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             dtype = torch.half
             input_tfms.append(HalfPrecisionTransformation())
         elif quantization_type is QuantizationType.STATIC:
+            if model_params.dynamic_info is not None:
+                self.logger.warning(
+                    "Static quantization is not available when "
+                    "using dynamic shape"
+                )
+                return
             dtype = torch.int8
 
             dataset = PytorchDataset(input_data.get_split("train"))
@@ -128,6 +179,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
 
         self.compiled_model = self._compile_model(
             model=model,
+            model_params=model_params,
             input_tensors=input_tensors,
             dtype=dtype,
             calibrator=calibrator
@@ -139,6 +191,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
     def _compile_model(
         self,
         model: Module,
+        model_params: ModelParams,
         input_tensors: List[torch.Tensor],
         dtype: torch.dtype,
         calibrator: DataLoaderCalibrator,
@@ -153,13 +206,14 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             model = torch.jit.trace(model, input_tensors)
 
         with torch_tensorrt.logging.errors():
+            inputs_shapes = self._extract_dynamic_shape_ranges(model_params)
             trt_model = torch_tensorrt.compile(
                 model
                 if dtype is not torch.half
                 else copy.deepcopy(model).half(),
                 inputs=[
                     torch_tensorrt.Input(
-                        tensor.shape,
+                        **inputs_shapes[i],
                         dtype=torch.half
                         if (
                             dtype == torch.half
@@ -167,7 +221,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
                         )
                         else tensor.dtype,
                     )
-                    for tensor in input_tensors
+                    for i, tensor in enumerate(input_tensors)
                 ],
                 enabled_precisions=TORCH_TENSORRT_PRECISIONS[str(dtype)],
                 calibrator=calibrator
@@ -326,27 +380,14 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             )
 
         if model_params.dynamic_info is not None:
+            inputs_shapes = self._extract_dynamic_shape_ranges(model_params)
             profile = builder.create_optimization_profile()
-            for input_name, input_dynamic_info, input_info in zip(
-                get_input_names(onnx_model_path),
-                model_params.dynamic_info.inputs,
-                model_params.input_infos,
-            ):
+            for i, input_name in enumerate(get_input_names(onnx_model_path)):
                 profile.set_shape(
                     input_name,
-                    (
-                        min(model_params.batch_size, 1)
-                        if 0 in input_dynamic_info
-                        else model_params.batch_size,
-                        *(
-                            shape
-                            if i + 1 not in input_dynamic_info
-                            else (input_info.min_sizes or {}).get(i + 1, 1)
-                            for i, shape in enumerate(input_info.size)
-                        ),
-                    ),
-                    (model_params.batch_size, *input_info.size),
-                    (model_params.batch_size, *input_info.size),
+                    inputs_shapes[i]["min_shape"],
+                    inputs_shapes[i]["opt_shape"],
+                    inputs_shapes[i]["max_shape"],
                 )
             config.add_optimization_profile(profile)
         return builder.build_serialized_network(network, config)

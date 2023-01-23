@@ -182,6 +182,11 @@ optimized_model = optimize_model(
 
 By default, a model optimized with `Speedster` will have a static shape. This means that it can be used in inference only with the same shape of the inputs provided to the `optimize_model` function during the optimization. The dynamic shape however is fully supported, and can be enabled with the `dynamic_info` parameter (see the [optimize_model API](#optimize_model-api) arguments to see how this parameter is defined.)
 
+For each dynamic axis in the inputs, we need to provide the following information:
+- the axis number (starting from 0, considering the batch size as the first axis)
+- a tag that will be used to identify the axis
+- the minimum, optimal and maximum sizes of the axis (some compilers will work also for shapes that are not in the range [min, max], but the performance may be worse)
+
 Let's see an example of a model that takes two inputs, where the batch size must be dynamic, as well as the size on the third and fourth dimensions.
 
 ```python
@@ -198,7 +203,26 @@ input_data = [((torch.randn(1, 3, 256, 256),), torch.tensor([0])) for _ in range
 # Set dynamic info
 dynamic_info = {
     "inputs": [
-        {0: "batch", 2: "dim_image", 3: "dim_image"}
+        {
+            0: {
+                "name": "batch",
+                "min_val": 1,
+                "opt_val": 1,
+                "max_val": 8,
+            }, 
+            2: {
+                "name": "dim_image",
+                "min_val": 128,
+                "opt_val": 256,
+                "max_val": 512,
+            }, 
+            3: {
+                "name": "dim_image",
+                "min_val": 128,
+                "opt_val": 256,
+                "max_val": 512,
+            }, 
+        }
     ],
     "outputs": [
         {0: "batch", 1: "out_dim"}

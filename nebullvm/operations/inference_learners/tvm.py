@@ -24,7 +24,7 @@ from nebullvm.optional_modules.tvm import (
     tvm,
     ExecutorFactoryModule,
 )
-from nebullvm.tools.base import ModelParams, DeepLearningFramework
+from nebullvm.tools.base import ModelParams, DeepLearningFramework, Device
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -60,6 +60,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         input_names: List[str],
         lib: ExecutorFactoryModule,
         target: str,
+        device: Device,
         engine_path: Path = None,
         **kwargs
     ):
@@ -73,6 +74,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             if engine_path is not None
             else engine_path
         )
+        self.device = device
 
     def get_size(self):
         with TemporaryDirectory() as tmp_dir:
@@ -164,6 +166,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             lib=lib,
             target_device=target_device,
             input_names=input_names,
+            device=Device(metadata["device"]),
         )
         self.engine_path = path / TVM_FILENAMES["engine"]
         return self
@@ -175,6 +178,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         lib: ExecutorFactoryModule,
         target_device: str,
         input_names: List[str],
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         input_data: DataManager = None,
     ):
@@ -189,6 +193,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
                 or `cuda`.
             input_names (List[str]): Names associated to the model input
                 tensors.
+            device (Device): The device where the model will be executed.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
@@ -204,6 +209,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             lib=lib,
             target=target_device,
             input_data=input_data,
+            device=device,
         )
 
 

@@ -44,6 +44,14 @@ class Tensorflow:
 try:
     import tensorflow  # noqa F401
 
+    physical_devices = tensorflow.config.experimental.list_physical_devices(
+        "GPU"
+    )
+    if len(physical_devices) > 0:
+        tensorflow.config.experimental.set_memory_growth(
+            physical_devices[0], True
+        )
+
     tensorflow.get_logger().setLevel("ERROR")
     tensorflow.autograph.set_verbosity(0)
 except (ImportError, AttributeError):

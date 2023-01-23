@@ -25,6 +25,6 @@ Model parameters can be given either as command line arguments or as a JSON file
 
 ## 💫 Contributing
 
-We welcome contributions of all kinds, including new features, improved infrastructure, and better documentation. If you're interested in contributing, please see the [linked](https://docs.nebuly.com/welcome/questions-and-contributions) page for more information on how to get involved.
+We welcome contributions of all kinds, including new features, improved infrastructure, and better documentation. If you're interested in contributing, please see the [linked](https://docs.nebuly.com/contributions) page for more information on how to get involved.
 
 A special thanks to [BrianPulfer](https://github.com/BrianPulfer) for his awesome contribution to the OpenAlphaTensor module.
