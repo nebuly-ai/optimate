@@ -46,6 +46,8 @@ def convert_torch_to_onnx(
     dynamic_info = model_params.dynamic_info
 
     if dynamic_info is not None:
+        # This check is needed to enable backward compatibility with
+        # previous versions of nebullvm
         if isinstance(list(dynamic_info.inputs[0].values())[0], str):
             onnx_format_inputs = dynamic_info.inputs
         else:

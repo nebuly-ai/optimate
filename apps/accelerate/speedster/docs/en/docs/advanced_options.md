@@ -208,19 +208,19 @@ dynamic_info = {
                 "name": "batch",
                 "min_val": 1,
                 "opt_val": 1,
-                "min_val": 8,
+                "max_val": 8,
             }, 
             2: {
                 "name": "dim_image",
                 "min_val": 128,
                 "opt_val": 256,
-                "min_val": 512,
+                "max_val": 512,
             }, 
             3: {
                 "name": "dim_image",
                 "min_val": 128,
                 "opt_val": 256,
-                "min_val": 512,
+                "max_val": 512,
             }, 
         }
     ],
