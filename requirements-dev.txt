@@ -3,3 +3,4 @@ torchvision
 sentencepiece
 ipython
 seaborn
+opencv-python
