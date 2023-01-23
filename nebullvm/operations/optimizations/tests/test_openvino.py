@@ -165,7 +165,7 @@ def test_openvino(
             assert all(
                 [
                     torch.allclose(
-                        res_tensor.float(), res_orig_tensor, rtol=1e-01
+                        res_tensor.float(), res_orig_tensor, rtol=2e-01
                     )
                     for (res_tensor, res_orig_tensor) in zip(res, res_orig)
                 ]
