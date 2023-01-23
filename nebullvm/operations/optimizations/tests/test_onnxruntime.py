@@ -166,8 +166,13 @@ def test_onnxruntime(
         assert valid
 
         if dynamic:  # Check also with a smaller bath_size
+            torch_device = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
+
             inputs_example = [
-                input_[: len(input_) // 2] for input_ in inputs_example
+                input_[: len(input_) // 2].to(torch_device)
+                for input_ in inputs_example
             ]
             res = optimized_model(*inputs_example)
             assert res is not None
@@ -319,8 +324,13 @@ def test_onnxruntime_half(
         assert valid
 
         if dynamic:  # Check also with a smaller bath_size
+            torch_device = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
+
             inputs_example = [
-                input_[: len(input_) // 2] for input_ in inputs_example
+                input_[: len(input_) // 2].to(torch_device)
+                for input_ in inputs_example
             ]
             res = optimized_model(*inputs_example)
             assert res is not None

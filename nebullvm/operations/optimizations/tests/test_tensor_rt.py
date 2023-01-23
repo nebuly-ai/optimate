@@ -132,7 +132,7 @@ def test_tensorrt_onnx(
 
         assert isinstance(optimized_model.get_size(), int)
 
-        inputs_example = list(optimized_model.get_inputs_example())
+        inputs_example = tuple(optimized_model.get_inputs_example())
         res = optimized_model(*inputs_example)
         assert res is not None
 
@@ -156,8 +156,13 @@ def test_tensorrt_onnx(
         assert valid
 
         if dynamic:
+            torch_device = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
+
             inputs_example = [
-                input_[: len(input_) // 2] for input_ in inputs_example
+                input_[: len(input_) // 2].to(torch_device)
+                for input_ in inputs_example
             ]
             res = optimized_model(*inputs_example)
             assert res is not None
@@ -255,7 +260,7 @@ def test_tensorrt_torch(
 
         assert isinstance(optimized_model.get_size(), int)
 
-        inputs_example = list(optimized_model.get_inputs_example())
+        inputs_example = tuple(optimized_model.get_inputs_example())
         res = optimized_model(*inputs_example)
         assert res is not None
 
@@ -279,8 +284,13 @@ def test_tensorrt_torch(
         assert valid
 
         if dynamic:  # Check also with a smaller bath_size
+            torch_device = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
+
             inputs_example = [
-                input_[: len(input_) // 2] for input_ in inputs_example
+                input_[: len(input_) // 2].to(torch_device)
+                for input_ in inputs_example
             ]
             res = optimized_model(*inputs_example)
             assert res is not None
