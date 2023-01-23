@@ -64,6 +64,7 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         self.cuda_stream = cuda_stream
         self.nvidia_logger = nvidia_logger
         self.output_tensors = None
+        self.device = device
         self._set_cuda_env(device is Device.GPU)
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:

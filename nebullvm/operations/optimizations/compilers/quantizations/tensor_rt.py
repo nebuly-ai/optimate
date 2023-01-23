@@ -10,7 +10,6 @@ from nebullvm.optional_modules.tensor_rt import (
 from nebullvm.tools.base import QuantizationType, ModelParams
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
-    HalfPrecisionTransformation,
 )
 
 
@@ -23,7 +22,7 @@ def quantize_tensorrt(
 ):
     if quantization_type is QuantizationType.HALF:
         config.set_flag(trt.BuilderFlag.FP16)
-        input_tfms.append(HalfPrecisionTransformation())
+        # input_tfms.append(HalfPrecisionTransformation())
     elif quantization_type is QuantizationType.STATIC:
         assert input_data is not None, (
             "You need to specify the calibration data for "
