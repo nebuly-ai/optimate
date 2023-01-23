@@ -44,12 +44,20 @@ def convert_torch_to_onnx(
     input_names = [f"input_{i}" for i in range(len(input_tensors))]
     output_names = [f"output_{i}" for i in range(len(output_sizes))]
     dynamic_info = model_params.dynamic_info
+
     if dynamic_info is not None:
+        if isinstance(list(dynamic_info.inputs[0].values())[0], str):
+            onnx_format_inputs = dynamic_info.inputs
+        else:
+            onnx_format_inputs = [
+                {k: v["name"] for (k, v) in d.items()}
+                for d in dynamic_info.inputs
+            ]
         dynamic_info = {
             name: dynamic_dict
             for name, dynamic_dict in zip(
                 input_names + output_names,
-                dynamic_info.inputs + dynamic_info.outputs,
+                onnx_format_inputs + dynamic_info.outputs,
             )
         }
 
