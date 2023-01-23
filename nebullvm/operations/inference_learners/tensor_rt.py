@@ -382,7 +382,8 @@ class PytorchONNXTensorRTInferenceLearner(
                             input_sizes, j, i, x
                         )
                         for i, x in enumerate(
-                            (self.network_parameters.batch_size,) + output_size
+                            (self.network_parameters.batch_size,)
+                            + tuple(output_size)
                         )
                     ),
                 ).cuda()

@@ -158,7 +158,9 @@ def test_tvm_onnx(
             res_orig = tuple(model(*inputs_example))
             assert all(
                 [
-                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-01)
+                    torch.allclose(
+                        res_tensor.float(), res_orig_tensor, rtol=1e-01
+                    )
                     for (res_tensor, res_orig_tensor) in zip(res, res_orig)
                 ]
             )
@@ -285,7 +287,9 @@ def test_tvm_torch(
             res_orig = tuple(model(*inputs_example))
             assert all(
                 [
-                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-01)
+                    torch.allclose(
+                        res_tensor.float(), res_orig_tensor, rtol=1e-01
+                    )
                     for (res_tensor, res_orig_tensor) in zip(res, res_orig)
                 ]
             )

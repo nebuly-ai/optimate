@@ -180,7 +180,7 @@ def test_onnxruntime(
             res_orig = tuple(model(*inputs_example))
             assert all(
                 [
-                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-01)
+                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-03)
                     for (res_tensor, res_orig_tensor) in zip(res, res_orig)
                 ]
             )
@@ -339,7 +339,7 @@ def test_onnxruntime_half(
             assert all(
                 [
                     torch.allclose(
-                        res_tensor, res_orig_tensor.half(), rtol=1e-01
+                        res_tensor.float(), res_orig_tensor, rtol=1e-01
                     )
                     for (res_tensor, res_orig_tensor) in zip(res, res_orig)
                 ]
