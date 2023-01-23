@@ -2,6 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
+import torch
 
 from nebullvm.operations.conversions.converters import PytorchConverter
 from nebullvm.operations.inference_learners.tvm import (
@@ -139,12 +140,28 @@ def test_tvm_onnx(
         res = optimized_model(*inputs_example)
         assert res is not None
 
+        res_loaded = loaded_model(*inputs_example)
+        assert all(
+            [
+                torch.allclose(res_tensor, res_loaded_tensor)
+                for (res_tensor, res_loaded_tensor) in zip(res, res_loaded)
+            ]
+        )
+
         if dynamic:
             inputs_example = [
                 input_[: len(input_) // 2] for input_ in inputs_example
             ]
             res = optimized_model(*inputs_example)
             assert res is not None
+
+            res_orig = tuple(model(*inputs_example))
+            assert all(
+                [
+                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-01)
+                    for (res_tensor, res_orig_tensor) in zip(res, res_orig)
+                ]
+            )
 
 
 @pytest.mark.parametrize(
@@ -239,6 +256,14 @@ def test_tvm_torch(
         res = optimized_model(*inputs_example)
         assert res is not None
 
+        res_loaded = loaded_model(*inputs_example)
+        assert all(
+            [
+                torch.allclose(res_tensor, res_loaded_tensor)
+                for (res_tensor, res_loaded_tensor) in zip(res, res_loaded)
+            ]
+        )
+
         # Test validity of the model
         valid = check_model_validity(
             optimized_model,
@@ -256,3 +281,11 @@ def test_tvm_torch(
             ]
             res = optimized_model(*inputs_example)
             assert res is not None
+
+            res_orig = tuple(model(*inputs_example))
+            assert all(
+                [
+                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-01)
+                    for (res_tensor, res_orig_tensor) in zip(res, res_orig)
+                ]
+            )

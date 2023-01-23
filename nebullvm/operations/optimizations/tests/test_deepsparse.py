@@ -1,6 +1,7 @@
 from tempfile import TemporaryDirectory
 
 import pytest
+import torch
 
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
 from nebullvm.operations.inference_learners.deepsparse import (
@@ -91,6 +92,14 @@ def test_deepsparse(
         inputs_example = optimized_model.get_inputs_example()
         res = optimized_model(*inputs_example)
         assert res is not None
+
+        res_loaded = loaded_model(*inputs_example)
+        assert all(
+            [
+                torch.allclose(res_tensor, res_loaded_tensor)
+                for (res_tensor, res_loaded_tensor) in zip(res, res_loaded)
+            ]
+        )
 
         # Test validity of the model
         test_input_data, ys = input_data.get_split("test").get_list(

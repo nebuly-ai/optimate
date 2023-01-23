@@ -136,6 +136,14 @@ def test_tensorrt_onnx(
         res = optimized_model(*inputs_example)
         assert res is not None
 
+        res_loaded = loaded_model(*inputs_example)
+        assert all(
+            [
+                torch.allclose(res_tensor, res_loaded_tensor)
+                for (res_tensor, res_loaded_tensor) in zip(res, res_loaded)
+            ]
+        )
+
         # Test validity of the model
         valid = check_model_validity(
             optimized_model,
@@ -153,6 +161,14 @@ def test_tensorrt_onnx(
             ]
             res = optimized_model(*inputs_example)
             assert res is not None
+
+            res_orig = tuple(model(*inputs_example))
+            assert all(
+                [
+                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-01)
+                    for (res_tensor, res_orig_tensor) in zip(res, res_orig)
+                ]
+            )
 
 
 @pytest.mark.parametrize(
@@ -243,6 +259,14 @@ def test_tensorrt_torch(
         res = optimized_model(*inputs_example)
         assert res is not None
 
+        res_loaded = loaded_model(*inputs_example)
+        assert all(
+            [
+                torch.allclose(res_tensor, res_loaded_tensor)
+                for (res_tensor, res_loaded_tensor) in zip(res, res_loaded)
+            ]
+        )
+
         # Test validity of the model
         valid = check_model_validity(
             optimized_model,
@@ -260,3 +284,11 @@ def test_tensorrt_torch(
             ]
             res = optimized_model(*inputs_example)
             assert res is not None
+
+            res_orig = tuple(model(*inputs_example))
+            assert all(
+                [
+                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-01)
+                    for (res_tensor, res_orig_tensor) in zip(res, res_orig)
+                ]
+            )
