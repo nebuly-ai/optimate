@@ -28,9 +28,8 @@ from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
     bladedisc_is_available,
 )
-from nebullvm.operations.optimizations.utils import load_model
 
-from speedster import optimize_model
+from speedster import optimize_model, load_model
 
 
 def test_torch_ort():

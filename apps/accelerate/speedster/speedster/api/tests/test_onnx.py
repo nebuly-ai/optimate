@@ -18,10 +18,9 @@ from nebullvm.operations.inference_learners.tvm import (
     NumpyApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available
-from nebullvm.operations.optimizations.utils import load_model
 from torchvision import models
 
-from speedster import optimize_model
+from speedster import optimize_model, load_model
 from speedster.api.tests.utils import torch_to_onnx
 
 
@@ -57,16 +56,20 @@ def test_onnx_ort():
             assert isinstance(loaded_model.get_size(), int)
 
             # Try the optimized model
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            device = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
             x = torch.randn(1, 3, 256, 256, requires_grad=False)
             model.eval()
             res_original = model(x.to(device))
             res_optimized = optimized_model(x.numpy())[0]
 
             assert (
-                abs((res_original.detach().cpu().numpy() - res_optimized)).max()
+                abs(
+                    (res_original.detach().cpu().numpy() - res_optimized)
+                ).max()
                 < 1e-2
-        )
+            )
 
 
 def test_onnx_ort_quant():
