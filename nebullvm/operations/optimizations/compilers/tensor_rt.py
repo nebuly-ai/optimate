@@ -144,6 +144,12 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             dtype = torch.half
             input_tfms.append(HalfPrecisionTransformation())
         elif quantization_type is QuantizationType.STATIC:
+            if model_params.dynamic_info is not None:
+                self.logger.warning(
+                    "Static quantization is not available when "
+                    "using dynamic shape"
+                )
+                return
             dtype = torch.int8
 
             dataset = PytorchDataset(input_data.get_split("train"))
