@@ -58,10 +58,13 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
     ):
         super().__init__(**kwargs)
         self.engine = engine
+        self.context = self.engine.create_execution_context()
         self.input_names = input_names
         self.output_names = output_names
         self.cuda_stream = cuda_stream
         self.nvidia_logger = nvidia_logger
+        self.output_tensors = None
+        self.device = device
         self._set_cuda_env(device is Device.GPU)
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
@@ -166,7 +169,6 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         output_ptrs: Generator[Any, None, None],
         input_shapes: Generator[Any, None, None] = None,
     ):
-        context = self.engine.create_execution_context()
         buffers = [None] * (len(self.input_names) + len(self.output_names))
         input_idxs = (
             self.engine[input_name] for input_name in self.input_names
@@ -180,10 +182,10 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         ):
             buffers[input_idx] = input_ptr
             if input_shape is not None:
-                context.set_binding_shape(input_idx, input_shape)
+                self.context.set_binding_shape(input_idx, input_shape)
         for output_idx, output_ptr in zip(output_idxs, output_ptrs):
             buffers[output_idx] = output_ptr
-        context.execute_async_v2(buffers, self.stream_ptr)
+        self.context.execute_async_v2(buffers, self.stream_ptr)
         self._synchronize_stream()
 
     def get_size(self):
@@ -232,10 +234,9 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
             metadata["input_tfms"] = MultiStageTransformation.from_dict(
                 input_tfms
             )
-        device = Device.GPU
+        metadata["device"] = Device(metadata.get("device", "gpu"))
         return cls.from_engine_path(
             engine_path=path / NVIDIA_FILENAMES["engine"],
-            device=device,
             **metadata,
         )
 
@@ -358,20 +359,21 @@ class PytorchONNXTensorRTInferenceLearner(
         input_tensors = [input_tensor.cuda() for input_tensor in input_tensors]
         device = input_tensors[0].device
         if self.network_parameters.dynamic_info is None:
-            output_tensors = [
-                torch.Tensor(
-                    self.network_parameters.batch_size,
-                    *output_size,
-                ).cuda()
-                for output_size in self.network_parameters.output_sizes
-            ]
+            if self.output_tensors is None:
+                self.output_tensors = [
+                    torch.Tensor(
+                        self.network_parameters.batch_size,
+                        *output_size,
+                    ).cuda()
+                    for output_size in self.network_parameters.output_sizes
+                ]
             input_sizes = None
         else:
             dynamic_info = self.network_parameters.dynamic_info
             input_sizes = [
                 input_tensor.size() for input_tensor in input_tensors
             ]
-            output_tensors = [
+            self.output_tensors = [
                 torch.Tensor(
                     *(
                         x
@@ -380,7 +382,8 @@ class PytorchONNXTensorRTInferenceLearner(
                             input_sizes, j, i, x
                         )
                         for i, x in enumerate(
-                            (self.network_parameters.batch_size,) + output_size
+                            (self.network_parameters.batch_size,)
+                            + tuple(output_size)
                         )
                     ),
                 ).cuda()
@@ -395,11 +398,11 @@ class PytorchONNXTensorRTInferenceLearner(
             input_tensor.data_ptr() for input_tensor in input_tensors
         )
         output_ptrs = (
-            output_tensor.data_ptr() for output_tensor in output_tensors
+            output_tensor.data_ptr() for output_tensor in self.output_tensors
         )
         self._predict_tensors(input_ptrs, output_ptrs, input_sizes)
         return tuple(
-            output_tensor.to(device) for output_tensor in output_tensors
+            output_tensor.to(device) for output_tensor in self.output_tensors
         )
 
 

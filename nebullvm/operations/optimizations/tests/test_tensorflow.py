@@ -26,6 +26,7 @@ from nebullvm.tools.base import (
 )
 from nebullvm.tools.utils import gpu_is_available
 
+
 @pytest.mark.parametrize(
     (
         "output_library",

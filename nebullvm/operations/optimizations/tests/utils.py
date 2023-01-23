@@ -97,8 +97,25 @@ def _build_dynamic_model(
         ],
         "output_sizes": [OUTPUT_SHAPE],
         "dynamic_info": {
-            "inputs": [{0: "batch_size"}, {0: "batch_size"}],
-            "outputs": [{0: "batch_size"}],
+            "inputs": [
+                {
+                    0: {
+                        "name": "batch",
+                        "min_val": 1,
+                        "opt_val": 1,
+                        "max_val": 2,
+                    }
+                },
+                {
+                    0: {
+                        "name": "batch",
+                        "min_val": 1,
+                        "opt_val": 1,
+                        "max_val": 2,
+                    }
+                },
+            ],
+            "outputs": [{0: "batch"}],
         },
     }
     if framework == DeepLearningFramework.PYTORCH:

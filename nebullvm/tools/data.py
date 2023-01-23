@@ -200,6 +200,10 @@ class PytorchDataset(Dataset):
         data = tuple([data[item_idx] for data in self.data[batch_idx][0]])
 
         if self.has_labels:
-            return data, self.data[batch_idx][1][item_idx]
+            label = self.data[batch_idx][1]
+            if label is not None:
+                return data, self.data[batch_idx][1][item_idx]
+            else:
+                return data, torch.tensor([0])
         else:
             return data

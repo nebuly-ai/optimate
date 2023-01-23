@@ -2,14 +2,12 @@ import os
 import platform
 import uuid
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 import cpuinfo
-import numpy as np
 import psutil
 
-from nebullvm.operations.optimizations.utils import load_model
-from nebullvm.optional_modules.torch import Module, torch
+from nebullvm.optional_modules.torch import Module
 from nebullvm.optional_modules.utils import (
     torch_is_available,
     tensorflow_is_available,
@@ -64,36 +62,3 @@ def read_model_size(model: Any):
         # we assume it is a tf_model
         size = model.count_params() * 4  # assuming full precision 32 bit
     return f"{round(size * 1e-6, 2)} MB"
-
-
-def save_yolov5_model(full_yolo, path: Union[Path, str]):
-    compiled = full_yolo.model.model.core
-    compiled.save(path)
-    full_yolo.model.model.core = None
-    torch.save(full_yolo, path + "yolov5_model.pt")
-    full_yolo.model.model.core = compiled
-
-
-def load_yolov5_model(path: Union[Path, str]):
-    yolo_model = torch.load(path + "yolov5_model.pt")
-    optimized_model = load_model(path)
-    yolo_model.model.model.core = optimized_model
-    return yolo_model
-
-
-class OptimizedYolo(torch.nn.Module):
-    def __init__(self, optimized_core, head_layer: torch.nn.Module):
-        super().__init__()
-        self.core = optimized_core
-        self.head = head_layer
-
-    def forward(self, x, *args, **kwargs):
-        x = list(self.core(x))  # it's a tuple
-        return self.head(x)
-
-    def get_size(self):
-        core_size = self.core.get_size()
-        head_size = np.sum([p.element_size() for p in self.head.parameters()])
-        return core_size + head_size
-
-
