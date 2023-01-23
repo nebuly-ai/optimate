@@ -21,7 +21,7 @@ from nebullvm.optional_modules.torch import (
     Module,
     GraphModule,
 )
-from nebullvm.tools.base import ModelParams, DeepLearningFramework
+from nebullvm.tools.base import ModelParams, DeepLearningFramework, Device
 from nebullvm.tools.pytorch import (
     save_with_torch_fx,
     load_with_torch_fx,
@@ -46,11 +46,13 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         self,
         model: Union[Module, GraphModule],
         model_quant: GraphModule,
+        device: Device,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.model = model
         self.model_quant = model_quant
+        self.device = device
 
     def get_size(self):
         return len(pickle.dumps(self.model_quant, -1)) + len(
@@ -134,10 +136,11 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         q_model.load_state_dict(state_dict)
 
         return cls(
-            input_tfms=input_tfms,
-            network_parameters=ModelParams(**metadata.network_parameters),
             model=model,
             model_quant=q_model,
+            device=Device(metadata.device),
+            input_tfms=input_tfms,
+            network_parameters=ModelParams(**metadata.network_parameters),
         )
 
 
