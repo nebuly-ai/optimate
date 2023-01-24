@@ -37,7 +37,7 @@ pip install speedster
 Install deep learning compilers:
 ```
 python -m nebullvm.installers.auto_installer \
-    --backends all --compilers all
+    --frameworks all --compilers all
 ```
 
 You can find additional options and details on the official [installation guide](https://docs.nebuly.com/modules/speedster/installation).

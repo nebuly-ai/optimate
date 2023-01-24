@@ -17,19 +17,12 @@ from nebullvm.installers.installers import (
 )
 
 
-SUPPORTED_BACKENDS = [
-    "torch-full",
-    "torch-base",
-    "tensorflow-full",
-    "tensorflow-base",
-    "onnx-full",
-    "onnx-base",
-    "huggingface-full",
-    "huggingface-full-tf",
-    "huggingface-full-torch",
-    "huggingface-base-tf",
-    "huggingface-base-torch",
-]
+SUPPORTED_BACKENDS_DICT = {
+    "torch": ["onnx"],
+    "tensorflow": ["onnx"],
+    "huggingface": ["torch", "tensorflow", "onnx"],
+    "onnx": [],
+}
 
 INSTALLERS = {
     "onnx": ONNXInstaller,
@@ -46,68 +39,75 @@ MODULES = {
 }
 
 
-def check_backends(include_backends: Union[List[str], str]) -> List[str]:
-    if isinstance(include_backends, str) and include_backends == "all":
-        new_include_backends = list(INSTALLERS.keys())
+def select_frameworks_to_install(
+    include_frameworks: Union[List[str], str],
+    include_backends: Union[List[str], str],
+) -> List[str]:
+    if isinstance(include_frameworks, str) and include_frameworks == "all":
+        frameworks_list = list(INSTALLERS.keys())
+    elif isinstance(include_frameworks, list):
+        frameworks_list = []
+        for framework in include_frameworks:
+            if framework in INSTALLERS.keys():
+                frameworks_list.append(framework)
+            else:
+                logger.warning(f"Framework {framework} not supported")
+
+        if isinstance(include_backends, str) and include_backends == "all":
+            for framework in frameworks_list:
+                for backend in SUPPORTED_BACKENDS_DICT[framework]:
+                    frameworks_list.append(backend)
+        elif isinstance(include_backends, list):
+            for framework in frameworks_list:
+                for backend in include_backends:
+                    if backend in SUPPORTED_BACKENDS_DICT[framework]:
+                        frameworks_list.append(backend)
+        else:
+            raise ValueError("Invalid backends list")
     else:
-        new_include_backends = []
-        for backend in include_backends:
-            if backend not in SUPPORTED_BACKENDS:
-                raise ValueError(
-                    f"Backend {backend} is not supported by nebullvm. "
-                    f"Please check the docs to see all the supported options."
-                )
+        raise ValueError("Invalid frameworks list")
 
-            elif backend.startswith("torch"):
-                new_include_backends.append("torch")
-                if backend.endswith("full"):
-                    new_include_backends.append("onnx")
-            elif backend.startswith("tensorflow"):
-                new_include_backends.append("tensorflow")
-                if backend.endswith("full"):
-                    new_include_backends.append("onnx")
-            elif backend.startswith("huggingface"):
-                new_include_backends.append("huggingface")
-                if backend.endswith("full") or backend.endswith("tf"):
-                    new_include_backends.append("tensorflow")
-                if backend.endswith("full") or backend.endswith("torch"):
-                    new_include_backends.append("torch")
-                if "full" in backend:
-                    new_include_backends.append("onnx")
-            elif backend.startswith("onnx"):
-                new_include_backends.append("onnx")
+    frameworks_list = list(set(frameworks_list))
+    frameworks_list.sort()
 
-    # Remove duplicates
-    new_include_backends = list(set(new_include_backends))
-    new_include_backends.sort()
-
-    return new_include_backends
+    return frameworks_list
 
 
 def auto_install_libraries(
+    include_frameworks: Union[List[str], str] = "all",
     include_backends: Union[List[str], str] = "all",
     include_compilers: Union[List[str], str] = "all",
 ):
     logger.info("Running auto install of nebullvm dependencies")
 
-    include_backends = check_backends(include_backends)
+    framework_list = select_frameworks_to_install(
+        include_frameworks, include_backends
+    )
 
-    for backend in include_backends:
-        backend_installer = INSTALLERS[backend](MODULES[backend])
-        if not backend_installer.check_backend():
-            backend_installer.install_backend()
-        backend_installer.install_dependencies(include_backends)
-        backend_installer.install_compilers(include_compilers)
+    for framework in framework_list:
+        framework_installer = INSTALLERS[framework](MODULES[framework])
+        if not framework_installer.check_framework():
+            framework_installer.install_framework()
+        framework_installer.install_dependencies(framework_list)
+        framework_installer.install_compilers(include_compilers)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Auto install dl backends and dependencies"
+        description="Auto install dl frameworks and dependencies"
+    )
+    parser.add_argument(
+        "-f",
+        "--frameworks",
+        help="The base dl frameworks to be installed",
+        default="all",
+        nargs="+",
     )
     parser.add_argument(
         "-f",
         "--backends",
-        help="The dl backends whose compilers will be installed",
+        help="additional dl frameworks to be installed to "
+        "gain the optimal speedup",
         default="all",
         nargs="+",
     )
@@ -120,8 +120,16 @@ def main():
     )
     args = vars(parser.parse_args())
 
-    if len(args["backends"]) == 1 and args["backends"][0] == "all":
-        backend_list = "all"
+    if len(args["frameworks"]) == 1 and args["frameworks"][0] == "all":
+        framework_list = "all"
+    else:
+        framework_list = args["frameworks"]
+
+    if len(args["backends"]) == 1 and args["backends"][0] in ["all", "none"]:
+        if args["backends"][0] == "all":
+            backend_list = "all"
+        else:
+            backend_list = []
     else:
         backend_list = args["backends"]
 
@@ -130,7 +138,7 @@ def main():
     else:
         compilers_list = args["compilers"]
 
-    auto_install_libraries(backend_list, compilers_list)
+    auto_install_libraries(framework_list, backend_list, compilers_list)
 
 
 if __name__ == "__main__":
