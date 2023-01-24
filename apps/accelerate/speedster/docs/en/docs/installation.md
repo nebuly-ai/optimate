@@ -30,7 +30,7 @@ Great, now you are now ready to accelerate your model 🚀 Please visit the foll
 
 ## (Optional) Selective installation of Speedster requirements
 
-By default, the `auto_installer` installs all the dl frameworks and compilers supported by `Speedster, but some of these may not be relevant to your use case; therefore, in this section we explain how you can customise the installation of these libraries, avoiding those not needed.
+By default, the `auto_installer` installs all the dl frameworks and compilers supported by `Speedster`, but some of these may not be relevant to your use case; therefore, in this section we explain how you can customise the installation of these libraries, avoiding those not needed.
 
 For example, if you want to optimize a model with a PyTorch only optimization pipeline, you would not need to install TensorFlow and TensorFlow-specific compilers.
 
