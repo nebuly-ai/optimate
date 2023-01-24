@@ -104,7 +104,7 @@ def main():
         nargs="+",
     )
     parser.add_argument(
-        "-f",
+        "-b",
         "--backends",
         help="additional dl frameworks to be installed to "
         "gain the optimal speedup",
