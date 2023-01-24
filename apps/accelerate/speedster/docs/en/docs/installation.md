@@ -30,12 +30,12 @@ Great, now you are now ready to accelerate your model 🚀 Please visit the foll
 
 ## (Optional) Selective installation of Speedster requirements
 
-By default, the auto_installer installs all the dl frameworks and compilers supported by speedster, but some of these may not be relevant to your use case; therefore, in this section we explain how you can customise the installation of these libraries, avoiding those not needed.
+By default, the `auto_installer` installs all the dl frameworks and compilers supported by `Speedster, but some of these may not be relevant to your use case; therefore, in this section we explain how you can customise the installation of these libraries, avoiding those not needed.
 
 For example, if you want to optimize a model with a PyTorch only optimization pipeline, you would not need to install TensorFlow and TensorFlow-specific compilers.
 
 To customize the libraries installation you have two options:
-- [Use the auto-installer (recommended)](#use-the-auto-installer--recommended-)
+- [Use the auto-installer (recommended)](#use-the-auto-installer-recommended)
 - [Install the libraries manually](#manual-installation)
 
 ### Use the auto-installer (recommended)
@@ -66,7 +66,7 @@ The following table shows the supported combinations of frameworks, backends and
 
 ### Manual installation
 
-If you want to install the requirements manually, this section collects the links to the official installation guides of all the frameworks and compilers supported by `speedster`.
+If you want to install the requirements manually, this section collects the links to the official installation guides of all the frameworks and compilers supported by `Speedster`.
 
 #### Deep Learning frameworks/backends
 - PyTorch: https://pytorch.org/get-started/locally/
@@ -82,7 +82,6 @@ If you want to install the requirements manually, this section collects the link
 - OpenVINO: https://docs.openvino.ai/latest/openvino_docs_install_guides_install_dev_tools.html#step-4-install-the-package
 - Intel Neural Compressor: https://github.com/intel/neural-compressor#installation
 - Apache TVM: https://tvm.apache.org/docs/install/index.html
-
 
 
 ## (Optional) Download Docker images with frameworks and optimizers
