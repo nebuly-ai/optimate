@@ -355,25 +355,25 @@ class BaseInstaller(ABC):
                 logger.info(f"{library} installed successfully!")
 
     @staticmethod
-    def install_dependencies(include_backend: List[str]):
+    def install_dependencies(include_framework: List[str]):
         raise NotImplementedError
 
     @staticmethod
-    def check_backend():
+    def check_framework():
         raise NotImplementedError
 
     @staticmethod
-    def install_backend():
+    def install_framework():
         raise NotImplementedError
 
 
 class PytorchInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_backend: List[str]):
+    def install_dependencies(include_framework: List[str]):
         return
 
     @staticmethod
-    def check_backend():
+    def check_framework():
         try:
             import torch  # noqa F401
         except ImportError:
@@ -391,7 +391,7 @@ class PytorchInstaller(BaseInstaller):
         return True
 
     @staticmethod
-    def install_backend():
+    def install_framework():
         cmd = ["pip3", "install", "torch>=1.10.0"]
         subprocess.run(cmd)
 
@@ -405,12 +405,12 @@ class PytorchInstaller(BaseInstaller):
 
 class TensorflowInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_backend: List[str]):
-        if "onnx" in include_backend:
+    def install_dependencies(include_framework: List[str]):
+        if "onnx" in include_framework:
             install_tf2onnx()
 
     @staticmethod
-    def check_backend():
+    def check_framework():
         try:
             import tensorflow  # noqa F401
         except ImportError:
@@ -422,7 +422,7 @@ class TensorflowInstaller(BaseInstaller):
         return True
 
     @staticmethod
-    def install_backend():
+    def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
             cmd = ["conda", "install", "-y", "tensorflow>=2.7.0", "numpy<1.24"]
             subprocess.run(cmd)
@@ -440,14 +440,14 @@ class TensorflowInstaller(BaseInstaller):
 
 class ONNXInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_backend: List[str]):
+    def install_dependencies(include_framework: List[str]):
         install_onnxruntime()
         cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
         subprocess.run(cmd)
         install_onnx_simplifier()
 
     @staticmethod
-    def check_backend():
+    def check_framework():
         try:
             import onnx  # noqa F401
         except ImportError:
@@ -459,7 +459,7 @@ class ONNXInstaller(BaseInstaller):
         return True
 
     @staticmethod
-    def install_backend():
+    def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
             cmd = ["pip3", "install", "cmake"]
             subprocess.run(cmd)
@@ -477,11 +477,11 @@ class ONNXInstaller(BaseInstaller):
 
 class HuggingFaceInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_backend: List[str]):
+    def install_dependencies(include_framework: List[str]):
         pass
 
     @staticmethod
-    def check_backend():
+    def check_framework():
         try:
             import transformers  # noqa F401
         except ImportError:
@@ -490,7 +490,7 @@ class HuggingFaceInstaller(BaseInstaller):
         return True
 
     @staticmethod
-    def install_backend():
+    def install_framework():
         cmd = ["pip3", "install", "transformers"]
         subprocess.run(cmd)
 
