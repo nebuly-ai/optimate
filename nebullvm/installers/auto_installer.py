@@ -105,7 +105,7 @@ def main():
     )
     parser.add_argument(
         "-b",
-        "--backends",
+        "--extra-backends",
         help="additional dl frameworks to be installed to "
         "gain the optimal speedup",
         default="all",
