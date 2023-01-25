@@ -54,8 +54,9 @@ class TensorRTCalibrator(IInt8EntropyCalibrator2):
 
             cuda_data = []
             for input_tensor in data:
-                device_array = polygraphy.DeviceArray()
-                device_array.resize(input_tensor.shape)
+                device_array = polygraphy.DeviceArray(
+                    shape=input_tensor.shape, dtype=input_tensor.dtype
+                )
                 device_array.copy_from(
                     host_buffer=input_tensor, stream=cuda_stream
                 )
