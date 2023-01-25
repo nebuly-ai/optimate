@@ -125,13 +125,16 @@ def main():
     else:
         framework_list = args["frameworks"]
 
-    if len(args["backends"]) == 1 and args["backends"][0] in ["all", "none"]:
-        if args["backends"][0] == "all":
+    if len(args["extra-backends"]) == 1 and args["extra-backends"][0] in [
+        "all",
+        "none",
+    ]:
+        if args["extra-backends"][0] == "all":
             backend_list = "all"
         else:
             backend_list = []
     else:
-        backend_list = args["backends"]
+        backend_list = args["extra-backends"]
 
     if len(args["compilers"]) == 1 and args["compilers"][0] == "all":
         compilers_list = "all"
