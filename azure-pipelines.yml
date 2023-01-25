@@ -28,7 +28,7 @@ steps:
   - script: python -m pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
     displayName: 'Install PyTorch'
 
-  - script: python -m nebullvm.installers.auto_installer --frameworks all --extra-backends all --compilers all
+  - script: python -m nebullvm.installers.auto_installer --compilers all
     displayName: 'Install deep learning compilers'
 
   - script: python -m pip install -r "requirements-dev.txt"
