@@ -1,4 +1,7 @@
-from nebullvm.installers.auto_installer import select_frameworks_to_install
+from nebullvm.installers.auto_installer import (
+    select_frameworks_to_install,
+    select_compilers_to_install,
+)
 
 
 def test_install_default_option():
@@ -131,3 +134,96 @@ def test_install_huggingface_torch():
     )
 
     assert include_backends == ["huggingface", "torch"]
+
+
+def test_install_huggingface_compilers_all():
+    framework_list = ["huggingface"]
+    include_compilers = "all"
+
+    compiler_list = select_compilers_to_install(
+        include_compilers, framework_list
+    )
+
+    assert compiler_list == []
+
+
+def test_install_huggingface_torch_compilers_all():
+    framework_list = ["huggingface", "torch"]
+    include_compilers = "all"
+
+    compiler_list = select_compilers_to_install(
+        include_compilers, framework_list
+    )
+
+    assert compiler_list == [
+        "deepsparse",
+        "intel_neural_compressor",
+        "tensor_rt",
+        "torch_tensor_rt",
+    ]
+
+
+def test_install_torch_compilers_all():
+    framework_list = ["torch"]
+    include_compilers = "all"
+
+    compiler_list = select_compilers_to_install(
+        include_compilers, framework_list
+    )
+
+    assert compiler_list == [
+        "deepsparse",
+        "intel_neural_compressor",
+        "tensor_rt",
+        "torch_tensor_rt",
+    ]
+
+
+def test_install_torch_compilers_deepsparse():
+    framework_list = ["torch"]
+    include_compilers = ["deepsparse"]
+
+    compiler_list = select_compilers_to_install(
+        include_compilers, framework_list
+    )
+
+    assert compiler_list == ["deepsparse"]
+
+
+def test_install_torch_compilers_invalid():
+    framework_list = ["torch"]
+    include_compilers = ["best_compiler"]
+
+    compiler_list = select_compilers_to_install(
+        include_compilers, framework_list
+    )
+
+    assert compiler_list == []
+
+
+def test_install_torch_onnx_compilers_all():
+    framework_list = ["torch", "onnx"]
+    include_compilers = "all"
+
+    compiler_list = select_compilers_to_install(
+        include_compilers, framework_list
+    )
+
+    assert compiler_list == [
+        "deepsparse",
+        "intel_neural_compressor",
+        "openvino",
+        "tensor_rt",
+        "torch_tensor_rt",
+    ]
+
+
+def test_install_tensorflow_compilers_all():
+    framework_list = ["tensorflow"]
+    include_compilers = "all"
+
+    compiler_list = select_compilers_to_install(
+        include_compilers, framework_list
+    )
+
+    assert compiler_list == []

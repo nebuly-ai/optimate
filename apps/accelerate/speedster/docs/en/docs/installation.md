@@ -34,6 +34,8 @@ By default, the `auto_installer` installs all the dl frameworks and compilers su
 
 For example, if you want to optimize a model with a PyTorch only optimization pipeline, you would not need to install TensorFlow and TensorFlow-specific compilers.
 
+To address this need, `Speedster` has been designed to support many frameworks and optimisation techniques, but it is not mandatory to install them all. Each time it is used, `Speedster will perform a check of the libraries installed in the environment, and will only use those that are available.
+
 To customize the libraries installation you have two options:
 - [Use the auto-installer (recommended)](#use-the-auto-installer-recommended)
 - [Install the libraries manually](#manual-installation)
@@ -45,9 +47,9 @@ To understand how to install only the required libraries, let's examine the auto
 
 As you can see, three arguments are supported:
 
-- `--frameworks` is used to specify the deep learning frameworks to be installed. The supported frameworks are: `torch`, `tensorflow`, `onnx` and `huggingface`. If you want to optimize a PyTorch model, here you should select `torch`. You can specify multiple frameworks by separating them with a space. For example, `--frameworks pytorch tensorflow` will install PyTorch and TensorFlow. If you want to install all frameworks, you can use `all` as the argument. For example, `--frameworks all` will install all frameworks. Default: `all`.
-- `--extra-backends` is used to specify the extra deep learning backends to be installed. Each framework specified in the previous command can exploit other dl frameworks (we name them backends) to boost the model performance, for example adding `onnx` as extra backend when optimizing a PyTorch model will enable the model conversion to ONNX and the optimization with all the ONNX supported compilers. The supported backends are: `torch`, `tensorflow` and `onnx`. You can specify multiple backends by separating them with a space. For example, `--extra-backends torch tensorflow` will install PyTorch and TensorFlow. If you want to install all backends, you can use `all` as the argument. For example, `--extra-backends all` will install all backends. If you don't want to install extra backends, you can set `--extra-backends none`. Default: `all`.
-- `--compilers` is used to specify the deep learning compilers to be installed in addition to the frameworks. The supported compilers are: `deepsparse`, `tensor_rt`, `torch_tensor_rt`, `onnxruntime`, `openvino`and `intel_neural_compressor`. You can specify multiple compilers by separating them with a space. For example, `--compilers deepsparse tensor_rt` will install DeepSparse and TensorRT. If you want to install all compilers, you can use `all` as the argument. For example, `--compilers all` will install all compilers. Speedster supports also `torchscript` and `tf_lite` compilers, but they are pre-installed inside the frameworks, so you don't have to include them in this list. Speedster also supports `tvm`, which is not currently supported by the auto-installer and must be installed manually, see the next section if you want to include it.  Default: `all`.
+- `--frameworks` is used to specify the deep learning frameworks of the models that should be optimized by Speedster. The supported frameworks are: `torch`, `tensorflow`, `onnx` and `huggingface`. If you want to optimize a PyTorch model, here you should select `torch`. If included in this command, ONNX, TensorFlow and HuggingFace will be automatically installed by the auto-installer (if not already present in your env), while PyTorch must be installed manually before running this command. You can specify multiple frameworks by separating them with a space. For example, `--frameworks pytorch tensorflow` will set up your environment to optimize PyTorch and TensorFlow models. If you want to include all frameworks, you can use `all` as the argument. For example, `--frameworks all` will include all frameworks. Default: `all`.
+- `--extra-backends` is used to specify the extra deep learning backends to be installed. Each framework specified in the previous command can exploit other dl frameworks (we name them backends) to boost the model performance. For example adding `onnx` as extra backend when optimizing a PyTorch model will enable the model conversion to ONNX and the optimization with all the ONNX supported compilers. The supported backends are: `torch`, `tensorflow` and `onnx`. You can specify multiple backends by separating them with a space. For example, `--extra-backends tensorflow onnx` will install TensorFlow and ONNX. If you want to install all backends, you can use `all` as the argument. For example, `--extra-backends all` will install all backends. If you don't want to install extra backends, you can set `--extra-backends none`. Default: `all`.
+- `--compilers` is used to specify the deep learning compilers to be installed in addition to the frameworks. The supported compilers are: `deepsparse`, `tensor_rt`, `torch_tensor_rt`, `openvino`and `intel_neural_compressor`. You can specify multiple compilers by separating them with a space. For example, `--compilers deepsparse tensor_rt` will install DeepSparse and TensorRT. If you want to install all compilers, you can use `all` as the argument. For example, `--compilers all` will install all compilers. Speedster supports also `torchscript`, `tf_lite` and `onnxruntime`, but they are pre-installed in their respective frameworks (torchscript and tf_lite) or installed automatically if the framework is selected (onnxruntime), so you don't have to include them in this list. Speedster also supports `tvm`, which is not currently supported by the auto-installer and must be installed manually, see the next section if you want to include it.  Default: `all`.
 
 Let's see an example of how to use these arguments:
 
@@ -57,16 +59,16 @@ This command will install PyTorch, as well as all PyTorch supported backends and
 
 The following table shows the supported combinations of frameworks, backends and compilers that you can install with the auto-installer:
 
-| Framework   | Extra Backends            | Compilers                                                                                        |
-|-------------|---------------------------|--------------------------------------------------------------------------------------------------|
-| PyTorch       | ONNX                      | DeepSparse, TensorRT, Torch TensorRT, ONNXRuntime, OpenVINO, Intel Neural Compressor |
-| TensorFlow  | ONNX                      | ONNXRuntime, TensorRT, OpenVINO                                                      |
-| ONNX        | /                         | ONNXRuntime, TensorRT, OpenVINO                                                     |
-| HuggingFace | PyTorch, TensorFlow, ONNX | DeepSparse, TensorRT, Torch TensorRT, ONNXRuntime, OpenVINO, Intel Neural Compressor           |
+| Framework   | Extra Backends            | Compilers                                                                          |
+|-------------|---------------------------|------------------------------------------------------------------------------------|
+| PyTorch     | ONNX                      | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
+| TensorFlow  | ONNX                      | TensorRT, OpenVINO                                                      |
+| ONNX        | /                         | TensorRT, OpenVINO                                                      |
+| HuggingFace | PyTorch, TensorFlow, ONNX | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
 
 ### Manual installation
 
-If you want to install the requirements manually, this section collects the links to the official installation guides of all the frameworks and compilers supported by `Speedster`.
+If you want to manually install the requirements, this section collects links to the official installation guides for all frameworks and compilers supported by `Speedster`.
 
 #### Deep Learning frameworks/backends
 - PyTorch: https://pytorch.org/get-started/locally/
@@ -83,6 +85,10 @@ If you want to install the requirements manually, this section collects the link
 - Intel Neural Compressor: https://github.com/intel/neural-compressor#installation
 - Apache TVM: https://tvm.apache.org/docs/install/index.html
 
+#### Other requirements
+- tf2onnx: https://github.com/onnx/tensorflow-onnx#installation (Install it if you want to convert TensorFlow models to ONNX)
+- onnx-simplifier: https://github.com/daquexian/onnx-simplifier#python-version (Install it if you want to use TensorRT)
+- onnxmltools: https://github.com/onnx/onnxmltools#install (Install it if you want to convert models to ONNX)
 
 ## (Optional) Download Docker images with frameworks and optimizers
 

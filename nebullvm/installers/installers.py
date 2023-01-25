@@ -4,7 +4,7 @@ import subprocess
 import sys
 from abc import ABC
 from pathlib import Path
-from typing import List, Union
+from typing import List
 
 import cpuinfo
 from loguru import logger
@@ -327,7 +327,7 @@ class BaseInstaller(ABC):
 
     def install_compilers(
         self,
-        include_libraries: Union[List[str], str] = "all",
+        include_libraries: List[str],
     ):
         for library in self.modules:
             if (
