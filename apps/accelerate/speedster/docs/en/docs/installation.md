@@ -66,6 +66,9 @@ The following table shows the supported combinations of frameworks, backends and
 | ONNX        | /                         | TensorRT, OpenVINO                                                      |
 | HuggingFace | PyTorch, TensorFlow, ONNX | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
 
+!!! info
+    HuggingFace models internally are based on either PyTorch or TensorFlow, depending on which model you choose. If that model is based on PyTorch, the framework must be included among the extra-backends, and the same applies to Tensorflow. ONNX, on the other hand, is optional and should be selected only if you want to include it in the optimization pipeline.
+
 ### Manual installation
 
 If you want to manually install the requirements, this section collects links to the official installation guides for all frameworks and compilers supported by `Speedster`.
