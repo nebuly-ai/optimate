@@ -119,7 +119,17 @@ def _convert_to_half_precision(
     model_quant = model_quant / (model_path.stem + "_fp16.onnx")
     new_onnx_model = convert_float_to_float16_model_path(str(model_path))
     input_tfms.append(HalfPrecisionTransformation())
-    onnx.save(new_onnx_model, str(model_quant))
+    try:
+        onnx.save(new_onnx_model, str(model_quant))
+    except ValueError:
+        # Model larger than 2GB must be saved as external data
+        onnx.save(
+            new_onnx_model,
+            str(model_quant),
+            save_as_external_data=True,
+            all_tensors_to_one_file=False,
+            convert_attribute=True,
+        )
     return str(model_quant)
 
 
