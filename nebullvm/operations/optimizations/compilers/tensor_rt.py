@@ -201,16 +201,22 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
         model.cuda().eval()
 
         try:
-            torch.jit.script(model)
+            ts_model = torch.jit.script(model)
+            if quantization_type is QuantizationType.HALF:
+                ts_model.half()
         except Exception:
-            model = torch.jit.trace(model, input_tensors)
+            if quantization_type is QuantizationType.HALF:
+                ts_model = torch.jit.trace(
+                    copy.deepcopy(model).half(),
+                    [t.half() for t in input_tensors],
+                ).half()
+            else:
+                ts_model = torch.jit.trace(model, input_tensors)
 
         with torch_tensorrt.logging.errors():
             inputs_shapes = self._extract_dynamic_shape_ranges(model_params)
             trt_model = torch_tensorrt.compile(
-                model
-                if dtype is not torch.half
-                else copy.deepcopy(model).half(),
+                ts_model,
                 inputs=[
                     torch_tensorrt.Input(
                         **inputs_shapes[i],
