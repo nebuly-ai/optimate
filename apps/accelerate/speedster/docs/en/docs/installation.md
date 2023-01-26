@@ -55,12 +55,12 @@ Let's see an example of how to use these arguments:
 
     python -m nebullvm.installers.auto_installer --frameworks torch --extra-backends all --compilers all
 
-This command will install PyTorch, as well as all PyTorch supported backends and compilers.
+This command will setup your environment to optimize PyTorch models, and will install all PyTorch supported backends and compilers.
 
 The following table shows the supported combinations of frameworks, backends and compilers that you can install with the auto-installer:
 
-| Framework   | Extra Backends            | Compilers                                                                          |
-|-------------|---------------------------|------------------------------------------------------------------------------------|
+| Framework   | Extra Backends            | Compilers                                                               |
+|-------------|---------------------------|-------------------------------------------------------------------------|
 | PyTorch     | ONNX                      | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
 | TensorFlow  | ONNX                      | TensorRT, OpenVINO                                                      |
 | ONNX        | /                         | TensorRT, OpenVINO                                                      |
