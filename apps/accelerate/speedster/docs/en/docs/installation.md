@@ -30,28 +30,68 @@ Great, now you are now ready to accelerate your model 🚀 Please visit the foll
 
 ## (Optional) Selective installation of Speedster requirements
 
-By default, the `auto_installer` installs all the dl frameworks and compilers supported by `Speedster`, but some of these may not be relevant to your use case; therefore, in this section we explain how you can customise the installation of these libraries, avoiding those not needed.
-
-For example, if you want to optimize a model with a PyTorch only optimization pipeline, you would not need to install TensorFlow and TensorFlow-specific compilers.
-
-To address this need, `Speedster` has been designed to support many frameworks and optimisation techniques, but it is not mandatory to install them all. Each time it is used, `Speedster` will perform a check of the libraries installed in the environment, and will only use those that are available.
+By default, the `auto_installer` installs all the DL frameworks and compilers supported by `Speedster`. However, some of these may not be relevant to your use case. In this section, we explain how you can customize the installation of these libraries, avoiding those that are not needed.
 
 To customize the libraries installation you have two options:
 - [Use the auto-installer (recommended)](#use-the-auto-installer-recommended)
 - [Install the libraries manually](#manual-installation)
 
 ### Use the auto-installer (recommended)
-To understand how to install only the required libraries, let's examine the auto-installer API:
+To understand how to selectively install your preferred libraries, let's examine the auto-installer API:
 
     python -m nebullvm.installers.auto_installer --frameworks <frameworks> --extra-backends <backends> --compilers <compilers>
 
-As you can see, three arguments are supported:
+- `--frameworks` is used to specify the deep learning framework of your input model. The supported frameworks are `torch`, `tensorflow`, `onnx` and `huggingface`.
+    - if you want to optimize a model with a single DL framework, the code is as follows (example below for HuggingFace):
+        
+        `python -m nebullvm.installers.auto_installer --frameworks huggingface` 
+        
+        Please remember that for PyTorch optimization, you should pre-install PyTorch from the official [repo](https://pytorch.org/get-started/locally/).
+        
+    - if you want to optimize models in multiple input frameworks, you can include them separated with a space:
+        
+        `python -m nebullvm.installers.auto_installer --frameworks tensorflow torch` 
+        
+    - If you want to include all the frameworks, you can use `all` as the argument:
+        
+        `python -m nebullvm.installers.auto_installer --frameworks all`  
 
-- `--frameworks` is used to specify the deep learning frameworks of the models that should be optimized by Speedster. The supported frameworks are: `torch`, `tensorflow`, `onnx` and `huggingface`. If you want to optimize a PyTorch model, here you should select `torch`. If included in this command, ONNX, TensorFlow and HuggingFace will be automatically installed by the auto-installer (if not already present in your env), while PyTorch must be installed manually before running this command. You can specify multiple frameworks by separating them with a space. For example, `--frameworks pytorch tensorflow` will set up your environment to optimize PyTorch and TensorFlow models. If you want to include all frameworks, you can use `all` as the argument. For example, `--frameworks all` will include all frameworks. Default: `all`.
-- `--extra-backends` is used to specify the extra deep learning backends to be installed. Each framework specified in the previous command can exploit other dl frameworks (we name them backends) to boost the model performance. For example adding `onnx` as extra backend when optimizing a PyTorch model will enable the model conversion to ONNX and the optimization with all the ONNX supported compilers. The supported backends are: `torch`, `tensorflow` and `onnx`. The extra-backends that you select must be compatible with at least one of the frameworks selected with the previous option, please consult the table below to see the compatibility matrix. You can specify multiple backends by separating them with a space. For example, `--extra-backends tensorflow onnx` will install TensorFlow and ONNX. If you want to install all the backends supported by the selected frameworks, you can use `all` as the argument. For example, `--extra-backends all` will install all backends. If you don't want to install extra backends, you can set `--extra-backends none`. Default: `all`.
-- `--compilers` is used to specify the deep learning compilers to be installed in addition to the frameworks. The supported compilers are: `deepsparse`, `tensor_rt`, `torch_tensor_rt`, `openvino` and `intel_neural_compressor`. The compilers that you select must be compatible with at least one of the frameworks/backends selected with the previous options, please consult the table below to see the compatibility matrix. You can specify multiple compilers by separating them with a space. For example, `--compilers deepsparse tensor_rt` will install DeepSparse and TensorRT. If you want to install all the compilers supported by the selected frameworks/backends, you can use `all` as the argument. For example, `--compilers all` will install all compilers. Speedster supports also `torchscript`, `tf_lite` and `onnxruntime`, but they are pre-installed in their respective frameworks (torchscript and tf_lite) or installed automatically if the framework is selected (onnxruntime), so you don't have to include them in this list. Speedster also supports `tvm`, which is not currently supported by the auto-installer and must be installed manually, see the next section if you want to include it.  Default: `all`.
+    Default: `all`.
 
-Let's see an example of how to use these arguments:
+    
+- `--extra-backends`: After entering your input model, `Speedster` converts the input model from its original framework into an intermediate framework to be used during the optimization; we call these intermediate frameworks "backends." To learn more, see the section [Model Converter](https://docs.nebuly.com/Speedster/key_concepts/) in the docs. This conversion allows `Speedster` to apply all optimization techniques without being constrained by the input framework of your model.
+    
+    The supported backends are `torch`, `tensorflow` and `onnx`.
+    
+    You can specify multiple backends by separating them with a space. 
+    
+    - For example, if you want to install TensorFlow and ONNX as backends of an HugginFace model, the code is as follows:
+        
+        `python -m nebullvm.installers.auto_installer --frameworks huggingface --extra-backends tensorflow onnx`
+        
+    - If you want to install all the backends supported by the selected frameworks, you can use `all` as the argument.
+    - If you don't want to install extra backends, you can set `--extra-backends none`.
+    
+    The extra-backends that you choose must be compatible with at least one of the input frameworks you previously selected with the argument `—-frameworks`, please see the table below to see the compatibility matrix. 
+    
+    Default: `all`.
+
+    
+- `--compilers` is used to specify the deep learning compilers to be installed. The supported compilers are: `deepsparse`, `tensor_rt`, `torch_tensor_rt`, `openvino` and `intel_neural_compressor`. The compilers must be compatible with at least one of the backends selected with the argument `—-extra-backends`, please see the table below to see the compatibility matrix.
+    - You can specify multiple compilers by separating them with a space. For example:
+        
+        `--compilers deepsparse tensor_rt`
+        
+        will install DeepSparse and TensorRT. 
+        
+    - If you want to install all the compilers supported by the selected frameworks/backends, you can use `all` as the argument.
+    
+    Speedster also supports `torchscript`, `tf_lite`, and `onnxruntime` as built-in; these are preinstalled with their respective backends, so there is no need to include them in the list. Speedster also supports `tvm`, which is currently not supported by the automatic installer and must be installed manually; see the next section if you wish to include it.
+    
+    Default: `all`.
+    
+
+Let's see an example of how to use these three arguments:
 
     python -m nebullvm.installers.auto_installer --frameworks torch --extra-backends all --compilers all
 
@@ -67,7 +107,7 @@ The following table shows the supported combinations of frameworks, backends and
 | HuggingFace | PyTorch, TensorFlow, ONNX | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
 
 !!! info
-    HuggingFace models internally are based on either PyTorch or TensorFlow, depending on which model you choose. If that model is based on PyTorch, the framework must be included among the extra-backends, and the same applies to Tensorflow. ONNX, on the other hand, is optional and should be selected only if you want to include it in the optimization pipeline.
+    Hugginface models can be of two types, PyTorch-based or TensorFlow-based. For PyTorch-based models, it is necessary to include `torch` as an extra-backend. For TensorFlow-based models, you must include `tensorflow` as an extra-backend.
 
 ### Manual installation
 
