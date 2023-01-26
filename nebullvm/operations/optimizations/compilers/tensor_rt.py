@@ -340,15 +340,6 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         # build the engine
         # TODO: setup config value for the class in a config file
         config = builder.create_builder_config()
-        try:
-            config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
-        except AttributeError:
-            # The method set_memory_pool_limit is not available
-            # until TensorRT Release 8.4.1
-            self.logger.warning(
-                "Cannot call method set_memory_pool_limit for TensorRT."
-                "Please update TensorRT version."
-            )
 
         if quantization_type is not None:
             config = self._quantize_model(
