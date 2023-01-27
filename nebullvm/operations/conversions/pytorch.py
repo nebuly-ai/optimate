@@ -55,6 +55,14 @@ def convert_torch_to_onnx(
                 {k: v["name"] for (k, v) in d.items()}
                 for d in dynamic_info.inputs
             ]
+
+        assert len(dynamic_info.outputs) == len(output_names), (
+            f"The number of dynamic outputs provided in the dynamic info "
+            f"dict ({len(dynamic_info.outputs)}) is not equal to the number "
+            f"of outputs of the model ({len(output_names)}), Detected model "
+            f"output shapes are: {output_sizes} "
+        )
+
         dynamic_info = {
             name: dynamic_dict
             for name, dynamic_dict in zip(
