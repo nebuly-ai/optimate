@@ -201,16 +201,22 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
         model.cuda().eval()
 
         try:
-            torch.jit.script(model)
+            ts_model = torch.jit.script(model)
+            if quantization_type is QuantizationType.HALF:
+                ts_model.half()
         except Exception:
-            model = torch.jit.trace(model, input_tensors)
+            if quantization_type is QuantizationType.HALF:
+                ts_model = torch.jit.trace(
+                    copy.deepcopy(model).half(),
+                    [t.half() for t in input_tensors],
+                ).half()
+            else:
+                ts_model = torch.jit.trace(model, input_tensors)
 
         with torch_tensorrt.logging.errors():
             inputs_shapes = self._extract_dynamic_shape_ranges(model_params)
             trt_model = torch_tensorrt.compile(
-                model
-                if dtype is not torch.half
-                else copy.deepcopy(model).half(),
+                ts_model,
                 inputs=[
                     torch_tensorrt.Input(
                         **inputs_shapes[i],
@@ -253,6 +259,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
         super().__init__()
         self.model_orig = None
+        self.simplify_model = True
 
     def execute(
         self,
@@ -298,24 +305,29 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             QUANTIZATION_DATA_NUM
         )
 
-        try:
-            import onnxsim  # noqa: F401
+        if self.simplify_model:
+            try:
+                import onnxsim  # noqa: F401
 
-            # Simplify model, otherwise tensor RT won't work on gpt2 and some
-            # other models.
-            simplified_model = str(model) + "_simplified"
-            if not Path(simplified_model).is_file():
-                cmd = [
-                    "onnxsim",
-                    str(model),
-                    simplified_model,
-                ]
-                subprocess.run(cmd, stdout=subprocess.DEVNULL)
+                # Simplify model, otherwise tensor RT won't work
+                # on gpt2 and some other models.
+                simplified_model = str(model) + "_simplified"
+                if not Path(simplified_model).is_file():
+                    cmd = [
+                        "onnxsim",
+                        str(model),
+                        simplified_model,
+                    ]
+                    subprocess.run(cmd, stdout=subprocess.DEVNULL)
 
-            # First try with simplified model
-            onnx_model_path = simplified_model
-        except Exception:
-            # Try again with original model
+                # First try with simplified model
+                onnx_model_path = simplified_model
+                assert os.path.isfile(onnx_model_path)
+            except Exception:
+                # Use original model
+                onnx_model_path = str(model)
+                self.simplify_model = False
+        else:
             onnx_model_path = str(model)
 
         # -- Build phase --
@@ -328,15 +340,6 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         # build the engine
         # TODO: setup config value for the class in a config file
         config = builder.create_builder_config()
-        try:
-            config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
-        except AttributeError:
-            # The method set_memory_pool_limit is not available
-            # until TensorRT Release 8.4.1
-            self.logger.warning(
-                "Cannot call method set_memory_pool_limit for TensorRT."
-                "Please update TensorRT version."
-            )
 
         if quantization_type is not None:
             config = self._quantize_model(

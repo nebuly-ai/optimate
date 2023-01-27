@@ -43,13 +43,13 @@ RUN pip install --no-cache-dir cmake
 # Install default deep learning compilers
 ARG COMPILER=all
 RUN if [ "$COMPILER" = "all" ] ; then \
-        python3 -m nebullvm.installers.auto_installer --backends all --compilers all ; \
+        python3 -m nebullvm.installers.auto_installer --frameworks all --extra-backends all --compilers all ; \
     elif [ "$COMPILER" = "tensorrt" ] ; then \
-        python3 -m nebullvm.installers.auto_installer --backends all --compilers tensorrt ; \
+        python3 -m nebullvm.installers.auto_installer --frameworks all --extra-backends all --compilers tensorrt ; \
     elif [ "$COMPILER" = "openvino" ] ; then \
-        python3 -m nebullvm.installers.auto_installer --backends all --compilers openvino ; \
+        python3 -m nebullvm.installers.auto_installer --frameworks all --extra-backends all --compilers openvino ; \
     elif [ "$COMPILER" = "onnxruntime" ] ; then \
-        python3 -m nebullvm.installers.auto_installer --backends all --compilers onnxruntime ; \
+        python3 -m nebullvm.installers.auto_installer --frameworks all --extra-backends all --compilers onnxruntime ; \
     fi
 
 # Install TVM
