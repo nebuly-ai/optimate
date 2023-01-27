@@ -135,6 +135,30 @@ def is_data_subscriptable(input_data: Union[Iterable, Sequence]):
         return True
 
 
+def check_dynamic_info_inputs(
+    dynamic_info: Optional[Dict], input_sample: Tuple[Any]
+):
+    if dynamic_info is not None:
+        assert dynamic_info.get("inputs") is not None, (
+            "Dynamic info must contain an 'inputs' key with a list of "
+            "dictionaries as value."
+        )
+
+        num_dynamic_inputs = len(dynamic_info["inputs"])
+        num_model_inputs = len(input_sample)
+        assert len(dynamic_info["inputs"]) == len(input_sample), (
+            f"The number of dynamic inputs provided in the dynamic info "
+            f"dict ({num_dynamic_inputs}) is not equal to the number "
+            f"of inputs of the model ({num_model_inputs}). Detected model "
+            f"input shapes are: {[input.shape for input in input_sample]} "
+        )
+
+        assert dynamic_info.get("outputs") is not None, (
+            "Dynamic info must contain an 'outputs' key with a list of "
+            "dictionaries as value."
+        )
+
+
 def extract_info_from_data(
     model: Any,
     input_data: DataManager,
@@ -142,6 +166,7 @@ def extract_info_from_data(
     dynamic_info: Optional[Dict],
     device: Device,
 ):
+    check_dynamic_info_inputs(dynamic_info, input_data.get_list(1)[0])
     batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
         dl_framework
     ](
