@@ -123,7 +123,7 @@ class TrainAlphaTensorRootOp(Operation):
                 n_logits=n_logits,
                 n_samples=n_samples,
             )
-            self._model = self._build_model_op.get_model()
+            self._model = self._build_model_op.get_model().to(device)
 
         if self._build_model_op.get_model() is not None:
             self._build_optimizer_op.execute(

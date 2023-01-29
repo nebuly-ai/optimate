@@ -235,7 +235,7 @@ class GameDataBuffer(Dataset):
         """Copy save_dir content in path and save game_data
         in json format
         """
-        shutil.copytree(self.temp_dir, path)
+        shutil.copytree(self.temp_dir, path, dirs_exist_ok=True)
         with open(os.path.join(path, "game_data.json"), "w") as f:
             json.dump(self.game_data, f)
 
