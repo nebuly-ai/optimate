@@ -82,9 +82,9 @@ def extract_children_states_from_actions(
     actions = actions.reshape(bs, k, n_steps * len_token)
     vec_dim = state.shape[2]
     u = actions[:, :, :vec_dim].reshape(bs, k, vec_dim, 1, 1)
-    v = actions[:, :, vec_dim : 2 * vec_dim].reshape(
+    v = actions[:, :, vec_dim : 2 * vec_dim].reshape(  # noqa E203
         bs, k, 1, vec_dim, 1
-    )  # noqa E203
+    )
     w = actions[:, :, 2 * vec_dim :].reshape(bs, k, 1, 1, vec_dim)  # noqa E203
     reducing_tensor = u * v * w
     (
@@ -112,6 +112,44 @@ def extract_children_states_from_actions(
         repetition_map,
         not_duplicate_indexes,
     )
+
+
+def _reduce_memory_consumption_before_storing(
+    possible_states: List[torch.Tensor],
+):
+    """Reduce the memory consumption before storing the states.
+
+    Args:
+        possible_states (List[torch.Tensor]): The possible states.
+    """
+    final_states = [state[:, 0:1] for state in possible_states]
+    previous_actions = possible_states[0][:, 1:]
+    storing_dict = {
+        "final_states": final_states,
+        "previous_actions": previous_actions,
+    }
+    return storing_dict
+
+
+def _recompose_possible_states(reduced_memory_states_dict: Dict):
+    """Recompose the possible states from the reduced memory states.
+
+    Args:
+        reduced_memory_states_dict (Dict): The reduced memory states.
+    """
+    final_states = reduced_memory_states_dict["final_states"]
+    previous_actions = reduced_memory_states_dict["previous_actions"]
+    possible_states = [
+        torch.cat(
+            [
+                final_states[i],
+                previous_actions,
+            ],
+            dim=1,
+        )
+        for i in range(len(final_states))
+    ]
+    return possible_states
 
 
 def extract_present_state(state: torch.Tensor) -> torch.Tensor:
@@ -214,16 +252,14 @@ def simulate_game(
     # selection
     while state_hash in game_tree:
         (
-            (state_tensor, full_actions),
+            possible_states_dict,
             old_idx_to_new_idx,
             repetition_map,
             N_s_a,
             q_values,
             actions,
         ) = states_dict[state_hash]
-        possible_states = extract_children_states_from_actions(
-            state_tensor, full_actions
-        )[0]
+        possible_states = _recompose_possible_states(possible_states_dict)
         state_idx = select_future_state(
             possible_states, q_values, N_s_a, repetition_map, return_idx=True
         )
@@ -256,7 +292,7 @@ def simulate_game(
             N_s_a = torch.zeros_like(not_dupl_q_values).to("cpu")
             present_state = extract_present_state(state)
             states_dict[to_hash(present_state)] = (
-                (state, actions),
+                _reduce_memory_consumption_before_storing(possible_states),
                 cloned_idx_to_idx,
                 repetitions,
                 N_s_a,
@@ -338,12 +374,10 @@ def monte_carlo_tree_search(
     for _ in range(n_sim):
         simulate_game(model, state, t_time, n_steps, game_tree, state_dict)
     # return next state
-    (state_tensor, actions), _, repetitions, N_s_a, q_values, _ = state_dict[
+    possible_states_dict, _, repetitions, N_s_a, q_values, _ = state_dict[
         state_hash
     ]
-    possible_states = extract_children_states_from_actions(
-        state_tensor, actions
-    )[0]
+    possible_states = _recompose_possible_states(possible_states_dict)
     next_state_idx = select_future_state(
         possible_states, q_values, N_s_a, repetitions, return_idx=True
     )

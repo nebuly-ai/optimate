@@ -80,9 +80,9 @@ def swap_data(
         vector_size = actual_state.shape[-1] // 3
         bs = actual_state.shape[0]
         u = triplet[:, :vector_size].reshape(bs, -1, 1, 1)
-        v = triplet[:, vector_size : 2 * vector_size].reshape(
+        v = triplet[:, vector_size : 2 * vector_size].reshape(  # noqa E203
             bs, 1, -1, 1
-        )  # noqa E203
+        )
         w = triplet[:, 2 * vector_size :].reshape(bs, 1, 1, -1)  # noqa E203
         reduced_state = u * v * w
         fut_state = actual_state[:, 0] - reduced_state
@@ -353,7 +353,7 @@ class Trainer:
                     self.dataset.input_tensor, n_games, mc_n_sim, N_bar
                 )
             # save checkpoint
-            if epoch + 1 % 100 == 0:
+            if (epoch + 1) % 100 == 0:
                 checkpoint_name = f"checkpoint_{epoch + 1}.pt"
                 checkpoint = {
                     "model_state_dict": self.model.state_dict(),
