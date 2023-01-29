@@ -5,6 +5,7 @@ import torch.optim
 import tqdm
 from torch.utils.data import DataLoader
 
+from open_alpha_tensor.config import BASE_CHECKPOINT_DATA_DIR, BASE_CHECKPOINT_DIR
 from open_alpha_tensor.core.actors.stage import actor_prediction
 from open_alpha_tensor.core.data.basis_change import ChangeOfBasis
 from open_alpha_tensor.core.data.dataset import TensorGameDataset
@@ -176,11 +177,11 @@ class Trainer:
         else:
             self.alpha, self.beta = loss_params
         self.checkpoint_dir = Path(
-            checkpoint_dir if checkpoint_dir else "checkpoints"
+            checkpoint_dir if checkpoint_dir else BASE_CHECKPOINT_DIR
         )
         self.checkpoint_dir.mkdir(exist_ok=True, parents=True)
         self.checkpoint_data_dir = (
-            checkpoint_data_dir if checkpoint_data_dir else Path("games")
+            checkpoint_data_dir if checkpoint_data_dir else Path(BASE_CHECKPOINT_DATA_DIR)
         )
         self.checkpoint_data_dir.mkdir(exist_ok=True, parents=True)
         self.change_of_basis = ChangeOfBasis(
