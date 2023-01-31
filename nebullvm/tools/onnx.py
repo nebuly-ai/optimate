@@ -131,9 +131,7 @@ def extract_info_from_np_data(
     )
     dynamic_axis = ifnone(
         dynamic_axis,
-        _extract_dynamic_axis(
-            onnx_model, data, input_sizes, batch_size, device
-        ),
+        _extract_dynamic_axis(onnx_model, data, input_sizes, device),
     )
     return batch_size, input_sizes, input_types, dynamic_axis
 

@@ -92,6 +92,7 @@ class PytorchBackendCompiler(Compiler):
                 input_sample = [t.cuda().half() for t in input_sample]
             else:
                 input_sample = [t.cuda() for t in input_sample]
+            model.cuda()
 
         if not isinstance(model, torch.fx.GraphModule):
             model.eval()
@@ -99,6 +100,8 @@ class PytorchBackendCompiler(Compiler):
                 model_scripted = symbolic_trace(model)
                 model_scripted = torch.jit.script(model_scripted)
             except Exception:
+                if quantization_type is None:
+                    self.logger.warning("Unable to trace model with torch.fx")
                 try:
                     model_scripted = torch.jit.script(model)
                 except Exception:
