@@ -64,6 +64,7 @@ from nebullvm.tools.base import (
     ModelParams,
     DeepLearningFramework,
     ModelCompressor,
+    Device,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
@@ -247,6 +248,26 @@ class Optimizer(Operation, abc.ABC):
                                             self.validity_check_op.measure_result,  # noqa: E501
                                         )
                                     )
+
+                                    if self.device is Device.GPU:
+                                        if isinstance(model, torch.nn.Module):
+                                            # Remove PyTorch model from GPU
+                                            # to free memory
+                                            model.cpu()
+                                            # Clear GPU memory cache
+                                            torch.cuda.empty_cache()
+
+                                        # Move torchscript models to CPU
+                                        # to free GPU memory
+                                        if hasattr(
+                                            inference_learner, "model"
+                                        ) and isinstance(
+                                            inference_learner.model,
+                                            torch.jit.ScriptModule,
+                                        ):
+                                            inference_learner.model = (
+                                                inference_learner.model.cpu()
+                                            )
 
                                     opt_info_dict = {
                                         "compiler": f"{self.pipeline_dl_framework.value}_{compiler.value}",  # noqa: E501

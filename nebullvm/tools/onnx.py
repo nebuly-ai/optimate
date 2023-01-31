@@ -76,7 +76,6 @@ def _extract_dynamic_axis(
     onnx_model: str,
     data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
     input_sizes: List[Tuple[int, ...]],
-    batch_size: int,
     device: Device,
     max_data: int = 100,
 ) -> Optional[Dict]:
@@ -89,7 +88,7 @@ def _extract_dynamic_axis(
         if i >= max_data:
             break
         inspect_dynamic_size(
-            input_tensors, input_sizes, batch_size, dynamic_axis["inputs"]
+            input_tensors, input_sizes, dynamic_axis["inputs"]
         )
         outputs = tuple(
             run_onnx_model(onnx_model, list(input_tensors), device)
@@ -97,9 +96,7 @@ def _extract_dynamic_axis(
         if i == 0:
             dynamic_axis["outputs"] = [{}] * len(outputs)
             output_sizes = [tuple(output.shape[1:]) for output in outputs]
-        inspect_dynamic_size(
-            outputs, output_sizes, batch_size, dynamic_axis["outputs"]
-        )
+        inspect_dynamic_size(outputs, output_sizes, dynamic_axis["outputs"])
     if any(
         len(x) > 0 for x in (dynamic_axis["inputs"] + dynamic_axis["outputs"])
     ):
@@ -120,7 +117,7 @@ def extract_info_from_np_data(
 
     input_row = data[0][0]
     batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
-    input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
+    input_sizes = ifnone(input_sizes, [tuple(x.shape) for x in input_row])
     input_types = ifnone(
         input_types,
         [

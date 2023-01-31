@@ -39,7 +39,7 @@ from nebullvm.operations.optimizations.utils import (
     map_compilers_and_compressors,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import Module, DataLoader
+from nebullvm.optional_modules.torch import torch, DataLoader
 from nebullvm.optional_modules.utils import check_dependencies
 from nebullvm.tools.base import (
     ModelCompiler,
@@ -309,6 +309,12 @@ class SpeedsterRootOp(Operation):
                     "report in details your use case."
                 )
             else:
+                # Set back torchscript model to gpu if needed
+                if self.device is Device.GPU and isinstance(
+                    optimized_models[0][0], torch.jit.ScriptModule
+                ):
+                    optimized_models[0][0].model.cuda()
+
                 opt_metric_drop = (
                     f"{optimized_models[0][2]:.4f}"
                     if optimized_models[0][2] > MIN_NUMBER
@@ -444,7 +450,7 @@ class SpeedsterRootOp(Operation):
     ) -> List[BaseInferenceLearner]:
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
-            if isinstance(model, Module):
+            if isinstance(model, torch.nn.Module):
                 optimization_op = self.torch_optimization_op
             elif isinstance(model, tf.Module) and model is not None:
                 optimization_op = self.tensorflow_optimization_op

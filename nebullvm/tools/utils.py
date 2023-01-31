@@ -46,11 +46,9 @@ def ifnone(target, new_value):
 def inspect_dynamic_size(
     tensors: Tuple[Any, ...],
     sizes: List[Tuple[int, ...]],
-    batch_size: int,
     axis_list: List[Dict],
 ):
     for idx, (tensor, size) in enumerate(zip(tensors, sizes)):
-        size = (batch_size, *size)
         for idy, (j, k) in enumerate(zip(tensor.shape, size)):
             if j != k:
                 if idy == 0:
@@ -181,7 +179,7 @@ def extract_info_from_data(
     model_params = ModelParams(
         batch_size=batch_size,
         input_infos=[
-            {"size": size, "dtype": dtype}
+            {"size": size[1:], "dtype": dtype}
             for size, dtype in zip(input_sizes, input_types)
         ],
         output_sizes=OUTPUT_SIZE_COMPUTATION_DICT[dl_framework](
