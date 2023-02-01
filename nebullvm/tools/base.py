@@ -33,8 +33,12 @@ class DataType(str, Enum):
 
 class ModelCompiler(Enum):
     TENSOR_RT = "tensor_rt"
+    TENSOR_RT_ONNX = "onnx_tensor_rt"
+    TENSOR_RT_TORCH = "torch_tensor_rt"
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
+    APACHE_TVM_TORCH = "torch_tvm"
+    APACHE_TVM_ONNX = "onnx_tvm"
     ONNX_RUNTIME = "onnxruntime"
     DEEPSPARSE = "deepsparse"
     TORCHSCRIPT = "torchscript"
