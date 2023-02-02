@@ -191,6 +191,10 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
     def get_size(self):
         return self.engine.serialize().nbytes
 
+    def free_gpu_memory(self):
+        # TODO: check if ONNXtensorrt needs to release gpu memory
+        pass
+
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
 
@@ -258,6 +262,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
             self.use_gpu = True
         else:
             self.use_gpu = False
+        self._is_gpu_ready = device is Device.GPU
 
     def get_size(self):
         with TemporaryDirectory() as tmp_dir:
@@ -269,6 +274,8 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
             )
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        if self.device is Device.GPU and not self._is_gpu_ready:
+            self.set_model_on_gpu()
         device = input_tensors[0].device
 
         # PyTorch-TensorRT does not support int64

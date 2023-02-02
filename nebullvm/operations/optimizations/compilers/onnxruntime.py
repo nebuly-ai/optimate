@@ -22,14 +22,11 @@ class ONNXCompiler(Compiler):
         "cpu": [
             None,
             QuantizationType.STATIC,
-            QuantizationType.HALF,
             QuantizationType.DYNAMIC,
         ],
         "gpu": [
             None,
-            QuantizationType.STATIC,
             QuantizationType.HALF,
-            QuantizationType.DYNAMIC,
         ],
     }
 

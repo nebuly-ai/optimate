@@ -155,6 +155,9 @@ class PytorchNeuralCompressorInferenceLearner(
         model (torch.fx.GraphModule): Torch fx graph model.
     """
 
+    def free_gpu_memory(self):
+        raise NotImplementedError()
+
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
         """Predict on the input tensors.
 

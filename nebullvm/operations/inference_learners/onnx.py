@@ -84,21 +84,22 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         self.device = device
 
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
-        sess_options = _get_ort_session_options(self.device is Device.GPU)
+        self.sess_options = _get_ort_session_options(self.device is Device.GPU)
 
         if _running_on_intel_cpu(self.device is Device.GPU):
-            sess_options.add_session_config_entry(
+            self.sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
 
         ort_session = ort.InferenceSession(
-            str(onnx_path),
-            sess_options=sess_options,
+            str(self.onnx_path),
+            sess_options=self.sess_options,
             providers=ONNX_PROVIDERS["cuda"]
             if self.device is Device.GPU
             else ONNX_PROVIDERS["cpu"],
         )
         self._session = ort_session
+        self._is_gpu_ready = self.device is Device.GPU
         self.input_names = input_names
         self.output_names = output_names
 
@@ -108,6 +109,21 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             for f in os.listdir(self.onnx_path.parents[0])
             if os.path.isfile(self.onnx_path.parents[0] / f)
         )
+
+    def free_gpu_memory(self):
+        del self._session
+        self._is_gpu_ready = False
+
+    def set_model_on_gpu(self):
+        ort_session = ort.InferenceSession(
+            str(self.onnx_path),
+            sess_options=self.sess_options,
+            providers=ONNX_PROVIDERS["cuda"]
+            if self.device is Device.GPU
+            else ONNX_PROVIDERS["cpu"],
+        )
+        self._session = ort_session
+        self._is_gpu_ready = True
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
@@ -227,6 +243,8 @@ class PytorchONNXInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
+        if self.device is Device.GPU and not self._is_gpu_ready:
+            self.set_model_on_gpu()
         device = input_tensors[0].device
         input_arrays = (
             input_tensor.cpu().detach().numpy()
@@ -269,6 +287,8 @@ class TensorflowONNXInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
+        if self.device is Device.GPU and not self._is_gpu_ready:
+            self.set_model_on_gpu()
         input_arrays = (
             input_tensor.numpy()
             if not isinstance(input_tensor, np.ndarray)
@@ -313,6 +333,8 @@ class NumpyONNXInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
+        if self.device is Device.GPU and not self._is_gpu_ready:
+            self.set_model_on_gpu()
         input_arrays = (input_tensor for input_tensor in input_tensors)
         outputs = self._predict_arrays(input_arrays)
         return tuple(outputs)

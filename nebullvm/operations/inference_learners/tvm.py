@@ -117,6 +117,10 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         )
         return tvm_outputs
 
+    def free_gpu_memory(self):
+        # TODO: check if twm needs to release GPU
+        pass
+
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.
 

@@ -18,11 +18,14 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         super(TensorflowBackendInferenceLearner, self).__init__(**kwargs)
         self.model = tf_model
         self.device = device
+        self._is_gpu_ready = self.device is Device.GPU
 
     def get_size(self):
         return len(pickle.dumps(self.model, -1))
 
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
+        if self.device is Device.GPU and not self._is_gpu_ready:
+            self.set_model_on_gpu()
         with tf.device(self.device.value):
             res = self.model(input_tensors)
         if not isinstance(res, tuple):
@@ -65,6 +68,9 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
 
     def get_size(self):
         return len(self.tflite_file)
+
+    def free_gpu_memory(self):
+        raise NotImplementedError()
 
     def run(self, *input_tensors: tf.Tensor):
         input_details = self.interpreter.get_input_details()

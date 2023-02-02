@@ -64,7 +64,7 @@ def test_deepsparse(
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
             ModelCompiler.DEEPSPARSE
-        ][DeepLearningFramework.PYTORCH]()
+        ]()
 
         build_inference_learner_op.to(device).execute(
             model=compiled_model,

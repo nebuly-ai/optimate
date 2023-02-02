@@ -196,8 +196,15 @@ class BaseInferenceLearner(ABC):
         """
         raise NotImplementedError()
 
+    @abstractmethod
     def get_size(self):
+        """The function returns the size of the optimized model."""
         raise NotImplementedError()
+
+    @abstractmethod
+    def free_gpu_memory(self):
+        """The function cleans the gpu occupied by the inference learner."""
+        raise NotImplementedError
 
     @abstractmethod
     def get_inputs_example(self):
@@ -409,6 +416,14 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         """
         return tensor.cpu().detach().numpy().tolist()
 
+    def free_gpu_memory(self):
+        self.model.cpu()
+        self._is_gpu_ready = False
+
+    def set_model_on_gpu(self):
+        self.model.cuda()
+        self._is_gpu_ready = True
+
     def _read_file(self, input_file: Union[str, Path]) -> torch.Tensor:
         input_tensor = torch.load(input_file)
         return input_tensor
@@ -438,6 +453,13 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
     @property
     def output_format(self):
         return ".npy"
+
+    def free_gpu_memory(self):
+        tf.keras.clear_session()
+        self._is_gpu_ready = False
+
+    def set_model_on_gpu(self):
+        self._is_gpu_ready = True
 
     def list2tensor(self, listified_tensor: List) -> tf.Tensor:
         """Convert list to tensor.
@@ -601,6 +623,9 @@ class InferenceLearnerWrapper(BaseInferenceLearner, ABC):
         input_dict = cls._load_wrapper_extra_info(input_dict)
         input_dict.update({"core_inference_learner": core_learner})
         return cls(**input_dict)
+
+    def free_gpu_memory(self):
+        return self.core_inference_learner.free_gpu_memory()
 
     def get_inputs_example(self):
         return self.core_inference_learner.get_inputs_example()

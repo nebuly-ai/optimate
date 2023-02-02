@@ -71,7 +71,7 @@ def test_tensorflow_backend(
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
             ModelCompiler.XLA
-        ][DeepLearningFramework.TENSORFLOW]()
+        ]()
 
         build_inference_learner_op.to(device).execute(
             model=compiled_model,
@@ -194,7 +194,7 @@ def test_tf_lite(
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
             ModelCompiler.TFLITE
-        ][DeepLearningFramework.TENSORFLOW]()
+        ]()
 
         build_inference_learner_op.to(device).execute(
             model=compiled_model,

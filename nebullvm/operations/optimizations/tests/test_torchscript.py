@@ -58,7 +58,7 @@ def run_test_torchscript(
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
             ModelCompiler.TORCHSCRIPT
-        ][DeepLearningFramework.PYTORCH]()
+        ]()
 
         build_inference_learner_op.to(device).execute(
             model=compiled_model,

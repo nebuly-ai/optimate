@@ -106,6 +106,9 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
     def get_size(self):
         return len(self.compiled_model.export_model())
 
+    def free_gpu_memory(self):
+        raise NotImplementedError()
+
     @classmethod
     def from_model_name(
         cls,

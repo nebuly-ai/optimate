@@ -88,7 +88,7 @@ class OpenVINOCompiler(Compiler):
             "--output_dir",
             str(Path(model).parent),
             "--input",
-            ",".join(get_input_names(model)),
+            ",".join(get_input_names(str(model))),
             "--input_shape",
             ",".join(
                 [
@@ -102,7 +102,7 @@ class OpenVINOCompiler(Compiler):
             return None
 
         if quantization_type is QuantizationType.HALF:
-            cmd = cmd + ["--data_type", "FP16"]
+            cmd = cmd + ["--compress_to_fp16"]
 
         process = subprocess.Popen(cmd)
         process.wait()
@@ -114,7 +114,7 @@ class OpenVINOCompiler(Compiler):
             openvino_model_path, openvino_model_weights = self._quantize_model(
                 model_topology=str(openvino_model_path),
                 model_weights=str(openvino_model_weights),
-                input_names=get_input_names(model),
+                input_names=get_input_names(str(model)),
                 input_data=train_input_data,
             )
 

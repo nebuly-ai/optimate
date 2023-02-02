@@ -14,6 +14,7 @@ from typing import (
     List,
 )
 
+from loguru import logger
 from nebullvm import setup_logger
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, MIN_NUMBER
 from nebullvm.operations.base import Operation
@@ -85,6 +86,18 @@ def _convert_technique(technique: str):
     else:
         technique = "int8_dynamic"
     return technique
+
+
+def _get_model_len(model: Any):
+    try:
+        return len(pickle.dumps(model, -1))
+    except Exception:
+        logger.warning(
+            "Cannot pickle input model. Unable to "
+            "extract origivnal model size"
+        )
+        # Model is not pickable
+        return -1
 
 
 class SpeedsterRootOp(Operation):
@@ -282,11 +295,7 @@ class SpeedsterRootOp(Operation):
                     original_model_size = (
                         os.path.getsize(self.conversion_op.get_result()[0])
                         if isinstance(self.conversion_op.get_result()[0], str)
-                        else len(
-                            pickle.dumps(
-                                self.conversion_op.get_result()[0], -1
-                            )
-                        )
+                        else _get_model_len(self.conversion_op.get_result()[0])
                     )
                     for model in self.conversion_op.get_result():
                         optimized_models += self._optimize(
@@ -309,12 +318,6 @@ class SpeedsterRootOp(Operation):
                     "report in details your use case."
                 )
             else:
-                # Set back torchscript model to gpu if needed
-                if self.device is Device.GPU and isinstance(
-                    optimized_models[0][0], torch.jit.ScriptModule
-                ):
-                    optimized_models[0][0].model.cuda()
-
                 opt_metric_drop = (
                     f"{optimized_models[0][2]:.4f}"
                     if optimized_models[0][2] > MIN_NUMBER
@@ -370,7 +373,9 @@ class SpeedsterRootOp(Operation):
                         "model size",
                         f"{original_model_size / 1e6:.2f} MB",
                         f"{optimized_models[0][0].get_size() / 1e6:.2f} MB",
-                        f"{min(int((optimized_models[0][0].get_size()-original_model_size) / original_model_size * 100), 0)}%",  # noqa: E501
+                        f"{min(int((optimized_models[0][0].get_size()-original_model_size) / original_model_size * 100), 0)}%"  # noqa: E501
+                        if original_model_size > 0
+                        else "NA",
                     ],
                     ["metric drop", "", opt_metric_drop, ""],
                     [

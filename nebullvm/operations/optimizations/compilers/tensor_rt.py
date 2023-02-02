@@ -188,6 +188,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             quantization_type=quantization_type,
         )
 
+    @torch.no_grad()
     def _compile_model(
         self,
         model: Module,
@@ -325,6 +326,11 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                 assert os.path.isfile(onnx_model_path)
             except Exception:
                 # Use original model
+                self.logger.warning(
+                    "Unable to simplify model with ONNX Simplifier. "
+                    "Original ONNX model will be used to build "
+                    "TensorRT engine"
+                )
                 onnx_model_path = str(model)
                 self.simplify_model = False
         else:

@@ -83,6 +83,9 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
             Path(path) / ONNX_FILENAMES["model_name"],
         )
 
+    def free_gpu_memory(self):
+        return NotImplementedError()
+
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
         """Load the model.

@@ -187,6 +187,17 @@ class Optimizer(Operation, abc.ABC):
             for q_type in q_types:
                 input_tfms = MultiStageTransformation([])
 
+                # Free gpu memory
+                if self.device is Device.GPU:
+                    try:
+                        model.cpu()
+                    except Exception:
+                        pass
+                    try:
+                        torch.cuda.empty_cache()
+                    except Exception:
+                        pass
+
                 with TemporaryDirectory() as tmp_dir:
                     try:
                         compiler_op.to(self.device).execute(
@@ -258,26 +269,6 @@ class Optimizer(Operation, abc.ABC):
                                         )
                                     )
 
-                                    if self.device is Device.GPU:
-                                        if isinstance(model, torch.nn.Module):
-                                            # Remove PyTorch model from GPU
-                                            # to free memory
-                                            model.cpu()
-                                            # Clear GPU memory cache
-                                            torch.cuda.empty_cache()
-
-                                        # Move torchscript models to CPU
-                                        # to free GPU memory
-                                        if hasattr(
-                                            inference_learner, "model"
-                                        ) and isinstance(
-                                            inference_learner.model,
-                                            torch.jit.ScriptModule,
-                                        ):
-                                            inference_learner.model = (
-                                                inference_learner.model.cpu()
-                                            )
-
                                     opt_info_dict = {
                                         "compiler": f"{self.pipeline_dl_framework.value}_{compiler.value}",  # noqa: E501
                                         "technique": q_type.value
@@ -304,6 +295,9 @@ class Optimizer(Operation, abc.ABC):
                                         "discarded due to poor results "
                                         "obtained with the given metric."
                                     )
+
+                                if self.device is Device.GPU:
+                                    inference_learner.free_gpu_memory()
                     except Exception as ex:
                         self.logger.warning(
                             f"Optimization failed with "

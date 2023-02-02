@@ -80,6 +80,7 @@ class PytorchBackendCompiler(Compiler):
             model, input_data, quantization_type
         )
 
+    @torch.no_grad()
     def _compile_model(
         self,
         model: Union[Module, GraphModule],
@@ -111,6 +112,7 @@ class PytorchBackendCompiler(Compiler):
 
         return model_scripted
 
+    @torch.no_grad()
     def _quantize_model(
         self,
         model: Module,

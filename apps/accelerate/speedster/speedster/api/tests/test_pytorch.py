@@ -107,7 +107,7 @@ def test_torch_torchscript():
     # Try the optimized model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
-    model.eval()
+    model.to(device).eval()
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
@@ -135,7 +135,7 @@ def test_torch_tensorrt():
 
     # Try the optimized model
     x = torch.randn(1, 3, 256, 256).cuda()
-    model.eval()
+    model.cuda().eval()
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 

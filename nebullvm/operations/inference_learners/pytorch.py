@@ -29,8 +29,11 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         if device is Device.GPU:
             self.model.cuda()
         self.device = device
+        self._is_gpu_ready = self.device is Device.GPU
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        if self.device is Device.GPU and not self._is_gpu_ready:
+            self.set_model_on_gpu()
         device = input_tensors[0].device
         if self.device is Device.GPU:
             input_tensors = (t.cuda() for t in input_tensors)

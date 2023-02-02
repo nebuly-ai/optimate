@@ -114,8 +114,8 @@ def test_tvm_onnx(
         compiled_model = compiler_op.get_result()
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
-            ModelCompiler.APACHE_TVM
-        ][DeepLearningFramework.NUMPY]()
+            ModelCompiler.APACHE_TVM_ONNX
+        ]()
         build_inference_learner_op.to(device).execute(
             model=compiled_model,
             model_orig=compiler_op.model_orig
@@ -232,8 +232,8 @@ def test_tvm_torch(
         compiled_model = compiler_op.get_result()
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
-            ModelCompiler.APACHE_TVM
-        ][DeepLearningFramework.PYTORCH]()
+            ModelCompiler.APACHE_TVM_TORCH
+        ]()
         build_inference_learner_op.to(device).execute(
             model=compiled_model,
             model_orig=compiler_op.model_orig
