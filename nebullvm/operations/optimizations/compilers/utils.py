@@ -74,6 +74,16 @@ def intel_neural_compressor_is_available() -> bool:
         return True
 
 
+def faster_transformer_is_available() -> bool:
+    return False
+    try:
+        import neural_compressor  # noqa F401
+    except ImportError:
+        return False
+    else:
+        return True
+
+
 def select_compilers_from_hardware_onnx(device: Device):
     from nebullvm.optional_modules.utils import onnx_is_available
 

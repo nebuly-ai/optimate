@@ -84,6 +84,7 @@ TORCH_MODULES = [
     "intel_neural_compressor",
     "tensor_rt",
     "torch_tensor_rt",
+    "faster_transformer",
 ]
 
 TENSORFLOW_MODULES = []

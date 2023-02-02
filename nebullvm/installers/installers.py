@@ -13,11 +13,12 @@ from nebullvm.config import (
     LIBRARIES_GPU,
 )
 from nebullvm.operations.optimizations.compilers.utils import (
+    deepsparse_is_available,
+    faster_transformer_is_available,
+    intel_neural_compressor_is_available,
     openvino_is_available,
     tensorrt_is_available,
     torch_tensorrt_is_available,
-    deepsparse_is_available,
-    intel_neural_compressor_is_available,
 )
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.utils import (
@@ -321,6 +322,59 @@ def install_onnx_simplifier():
     return True
 
 
+def install_faster_transformer(
+    working_dir: str = None,
+):
+    """Helper function for installing FasterTransformer.
+    https://github.com/NVIDIA/FasterTransformer
+
+    This function needs some prerequisites for running, as a valid `git`
+    installation and having MacOS or a Linux-distribution as OS.
+
+    Args:
+        working_dir (str, optional): The directory where the FasterTransformer repo will be
+            cloned and installed.
+    """
+    if not gpu_is_available():
+        return False
+    from nebullvm.optional_modules.utils import torch_is_available
+
+    path = Path(__file__).parent
+    # install pre-requisites
+    # TODO: use a different script
+    # installation_file_prerequisites = str(path / "install_tvm_prerequisites.sh")
+    # subprocess.run(
+    #    ["bash", installation_file_prerequisites],
+    #    cwd=working_dir or Path.home(),
+    # )
+    # install faster transformer
+    try:
+        import torch
+
+        compute_capability = torch.cuda.get_device_capability()
+        assert len(compute_capability) == 2
+    except (ImportError, AssertionError):
+        return False
+    installation_file = str(path / "install_fastertransformer.sh")
+    # hardware_config = get_cpu_arch()
+    env_dict = {
+        # "CONFIG_PATH": str(path / f"tvm_installers/{hardware_config}/config.cmake"),
+        "COMPUTE_CAPABILITY": f"{compute_capability[0]}{compute_capability[1]}",
+        **dict(os.environ.copy()),
+    }
+
+    result = subprocess.run(
+        ["bash", installation_file],
+        cwd=working_dir or Path.home(),
+        env=env_dict,
+    )
+    # check result
+    # TODO: use a script to check if the installation was successful
+    if result.returncode != 0:
+        return False
+    return True
+
+
 class BaseInstaller(ABC):
     def __init__(self, module_list: List[str]):
         self.modules = module_list
@@ -508,6 +562,7 @@ COMPILER_INSTALLERS = {
     "torch_tensor_rt": install_torch_tensor_rt,
     "deepsparse": install_deepsparse,
     "intel_neural_compressor": install_intel_neural_compressor,
+    "faster_transformer": install_faster_transformer,
 }
 
 COMPILERS_AVAILABLE = {
@@ -516,4 +571,5 @@ COMPILERS_AVAILABLE = {
     "torch_tensor_rt": torch_tensorrt_is_available,
     "deepsparse": deepsparse_is_available,
     "intel_neural_compressor": intel_neural_compressor_is_available,
+    "faster_transformer": faster_transformer_is_available,
 }
