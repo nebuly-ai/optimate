@@ -1,14 +1,9 @@
 import logging
 from pathlib import Path
 
-from nebullvm.config import ONNX_OPSET_VERSION
-from nebullvm.optional_modules.torch import torch, Module
-from nebullvm.tools.base import ModelParams, Device
-from nebullvm.tools.data import DataManager
-from nebullvm.tools.pytorch import (
-    get_outputs_sizes_torch,
-    create_model_inputs_torch,
-)
+from nebullvm.optional_modules.torch import torch
+from nebullvm.tools.base import Device
+
 from onnx2torch import convert
 
 logger = logging.getLogger("nebullvm_logger")
@@ -27,8 +22,12 @@ def convert_onnx_to_torch(
         device (Device): Device where the model will be run.
         
     """
-    torch_model = convert(onnx_model)
-    torch.save(torch_model, output_file_path)
+    try:
+        torch_model = convert(onnx_model)
+        torch.save(torch_model, output_file_path)
+        return output_file_path
+    except Exception as e:
+        logger.warning("Error while converting ONNX model to Pytorch")
+        logger.warning(e)
+        return None
 
-    return output_file_path
-            
