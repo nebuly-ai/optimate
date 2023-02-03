@@ -15,6 +15,7 @@ from nebullvm.config import (
 from nebullvm.operations.optimizations.compilers.utils import (
     deepsparse_is_available,
     faster_transformer_is_available,
+    get_faster_transformer_repo_path,
     intel_neural_compressor_is_available,
     openvino_is_available,
     tensorrt_is_available,
@@ -356,16 +357,14 @@ def install_faster_transformer(
     except (ImportError, AssertionError):
         return False
     installation_file = str(path / "install_fastertransformer.sh")
-    # hardware_config = get_cpu_arch()
     env_dict = {
-        # "CONFIG_PATH": str(path / f"tvm_installers/{hardware_config}/config.cmake"),
         "COMPUTE_CAPABILITY": f"{compute_capability[0]}{compute_capability[1]}",
         **dict(os.environ.copy()),
     }
 
     result = subprocess.run(
         ["bash", installation_file],
-        cwd=working_dir or Path.home(),
+        cwd=get_faster_transformer_repo_path().parent,
         env=env_dict,
     )
     # check result

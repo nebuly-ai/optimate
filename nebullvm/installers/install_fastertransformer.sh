@@ -29,7 +29,9 @@ fi
 cd FasterTransformer &&
 mkdir -p build &&
 cd build &&
-cmake -DSM=$COMPUTE_CAPABILITY -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON -DBUILD_MULTI_GPU=OFF .. &&
-make -j8
+cmake -DSM=$COMPUTE_CAPABILITY -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON  .. &&
+make -j8 &&
+touch ../../FasterTransformer_build_success  # create a file to indicate that the build was successful
 
 # TODO: enable multi gpu if possible
+#-DBUILD_MULTI_GPU=OFF

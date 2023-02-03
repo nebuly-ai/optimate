@@ -1,4 +1,7 @@
-from nebullvm.tools.base import ModelCompiler, Device
+from pathlib import Path
+
+import nebullvm
+from nebullvm.tools.base import Device, ModelCompiler
 
 
 def onnxruntime_is_available() -> bool:
@@ -74,14 +77,12 @@ def intel_neural_compressor_is_available() -> bool:
         return True
 
 
+def get_faster_transformer_repo_path() -> Path:
+    return Path(nebullvm.__file__).parent.joinpath("FasterTransformer")
+
+
 def faster_transformer_is_available() -> bool:
-    return False
-    try:
-        import neural_compressor  # noqa F401
-    except ImportError:
-        return False
-    else:
-        return True
+    return get_faster_transformer_repo_path().parent.joinpath("FasterTransformer_build_success").exists()
 
 
 def select_compilers_from_hardware_onnx(device: Device):
