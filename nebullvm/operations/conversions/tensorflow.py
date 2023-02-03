@@ -1,16 +1,15 @@
-import logging
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Union
+
+from loguru import logger
 
 from nebullvm.config import ONNX_OPSET_VERSION
 from nebullvm.optional_modules.tensorflow import tensorflow as tf, tf2onnx
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.tools.base import ModelParams
 from nebullvm.tools.huggingface import TensorFlowTransformerWrapper
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def convert_tf_to_onnx(

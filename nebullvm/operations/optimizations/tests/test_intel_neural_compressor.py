@@ -1,6 +1,7 @@
 from tempfile import TemporaryDirectory
 
 import pytest
+import torch
 
 from nebullvm.operations.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
@@ -18,6 +19,7 @@ from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
+from nebullvm.operations.inference_learners.utils import load_model
 from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
@@ -91,9 +93,7 @@ def test_neural_compressor(
 
         # Test save and load functions
         optimized_model.save(tmp_dir)
-        loaded_model = NEURAL_COMPRESSOR_INFERENCE_LEARNERS[
-            output_library
-        ].load(tmp_dir)
+        loaded_model = load_model(tmp_dir)
         assert isinstance(
             loaded_model, NEURAL_COMPRESSOR_INFERENCE_LEARNERS[output_library]
         )
@@ -103,6 +103,14 @@ def test_neural_compressor(
         inputs_example = optimized_model.get_inputs_example()
         res = optimized_model(*inputs_example)
         assert res is not None
+
+        res_loaded = loaded_model(*inputs_example)
+        assert all(
+            [
+                torch.allclose(res_tensor, res_loaded_tensor)
+                for (res_tensor, res_loaded_tensor) in zip(res, res_loaded)
+            ]
+        )
 
         # Test validity of the model
         valid = check_model_validity(
@@ -121,3 +129,11 @@ def test_neural_compressor(
             ]
             res = model(*inputs_example)
             assert res is not None
+
+            res_orig = tuple(model(*inputs_example))
+            assert all(
+                [
+                    torch.allclose(res_tensor, res_orig_tensor, rtol=1e-01)
+                    for (res_tensor, res_orig_tensor) in zip(res, res_orig)
+                ]
+            )

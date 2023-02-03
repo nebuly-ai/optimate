@@ -1,4 +1,3 @@
-import logging
 import multiprocessing
 import os
 import shutil
@@ -8,6 +7,7 @@ from typing import Union, List, Generator, Tuple, Dict, Type
 
 import cpuinfo
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import (
     ONNX_FILENAMES,
@@ -26,8 +26,6 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import DeepLearningFramework, Device, ModelParams
 from nebullvm.tools.transformations import MultiStageTransformation
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def _running_on_intel_cpu(use_gpu):
@@ -173,7 +171,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = path / ONNX_FILENAMES["model_name"]
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
-        device = metadata.device
+        device = Device(metadata.device)
         if input_tfms is not None:
             input_tfms = MultiStageTransformation.from_dict(
                 metadata.input_tfms

@@ -1,9 +1,6 @@
 import subprocess
 import sys
 from pathlib import Path
-
-import numpy as np
-from packaging import version
 from types import ModuleType
 from typing import (
     Tuple,
@@ -16,6 +13,10 @@ from typing import (
     Optional,
     Callable,
 )
+
+import numpy as np
+from loguru import logger
+from packaging import version
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
@@ -134,6 +135,30 @@ def is_data_subscriptable(input_data: Union[Iterable, Sequence]):
         return True
 
 
+def check_dynamic_info_inputs(
+    dynamic_info: Optional[Dict], input_sample: Tuple[Any]
+):
+    if dynamic_info is not None:
+        assert dynamic_info.get("inputs") is not None, (
+            "Dynamic info must contain an 'inputs' key with a list of "
+            "dictionaries as value."
+        )
+
+        num_dynamic_inputs = len(dynamic_info["inputs"])
+        num_model_inputs = len(input_sample)
+        assert len(dynamic_info["inputs"]) == len(input_sample), (
+            f"The number of dynamic inputs provided in the dynamic info "
+            f"dict ({num_dynamic_inputs}) is not equal to the number "
+            f"of inputs of the model ({num_model_inputs}). Detected model "
+            f"input shapes are: {[input.shape for input in input_sample]} "
+        )
+
+        assert dynamic_info.get("outputs") is not None, (
+            "Dynamic info must contain an 'outputs' key with a list of "
+            "dictionaries as value."
+        )
+
+
 def extract_info_from_data(
     model: Any,
     input_data: DataManager,
@@ -141,6 +166,7 @@ def extract_info_from_data(
     dynamic_info: Optional[Dict],
     device: Device,
 ):
+    check_dynamic_info_inputs(dynamic_info, input_data.get_list(1)[0])
     batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
         dl_framework
     ](
@@ -183,6 +209,30 @@ def is_dict_type(data_sample: Any):
         return False
     else:
         return True
+
+
+def check_device(device: Optional[str]) -> Device:
+    if device is None:
+        if gpu_is_available():
+            device = Device.GPU
+        else:
+            device = Device.CPU
+    else:
+        if device.lower() == "gpu":
+            if not gpu_is_available():
+                logger.warning(
+                    "Selected GPU device but no available GPU found on this "
+                    "platform. CPU will be used instead. Please make sure "
+                    "that the gpu is installed and can be used by your "
+                    "framework."
+                )
+                device = Device.CPU
+            else:
+                device = Device.GPU
+        else:
+            device = Device.CPU
+
+    return device
 
 
 INFO_EXTRACTION_DICT: Dict[DeepLearningFramework, Callable] = {

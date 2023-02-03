@@ -1,0 +1,18 @@
+site_name: Speedster
+
+docs_dir: ./docs
+
+nav:
+  - Overview: overview.md
+  - Installation: installation.md
+  - Getting started:
+    - PyTorch: getting_started/pytorch_getting_started.md
+    - 🤗 HuggingFace: getting_started/hf_getting_started.md
+    - TensorFlow/Keras: getting_started/tf_getting_started.md
+    - ONNX: getting_started/onnx_getting_started.md
+  - Notebooks: notebooks.md
+  - Key concepts: key_concepts.md
+  - Supported hardware: hardware.md
+  - Advanced options: advanced_options.md
+  - Benchmarks: benchmarks.md
+  - Telemetry: telemetry.md

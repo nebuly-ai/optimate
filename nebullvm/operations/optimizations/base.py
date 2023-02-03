@@ -2,7 +2,10 @@ import abc
 from tempfile import TemporaryDirectory
 from typing import List, Callable, Union, Tuple, Any, Dict, Type
 
-from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
+from nebullvm.config import (
+    CONSTRAINED_METRIC_DROP_THS,
+    ACTIVATION_METRIC_DROP_THS,
+)
 from nebullvm.operations.base import Operation
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.builders import (
@@ -155,11 +158,13 @@ class Optimizer(Operation, abc.ABC):
         if metric_drop_ths is not None:
             q_types = [
                 None,
-                QuantizationType.DYNAMIC,
-                QuantizationType.HALF,
             ]
-            if input_data is not None:
-                q_types.append(QuantizationType.STATIC)
+            if metric_drop_ths > 0:
+                q_types.append(QuantizationType.HALF)
+            if metric_drop_ths > ACTIVATION_METRIC_DROP_THS:
+                q_types.append(QuantizationType.DYNAMIC)
+                if input_data is not None:
+                    q_types.append(QuantizationType.STATIC)
         else:
             q_types = [None]
 

@@ -1,13 +1,13 @@
-import logging
 import os
 import platform
 import subprocess
 import sys
 from abc import ABC
 from pathlib import Path
-from typing import List, Union
+from typing import List
 
 import cpuinfo
+from loguru import logger
 
 from nebullvm.config import (
     LIBRARIES_GPU,
@@ -24,8 +24,6 @@ from nebullvm.tools.utils import (
     gpu_is_available,
     check_module_version,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def get_cpu_arch():
@@ -329,7 +327,7 @@ class BaseInstaller(ABC):
 
     def install_compilers(
         self,
-        include_libraries: Union[List[str], str] = "all",
+        include_libraries: List[str],
     ):
         for library in self.modules:
             if (
@@ -357,7 +355,7 @@ class BaseInstaller(ABC):
                 logger.info(f"{library} installed successfully!")
 
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
+    def install_dependencies(include_framework: List[str]):
         raise NotImplementedError
 
     @staticmethod
@@ -371,7 +369,7 @@ class BaseInstaller(ABC):
 
 class PytorchInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
+    def install_dependencies(include_framework: List[str]):
         return
 
     @staticmethod
@@ -394,7 +392,7 @@ class PytorchInstaller(BaseInstaller):
 
     @staticmethod
     def install_framework():
-        cmd = ["pip3", "install", "torch>=1.10.0, <1.13.0"]
+        cmd = ["pip3", "install", "torch>=1.10.0"]
         subprocess.run(cmd)
 
         try:
@@ -407,8 +405,8 @@ class PytorchInstaller(BaseInstaller):
 
 class TensorflowInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
-        if "onnx" in include_frameworks:
+    def install_dependencies(include_framework: List[str]):
+        if "onnx" in include_framework:
             install_tf2onnx()
 
     @staticmethod
@@ -418,9 +416,7 @@ class TensorflowInstaller(BaseInstaller):
         except ImportError:
             return False
 
-        if not check_module_version(
-            tensorflow, min_version="2.7.0", max_version="2.10.0"
-        ):
+        if not check_module_version(tensorflow, min_version="2.7.0"):
             return False
 
         return True
@@ -444,7 +440,7 @@ class TensorflowInstaller(BaseInstaller):
 
 class ONNXInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
+    def install_dependencies(include_framework: List[str]):
         install_onnxruntime()
         cmd = ["pip3", "install", "onnxmltools>=1.11.0"]
         subprocess.run(cmd)
@@ -481,7 +477,7 @@ class ONNXInstaller(BaseInstaller):
 
 class HuggingFaceInstaller(BaseInstaller):
     @staticmethod
-    def install_dependencies(include_frameworks: List[str]):
+    def install_dependencies(include_framework: List[str]):
         pass
 
     @staticmethod

@@ -1,11 +1,11 @@
 import json
-import logging
 import shutil
 from abc import ABC
 from pathlib import Path
 from typing import Dict, Union, Type, Generator, Tuple, List, Optional
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import OPENVINO_FILENAMES
 from nebullvm.operations.inference_learners.base import (
@@ -23,11 +23,9 @@ from nebullvm.optional_modules.openvino import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import ModelParams, DeepLearningFramework
+from nebullvm.tools.base import ModelParams, DeepLearningFramework, Device
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
@@ -59,6 +57,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         output_keys: List,
         description_file: str,
         weights_file: str,
+        device: Device,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -66,6 +65,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         self.infer_request = infer_request
         self.input_keys = input_keys
         self.output_keys = output_keys
+        self.device = device
         self.description_file = self._store_file(description_file)
         self.weights_file = self._store_file(weights_file)
 
@@ -98,6 +98,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
         model_name = str(path / OPENVINO_FILENAMES["description_file"])
         model_weights = str(path / OPENVINO_FILENAMES["weights"])
+        metadata["device"] = Device(metadata["device"])
         return cls.from_model_name(
             model_name=model_name, model_weights=model_weights, **metadata
         )
@@ -111,6 +112,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         network_parameters: ModelParams,
         model_name: str,
         model_weights: str,
+        device: Device,
         input_tfms: MultiStageTransformation = None,
         input_data: DataManager = None,
         **kwargs,
@@ -124,6 +126,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             model_name (str): File containing a description of the optimized
                 model.
             model_weights (str): File containing the model weights.
+            device (Device): Device used to run the model.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction.
@@ -160,6 +163,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             description_file=model_name,
             weights_file=model_weights,
             input_data=input_data,
+            device=device,
         )
 
     @staticmethod

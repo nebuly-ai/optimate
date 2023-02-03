@@ -1,14 +1,12 @@
-import logging
 from typing import Sequence, List, Tuple, Any, Union, Iterable
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import MIN_DIM_INPUT_DATA
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, Dataset, DataLoader
 from nebullvm.tools.onnx import convert_to_numpy
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 class DataManager:
@@ -202,6 +200,10 @@ class PytorchDataset(Dataset):
         data = tuple([data[item_idx] for data in self.data[batch_idx][0]])
 
         if self.has_labels:
-            return data, self.data[batch_idx][1][item_idx]
+            label = self.data[batch_idx][1]
+            if label is not None:
+                return data, self.data[batch_idx][1][item_idx]
+            else:
+                return data, torch.tensor([0])
         else:
             return data

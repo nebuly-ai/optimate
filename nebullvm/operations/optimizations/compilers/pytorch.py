@@ -76,16 +76,25 @@ class PytorchBackendCompiler(Compiler):
                 model, quantization_type, input_tfms, train_input_data
             )
 
-        self.compiled_model = self._compile_model(model, input_data)
+        self.compiled_model = self._compile_model(
+            model, input_data, quantization_type
+        )
 
     def _compile_model(
         self,
         model: Union[Module, GraphModule],
         input_data: DataManager,
+        quantization_type: QuantizationType,
     ) -> ScriptModule:
         input_sample = input_data.get_list(1)[0]
         if self.device is Device.GPU:
-            input_sample = [t.cuda() for t in input_sample]
+            if quantization_type is QuantizationType.HALF:
+                input_sample = [
+                    t.cuda().half() if torch.is_floating_point(t) else t.cuda()
+                    for t in input_sample
+                ]
+            else:
+                input_sample = [t.cuda() for t in input_sample]
 
         if not isinstance(model, torch.fx.GraphModule):
             model.eval()

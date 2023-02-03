@@ -102,6 +102,7 @@ class DeepSparseBuildInferenceLearner(BuildInferenceLearner):
             network_parameters=model_params,
             input_names=input_names,
             output_names=output_names,
+            device=self.device,
         )
 
 
@@ -143,6 +144,7 @@ class OpenVINOBuildInferenceLearner(BuildInferenceLearner):
             model_weights=model + ".bin",
             input_tfms=input_tfms,
             network_parameters=model_params,
+            device=self.device,
         )
 
 
@@ -238,6 +240,7 @@ class PyTorchApacheTVMBuildInferenceLearner(BuildInferenceLearner):
             input_names=input_names,
             lib=model,
             target=target_device,
+            device=self.device,
         )
 
 
@@ -274,4 +277,5 @@ class ONNXApacheTVMBuildInferenceLearner(BuildInferenceLearner):
             input_names=input_names,
             lib=model,
             target=target_device,
+            device=self.device,
         )

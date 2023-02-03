@@ -1,14 +1,15 @@
-import logging
 import time
 from abc import abstractmethod, ABC
-from tqdm import tqdm
 from typing import Any, Dict, Type
 
 import numpy as np
+from loguru import logger
+from tqdm import tqdm
 
+from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
-from nebullvm.tools.base import DeepLearningFramework, ModelParams
+from nebullvm.tools.base import DeepLearningFramework, ModelParams, Device
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import create_model_inputs_torch
@@ -17,9 +18,8 @@ from nebullvm.tools.utils import (
     check_input_data,
     extract_info_from_data,
     is_data_subscriptable,
+    check_device,
 )
-
-logger = logging.getLogger("nebullvm_logger")
 
 
 def _get_dl_framework(model: Any):
@@ -57,9 +57,10 @@ def _create_model_inputs(
 
 
 class BaseBenchmark(ABC):
-    def __init__(self, model, input_tensors, n_warmup=50, n_runs=1000):
+    def __init__(self, model, input_tensors, device, n_warmup=50, n_runs=1000):
         self.model = model
         self.input_tensors = input_tensors
+        self.device = device
         self.n_warmup = n_warmup
         self.n_runs = n_runs
 
@@ -70,16 +71,12 @@ class BaseBenchmark(ABC):
 
 class PytorchBenchmark(BaseBenchmark):
     def benchmark(self):
-        has_cuda = torch.cuda.is_available()
-        device = torch.device("cuda" if has_cuda else "cpu")
+        device = torch.device("cuda" if self.device is Device.GPU else "cpu")
         input_tensors = [
             [tensor.to(device) for tensor in tensors]
             for tensors in self.input_tensors
         ]
         batch_size = input_tensors[0][0].shape[0]
-
-        if isinstance(self.model, torch.nn.Module):
-            self.model.to(device).eval()
 
         if isinstance(self.model, torch.nn.Module):
             self.model.to(device).eval()
@@ -92,7 +89,7 @@ class PytorchBenchmark(BaseBenchmark):
                 self.model(
                     *input_tensors[i % min(self.n_warmup, len(input_tensors))]
                 )
-        if has_cuda:
+        if self.device is Device.GPU:
             torch.cuda.synchronize()
         timings = []
         with torch.no_grad():
@@ -104,7 +101,7 @@ class PytorchBenchmark(BaseBenchmark):
                 self.model(
                     *input_tensors[i % min(self.n_runs, len(input_tensors))]
                 )
-                if has_cuda:
+                if self.device is Device.GPU:
                     torch.cuda.synchronize()
                 end_time = time.time()
                 timings.append(end_time - start_time)
@@ -161,9 +158,12 @@ def benchmark(
         n_runs (int, optional): Number of iterations performed to benchmark
             the model.
     """
-    if device is None:
-        logger.warning("No device specified, using CPU")
-        device = "cpu"
+    if not isinstance(model, BaseInferenceLearner):
+        device = check_device(device)
+    else:
+        device = model.device
+
+    logger.info(f"Running benchmark on {device.name}")
 
     dl_framework = _get_dl_framework(model)
 
@@ -215,6 +215,7 @@ def benchmark(
     BENCHMARK_FUNCTIONS[dl_framework](
         model=model,
         input_tensors=input_data,
+        device=device,
         n_warmup=n_warmup,
         n_runs=n_runs,
     ).benchmark()

@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import Callable, List
 
 
 def map_compilers_and_compressors(ignore_list: List, enum_class: Callable):

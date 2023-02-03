@@ -10,6 +10,7 @@ REQUIREMENTS = [
     "requests>=2.26.0",
     "tqdm>=4.36.0",
     "packaging>=21.3",
+    "loguru>=0.5.3",
 ]
 
 this_directory = Path(__file__).parent
@@ -17,7 +18,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf8")
 
 setup(
     name="nebullvm",
-    version="0.6.1",
+    version="0.8.0",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     long_description=long_description,

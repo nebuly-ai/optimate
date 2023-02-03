@@ -10,7 +10,6 @@ from nebullvm.optional_modules.tensor_rt import (
 from nebullvm.tools.base import QuantizationType, ModelParams
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
-    HalfPrecisionTransformation,
 )
 
 
@@ -23,7 +22,8 @@ def quantize_tensorrt(
 ):
     if quantization_type is QuantizationType.HALF:
         config.set_flag(trt.BuilderFlag.FP16)
-        input_tfms.append(HalfPrecisionTransformation())
+        # Tensor RT does not need to transform input data
+        # to fp16 because it expects always fp32
     elif quantization_type is QuantizationType.STATIC:
         assert input_data is not None, (
             "You need to specify the calibration data for "
@@ -54,8 +54,9 @@ class TensorRTCalibrator(IInt8EntropyCalibrator2):
 
             cuda_data = []
             for input_tensor in data:
-                device_array = polygraphy.DeviceArray()
-                device_array.resize(input_tensor.shape)
+                device_array = polygraphy.DeviceArray(
+                    shape=input_tensor.shape, dtype=input_tensor.dtype
+                )
                 device_array.copy_from(
                     host_buffer=input_tensor, stream=cuda_stream
                 )

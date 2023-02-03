@@ -9,43 +9,20 @@ from typing import (
     Optional,
 )
 
+from nebullvm.config import DEFAULT_METRIC_DROP_THS
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import Device
-from nebullvm.tools.utils import gpu_is_available
+from nebullvm.tools.logger import debug_mode_enabled, LoggingContext
+
 from speedster.root_op import SpeedsterRootOp
 
-logger = logging.getLogger("nebullvm_logger")
-
-
-def _check_device(device: Optional[str]) -> Device:
-    if device is None:
-        if gpu_is_available():
-            device = Device.GPU
-        else:
-            device = Device.CPU
-    else:
-        if device.lower() == "gpu":
-            if not gpu_is_available():
-                logger.warning(
-                    "Selected GPU device but no available GPU found on this "
-                    "platform. CPU will be used instead. Please make sure "
-                    "that the gpu is installed and can be used by your "
-                    "framework."
-                )
-                device = Device.CPU
-            else:
-                device = Device.GPU
-        else:
-            device = Device.CPU
-
-    return device
+from nebullvm.tools.utils import check_device
 
 
 def optimize_model(
     model: Union[torch.nn.Module, tf.Module, str],
     input_data: Union[Iterable, Sequence],
-    metric_drop_ths: float = None,
+    metric_drop_ths: float = DEFAULT_METRIC_DROP_THS,
     metric: Union[str, Callable] = None,
     optimization_time: str = "constrained",
     dynamic_info: Dict = None,
@@ -142,19 +119,23 @@ def optimize_model(
             take as input and it will return `torch.Tensor`s.
     """
     root_op = SpeedsterRootOp()
-    device = _check_device(device)
-    root_op.to(device).execute(
-        model=model,
-        input_data=input_data,
-        metric_drop_ths=metric_drop_ths,
-        metric=metric,
-        optimization_time=optimization_time,
-        dynamic_info=dynamic_info,
-        config_file=config_file,
-        ignore_compilers=ignore_compilers,
-        ignore_compressors=ignore_compressors,
-        store_latencies=store_latencies,
-        **kwargs,
-    )
+    device = check_device(device)
+
+    disable_log = True if not debug_mode_enabled() else False
+
+    with LoggingContext(logging.getLogger(), disabled=disable_log):
+        root_op.to(device).execute(
+            model=model,
+            input_data=input_data,
+            metric_drop_ths=metric_drop_ths,
+            metric=metric,
+            optimization_time=optimization_time,
+            dynamic_info=dynamic_info,
+            config_file=config_file,
+            ignore_compilers=ignore_compilers,
+            ignore_compressors=ignore_compressors,
+            store_latencies=store_latencies,
+            **kwargs,
+        )
 
     return root_op.get_result()

@@ -1,3 +1,5 @@
+from tempfile import TemporaryDirectory
+
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
 from nebullvm.operations.inference_learners.huggingface import (
     HuggingFaceInferenceLearner,
@@ -6,7 +8,7 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from transformers import AlbertModel, TFAlbertModel, AlbertTokenizer
 
-from speedster import optimize_model
+from speedster import optimize_model, load_model
 
 
 def test_torch_huggingface_ort_input_text():
@@ -42,6 +44,14 @@ def test_torch_huggingface_ort_input_text():
             truncation=True,
         ),
     )
+
+    # save and load
+    with TemporaryDirectory() as tmp_dir:
+        optimized_model.save(tmp_dir)
+        loaded_model = load_model(tmp_dir)
+        assert isinstance(loaded_model, HuggingFaceInferenceLearner)
+
+        assert isinstance(loaded_model.get_size(), int)
 
     x = ["this is a test input to see if the optimized model works."]
     inputs = tokenizer(x, return_tensors="pt").to(device)
