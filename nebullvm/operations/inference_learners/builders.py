@@ -2,12 +2,12 @@ from pathlib import Path
 from typing import Union, Any
 
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
-from nebullvm.operations.inference_learners.deepsparse import (
-    PytorchDeepSparseInferenceLearner,
-)
-from nebullvm.operations.inference_learners.neural_compressor import (
-    PytorchNeuralCompressorInferenceLearner,
-)
+from nebullvm.operations.inference_learners.deepsparse import \
+    PytorchDeepSparseInferenceLearner
+from nebullvm.operations.inference_learners.faster_transformer import \
+    FasterTransformerInferenceLearner
+from nebullvm.operations.inference_learners.neural_compressor import \
+    PytorchNeuralCompressorInferenceLearner
 from nebullvm.operations.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
 from nebullvm.operations.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
@@ -279,3 +279,18 @@ class ONNXApacheTVMBuildInferenceLearner(BuildInferenceLearner):
             target=target_device,
             device=self.device,
         )
+class FasterTransformerBuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: ScriptModule,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = FasterTransformerInferenceLearner(
+            torch_model=model,
+            network_parameters=model_params,
+            input_tfms=input_tfms,
+            device=self.device,
+        )
+

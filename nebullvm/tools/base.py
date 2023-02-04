@@ -42,6 +42,7 @@ class ModelCompiler(Enum):
     TFLITE = "tflite"
     BLADEDISC = "bladedisc"
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
+    FASTER_TRANSFORMER = "faster_transformer"
 
 
 class ModelCompressor(Enum):

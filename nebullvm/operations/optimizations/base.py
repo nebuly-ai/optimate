@@ -331,6 +331,9 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[
     ModelCompiler.XLA: {
         DeepLearningFramework.TENSORFLOW: TensorflowBackendCompiler
     },
+    ModelCompiler.FASTER_TRANSFORMER: {
+        DeepLearningFramework.PYTORCH: FasterTransformerCompiler
+    },
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
@@ -364,5 +367,8 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     },
     ModelCompiler.XLA: {
         DeepLearningFramework.TENSORFLOW: TensorflowBuildInferenceLearner
+    },
+    ModelCompiler.FASTER_TRANSFORMER: {
+        DeepLearningFramework.PYTORCH: FasterTransformerBuildInferenceLearner
     },
 }
