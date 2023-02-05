@@ -129,7 +129,6 @@ class ONNXConverter(Converter):
         torch_model_path = convert_onnx_to_torch(
             onnx_model=self.model_onnx,
             output_file_path=torch_path,
-            device=self.device,
         )
         if self.converted_models is None:
             self.converted_models = [torch_model_path]
