@@ -14,7 +14,7 @@ from nebullvm.tools.transformations import MultiStageTransformation
 
 class FasterTransformerInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_scripted.pt"
-    name = "TorchScript"
+    name = "FasterTransformer"
 
     def __init__(self, torch_model: ScriptModule, device: Device, **kwargs):
         super().__init__(**kwargs)
