@@ -110,11 +110,12 @@ class ONNXConverter(Converter):
     def execute(
         self,
         save_path: Path,
+        model_params: ModelParams,
     ):
         self.converted_models = [self.model]
         for framework in self.DEST_FRAMEWORKS:
             if framework is DeepLearningFramework.NUMPY:
-                self.pytorch_conversion(save_path)
+                self.pytorch_conversion(save_path, model_params)
             else:
                 raise NotImplementedError()
 
@@ -122,10 +123,9 @@ class ONNXConverter(Converter):
         # TODO: Implement conversion from ONNX to Tensorflow
         raise NotImplementedError()
 
-    def pytorch_conversion(self, save_path):
-        # TODO: Implement conversion from ONNX to Pytorch
-        #raise NotImplementedError()
-        torch_path = save_path / f"{self.model_name}{self.TORCH_EXTENSION}"
+    def pytorch_conversion(self, save_path, model_params):
+        self.model_onnx = model_params
+        torch_path = Path(save_path / + f"{self.model_name}{self.TORCH_EXTENSION}")
         torch_model_path = convert_onnx_to_torch(
             onnx_model=self.model_onnx,
             output_file_path=torch_path,

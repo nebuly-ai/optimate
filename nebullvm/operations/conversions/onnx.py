@@ -3,13 +3,13 @@ from pathlib import Path
 
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device
-
-from onnx2torch import convert
-
+from nebullvm.optional_modules.onnx import ModelProto
 logger = logging.getLogger("nebullvm_logger")
 
+from nebullvm.optional_modules.onnx import convert
+
 def convert_onnx_to_torch(
-    onnx_model, # Determine datatype of onnx_model
+    onnx_model: ModelProto,
     output_file_path: Path,
 ):
     """Function importing a custom ONNX model and converting it in Pytorch
