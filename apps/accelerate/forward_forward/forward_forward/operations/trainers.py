@@ -183,3 +183,53 @@ class NLPForwardForwardTrainer(BaseForwardForwardTrainer):
             predictions, _ = model.positive_eval(test_data, theta)
             perplexity = compute_perplexity(predictions)
             self.logger.info(f"Perplexity: {perplexity}")
+
+            
+class CNNForwardForwardTrainer(BaseForwardForwardTrainer):
+    def _train(self, epochs: int, theta: float, device: str, **kwargs):
+        model = self.model.to(device)
+        for epoch in range(epochs):
+            accumulated_goodness = None
+            model.train()
+            # Preprocess the data
+            x_train = [data.flatten().numpy() for data, label in self.train_data]
+            x_test = [data.flatten().numpy() for data, label in self.test_data]
+
+            # Perform clustering
+            kmeans = KMeans(n_clusters=10, random_state=0)
+            kmeans.fit(x_train)
+
+            # Predict the cluster assignments for each data point
+            train_clusters = kmeans.predict(x_train)
+            test_clusters = kmeans.predict(x_test)
+
+            for j, (data, target) in enumerate(self.train_data):
+                # TODO: THE IMAGE SHAPE SHOULD NOT BE DEFINED HERE
+                data = data.to(device).reshape(-1, 28 * 28)
+                target = torch.functional.F.one_hot(
+                    torch.tensor([train_clusters[target]]),
+                    num_classes=10,
+                ).to(device)
+                _, goodness = model.ff_train(data, target, theta)
+                if accumulated_goodness is None:
+                    accumulated_goodness = goodness
+                else:
+                    accumulated_goodness[0] += goodness[0]
+                    accumulated_goodness[1] += goodness[1]
+            goodness_ratio = (
+                accumulated_goodness[0] - accumulated_goodness[1]
+            ) / abs(max(accumulated_goodness))
+            self.logger.info(f"Epoch {epoch + 1}")
+            self.logger.info(f"Accumulated goodness: {accumulated_goodness}")
+            self.logger.info(f"Goodness ratio: {goodness_ratio}")
+            model.eval()
+            correct = 0
+            with torch.no_grad():
+                for data, target in self.test_data:
+                    data = data.to(device).reshape(-1, 28 * 28)
+                    target = torch.tensor([test_clusters[target]]).to(device)
+                    _, pred = model.positive_eval(data, theta)
+                    correct += (pred.item() == test_clusters[target]).sum().item()
+            self.logger.info(
+                f"Test accuracy: {correct} / 10000 ({correct / 10000 * 100}%)"
+            )            
