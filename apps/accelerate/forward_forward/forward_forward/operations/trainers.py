@@ -5,6 +5,11 @@ from nebullvm.operations.base import Operation
 from nebullvm.operations.fetch_operations.local import FetchModelFromLocal
 from torch.utils.data import DataLoader
 from torchvision import datasets
+import torch.optim as optim
+from sklearn.cluster import KMeans
+import torchvision
+import torchvision.transforms as transforms
+
 
 from forward_forward.operations.data import VOCABULARY
 from forward_forward.operations.fetch_operations import (
