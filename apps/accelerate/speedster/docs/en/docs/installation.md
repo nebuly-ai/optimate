@@ -33,67 +33,95 @@ Great, now you are now ready to accelerate your model 🚀 Please visit the foll
 By default, the `auto_installer` installs all the DL frameworks and compilers supported by `Speedster`. However, some of these may not be relevant to your use case. In this section, we explain how you can customize the installation of these libraries, avoiding those that are not needed.
 
 To customize the libraries installation you have two options:
+
 - [Use the auto-installer (recommended)](#use-the-auto-installer-recommended)
 - [Install the libraries manually](#manual-installation)
 
 ### Use the auto-installer (recommended)
 To understand how to selectively install your preferred libraries, let's examine the auto-installer API:
 
-    python -m nebullvm.installers.auto_installer --frameworks <frameworks> --extra-backends <backends> --compilers <compilers>
+```python
+python -m nebullvm.installers.auto_installer 
+    --frameworks <frameworks> 
+    --extra-backends <backends> 
+    --compilers <compilers>
+```
 
-- `--frameworks` is used to specify the deep learning framework of your input model. The supported frameworks are `torch`, `tensorflow`, `onnx` and `huggingface`.
-    - if you want to optimize a model with a single DL framework, the code is as follows (example below for HuggingFace):
-        
-        `python -m nebullvm.installers.auto_installer --frameworks huggingface` 
-        
-        Please remember that for PyTorch optimization, you should pre-install PyTorch from the official [repo](https://pytorch.org/get-started/locally/).
-        
-    - if you want to optimize models in multiple input frameworks, you can include them separated with a space:
-        
-        `python -m nebullvm.installers.auto_installer --frameworks tensorflow torch` 
-        
-    - If you want to include all the frameworks, you can use `all` as the argument:
-        
-        `python -m nebullvm.installers.auto_installer --frameworks all`  
+!!! Description
 
-    Default: `all`.
+    === "--frameworks"
 
-    
-- `--extra-backends`: After entering your input model, `Speedster` converts the input model from its original framework into an intermediate framework to be used during the optimization; we call these intermediate frameworks "backends." To learn more, see the section [Model Converter](https://docs.nebuly.com/Speedster/key_concepts/) in the docs. This conversion allows `Speedster` to apply all optimization techniques without being constrained by the input framework of your model.
-    
-    The supported backends are `torch`, `tensorflow` and `onnx`.
-    
-    You can specify multiple backends by separating them with a space. 
-    
-    - For example, if you want to install TensorFlow and ONNX as backends of an HugginFace model, the code is as follows:
-        
-        `python -m nebullvm.installers.auto_installer --frameworks huggingface --extra-backends tensorflow onnx`
-        
-    - If you want to install all the backends supported by the selected frameworks, you can use `all` as the argument.
-    - If you don't want to install extra backends, you can set `--extra-backends none`.
-    
-    The extra-backends that you choose must be compatible with at least one of the input frameworks you previously selected with the argument `—-frameworks`, please see the table below to see the compatibility matrix. 
-    
-    Default: `all`.
+        `frameworks` is used to specify the deep learning framework of your input model. The supported frameworks are `torch`, `tensorflow`, `onnx` and `huggingface`.
 
+        - if you want to optimize a model with a single DL framework, the code is as follows (example below for HuggingFace):
+            
+            ```python
+            python -m nebullvm.installers.auto_installer --frameworks huggingface
+            ```
+            
+            Please remember that for PyTorch optimization, you should pre-install PyTorch from the official [repo](https://pytorch.org/get-started/locally/).
+                
+        - if you want to optimize models in multiple input frameworks, you can include them separated with a space:
+            ```python
+            python -m nebullvm.installers.auto_installer --frameworks tensorflow torch
+            ```
+
+        - If you want to include all the frameworks, you can use `all` as the argument:
+
+            ```python
+            python -m nebullvm.installers.auto_installer --frameworks all
+            ```
+
+        Default: `all`.
     
-- `--compilers` is used to specify the deep learning compilers to be installed. The supported compilers are: `deepsparse`, `tensor_rt`, `torch_tensor_rt`, `openvino` and `intel_neural_compressor`. The compilers must be compatible with at least one of the backends selected with the argument `—-extra-backends`, please see the table below to see the compatibility matrix.
-    - You can specify multiple compilers by separating them with a space. For example:
-        
-        `--compilers deepsparse tensor_rt`
-        
-        will install DeepSparse and TensorRT. 
-        
-    - If you want to install all the compilers supported by the selected frameworks/backends, you can use `all` as the argument.
-    
-    Speedster also supports `torchscript`, `tf_lite`, and `onnxruntime` as built-in; these are preinstalled with their respective backends, so there is no need to include them in the list. Speedster also supports `tvm`, which is currently not supported by the automatic installer and must be installed manually; see the next section if you wish to include it.
-    
-    Default: `all`.
-    
+    === "--extra-backends"
+
+        After entering your input model, `Speedster` converts the input model from its original framework into an intermediate framework to be used during the optimization; we call these intermediate frameworks "backends." To learn more, see the section [Model Converter](https://docs.nebuly.com/Speedster/key_concepts/) in the docs. This conversion allows `Speedster` to apply all optimization techniques without being constrained by the input framework of your model.
+            
+        The supported backends are `torch`, `tensorflow` and `onnx`.
+            
+        You can specify multiple backends by separating them with a space. 
+            
+        - For example, if you want to install TensorFlow and ONNX as backends of an HugginFace model, the code is as follows:
+            
+            ```python
+            python -m nebullvm.installers.auto_installer --frameworks huggingface --extra-backends tensorflow onnx
+            ```python
+            
+        - If you want to install all the backends supported by the selected frameworks, you can use `all` as the argument.
+        - If you don't want to install extra backends, you can set `--extra-backends none`.
+            
+        The extra-backends that you choose must be compatible with at least one of the input frameworks you previously selected with the argument `—-frameworks`, please see the table below to see the compatibility matrix. 
+
+        Default: `all`.    
+
+    === "--compilers"
+
+        `compilers` is used to specify the deep learning compilers to be installed. The supported compilers are: `deepsparse`, `tensor_rt`, `torch_tensor_rt`, `openvino` and `intel_neural_compressor`. The compilers must be compatible with at least one of the backends selected with the argument `—-extra-backends`, please see the table below to see the compatibility matrix.
+
+        - You can specify multiple compilers by separating them with a space. For example:
+            
+            ```python
+            --compilers deepsparse tensor_rt
+            ```
+            
+            will install DeepSparse and TensorRT. 
+            
+        - If you want to install all the compilers supported by the selected frameworks/backends, you can use `all` as the argument.
+
+        Speedster also supports `torchscript`, `tf_lite`, and `onnxruntime` as built-in; these are preinstalled with their respective backends, so there is no need to include them in the list. Speedster also supports `tvm`, which is currently not supported by the automatic installer and must be installed manually; see the next section if you wish to include it.
+
+        Default: `all`.
+
 
 Let's see an example of how to use these three arguments:
 
-    python -m nebullvm.installers.auto_installer --frameworks torch --extra-backends all --compilers all
+```python
+python -m nebullvm.installers.auto_installer 
+    --frameworks torch 
+    --extra-backends all 
+    --compilers all
+```
 
 This command will setup your environment to optimize PyTorch models, and will install all PyTorch supported backends and compilers.
 
