@@ -829,3 +829,52 @@ class LMFFNet(BaseFFLayer):
             )
         cumulated_goodness /= self.predicted_tokens
         return prediction, cumulated_goodness
+    
+class ConvBNReLU(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
+        super().__init__()
+        self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.bn = torch.nn.BatchNorm2d(out_channels)
+        self.relu = torch.nn.ReLU()
+
+    def forward(self, x):
+        return self.relu(self.bn(self.conv(x)))
+
+class ConvFFLayer(BaseFFLayer):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride,
+        padding,
+        optimizer_name,
+        optimizer_kwargs,
+        loss_fn_name,
+    ):
+        super().__init__()
+        self.layer = ConvBNReLU(in_channels, out_channels, kernel_size, stride, padding)
+        self.optimizer = getattr(torch.optim, optimizer_name)(self.layer.parameters(), **optimizer_kwargs)
+        self.loss_fn = eval(loss_fn_name)
+
+    def forward(self, x):
+        return self.layer(x)
+
+    def ff_train(self, x, signs, theta):
+        new_x = self(x.detach())
+        y_pos = new_x[signs == 1]
+        y_neg = new_x[signs == -1]
+        loss_pos, goodness_pos = self.loss_fn(y_pos, theta, 1)
+        loss_neg, goodness_neg = self.loss_fn(y_neg, theta, -1)
+        loss = loss_pos + loss_neg
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        return new_x, [goodness_pos, goodness_neg]
+
+    @torch.no_grad()
+    def positive_eval(self, x, theta):
+        new_x = self(x)
+        goodness = new_x.pow(2).mean(dim=1) - theta
+        return new_x, goodness
+
