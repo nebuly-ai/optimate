@@ -125,7 +125,7 @@ class ONNXConverter(Converter):
 
     def pytorch_conversion(self, save_path, model_params):
         self.model_onnx = model_params
-        torch_path = Path(save_path / + f"{self.model_name}{self.TORCH_EXTENSION}")
+        torch_path = save_path / f"{self.model_name}{self.TORCH_EXTENSION}"
         torch_model_path = convert_onnx_to_torch(
             onnx_model=self.model_onnx,
             output_file_path=torch_path,
