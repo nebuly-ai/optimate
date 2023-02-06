@@ -125,7 +125,7 @@ class ONNXConverter(Converter):
         raise NotImplementedError()
 
     def pytorch_conversion(self, save_path, model_params):
-        self.model_onnx = model_params
+        self.model_onnx = self.model
         torch_path = save_path / f"{self.model_name}{self.TORCH_EXTENSION}"
         torch_model_path = convert_onnx_to_torch(
             onnx_model=self.model_onnx,
