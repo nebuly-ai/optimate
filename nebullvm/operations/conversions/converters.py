@@ -11,6 +11,7 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import DeepLearningFramework, ModelParams
 from nebullvm.tools.data import DataManager
+from onnx import ModelProto
 
 
 class Converter(Operation, abc.ABC):
@@ -110,7 +111,7 @@ class ONNXConverter(Converter):
     def execute(
         self,
         save_path: Path,
-        model_params: ModelParams,
+        model_params: ModelProto,
     ):
         self.converted_models = [self.model]
         for framework in self.DEST_FRAMEWORKS:
