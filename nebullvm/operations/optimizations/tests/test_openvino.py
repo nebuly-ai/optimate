@@ -53,6 +53,13 @@ from nebullvm.tools.base import (
             2,
             "numeric_precision",
         ),
+        (
+            DeepLearningFramework.PYTORCH,
+            True,
+            QuantizationType.STATIC,
+            2,
+            "numeric_precision",
+        ),
     ],
 )
 @pytest.mark.skipif(
