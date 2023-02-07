@@ -53,7 +53,7 @@ class TensorRTCompiler(Compiler, abc.ABC):
         inputs_shapes = []
 
         for i, info in enumerate(model_params.input_infos):
-            static_shape = (model_params.batch_size, *info.size)
+            static_shape = info.size
 
             if model_params.dynamic_info is not None:
                 input_dict = model_params.dynamic_info.inputs[i]

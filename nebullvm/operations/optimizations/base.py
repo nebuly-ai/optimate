@@ -299,6 +299,7 @@ class Optimizer(Operation, abc.ABC):
                                 if self.device is Device.GPU:
                                     inference_learner.free_gpu_memory()
                     except Exception as ex:
+                        raise ex
                         self.logger.warning(
                             f"Optimization failed with "
                             f"{self.pipeline_dl_framework} "

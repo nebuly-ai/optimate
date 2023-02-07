@@ -368,10 +368,7 @@ class PytorchONNXTensorRTInferenceLearner(
         if self.network_parameters.dynamic_info is None:
             if self.output_tensors is None:
                 self.output_tensors = [
-                    torch.Tensor(
-                        self.network_parameters.batch_size,
-                        *output_size,
-                    ).cuda()
+                    torch.Tensor(*output_size).cuda()
                     for output_size in self.network_parameters.output_sizes
                 ]
             input_sizes = None
@@ -388,10 +385,7 @@ class PytorchONNXTensorRTInferenceLearner(
                         else dynamic_info.retrieve_output_dim(
                             input_sizes, j, i, x
                         )
-                        for i, x in enumerate(
-                            (self.network_parameters.batch_size,)
-                            + tuple(output_size)
-                        )
+                        for i, x in enumerate(output_size)
                     ),
                 ).cuda()
                 for j, (output_size, dynamic_axis) in enumerate(
@@ -442,15 +436,13 @@ class BaseArrayONNXTensorRTInferenceLearner(ONNXTensorRTInferenceLearner, ABC):
     ) -> Generator[np.ndarray, None, None]:
         if self.network_parameters.dynamic_info is None:
             cuda_output_arrays = [
-                polygraphy.cuda.DeviceArray(
-                    shape=(self.network_parameters.batch_size, *output_size)
-                )
+                polygraphy.cuda.DeviceArray(shape=output_size)
                 for output_size in self.network_parameters.output_sizes
             ]
         else:
             dynamic_info = self.network_parameters.dynamic_info
             output_sizes = (
-                (self.network_parameters.batch_size, *output_size)
+                output_size
                 for output_size in self.network_parameters.output_sizes
             )
 

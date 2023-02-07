@@ -113,10 +113,7 @@ class ApacheTVMCompiler(Compiler, ABC):
         torch_model: Module, model_params: ModelParams, device: Device
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {
-            f"input_{i}": (
-                model_params.batch_size,
-                *input_size,
-            )
+            f"input_{i}": input_size
             for i, input_size in enumerate(model_params.input_sizes)
         }
         inputs = tuple(
@@ -144,10 +141,7 @@ class ApacheTVMCompiler(Compiler, ABC):
         onnx_model_path: str, model_params: ModelParams
     ) -> Tuple[IRModule, Dict[str, NDArray]]:
         shape_dict = {
-            input_key: (
-                model_params.batch_size,
-                *input_size,
-            )
+            input_key: input_size
             for input_key, input_size in zip(
                 get_input_names(onnx_model_path), model_params.input_sizes
             )

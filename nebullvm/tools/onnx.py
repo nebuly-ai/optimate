@@ -1,6 +1,7 @@
 from typing import List, Tuple, Any, Optional, Dict
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.optional_modules.onnx import onnx
@@ -107,28 +108,27 @@ def _extract_dynamic_axis(
 def extract_info_from_np_data(
     onnx_model: str,
     data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
-    batch_size: int,
-    input_sizes: List[Tuple[int, ...]],
-    input_types: List[str],
     dynamic_axis: Dict,
     device: Device,
 ):
     from nebullvm.tools.utils import ifnone
 
     input_row = data[0][0]
-    batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
-    input_sizes = ifnone(input_sizes, [tuple(x.shape) for x in input_row])
-    input_types = ifnone(
-        input_types,
-        [
-            "int32"
-            if x.dtype is np.int32
-            else "int64"
-            if x.dtype is np.int64
-            else "float32"
-            for x in input_row
-        ],
-    )
+    if all([input_row[0].shape[0] == x.shape[0] for x in input_row]):
+        batch_size = int(input_row[0].shape[0])
+    else:
+        logger.warning("Detected not consistent batch size in the inputs.")
+        batch_size = 1
+
+    input_sizes = [tuple(x.shape) for x in input_row]
+    input_types = [
+        "int32"
+        if x.dtype is np.int32
+        else "int64"
+        if x.dtype is np.int64
+        else "float32"
+        for x in input_row
+    ]
     dynamic_axis = ifnone(
         dynamic_axis,
         _extract_dynamic_axis(onnx_model, data, input_sizes, device),
@@ -140,7 +140,7 @@ def get_output_sizes_onnx(
     onnx_model: str, input_tensors: List[np.ndarray], device
 ) -> List[Tuple[int, ...]]:
     res = run_onnx_model(onnx_model, input_tensors, device)
-    sizes = [tuple(output.shape[1:]) for output in res]
+    sizes = [tuple(output.shape) for output in res]
     return sizes
 
 

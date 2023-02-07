@@ -90,12 +90,7 @@ class OpenVINOCompiler(Compiler):
             "--input",
             ",".join(get_input_names(str(model))),
             "--input_shape",
-            ",".join(
-                [
-                    f"{list((model_params.batch_size,) + shape)}"
-                    for shape in model_params.input_sizes
-                ]
-            ),
+            ",".join([f"{list(shape)}" for shape in model_params.input_sizes]),
         ]
 
         if quantization_type is QuantizationType.DYNAMIC:

@@ -1,6 +1,7 @@
 from typing import Union, List, Tuple, Any, Optional, Dict
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.tools.base import InputInfo, DataType, Device
@@ -81,19 +82,20 @@ def _extract_dynamic_axis(
 def extract_info_from_tf_data(
     tf_model: tf.Module,
     dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]],
-    batch_size: int,
-    input_sizes: List[Tuple[int, ...]],
-    input_types: List[str],
     dynamic_axis: Dict,
     device: Device,
 ):
     from nebullvm.tools.utils import ifnone
 
     input_row = dataset[0][0]
-    batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
-    input_sizes = ifnone(input_sizes, [tuple(x.shape) for x in input_row])
-    input_types = ifnone(
-        input_types,
+    if all([input_row[0].shape[0] == x.shape[0] for x in input_row]):
+        batch_size = int(input_row[0].shape[0])
+    else:
+        logger.warning("Detected not consistent batch size in the inputs.")
+        batch_size = 1
+
+    input_sizes = [tuple(x.shape) for x in input_row]
+    input_types = (
         [
             "int32"
             if x.dtype in [tf.int32, np.int32]
@@ -103,6 +105,7 @@ def extract_info_from_tf_data(
             for x in input_row
         ],
     )
+
     dynamic_axis = ifnone(
         dynamic_axis,
         _extract_dynamic_axis(tf_model, dataset, input_sizes, device),

@@ -102,10 +102,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             self.graph_executor_module.get_output(
                 i,
                 tvm.nd.empty(
-                    shape=(
-                        self.network_parameters.batch_size,
-                        *output_size,
-                    ),
+                    shape=output_size,
                     dtype="float16"
                     if self._has_half_precision_transformation()
                     else "float32",
@@ -235,7 +232,7 @@ class BaseArrayApacheTVMInferenceLearner(ApacheTVMInferenceLearner, ABC):
                         (0, abs(x - y))
                         for x, y in zip(
                             input_array.shape,
-                            (self.network_parameters.batch_size, *input_size),
+                            input_size,
                         )
                     ],
                     mode="constant",

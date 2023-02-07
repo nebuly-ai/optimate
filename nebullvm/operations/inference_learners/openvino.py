@@ -180,8 +180,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
             list(model_input.names)[0] for model_input in model.inputs
         ]
         input_shapes = [
-            (network_parameters.batch_size, *input_info.size)
-            for input_info in network_parameters.input_infos
+            input_info.size for input_info in network_parameters.input_infos
         ]
         dynamic_shapes = []
 

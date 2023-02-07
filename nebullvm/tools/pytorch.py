@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union, Sequence
 
+from loguru import logger
+
 from nebullvm.optional_modules.torch import torch, Module, DataLoader
 from nebullvm.tools.base import DataType, InputInfo, Device
 from nebullvm.tools.data import DataManager
@@ -36,9 +38,9 @@ def get_outputs_sizes_torch(
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
         if isinstance(outputs, torch.Tensor):
-            return [tuple(outputs.size())[1:]]
+            return [tuple(outputs.size())]
         else:
-            return [tuple(output.size())[1:] for output in outputs]
+            return [tuple(output.size()) for output in outputs]
 
 
 def create_model_inputs_torch(
@@ -115,9 +117,6 @@ def _extract_dynamic_axis(
 def extract_info_from_torch_data(
     model: Module,
     dataloader: Union[DataLoader, Sequence],
-    batch_size: int,
-    input_sizes: List[Tuple[int, ...]],
-    input_types: List[str],
     dynamic_axis: Dict,
     device: Device,
 ):
@@ -130,19 +129,21 @@ def extract_info_from_torch_data(
     )
     input_row = input_data[0]
 
-    batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
-    input_sizes = ifnone(input_sizes, [tuple(x.shape) for x in input_row])
-    input_types = ifnone(
-        input_types,
-        [
-            "int64"
-            if isinstance(x.cpu(), torch.LongTensor)
-            else "int32"
-            if isinstance(x.cpu(), torch.IntTensor)
-            else "float32"
-            for x in input_row
-        ],
-    )
+    if all([input_row[0].shape[0] == x.shape[0] for x in input_row]):
+        batch_size = int(input_row[0].shape[0])
+    else:
+        logger.warning("Detected not consistent batch size in the inputs.1")
+        batch_size = 1
+
+    input_sizes = [tuple(x.shape) for x in input_row]
+    input_types = [
+        "int64"
+        if isinstance(x.cpu(), torch.LongTensor)
+        else "int32"
+        if isinstance(x.cpu(), torch.IntTensor)
+        else "float32"
+        for x in input_row
+    ]
 
     if dynamic_axis is not None:
         dynamic_axis["inputs"] = [

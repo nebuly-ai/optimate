@@ -170,16 +170,13 @@ def extract_info_from_data(
     ](
         model,
         input_data,
-        batch_size=None,
-        input_sizes=None,
-        input_types=None,
         dynamic_axis=dynamic_info,
         device=device,
     )
     model_params = ModelParams(
         batch_size=batch_size,
         input_infos=[
-            {"size": size[1:], "dtype": dtype}
+            {"size": size, "dtype": dtype}
             for size, dtype in zip(input_sizes, input_types)
         ],
         output_sizes=OUTPUT_SIZE_COMPUTATION_DICT[dl_framework](
