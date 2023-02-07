@@ -19,16 +19,22 @@ def get_outputs_sizes_tf(
     return [tuple(x.shape) for x in outputs]
 
 
-def create_model_inputs_tf(
-    batch_size: int, input_infos: List[InputInfo]
-) -> List[tf.Tensor]:
+def create_model_inputs_tf(input_infos: List[InputInfo]) -> List[tf.Tensor]:
     return [
         tf.random_normal_initializer()(
-            shape=(batch_size, *input_info.size[1:], input_info.size[0])
+            shape=(
+                input_info.size[0],
+                *input_info.size[2:],
+                input_info.size[1],
+            )
         )
         if input_info.dtype is DataType.FLOAT32
         else tf.random.uniform(
-            shape=(batch_size, *input_info.size[1:], input_info.size[0]),
+            shape=(
+                input_info.size[0],
+                *input_info.size[2:],
+                input_info.size[1],
+            ),
             minval=input_info.min_value or 0,
             maxval=input_info.max_value or 100,
             dtype=tf.int32,
@@ -95,16 +101,14 @@ def extract_info_from_tf_data(
         batch_size = 1
 
     input_sizes = [tuple(x.shape) for x in input_row]
-    input_types = (
-        [
-            "int32"
-            if x.dtype in [tf.int32, np.int32]
-            else "int64"
-            if x.dtype in [tf.int64, np.int64]
-            else "float32"
-            for x in input_row
-        ],
-    )
+    input_types = [
+        "int32"
+        if x.dtype in [tf.int32, np.int32]
+        else "int64"
+        if x.dtype in [tf.int64, np.int64]
+        else "float32"
+        for x in input_row
+    ]
 
     dynamic_axis = ifnone(
         dynamic_axis,

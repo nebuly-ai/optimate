@@ -121,7 +121,6 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         if check_module_version(torch, min_version="1.13.0"):
             additional_arguments["example_inputs"] = tuple(
                 create_model_inputs_torch(
-                    batch_size=network_parameters.batch_size,
                     input_infos=network_parameters.input_infos,
                 )
             )

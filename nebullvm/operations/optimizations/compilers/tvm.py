@@ -116,11 +116,7 @@ class ApacheTVMCompiler(Compiler, ABC):
             f"input_{i}": input_size
             for i, input_size in enumerate(model_params.input_sizes)
         }
-        inputs = tuple(
-            create_model_inputs_torch(
-                model_params.batch_size, model_params.input_infos
-            )
-        )
+        inputs = tuple(create_model_inputs_torch(model_params.input_infos))
         if device is not Device.GPU:
             inputs = tuple(input_.cpu() for input_ in inputs)
             torch_model.cpu()

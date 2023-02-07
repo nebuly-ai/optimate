@@ -437,7 +437,6 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         if self._input_data is None or random:
             return tuple(
                 create_model_inputs_torch(
-                    batch_size=self.network_parameters.batch_size,
                     input_infos=self.network_parameters.input_infos,
                 )
             )
@@ -495,7 +494,6 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
         if self._input_data is None or random:
             return tuple(
                 create_model_inputs_tf(
-                    batch_size=self.network_parameters.batch_size,
                     input_infos=self.network_parameters.input_infos,
                 )
             )
@@ -547,7 +545,6 @@ class NumpyBaseInferenceLearner(BaseInferenceLearner, ABC):
         if self._input_data is None or random:
             return tuple(
                 create_model_inputs_onnx(
-                    batch_size=self.network_parameters.batch_size,
                     input_infos=self.network_parameters.input_infos,
                 )
             )

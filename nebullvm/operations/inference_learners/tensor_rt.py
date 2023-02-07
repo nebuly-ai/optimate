@@ -524,7 +524,7 @@ class TensorflowONNXTensorRTInferenceLearner(
             else None
         )
         out_arrays = self._predict_array(cuda_input_arrays, input_shapes)
-        return tuple(tf.convert_to_tensor(array[0]) for array in out_arrays)
+        return tuple(tf.convert_to_tensor(array) for array in out_arrays)
 
 
 class NumpyONNXTensorRTInferenceLearner(

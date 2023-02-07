@@ -202,9 +202,10 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
         model.cuda().eval()
 
         try:
-            ts_model = torch.jit.script(model)
             if quantization_type is QuantizationType.HALF:
-                ts_model.half()
+                ts_model = torch.jit.script(copy.deepcopy(model).half()).half()
+            else:
+                ts_model = torch.jit.script(model)
         except Exception:
             if quantization_type is QuantizationType.HALF:
                 ts_model = torch.jit.trace(

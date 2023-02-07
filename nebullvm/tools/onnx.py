@@ -144,14 +144,12 @@ def get_output_sizes_onnx(
     return sizes
 
 
-def create_model_inputs_onnx(
-    batch_size: int, input_infos: List[InputInfo]
-) -> List[np.ndarray]:
+def create_model_inputs_onnx(input_infos: List[InputInfo]) -> List[np.ndarray]:
     input_tensors = (
-        np.random.randn(batch_size, *input_info.size).astype(np.float32)
+        np.random.randn(*input_info.size).astype(np.float32)
         if input_info.dtype is DataType.FLOAT32
         else np.random.randint(
-            size=(batch_size, *input_info.size),
+            size=input_info.size,
             low=input_info.min_value or 0,
             high=input_info.max_value or 100,
         )

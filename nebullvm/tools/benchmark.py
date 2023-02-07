@@ -39,17 +39,11 @@ def _create_model_inputs(
     dl_framework: DeepLearningFramework, model_params: ModelParams
 ):
     if dl_framework == DeepLearningFramework.PYTORCH:
-        input_data = create_model_inputs_torch(
-            model_params.batch_size, model_params.input_infos
-        )
+        input_data = create_model_inputs_torch(model_params.input_infos)
     elif dl_framework == DeepLearningFramework.TENSORFLOW:
-        input_data = create_model_inputs_tf(
-            model_params.batch_size, model_params.input_infos
-        )
+        input_data = create_model_inputs_tf(model_params.input_infos)
     elif dl_framework == DeepLearningFramework.NUMPY:
-        input_data = create_model_inputs_onnx(
-            model_params.batch_size, model_params.input_infos
-        )
+        input_data = create_model_inputs_onnx(model_params.input_infos)
     else:
         raise TypeError(f"Unknown framework {dl_framework}")
 

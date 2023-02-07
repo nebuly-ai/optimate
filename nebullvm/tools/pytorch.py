@@ -44,13 +44,13 @@ def get_outputs_sizes_torch(
 
 
 def create_model_inputs_torch(
-    batch_size: int, input_infos: List[InputInfo]
+    input_infos: List[InputInfo],
 ) -> List[torch.Tensor]:
     input_tensors = (
-        torch.randn((batch_size, *input_info.size))
+        torch.randn(*input_info.size)
         if input_info.dtype is DataType.FLOAT32
         else torch.randint(
-            size=(batch_size, *input_info.size),
+            size=input_info.size,
             low=input_info.min_value or 0,
             high=input_info.max_value or 100,
         )

@@ -71,10 +71,12 @@ def _build_static_model(
     model_params = {
         "batch_size": STATIC_BATCH_SIZE,
         "input_infos": [
-            {"size": INPUT_SHAPE, "dtype": "float32"},
-            {"size": INPUT_SHAPE, "dtype": "float32"},
+            {"size": (STATIC_BATCH_SIZE, *INPUT_SHAPE), "dtype": "float32"},
+            {"size": (STATIC_BATCH_SIZE, *INPUT_SHAPE), "dtype": "float32"},
         ],
-        "output_sizes": [OUTPUT_SHAPE],
+        "output_sizes": [
+            (STATIC_BATCH_SIZE, *OUTPUT_SHAPE),
+        ],
     }
     model_params = ModelParams(**model_params)
     if framework == DeepLearningFramework.PYTORCH:
@@ -92,10 +94,12 @@ def _build_dynamic_model(
     model_params = {
         "batch_size": DYNAMIC_BATCH_SIZE,
         "input_infos": [
-            {"size": INPUT_SHAPE, "dtype": "float32"},
-            {"size": INPUT_SHAPE, "dtype": "float32"},
+            {"size": (DYNAMIC_BATCH_SIZE, *INPUT_SHAPE), "dtype": "float32"},
+            {"size": (DYNAMIC_BATCH_SIZE, *INPUT_SHAPE), "dtype": "float32"},
         ],
-        "output_sizes": [OUTPUT_SHAPE],
+        "output_sizes": [
+            (DYNAMIC_BATCH_SIZE, *OUTPUT_SHAPE),
+        ],
         "dynamic_info": {
             "inputs": [
                 {
