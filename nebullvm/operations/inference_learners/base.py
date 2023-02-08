@@ -454,7 +454,7 @@ class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
         return ".npy"
 
     def free_gpu_memory(self):
-        tf.keras.clear_session()
+        tf.keras.backend.clear_session()
         self._is_gpu_ready = False
 
     def set_model_on_gpu(self):
