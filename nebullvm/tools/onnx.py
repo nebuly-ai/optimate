@@ -114,11 +114,9 @@ def extract_info_from_np_data(
     from nebullvm.tools.utils import ifnone
 
     input_row = data[0][0]
-    if all([input_row[0].shape[0] == x.shape[0] for x in input_row]):
-        batch_size = int(input_row[0].shape[0])
-    else:
+    batch_size = int(input_row[0].shape[0])
+    if not all([input_row[0].shape[0] == x.shape[0] for x in input_row]):
         logger.warning("Detected not consistent batch size in the inputs.")
-        batch_size = 1
 
     input_sizes = [tuple(x.shape) for x in input_row]
     input_types = [
