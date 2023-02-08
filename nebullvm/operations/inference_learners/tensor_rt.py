@@ -262,6 +262,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
             self.use_gpu = True
         else:
             self.use_gpu = False
+        self.device = device
         self._is_gpu_ready = device is Device.GPU
 
     def get_size(self):
