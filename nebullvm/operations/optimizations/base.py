@@ -21,6 +21,9 @@ from nebullvm.operations.inference_learners.builders import (
     TFLiteBuildInferenceLearner,
     TensorflowBuildInferenceLearner,
 )
+from nebullvm.operations.inference_learners.openvino import (
+    TensorflowOpenVinoInferenceLearner,
+)
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import (
     compute_relative_difference,
@@ -38,6 +41,7 @@ from nebullvm.operations.optimizations.compilers.onnxruntime import (
 )
 from nebullvm.operations.optimizations.compilers.openvino import (
     OpenVINOCompiler,
+    TensorFlowOpenVINOCompiler,
 )
 from nebullvm.operations.optimizations.compilers.pytorch import (
     PytorchBackendCompiler,
@@ -188,7 +192,7 @@ class Optimizer(Operation, abc.ABC):
                             else None,
                             quantization_type=q_type,
                             input_tfms=input_tfms,
-                            onnx_output_path=tmp_dir,
+                            tmp_dir_path=tmp_dir,
                         )
 
                         compiled_model = compiler_op.get_result()
@@ -324,7 +328,10 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[
         DeepLearningFramework.NUMPY: ONNXApacheTVMCompiler,
     },
     ModelCompiler.ONNX_RUNTIME: {DeepLearningFramework.NUMPY: ONNXCompiler},
-    ModelCompiler.OPENVINO: {DeepLearningFramework.NUMPY: OpenVINOCompiler},
+    ModelCompiler.OPENVINO: {
+        DeepLearningFramework.NUMPY: OpenVINOCompiler,
+        DeepLearningFramework.TENSORFLOW: TensorFlowOpenVINOCompiler,
+    },
     ModelCompiler.TFLITE: {
         DeepLearningFramework.TENSORFLOW: TFLiteBackendCompiler
     },
@@ -357,7 +364,8 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
         DeepLearningFramework.NUMPY: ONNXBuildInferenceLearner
     },
     ModelCompiler.OPENVINO: {
-        DeepLearningFramework.NUMPY: OpenVINOBuildInferenceLearner
+        DeepLearningFramework.NUMPY: OpenVINOBuildInferenceLearner,
+        DeepLearningFramework.TENSORFLOW: TensorflowOpenVinoInferenceLearner,
     },
     ModelCompiler.TFLITE: {
         DeepLearningFramework.TENSORFLOW: TFLiteBuildInferenceLearner
