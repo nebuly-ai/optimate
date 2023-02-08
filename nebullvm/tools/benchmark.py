@@ -113,14 +113,89 @@ class PytorchBenchmark(BaseBenchmark):
 
 class TensorflowBenchmark(BaseBenchmark):
     def benchmark(self):
-        # TODO: implement benchmark for tensorflow
-        raise NotImplementedError
+        batch_size = self.input_tensors[0][0].shape[0]
+
+        for i in tqdm(
+            range(self.n_warmup),
+            desc=f"Performing warm up on {self.n_warmup} iterations",
+        ):
+            with tf.device(self.device.value):
+                self.model(
+                    *self.input_tensors[
+                        i % min(self.n_warmup, len(self.input_tensors))
+                    ]
+                )
+
+        timings = []
+        for i in tqdm(
+            range(1, self.n_runs + 1),
+            desc=f"Performing benchmark on {self.n_runs} iterations",
+        ):
+            start_time = time.time()
+            with tf.device(self.device.value):
+                self.model(
+                    *self.input_tensors[
+                        i % min(self.n_runs, len(self.input_tensors))
+                    ]
+                )
+
+            end_time = time.time()
+            timings.append(end_time - start_time)
+
+        print(f"Batch size: {batch_size}")
+
+        throughput = batch_size / np.mean(timings)
+        latency = np.mean(timings) / batch_size
+
+        print("Average Throughput: %.2f data/second" % throughput)
+        print("Average Latency: %.4f seconds/data" % latency)
+
+        return throughput, latency
 
 
 class NumpyBenchmark(BaseBenchmark):
     def benchmark(self):
-        # TODO: implement benchmark for numpy
-        raise NotImplementedError
+        if not isinstance(self.model, BaseInferenceLearner):
+            # TODO: Add support for original onnx models
+            raise NotImplementedError(
+                "Benchmark function doesn't support original " "onnx models."
+            )
+        batch_size = self.input_tensors[0][0].shape[0]
+
+        for i in tqdm(
+            range(self.n_warmup),
+            desc=f"Performing warm up on {self.n_warmup} iterations",
+        ):
+            self.model(
+                *self.input_tensors[
+                    i % min(self.n_warmup, len(self.input_tensors))
+                ]
+            )
+
+        timings = []
+        for i in tqdm(
+            range(1, self.n_runs + 1),
+            desc=f"Performing benchmark on {self.n_runs} iterations",
+        ):
+            start_time = time.time()
+            self.model(
+                *self.input_tensors[
+                    i % min(self.n_runs, len(self.input_tensors))
+                ]
+            )
+
+            end_time = time.time()
+            timings.append(end_time - start_time)
+
+        print(f"Batch size: {batch_size}")
+
+        throughput = batch_size / np.mean(timings)
+        latency = np.mean(timings) / batch_size
+
+        print("Average Throughput: %.2f data/second" % throughput)
+        print("Average Latency: %.4f seconds/data" % latency)
+
+        return throughput, latency
 
 
 def benchmark(
