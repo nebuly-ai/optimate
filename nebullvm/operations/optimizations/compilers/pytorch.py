@@ -90,7 +90,10 @@ class PytorchBackendCompiler(Compiler):
         input_sample = input_data.get_list(1)[0]
         if self.device is Device.GPU:
             if quantization_type is QuantizationType.HALF:
-                input_sample = [t.cuda().half() for t in input_sample]
+                input_sample = [
+                    t.cuda().half() if torch.is_floating_point(t) else t.cuda()
+                    for t in input_sample
+                ]
             else:
                 input_sample = [t.cuda() for t in input_sample]
             model.cuda()
