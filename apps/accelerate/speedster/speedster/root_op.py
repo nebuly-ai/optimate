@@ -477,6 +477,9 @@ class SpeedsterRootOp(Operation):
 
             optimized_models = optimization_op.get_result()
 
+            if isinstance(model, torch.nn.Module):
+                optimization_op._free_model_gpu(model)
+
             return optimized_models
 
     def get_result(self) -> Any:

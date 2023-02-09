@@ -20,11 +20,19 @@ from nebullvm.operations.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
+from nebullvm.operations.optimizations.compilers.utils import (
+    tensorrt_is_available,
+)
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import DeepLearningFramework, Device, ModelParams
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    Device,
+    ModelParams,
+    QuantizationType,
+)
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
@@ -76,6 +84,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         input_names: List[str],
         output_names: List[str],
         device: Device,
+        quantization_type: QuantizationType,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -91,6 +100,9 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
                 "session.set_denormal_as_zero", "1"
             )
 
+        if self.device is Device.GPU:
+            self._setup_tensorrt(quantization_type)
+
         ort_session = ort.InferenceSession(
             str(self.onnx_path),
             sess_options=self.sess_options,
@@ -98,10 +110,50 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             if self.device is Device.GPU
             else ONNX_PROVIDERS["cpu"],
         )
+
         self._session = ort_session
         self._is_gpu_ready = self.device is Device.GPU
         self.input_names = input_names
         self.output_names = output_names
+
+    @staticmethod
+    def _setup_tensorrt(quantization_type: QuantizationType):
+        if (
+            tensorrt_is_available()
+            and os.environ.get("LD_LIBRARY_PATH", False)
+            and "tensorrt" in os.environ["LD_LIBRARY_PATH"]
+        ):
+            ONNX_PROVIDERS["cuda"][0] = (
+                "TensorrtExecutionProvider",
+                {
+                    "trt_max_workspace_size": 23474836480,
+                    "trt_fp16_enable": True
+                    if quantization_type is not None
+                    else False,
+                    "trt_int8_enable": True
+                    if quantization_type is QuantizationType.STATIC
+                    else False,
+                },
+            )
+        else:
+            if tensorrt_is_available():
+                logger.warning(
+                    "TensorrtExecutionProvider for onnx is not "
+                    "available. If you want to use it, please  "
+                    "add the path to tensorrt to the "
+                    "LD_LIBRARY_PATH environment variable. "
+                    "CUDA provider will be used instead. "
+                )
+            else:
+                logger.warning(
+                    "TensorRT is not available. "
+                    "If you want to use it, please install it and "
+                    "add the path to the LD_LIBRARY_PATH "
+                    "environment variable."
+                    "CUDA provider will be used instead. "
+                )
+            if "TensorrtExecutionProvider" in ONNX_PROVIDERS["cuda"]:
+                ONNX_PROVIDERS["cuda"].remove("TensorrtExecutionProvider")
 
     def get_size(self):
         return sum(

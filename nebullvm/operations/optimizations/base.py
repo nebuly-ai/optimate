@@ -153,6 +153,18 @@ class Optimizer(Operation, abc.ABC):
 
         return compiler_ops, build_inference_learner_ops
 
+    def _free_model_gpu(self, model: Any):
+        # Free gpu memory
+        if self.device is Device.GPU:
+            try:
+                model.cpu()
+            except Exception:
+                pass
+            try:
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
+
     def _optimize(
         self,
         model: Union[torch.nn.Module, tf.Module, str],
@@ -187,16 +199,7 @@ class Optimizer(Operation, abc.ABC):
             for q_type in q_types:
                 input_tfms = MultiStageTransformation([])
 
-                # Free gpu memory
-                if self.device is Device.GPU:
-                    try:
-                        model.cpu()
-                    except Exception:
-                        pass
-                    try:
-                        torch.cuda.empty_cache()
-                    except Exception:
-                        pass
+                self._free_model_gpu(model)
 
                 with TemporaryDirectory() as tmp_dir:
                     try:
@@ -222,6 +225,7 @@ class Optimizer(Operation, abc.ABC):
                                 model_params=model_params,
                                 input_tfms=input_tfms,
                                 source_dl_framework=self.source_dl_framework,
+                                quantization_type=q_type,
                             )
                             inference_learner = (
                                 build_inference_learner_op.get_result()

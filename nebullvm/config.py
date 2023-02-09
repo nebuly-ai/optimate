@@ -29,6 +29,7 @@ TVM_FILENAMES = {"engine": "compiled_lib.so"}
 ONNX_FILENAMES = {"model_name": "model.onnx"}
 ONNX_PROVIDERS = {
     "cuda": [
+        "TensorrtExecutionProvider",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
     ],
