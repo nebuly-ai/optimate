@@ -15,7 +15,7 @@ from nebullvm.optional_modules.torch import (
     ScriptModule,
     GraphModule,
 )
-from nebullvm.tools.base import Device, ModelParams
+from nebullvm.tools.base import DeviceType, ModelParams, Device
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
@@ -26,23 +26,24 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
     def __init__(self, torch_model: ScriptModule, device: Device, **kwargs):
         super().__init__(**kwargs)
         self.model = torch_model.eval()
-        if device is Device.GPU:
-            self.model.cuda()
+        if device.type is DeviceType.GPU:
+            self.model.to(device.to_torch_format())
         self.device = device
-        self._is_gpu_ready = self.device is Device.GPU
+        self._is_gpu_ready = self.device.type is DeviceType.GPU
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
-        if self.device is Device.GPU and not self._is_gpu_ready:
+        if self.device.type is DeviceType.GPU and not self._is_gpu_ready:
             self.set_model_on_gpu()
-        device = input_tensors[0].device
-        if self.device is Device.GPU:
-            input_tensors = (t.cuda() for t in input_tensors)
+        if self.device.type is DeviceType.GPU:
+            input_tensors = (
+                t.to(self.device.to_torch_format()) for t in input_tensors
+            )
         with torch.no_grad():
             res = self.model(*input_tensors)
             if not isinstance(res, tuple):
-                res = res.to(device)
+                res = res.to(self.device.to_torch_format())
                 return (res,)
-            return tuple(out.to(device) for out in res)
+            return tuple(out.to(self.device.to_torch_format()) for out in res)
 
     def get_size(self):
         try:
@@ -73,14 +74,14 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         path = Path(path)
         model = torch.jit.load(path / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
-        metadata.device = Device(metadata.device)
+        device = Device(DeviceType(metadata.device))
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),
             input_tfms=MultiStageTransformation.from_dict(metadata.input_tfms)
             if metadata.input_tfms is not None
             else None,
-            device=Device(metadata.device),
+            device=device,
         )
 
     @classmethod
@@ -92,8 +93,8 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         input_tfms: Optional[MultiStageTransformation] = None,
         input_data: List[torch.Tensor] = None,
     ):
-        if device is Device.GPU:
-            input_data = [t.cuda() for t in input_data]
+        if device.type is DeviceType.GPU:
+            input_data = [t.to(device.to_torch_format()) for t in input_data]
 
         if not isinstance(model, torch.fx.GraphModule):
             model.eval()

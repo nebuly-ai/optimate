@@ -8,7 +8,7 @@ from nebullvm.operations.inference_learners.base import (
     LearnerMetadata,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.tools.base import Device, ModelParams
+from nebullvm.tools.base import Device, ModelParams, DeviceType
 
 
 class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
@@ -18,15 +18,15 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         super(TensorflowBackendInferenceLearner, self).__init__(**kwargs)
         self.model = tf_model
         self.device = device
-        self._is_gpu_ready = self.device is Device.GPU
+        self._is_gpu_ready = self.device.type is DeviceType.GPU
 
     def get_size(self):
         return len(pickle.dumps(self.model, -1))
 
     def run(self, *input_tensors: tf.Tensor) -> Tuple[tf.Tensor, ...]:
-        if self.device is Device.GPU and not self._is_gpu_ready:
+        if self.device.type is DeviceType.GPU and not self._is_gpu_ready:
             self.set_model_on_gpu()
-        with tf.device(self.device.value):
+        with tf.device(self.device.to_tf_format()):
             res = self.model(input_tensors)
         if not isinstance(res, tuple):
             return (res,)
@@ -48,7 +48,7 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         model = tf.keras.models.load_model(
             path / TENSORFLOW_BACKEND_FILENAMES["tf_model"]
         )
-        device = Device(metadata.device)
+        device = Device(DeviceType(metadata.device))
         return cls(
             tf_model=model,
             network_parameters=network_parameters,
@@ -70,7 +70,9 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
         return len(self.tflite_file)
 
     def free_gpu_memory(self):
-        raise NotImplementedError()
+        raise NotImplementedError(
+            "TFLite does not support GPU inference on Nvidia devices"
+        )
 
     def run(self, *input_tensors: tf.Tensor):
         input_details = self.interpreter.get_input_details()
@@ -114,7 +116,7 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
         metadata = LearnerMetadata.read(path)
         network_parameters = ModelParams(**metadata.network_parameters)
         input_tfms = metadata.input_tfms
-        device = Device(metadata.device)
+        device = Device(DeviceType(metadata.device))
         return cls(
             tflite_file=tflite_file,
             network_parameters=network_parameters,

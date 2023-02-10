@@ -9,7 +9,11 @@ from tqdm import tqdm
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
-from nebullvm.tools.base import DeepLearningFramework, ModelParams, Device
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    ModelParams,
+    DeviceType,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import create_model_inputs_torch
@@ -65,15 +69,14 @@ class BaseBenchmark(ABC):
 
 class PytorchBenchmark(BaseBenchmark):
     def benchmark(self):
-        device = torch.device("cuda" if self.device is Device.GPU else "cpu")
         input_tensors = [
-            [tensor.to(device) for tensor in tensors]
+            [tensor.to(self.device.to_torch_format()) for tensor in tensors]
             for tensors in self.input_tensors
         ]
         batch_size = input_tensors[0][0].shape[0]
 
         if isinstance(self.model, torch.nn.Module):
-            self.model.to(device).eval()
+            self.model.to(self.device.to_torch_format()).eval()
 
         with torch.no_grad():
             for i in tqdm(
@@ -83,7 +86,7 @@ class PytorchBenchmark(BaseBenchmark):
                 self.model(
                     *input_tensors[i % min(self.n_warmup, len(input_tensors))]
                 )
-        if self.device is Device.GPU:
+        if self.device.type is DeviceType.GPU:
             torch.cuda.synchronize()
         timings = []
         with torch.no_grad():
@@ -95,7 +98,7 @@ class PytorchBenchmark(BaseBenchmark):
                 self.model(
                     *input_tensors[i % min(self.n_runs, len(input_tensors))]
                 )
-                if self.device is Device.GPU:
+                if self.device.type is DeviceType.GPU:
                     torch.cuda.synchronize()
                 end_time = time.time()
                 timings.append(end_time - start_time)
@@ -119,7 +122,7 @@ class TensorflowBenchmark(BaseBenchmark):
             range(self.n_warmup),
             desc=f"Performing warm up on {self.n_warmup} iterations",
         ):
-            with tf.device(self.device.value):
+            with tf.device(self.device.to_tf_format()):
                 self.model(
                     *self.input_tensors[
                         i % min(self.n_warmup, len(self.input_tensors))
@@ -132,7 +135,7 @@ class TensorflowBenchmark(BaseBenchmark):
             desc=f"Performing benchmark on {self.n_runs} iterations",
         ):
             start_time = time.time()
-            with tf.device(self.device.value):
+            with tf.device(self.device.to_tf_format()):
                 self.model(
                     *self.input_tensors[
                         i % min(self.n_runs, len(self.input_tensors))
@@ -232,7 +235,7 @@ def benchmark(
     else:
         device = model.device
 
-    logger.info(f"Running benchmark on {device.name}")
+    logger.info(f"Running benchmark on {device.type.name}")
 
     dl_framework = _get_dl_framework(model)
 

@@ -34,7 +34,7 @@ from nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
 from nebullvm.tools.base import (
     DeepLearningFramework,
     ModelParams,
-    Device,
+    DeviceType,
     QuantizationType,
 )
 from nebullvm.tools.onnx import get_input_names, get_output_names
@@ -229,7 +229,9 @@ class PyTorchApacheTVMBuildInferenceLearner(BuildInferenceLearner):
         **kwargs,
     ):
         target_device = (
-            str(tvm.target.cuda()) if self.device is Device.GPU else "llvm"
+            str(tvm.target.cuda())
+            if self.device.type is DeviceType.GPU
+            else "llvm"
         )
         dev = tvm.device(str(target_device), 0)
 
@@ -262,7 +264,9 @@ class ONNXApacheTVMBuildInferenceLearner(BuildInferenceLearner):
         **kwargs,
     ):
         target_device = (
-            str(tvm.target.cuda()) if self.device is Device.GPU else "llvm"
+            str(tvm.target.cuda())
+            if self.device.type is DeviceType.GPU
+            else "llvm"
         )
         dev = tvm.device(str(target_device), 0)
 

@@ -109,8 +109,7 @@ def get_output_structure_from_text(
     """
     encoded_input = tokenizer([text], **tokenizer_args)
     if isinstance(model, torch.nn.Module):
-        device = torch.device("cuda" if device is Device.GPU else "cpu")
-        encoded_input = encoded_input.to(device)
+        encoded_input = encoded_input.to(device.to_torch_format())
     output = model(**encoded_input)
     structure = OrderedDict()
     if isinstance(output, tuple):
@@ -140,9 +139,8 @@ def get_output_structure_from_dict(
     """
 
     if isinstance(model, torch.nn.Module):
-        device = torch.device("cuda" if device is Device.GPU else "cpu")
-        model.to(device)
-        input_example.to(device)
+        model.to(device.to_torch_format())
+        input_example.to(device.to_torch_format())
 
     output = model(**input_example)
     structure = OrderedDict()

@@ -25,6 +25,7 @@ from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
     ModelCompiler,
+    DeviceType,
 )
 
 
@@ -73,7 +74,7 @@ def test_openvino(
     metric_drop_ths: int,
     metric: str,
 ):
-    device = Device.CPU
+    device = Device(DeviceType.CPU)
     with TemporaryDirectory() as tmp_dir:
         (
             model,

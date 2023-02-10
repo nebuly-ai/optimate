@@ -22,10 +22,13 @@ from nebullvm.tools.base import (
     QuantizationType,
     Device,
     ModelCompiler,
+    DeviceType,
 )
 from nebullvm.tools.utils import gpu_is_available
 
-device = Device.GPU if gpu_is_available() else Device.CPU
+device = (
+    Device(DeviceType.GPU) if gpu_is_available() else Device(DeviceType.CPU)
+)
 
 
 def run_test_torchscript(

@@ -21,8 +21,9 @@ from nebullvm.operations.inference_learners.utils import load_model
 from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
-    Device,
+    DeviceType,
     ModelCompiler,
+    Device,
 )
 from nebullvm.tools.utils import gpu_is_available
 
@@ -47,7 +48,11 @@ def test_tensorflow_backend(
     metric_drop_ths: int,
     metric: str,
 ):
-    device = Device.GPU if gpu_is_available() else Device.CPU
+    device = (
+        Device(DeviceType.GPU)
+        if gpu_is_available()
+        else Device(DeviceType.CPU)
+    )
     with TemporaryDirectory() as tmp_dir:
         (
             model,
@@ -170,7 +175,7 @@ def test_tf_lite(
     metric_drop_ths: int,
     metric: str,
 ):
-    device = Device.CPU
+    device = Device(DeviceType.CPU)
     with TemporaryDirectory() as tmp_dir:
         (
             model,

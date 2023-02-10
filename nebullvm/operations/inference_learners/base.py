@@ -13,7 +13,12 @@ from nebullvm.config import LEARNER_METADATA_FILENAME
 from nebullvm.operations.base import Operation
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import ModelParams, Device
+from nebullvm.tools.base import (
+    ModelParams,
+    Device,
+    QuantizationType,
+    DeviceType,
+)
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import create_model_inputs_torch
 from nebullvm.tools.tf import create_model_inputs_tf
@@ -41,6 +46,7 @@ class BaseInferenceLearner(ABC):
     input_tfms: Optional[MultiStageTransformation] = None
     input_data: InitVar[List[Any]] = None
     device: Device = None
+    quantization_type: QuantizationType = None
 
     def __post_init__(self, input_data):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
@@ -242,7 +248,8 @@ class LearnerMetadata:
     NAME: str = LEARNER_METADATA_FILENAME
     class_name: str
     module_name: str
-    device: Device
+    device: DeviceType
+    quantization_type: QuantizationType
 
     def __init__(
         self,
@@ -293,7 +300,12 @@ class LearnerMetadata:
             module_name=model.__module__,
             network_parameters=model.network_parameters,
             input_tfms=model.input_tfms,
-            device=model.device.value if model.device is not None else None,
+            device=model.device.type.value
+            if model.device is not None
+            else None,
+            quantization_type=model.quantization_type.value
+            if model.quantization_type is not None
+            else None,
             **kwargs,
         )
 
@@ -421,7 +433,7 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
         self._is_gpu_ready = False
 
     def set_model_on_gpu(self):
-        self.model.cuda()
+        self.model.to(self.device.to_torch_format())
         self._is_gpu_ready = True
 
     def _read_file(self, input_file: Union[str, Path]) -> torch.Tensor:

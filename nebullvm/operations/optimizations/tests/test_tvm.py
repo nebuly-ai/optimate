@@ -24,12 +24,15 @@ from nebullvm.operations.inference_learners.utils import load_model
 from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
-    Device,
+    DeviceType,
     ModelCompiler,
+    Device,
 )
 from nebullvm.tools.utils import gpu_is_available
 
-device = Device.GPU if gpu_is_available() else Device.CPU
+device = (
+    Device(DeviceType.GPU) if gpu_is_available() else Device(DeviceType.CPU)
+)
 
 
 @pytest.mark.parametrize(

@@ -12,7 +12,7 @@ def get_outputs_sizes_tf(
     input_tensors: List[tf.Tensor],
     device: Device,
 ) -> List[Tuple[int, ...]]:
-    with tf.device(device.value):
+    with tf.device(device.to_tf_format()):
         outputs = tf_model(input_tensors)
     if isinstance(outputs, tf.Tensor) and outputs is not None:
         return [tuple(outputs.shape)]
@@ -48,7 +48,7 @@ def run_tf_model(
     input_tensors: Tuple[tf.Tensor],
     device: Device,
 ) -> Tuple[tf.Tensor]:
-    with tf.device(device.value):
+    with tf.device(device.to_tf_format()):
         pred = model(input_tensors)
     if isinstance(pred, tf.Tensor):
         pred = (pred,)

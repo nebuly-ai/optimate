@@ -13,6 +13,7 @@ from nebullvm.tools.base import (
     DataType,
     DeepLearningFramework,
     Device,
+    DeviceType,
 )
 
 
@@ -57,10 +58,18 @@ def run_onnx_model(
 ) -> List[np.ndarray]:
     from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 
+    if device.type is DeviceType.GPU:
+        ONNX_PROVIDERS["cuda"][1] = (
+            "CUDAExecutionProvider",
+            {
+                "device_id": device.idx,
+            },
+        )
+
     model = ort.InferenceSession(
         onnx_model,
-        providers=ONNX_PROVIDERS["cuda"]
-        if device is Device.GPU
+        providers=ONNX_PROVIDERS["cuda"][1:]
+        if device.type is DeviceType.GPU
         else ONNX_PROVIDERS["cpu"],
     )
     inputs = {

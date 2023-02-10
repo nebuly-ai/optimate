@@ -23,7 +23,12 @@ from nebullvm.optional_modules.openvino import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import ModelParams, DeepLearningFramework, Device
+from nebullvm.tools.base import (
+    ModelParams,
+    DeepLearningFramework,
+    DeviceType,
+    Device,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
@@ -98,7 +103,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
         model_name = str(path / OPENVINO_FILENAMES["description_file"])
         model_weights = str(path / OPENVINO_FILENAMES["weights"])
-        metadata["device"] = Device(metadata["device"])
+        metadata["device"] = Device(DeviceType(metadata["device"]))
         return cls.from_model_name(
             model_name=model_name, model_weights=model_weights, **metadata
         )
@@ -107,7 +112,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
         return len(self.compiled_model.export_model())
 
     def free_gpu_memory(self):
-        raise NotImplementedError()
+        raise NotImplementedError("OpenVino does not support GPU inference.")
 
     @classmethod
     def from_model_name(

@@ -16,7 +16,7 @@ from nebullvm.optional_modules.torch import (
     GraphModule,
     symbolic_trace,
 )
-from nebullvm.tools.base import QuantizationType, Device
+from nebullvm.tools.base import QuantizationType, DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
@@ -54,7 +54,7 @@ class PytorchBackendCompiler(Compiler):
             input_data (DataManager): User defined data. Default: None.
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 
@@ -88,12 +88,17 @@ class PytorchBackendCompiler(Compiler):
         quantization_type: QuantizationType,
     ) -> ScriptModule:
         input_sample = input_data.get_list(1)[0]
-        if self.device is Device.GPU:
+        if self.device.type is DeviceType.GPU:
             if quantization_type is QuantizationType.HALF:
-                input_sample = [t.cuda().half() for t in input_sample]
+                input_sample = [
+                    t.to(self.device.to_torch_format()).half()
+                    for t in input_sample
+                ]
             else:
-                input_sample = [t.cuda() for t in input_sample]
-            model.cuda()
+                input_sample = [
+                    t.to(self.device.to_torch_format()) for t in input_sample
+                ]
+            model.to(self.device.to_torch_format())
 
         if not isinstance(model, torch.fx.GraphModule):
             model.eval()

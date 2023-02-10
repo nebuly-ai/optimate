@@ -126,7 +126,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             input_data (DataManager): User defined data. Default: None
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 
@@ -164,16 +164,16 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
                 dataloader,
                 use_cache=False,
                 algo_type=torch_tensorrt.ptq.CalibrationAlgo.ENTROPY_CALIBRATION_2,  # noqa E501
-                device=torch.device("cuda:0"),
+                device=torch.device(self.device.to_torch_format()),
             )
         else:
             dtype = torch.float32
 
         # Convert int64 to int32 for transformers inputs
         input_tensors = [
-            tensor.cuda()
+            tensor.to(self.device.to_torch_format())
             if tensor.dtype != torch.int64
-            else tensor.to(torch.int32).cuda()
+            else tensor.to(torch.int32).to(self.device.to_torch_format())
             for tensor in input_data.get_list(1)[0]
         ]
 
@@ -199,7 +199,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
         quantization_type: QuantizationType,
     ):
 
-        model.cuda().eval()
+        model.to(self.device.to_torch_format()).eval()
 
         try:
             if quantization_type is QuantizationType.HALF:
@@ -238,7 +238,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
                 workspace_size=1 << 30,
                 device={
                     "device_type": torch_tensorrt.DeviceType.GPU,
-                    "gpu_id": 0,
+                    "gpu_id": self.device.idx,
                     "dla_core": 0,
                     "allow_gpu_fallback": False,
                     "disable_tf32": False,
@@ -290,7 +290,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             input_data (DataManager): User defined data. Default: None
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 

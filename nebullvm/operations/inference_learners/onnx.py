@@ -32,6 +32,7 @@ from nebullvm.tools.base import (
     Device,
     ModelParams,
     QuantizationType,
+    DeviceType,
 )
 from nebullvm.tools.transformations import MultiStageTransformation
 
@@ -93,31 +94,24 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         self.device = device
 
         self.onnx_path = Path(self._store_dir(dir_path)) / filename
-        self.sess_options = _get_ort_session_options(self.device is Device.GPU)
+        self.sess_options = _get_ort_session_options(
+            self.device.type is DeviceType.GPU
+        )
+        self.quantization_type = quantization_type
 
-        if _running_on_intel_cpu(self.device is Device.GPU):
+        if _running_on_intel_cpu(self.device.type is DeviceType.GPU):
             self.sess_options.add_session_config_entry(
                 "session.set_denormal_as_zero", "1"
             )
 
-        if self.device is Device.GPU:
-            self._setup_tensorrt(quantization_type)
+        self.set_model_on_gpu()
 
-        ort_session = ort.InferenceSession(
-            str(self.onnx_path),
-            sess_options=self.sess_options,
-            providers=ONNX_PROVIDERS["cuda"]
-            if self.device is Device.GPU
-            else ONNX_PROVIDERS["cpu"],
-        )
-
-        self._session = ort_session
-        self._is_gpu_ready = self.device is Device.GPU
+        self._is_gpu_ready = self.device.type is DeviceType.GPU
         self.input_names = input_names
         self.output_names = output_names
 
     @staticmethod
-    def _setup_tensorrt(quantization_type: QuantizationType):
+    def _setup_tensorrt(quantization_type: QuantizationType, device: Device):
         if (
             tensorrt_is_available()
             and os.environ.get("LD_LIBRARY_PATH", False)
@@ -126,6 +120,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             ONNX_PROVIDERS["cuda"][0] = (
                 "TensorrtExecutionProvider",
                 {
+                    "device_id": device.idx,
                     "trt_max_workspace_size": 23474836480,
                     "trt_fp16_enable": True
                     if quantization_type is not None
@@ -167,11 +162,20 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         self._is_gpu_ready = False
 
     def set_model_on_gpu(self):
+        if self.device.type is DeviceType.GPU:
+            ONNX_PROVIDERS["cuda"][1] = (
+                "CUDAExecutionProvider",
+                {
+                    "device_id": self.device.idx,
+                },
+            )
+            self._setup_tensorrt(self.quantization_type, self.device)
+
         ort_session = ort.InferenceSession(
             str(self.onnx_path),
             sess_options=self.sess_options,
             providers=ONNX_PROVIDERS["cuda"]
-            if self.device is Device.GPU
+            if self.device.type is DeviceType.GPU
             else ONNX_PROVIDERS["cpu"],
         )
         self._session = ort_session
@@ -239,7 +243,12 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = path / ONNX_FILENAMES["model_name"]
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
-        device = Device(metadata.device)
+        device = Device(DeviceType(metadata.device))
+        quantization_type = (
+            QuantizationType(metadata.quantization_type)
+            if hasattr(metadata, "quantization_type")
+            else None
+        )
         if input_tfms is not None:
             input_tfms = MultiStageTransformation.from_dict(
                 metadata.input_tfms
@@ -251,6 +260,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
             input_names=metadata["input_names"],
             output_names=metadata["output_names"],
             device=device,
+            quantization_type=quantization_type,
         )
 
     def _predict_arrays(self, input_arrays: Generator[np.ndarray, None, None]):
@@ -295,15 +305,17 @@ class PytorchONNXInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        if self.device is Device.GPU and not self._is_gpu_ready:
+        if self.device.type is DeviceType.GPU and not self._is_gpu_ready:
             self.set_model_on_gpu()
-        device = input_tensors[0].device
         input_arrays = (
             input_tensor.cpu().detach().numpy()
             for input_tensor in input_tensors
         )
         outputs = self._predict_arrays(input_arrays)
-        return tuple(torch.from_numpy(output).to(device) for output in outputs)
+        return tuple(
+            torch.from_numpy(output).to(self.device.to_torch_format())
+            for output in outputs
+        )
 
 
 class TensorflowONNXInferenceLearner(
@@ -339,7 +351,7 @@ class TensorflowONNXInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        if self.device is Device.GPU and not self._is_gpu_ready:
+        if self.device.type is DeviceType.GPU and not self._is_gpu_ready:
             self.set_model_on_gpu()
         input_arrays = (
             input_tensor.numpy()
@@ -385,7 +397,7 @@ class NumpyONNXInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        if self.device is Device.GPU and not self._is_gpu_ready:
+        if self.device.type is DeviceType.GPU and not self._is_gpu_ready:
             self.set_model_on_gpu()
         input_arrays = (input_tensor for input_tensor in input_tensors)
         outputs = self._predict_arrays(input_arrays)

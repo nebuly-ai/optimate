@@ -25,9 +25,10 @@ from nebullvm.tools.base import (
     QuantizationType,
     Device,
     ModelCompiler,
+    DeviceType,
 )
 
-device = Device.CPU
+device = Device(DeviceType.CPU)
 
 
 @pytest.mark.parametrize(

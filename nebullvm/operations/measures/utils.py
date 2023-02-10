@@ -8,7 +8,7 @@ from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, Module
-from nebullvm.tools.base import Device
+from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     convert_to_numpy,
@@ -40,9 +40,11 @@ def compute_torch_latency(
         Float: Average latency.
         List[Float]: List of latencies obtained.
     """
-    device = "cuda" if device is Device.GPU else "cpu"
-    xs = [tuple(t.to(device) for t in tensors) for tensors in xs]
-    model = model.to(device).eval()
+    xs = [
+        tuple(t.to(device.to_torch_format()) for t in tensors)
+        for tensors in xs
+    ]
+    model = model.to(device.to_torch_format()).eval()
     latencies = []
     with torch.no_grad():
         for i in range(warmup_steps):
@@ -79,7 +81,7 @@ def compute_tf_latency(
         List[Float]: List of latencies obtained.
     """
     latencies = []
-    with tf.device(device.value):
+    with tf.device(device.to_tf_format()):
         for i in range(warmup_steps):
             _ = model(xs[i])
         for i in range(steps):
@@ -118,10 +120,18 @@ def compute_onnx_latency(
     input_names = get_input_names(model)
     output_names = get_output_names(model)
 
+    if device.type is DeviceType.GPU:
+        ONNX_PROVIDERS["cuda"][1] = (
+            "CUDAExecutionProvider",
+            {
+                "device_id": device.idx,
+            },
+        )
+
     model = ort.InferenceSession(
         model,
-        providers=ONNX_PROVIDERS["cuda"]
-        if device is Device.GPU
+        providers=ONNX_PROVIDERS["cuda"][1:]
+        if device.type is DeviceType.GPU
         else ONNX_PROVIDERS["cpu"],
     )
 

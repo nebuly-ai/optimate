@@ -64,7 +64,7 @@ from nebullvm.tools.base import (
     ModelParams,
     DeepLearningFramework,
     ModelCompressor,
-    Device,
+    DeviceType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
@@ -153,15 +153,16 @@ class Optimizer(Operation, abc.ABC):
 
         return compiler_ops, build_inference_learner_ops
 
-    def _free_model_gpu(self, model: Any):
+    def free_model_gpu(self, model: Any):
         # Free gpu memory
-        if self.device is Device.GPU:
+        if self.device.type is DeviceType.GPU:
             try:
                 model.cpu()
             except Exception:
                 pass
             try:
-                torch.cuda.empty_cache()
+                with torch.cuda.device(self.device.to_torch_format()):
+                    torch.cuda.empty_cache()
             except Exception:
                 pass
 
@@ -199,7 +200,7 @@ class Optimizer(Operation, abc.ABC):
             for q_type in q_types:
                 input_tfms = MultiStageTransformation([])
 
-                self._free_model_gpu(model)
+                self.free_model_gpu(model)
 
                 with TemporaryDirectory() as tmp_dir:
                     try:
@@ -300,7 +301,7 @@ class Optimizer(Operation, abc.ABC):
                                         "obtained with the given metric."
                                     )
 
-                                if self.device is Device.GPU:
+                                if self.device.type is DeviceType.GPU:
                                     inference_learner.free_gpu_memory()
                     except Exception as ex:
                         self.logger.warning(

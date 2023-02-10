@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional, Union
 
 from loguru import logger
 
-from nebullvm.tools.base import Device
+from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from nebullvm.tools.utils import gpu_is_available
 
@@ -11,9 +11,9 @@ from nebullvm.tools.utils import gpu_is_available
 def _check_device(device: Optional[str]) -> Device:
     if device is None:
         if gpu_is_available():
-            device = Device.GPU
+            device = Device(DeviceType.GPU)
         else:
-            device = Device.CPU
+            device = Device(DeviceType.CPU)
     else:
         if device.lower() == "gpu":
             if not gpu_is_available():
@@ -23,11 +23,11 @@ def _check_device(device: Optional[str]) -> Device:
                     "that the gpu is installed and can be used by your "
                     "framework."
                 )
-                device = Device.CPU
+                device = Device(DeviceType.CPU)
             else:
-                device = Device.GPU
+                device = Device(DeviceType.GPU)
         else:
-            device = Device.CPU
+            device = Device(DeviceType.CPU)
 
     return device
 
@@ -35,7 +35,7 @@ def _check_device(device: Optional[str]) -> Device:
 class Operation(abc.ABC):
     def __init__(self):
         self._state = {}
-        self.device = Device.CPU
+        self.device = Device(DeviceType.CPU)
         self.execute_count = 0
         self.logger = logger
         self.feedback_collector = None

@@ -20,7 +20,12 @@ from packaging import version
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import DeepLearningFramework, Device, ModelParams
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    Device,
+    ModelParams,
+    DeviceType,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     extract_info_from_np_data,
@@ -209,11 +214,22 @@ def is_dict_type(data_sample: Any):
 def check_device(device: Optional[str]) -> Device:
     if device is None:
         if gpu_is_available():
-            device = Device.GPU
+            device = Device(DeviceType.GPU)
         else:
-            device = Device.CPU
+            device = Device(DeviceType.CPU)
     else:
-        if device.lower() == "gpu":
+        if device.lower() == "gpu" or "cuda" in device.lower():
+            if device.lower() == "gpu":
+                logger.warning(
+                    "gpu tag is deprecated, please use cuda or cuda:0 instead."
+                )
+                idx = 0
+            else:
+                name, index = device.split(":")
+                if index.isdigit():
+                    idx = int(index)
+                else:
+                    idx = 0
             if not gpu_is_available():
                 logger.warning(
                     "Selected GPU device but no available GPU found on this "
@@ -221,11 +237,11 @@ def check_device(device: Optional[str]) -> Device:
                     "that the gpu is installed and can be used by your "
                     "framework."
                 )
-                device = Device.CPU
+                device = Device(DeviceType.CPU)
             else:
-                device = Device.GPU
+                device = Device(DeviceType.GPU, idx=idx)
         else:
-            device = Device.CPU
+            device = Device(DeviceType.CPU)
 
     return device
 

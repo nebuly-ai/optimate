@@ -15,7 +15,12 @@ from nebullvm.operations.inference_learners.base import (
 )
 from nebullvm.optional_modules.deepsparse import cpu, compile_model
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import ModelParams, DeepLearningFramework, Device
+from nebullvm.tools.base import (
+    ModelParams,
+    DeepLearningFramework,
+    Device,
+    DeviceType,
+)
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
@@ -84,7 +89,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     def free_gpu_memory(self):
-        return NotImplementedError()
+        raise NotImplementedError("DeepSparse does not support GPU inference.")
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
@@ -111,13 +116,14 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms = MultiStageTransformation.from_dict(
                 metadata.input_tfms
             )
+        device = Device(DeviceType(metadata.device))
         return cls(
             input_tfms=input_tfms,
             network_parameters=ModelParams(**metadata.network_parameters),
             onnx_path=onnx_path,
             input_names=metadata["input_names"],
             output_names=metadata["output_names"],
-            device=Device(metadata["device"]),
+            device=device,
         )
 
     def _predict_arrays(self, input_arrays: Generator[np.ndarray, None, None]):

@@ -27,7 +27,12 @@ from nebullvm.optional_modules.tvm import (
     relay,
     ExecutorFactoryModule,
 )
-from nebullvm.tools.base import QuantizationType, ModelParams, Device
+from nebullvm.tools.base import (
+    QuantizationType,
+    ModelParams,
+    Device,
+    DeviceType,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.pytorch import create_model_inputs_torch
@@ -81,7 +86,7 @@ class ApacheTVMCompiler(Compiler, ABC):
             input_data (DataManager): User defined data. Default: None
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 
@@ -117,12 +122,14 @@ class ApacheTVMCompiler(Compiler, ABC):
             for i, input_size in enumerate(model_params.input_sizes)
         }
         inputs = tuple(create_model_inputs_torch(model_params.input_infos))
-        if device is not Device.GPU:
+        if device.type is not DeviceType.GPU:
             inputs = tuple(input_.cpu() for input_ in inputs)
             torch_model.cpu()
         else:
-            inputs = tuple(input_.cuda() for input_ in inputs)
-            torch_model.cuda()
+            inputs = tuple(
+                input_.to(device.to_torch_format()) for input_ in inputs
+            )
+            torch_model.to(device.to_torch_format())
         with torch.no_grad():
             _ = torch_model(*inputs)
             model_trace = torch.jit.trace(torch_model, inputs)
@@ -166,7 +173,7 @@ class ApacheTVMCompiler(Compiler, ABC):
 
     @staticmethod
     def _get_target(device) -> str:
-        if device is Device.GPU:
+        if device.type is DeviceType.GPU:
             return str(tvm.target.cuda())
         else:
             return "llvm"  # run on CPU

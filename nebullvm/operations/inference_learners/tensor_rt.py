@@ -19,7 +19,12 @@ from nebullvm.operations.inference_learners.base import (
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt, polygraphy
 from nebullvm.optional_modules.torch import torch, ScriptModule
-from nebullvm.tools.base import Device, ModelParams, DeepLearningFramework
+from nebullvm.tools.base import (
+    DeviceType,
+    ModelParams,
+    DeepLearningFramework,
+    Device,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -65,7 +70,7 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         self.nvidia_logger = nvidia_logger
         self.output_tensors = None
         self.device = device
-        self._set_cuda_env(device is Device.GPU)
+        self._set_cuda_env(device.type is DeviceType.GPU)
 
     def _get_metadata(self, **kwargs) -> LearnerMetadata:
         metadata = {
@@ -192,7 +197,7 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         return self.engine.serialize().nbytes
 
     def free_gpu_memory(self):
-        # TODO: check if ONNXtensorrt needs to release gpu memory
+        # ONNXtensorrt doesn't need to release gpu memory
         pass
 
     def save(self, path: Union[str, Path], **kwargs):
@@ -238,7 +243,7 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
             metadata["input_tfms"] = MultiStageTransformation.from_dict(
                 input_tfms
             )
-        metadata["device"] = Device(metadata.get("device", "gpu"))
+        metadata["device"] = Device(DeviceType.GPU)
         return cls.from_engine_path(
             engine_path=path / NVIDIA_FILENAMES["engine"],
             **metadata,
@@ -257,13 +262,13 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
     ):
         super().__init__(**kwargs)
         self.model = torch_model.eval()
-        if device is Device.GPU:
-            self.model.cuda()
+        if device.type is DeviceType.GPU:
+            self.model.to(device.to_torch_format())
             self.use_gpu = True
         else:
             self.use_gpu = False
         self.device = device
-        self._is_gpu_ready = device is Device.GPU
+        self._is_gpu_ready = device.type is DeviceType.GPU
 
     def get_size(self):
         with TemporaryDirectory() as tmp_dir:
@@ -275,22 +280,23 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
             )
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
-        if self.device is Device.GPU and not self._is_gpu_ready:
+        if self.device.type is DeviceType.GPU and not self._is_gpu_ready:
             self.set_model_on_gpu()
-        device = input_tensors[0].device
 
         # PyTorch-TensorRT does not support int64
         input_tensors = (
-            t.cuda() if t.dtype != torch.int64 else t.to(torch.int32).cuda()
+            t.to(self.device.to_torch_format())
+            if t.dtype != torch.int64
+            else t.to(torch.int32).to(self.device.to_torch_format())
             for t in input_tensors
         )
 
         with torch.no_grad():
             res = self.model(*input_tensors)
             if not isinstance(res, tuple):
-                res = res.to(device)
+                res = res.to(self.device.to_torch_format())
                 return (res,)
-            return tuple(out.to(device) for out in res)
+            return tuple(out.to(self.device.to_torch_format()) for out in res)
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path)
@@ -304,7 +310,7 @@ class PytorchTensorRTInferenceLearner(PytorchBaseInferenceLearner):
         path = Path(path)
         model = torch.jit.load(path / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
-        device = Device.GPU
+        device = Device(DeviceType.GPU)
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),
@@ -364,12 +370,16 @@ class PytorchONNXTensorRTInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        input_tensors = [input_tensor.cuda() for input_tensor in input_tensors]
-        device = input_tensors[0].device
+        input_tensors = [
+            input_tensor.to(self.device.to_torch_format())
+            for input_tensor in input_tensors
+        ]
         if self.network_parameters.dynamic_info is None:
             if self.output_tensors is None:
                 self.output_tensors = [
-                    torch.Tensor(*output_size).cuda()
+                    torch.Tensor(*output_size).to(
+                        self.device.to_torch_format()
+                    )
                     for output_size in self.network_parameters.output_sizes
                 ]
             input_sizes = None
@@ -388,7 +398,7 @@ class PytorchONNXTensorRTInferenceLearner(
                         )
                         for i, x in enumerate(output_size)
                     ),
-                ).cuda()
+                ).to(self.device.to_torch_format())
                 for j, (output_size, dynamic_axis) in enumerate(
                     zip(
                         self.network_parameters.output_sizes,
@@ -404,7 +414,8 @@ class PytorchONNXTensorRTInferenceLearner(
         )
         self._predict_tensors(input_ptrs, output_ptrs, input_sizes)
         return tuple(
-            output_tensor.to(device) for output_tensor in self.output_tensors
+            output_tensor.to(self.device.to_torch_format())
+            for output_tensor in self.output_tensors
         )
 
 

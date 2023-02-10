@@ -21,7 +21,12 @@ from nebullvm.optional_modules.torch import (
     Module,
     GraphModule,
 )
-from nebullvm.tools.base import ModelParams, DeepLearningFramework, Device
+from nebullvm.tools.base import (
+    ModelParams,
+    DeepLearningFramework,
+    Device,
+    DeviceType,
+)
 from nebullvm.tools.pytorch import (
     save_with_torch_fx,
     load_with_torch_fx,
@@ -133,11 +138,12 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         q_model = convert_fx(q_model)
 
         q_model.load_state_dict(state_dict)
+        device = Device(DeviceType(metadata.device))
 
         return cls(
             model=model,
             model_quant=q_model,
-            device=Device(metadata.device),
+            device=device,
             input_tfms=input_tfms,
             network_parameters=ModelParams(**metadata.network_parameters),
         )
@@ -155,7 +161,9 @@ class PytorchNeuralCompressorInferenceLearner(
     """
 
     def free_gpu_memory(self):
-        raise NotImplementedError()
+        raise NotImplementedError(
+            "NeuralCompressor does not support GPU inference."
+        )
 
     def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
         """Predict on the input tensors.

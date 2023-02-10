@@ -48,7 +48,7 @@ from nebullvm.tools.base import (
     ModelParams,
     OptimizationTime,
     ModelCompressor,
-    Device,
+    DeviceType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FeedbackCollector
@@ -94,7 +94,7 @@ def _get_model_len(model: Any):
     except Exception:
         logger.warning(
             "Cannot pickle input model. Unable to "
-            "extract origivnal model size"
+            "extract original model size"
         )
         # Model is not pickable
         return -1
@@ -144,7 +144,12 @@ class SpeedsterRootOp(Operation):
         store_latencies: bool = False,
         **kwargs,
     ):
-        self.logger.info(f"Running Speedster on {self.device.name}")
+        device_id = (
+            f":{self.device.id}" if self.device.type is DeviceType.GPU else ""
+        )
+        self.logger.info(
+            f"Running Speedster on {self.device.type.name}{device_id}"
+        )
 
         check_dependencies(self.device)
 
@@ -400,7 +405,7 @@ class SpeedsterRootOp(Operation):
                 )
                 hw_info = get_hw_info(self.device)
                 hw_name = hw_info[
-                    "cpu" if self.device is Device.CPU else "gpu"
+                    "cpu" if self.device.type is DeviceType.CPU else "gpu"
                 ]
                 self.logger.info(
                     (
@@ -410,7 +415,7 @@ class SpeedsterRootOp(Operation):
                 )
 
                 if orig_latency / optimized_models[0][1] < 2:
-                    # if self.device is Device.CPU:
+                    # if self.device.type is DeviceType.CPU:
                     #     device = hw_info["cpu"]
                     # else:
                     #     device = hw_info["gpu"]
@@ -478,7 +483,7 @@ class SpeedsterRootOp(Operation):
             optimized_models = optimization_op.get_result()
 
             if isinstance(model, torch.nn.Module):
-                optimization_op._free_model_gpu(model)
+                optimization_op.free_model_gpu(model)
 
             return optimized_models
 

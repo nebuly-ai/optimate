@@ -4,7 +4,7 @@ from typing import List, Tuple, Optional, Dict, Union, Sequence
 from loguru import logger
 
 from nebullvm.optional_modules.torch import torch, Module, DataLoader
-from nebullvm.tools.base import DataType, InputInfo, Device
+from nebullvm.tools.base import DataType, InputInfo, Device, DeviceType
 from nebullvm.tools.data import DataManager
 
 FX_MODULE_NAME = "NebullvmFxModule"
@@ -32,9 +32,9 @@ def get_outputs_sizes_torch(
     input_tensors: List[torch.Tensor],
     device: Device,
 ) -> List[Tuple[int, ...]]:
-    if device is Device.GPU:
-        input_tensors = [x.cuda() for x in input_tensors]
-        torch_model.cuda()
+    if device.type is DeviceType.GPU:
+        input_tensors = [x.to(device.to_torch_format()) for x in input_tensors]
+        torch_model.to(device.to_torch_format())
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
         if isinstance(outputs, torch.Tensor):
@@ -66,13 +66,17 @@ def run_torch_model(
     dtype: torch.dtype = torch.float,
 ) -> List[torch.Tensor]:
     torch_model.eval()
-    if device is Device.GPU:
-        torch_model.cuda()
+    if device.type is DeviceType.GPU:
+        torch_model.to(device.to_torch_format())
         if dtype != torch.half:
-            input_tensors = (t.cuda() for t in input_tensors)
+            input_tensors = (
+                t.to(device.to_torch_format()) for t in input_tensors
+            )
         else:
             input_tensors = (
-                t.cuda().half() if t.dtype == torch.float else t.cuda()
+                t.to(device.to_torch_format()).half()
+                if t.dtype == torch.float
+                else t.to(device.to_torch_format())
                 for t in input_tensors
             )
     with torch.no_grad():

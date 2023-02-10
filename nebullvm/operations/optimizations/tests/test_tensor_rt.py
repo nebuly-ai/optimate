@@ -24,11 +24,12 @@ from nebullvm.operations.inference_learners.utils import load_model
 from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
-    Device,
+    DeviceType,
     ModelCompiler,
+    Device,
 )
 
-device = Device.GPU
+device = Device(DeviceType.GPU)
 
 
 @pytest.mark.parametrize(

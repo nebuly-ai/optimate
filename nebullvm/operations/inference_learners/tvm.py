@@ -24,7 +24,12 @@ from nebullvm.optional_modules.tvm import (
     tvm,
     ExecutorFactoryModule,
 )
-from nebullvm.tools.base import ModelParams, DeepLearningFramework, Device
+from nebullvm.tools.base import (
+    ModelParams,
+    DeepLearningFramework,
+    Device,
+    DeviceType,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -115,7 +120,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
         return tvm_outputs
 
     def free_gpu_memory(self):
-        # TODO: check if twm needs to release GPU
+        # TODO: check if tvm needs to release GPU
         pass
 
     def save(self, path: Union[str, Path], **kwargs):
@@ -162,12 +167,13 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             metadata["input_tfms"] = MultiStageTransformation.from_dict(
                 input_tfms
             )
+        device = Device(DeviceType(metadata["device"]))
         self = cls.from_runtime_module(
             network_parameters=network_parameters,
             lib=lib,
             target_device=target_device,
             input_names=input_names,
-            device=Device(metadata["device"]),
+            device=device,
         )
         self.engine_path = path / TVM_FILENAMES["engine"]
         return self
@@ -308,7 +314,6 @@ class PytorchApacheTVMInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        device = self._convert_device(input_tensors[0].get_device())
         input_arrays = (
             input_tensor.cpu().detach().numpy()
             for input_tensor in input_tensors
@@ -320,7 +325,8 @@ class PytorchApacheTVMInferenceLearner(
         )
         output_arrays = self._inner_predict(input_arrays, input_shapes)
         return tuple(
-            torch.from_numpy(array).to(device) for array in output_arrays
+            torch.from_numpy(array).to(self.device.to_torch_format())
+            for array in output_arrays
         )
 
     @staticmethod
