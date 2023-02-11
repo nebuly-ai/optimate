@@ -202,19 +202,15 @@ class CNNForwardForwardTrainer(BaseForwardForwardTrainer):
 
             # Perform clustering
             kmeans = KMeans(n_clusters=10, random_state=0)
-            kmeans.fit(x_train)
+            train_labels = kmeans.fit_predict(x_train) 
+            train_dataset = torch.utils.data.TensorDataset(x_train, train_labels)
+            train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-            # Predict the cluster assignments for each data point
-            train_clusters = kmeans.predict(x_train)
-            test_clusters = kmeans.predict(x_test)
-
-            for j, (data, target) in enumerate(self.train_data):
+            for j, (data, target) in enumerate(train_dataloader):
                 # TODO: THE IMAGE SHAPE SHOULD NOT BE DEFINED HERE
-                data = data.to(device).reshape(-1, 28 * 28)
-                target = torch.functional.F.one_hot(
-                    torch.tensor([train_clusters[target]]),
-                    num_classes=10,
-                ).to(device)
+                data = data.to(device)  
+                target = torch.functional.F.one_hot(torch.tensor([target]), num_classes=10,).to(device)
+                
                 _, goodness = model.ff_train(data, target, theta)
                 if accumulated_goodness is None:
                     accumulated_goodness = goodness
