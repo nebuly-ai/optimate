@@ -1,8 +1,9 @@
+from abc import ABC, abstractmethod
+
 import torch
 import torchvision
 import torch.optim as optim
 import torchvision.transforms as transforms
-from abc import ABC, abstractmethod
 from sklearn.cluster import KMeans
 from torch.utils.data import DataLoader
 from torchvision import datasets
