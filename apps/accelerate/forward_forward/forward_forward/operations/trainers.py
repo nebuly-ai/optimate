@@ -195,8 +195,8 @@ class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
             accumulated_goodness = None
             model.train()
             # Preprocess the data
-            x_train = [data.flatten().numpy() for data, label in self.train_data]
-            x_test = [data.flatten().numpy() for data, label in self.test_data]
+            x_train = [data.numpy() for data, label in self.train_data]
+            x_test = [data.numpy() for data, label in self.test_data]
 
             # Perform clustering
             kmeans = KMeans(n_clusters=10, random_state=0)
@@ -225,7 +225,7 @@ class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
             correct = 0
             with torch.no_grad():
                 for data, target in self.test_data:
-                    data = data.to(device).reshape(-1, 28 * 28)
+                    data = data.to(device)
                     target = torch.tensor([test_clusters[target]]).to(device)
                     _, pred = model.positive_eval(data, theta)
                     correct += (pred.item() == test_clusters[target]).sum().item()
