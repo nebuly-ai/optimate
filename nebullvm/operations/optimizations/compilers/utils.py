@@ -33,8 +33,8 @@ def bladedisc_is_available() -> bool:
 
 def tensorrt_is_available() -> bool:
     try:
-        import tensorrt  # noqa F401
         import polygraphy  # noqa F401
+        import tensorrt  # noqa F401
 
         return True
     except ImportError:
@@ -82,7 +82,11 @@ def get_faster_transformer_repo_path() -> Path:
 
 
 def faster_transformer_is_available() -> bool:
-    return get_faster_transformer_repo_path().parent.joinpath("FasterTransformer_build_success").exists()
+    return (
+        get_faster_transformer_repo_path()
+        .parent.joinpath("FasterTransformer_build_success")
+        .exists()
+    )
 
 
 def select_compilers_from_hardware_onnx(device: Device):

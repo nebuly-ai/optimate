@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, List, Union, Dict
+from typing import Dict, List, Tuple, Union
 
 
 class QuantizationType(Enum):

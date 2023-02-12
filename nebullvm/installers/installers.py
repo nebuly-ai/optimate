@@ -9,9 +9,7 @@ from typing import List
 import cpuinfo
 from loguru import logger
 
-from nebullvm.config import (
-    LIBRARIES_GPU,
-)
+from nebullvm.config import LIBRARIES_GPU
 from nebullvm.operations.optimizations.compilers.utils import (
     deepsparse_is_available,
     faster_transformer_is_available,
@@ -22,10 +20,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     torch_tensorrt_is_available,
 )
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.utils import (
-    gpu_is_available,
-    check_module_version,
-)
+from nebullvm.tools.utils import check_module_version, gpu_is_available
 
 
 def get_cpu_arch():
@@ -221,12 +216,12 @@ def install_openvino(with_optimization: bool = True):
     subprocess.run(cmd)
 
     try:
-        from openvino.runtime import (  # noqa F401
-            Core,
-            Model,
+        from openvino.runtime import (
             CompiledModel,
+            Core,
             InferRequest,
-        )
+            Model,
+        )  # noqa F401
     except ImportError:
         return False
 
@@ -297,10 +292,10 @@ def install_intel_neural_compressor():
     subprocess.run(cmd)
 
     try:
-        from neural_compressor.experimental import (  # noqa F401
+        from neural_compressor.experimental import (
             MixedPrecision,
             Quantization,
-        )
+        )  # noqa F401
     except ImportError:
         return False
 
@@ -338,8 +333,6 @@ def install_faster_transformer(
     """
     if not gpu_is_available():
         return False
-    from nebullvm.optional_modules.utils import torch_is_available
-
     path = Path(__file__).parent
     # install pre-requisites
     # TODO: use a different script

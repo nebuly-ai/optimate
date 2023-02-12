@@ -4,7 +4,10 @@ from typing import Any
 import torch
 from nebullvm.operations.base import Operation
 
-from open_alpha_tensor.config import BASE_CHECKPOINT_DATA_DIR, BASE_CHECKPOINT_DIR
+from open_alpha_tensor.config import (
+    BASE_CHECKPOINT_DATA_DIR,
+    BASE_CHECKPOINT_DIR,
+)
 from open_alpha_tensor.core.modules.alpha_tensor import AlphaTensorModel
 from open_alpha_tensor.core.training import Trainer
 

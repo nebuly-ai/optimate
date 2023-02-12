@@ -5,9 +5,16 @@ from tempfile import TemporaryDirectory
 from typing import List, Optional, Tuple, Union
 
 from nebullvm.operations.inference_learners.base import (
-    LearnerMetadata, PytorchBaseInferenceLearner)
-from nebullvm.optional_modules.torch import (GraphModule, Module, ScriptModule,
-                                             symbolic_trace, torch)
+    LearnerMetadata,
+    PytorchBaseInferenceLearner,
+)
+from nebullvm.optional_modules.torch import (
+    GraphModule,
+    Module,
+    ScriptModule,
+    symbolic_trace,
+    torch,
+)
 from nebullvm.tools.base import Device, ModelParams
 from nebullvm.tools.transformations import MultiStageTransformation
 

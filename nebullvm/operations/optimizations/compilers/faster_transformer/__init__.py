@@ -2,12 +2,19 @@ from typing import List, Tuple, Union
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
-from nebullvm.operations.optimizations.compilers.quantizations.pytorch import \
-    quantize_pytorch
-from nebullvm.operations.optimizations.compilers.quantizations.utils import \
-    check_quantization
-from nebullvm.optional_modules.torch import (GraphModule, Module, ScriptModule,
-                                             symbolic_trace, torch)
+from nebullvm.operations.optimizations.compilers.quantizations.pytorch import (
+    quantize_pytorch,
+)
+from nebullvm.operations.optimizations.compilers.quantizations.utils import (
+    check_quantization,
+)
+from nebullvm.optional_modules.torch import (
+    GraphModule,
+    Module,
+    ScriptModule,
+    symbolic_trace,
+    torch,
+)
 from nebullvm.tools.base import Device, QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation

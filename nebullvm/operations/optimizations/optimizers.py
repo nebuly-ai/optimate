@@ -4,7 +4,6 @@ from nebullvm.operations.optimizations.compilers.utils import (
     deepsparse_is_available,
     intel_neural_compressor_is_available,
     onnxruntime_is_available,
-    tensorrt_is_available,
     openvino_is_available,
     tensorrt_is_available,
     torch_tensorrt_is_available,
@@ -16,7 +15,7 @@ from nebullvm.optional_modules.utils import (
     tensorflow_is_available,
     torch_is_available,
 )
-from nebullvm.tools.base import DeepLearningFramework, ModelCompiler, Device
+from nebullvm.tools.base import DeepLearningFramework, Device, ModelCompiler
 
 
 class PytorchOptimizer(Optimizer):
