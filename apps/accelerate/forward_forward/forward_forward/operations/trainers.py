@@ -188,7 +188,7 @@ class NLPForwardForwardTrainer(BaseForwardForwardTrainer):
             self.logger.info(f"Perplexity: {perplexity}")
 
             
-class CNNForwardForwardTrainer(BaseForwardForwardTrainer):
+class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
     def _train(self, epochs: int, theta: float, device: str, **kwargs):
         model = self.model.to(device)
         for epoch in range(epochs):
