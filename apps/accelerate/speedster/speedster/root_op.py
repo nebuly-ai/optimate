@@ -332,8 +332,11 @@ class SpeedsterRootOp(Operation):
                 orig_latency = self.orig_latency_measure_op.get_result()[1]
 
                 optimizations = self.feedback_collector.get("optimizations")
+                valid_optimizations = [
+                    v for v in optimizations if v["latency"] != -1
+                ]
                 best_technique = _convert_technique(
-                    sorted(optimizations, key=lambda x: x["latency"])[0][
+                    sorted(valid_optimizations, key=lambda x: x["latency"])[0][
                         "technique"
                     ]
                 )
