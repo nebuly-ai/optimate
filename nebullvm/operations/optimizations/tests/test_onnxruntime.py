@@ -113,6 +113,7 @@ def test_onnxruntime(
             model_params=model_params,
             input_tfms=input_tfms,
             source_dl_framework=output_library,
+            quantization_type=quantization_type,
         )
 
         optimized_model = build_inference_learner_op.get_result()
@@ -270,6 +271,7 @@ def test_onnxruntime_quantization(
             model_params=model_params,
             input_tfms=input_tfms,
             source_dl_framework=output_library,
+            quantization_type=quantization_type,
         )
 
         optimized_model = build_inference_learner_op.get_result()
@@ -431,6 +433,7 @@ def test_onnxruntime_half(
             model_params=model_params,
             input_tfms=input_tfms,
             source_dl_framework=output_library,
+            quantization_type=quantization_type,
         )
 
         optimized_model = build_inference_learner_op.get_result()

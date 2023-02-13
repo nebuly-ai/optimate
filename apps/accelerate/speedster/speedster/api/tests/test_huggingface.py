@@ -55,6 +55,7 @@ def test_torch_huggingface_ort_input_text():
 
     x = ["this is a test input to see if the optimized model works."]
     inputs = tokenizer(x, return_tensors="pt").to(device)
+    model.to(device)
     res_original = model(**inputs)
     res_optimized = optimized_model(**inputs)
 
@@ -118,6 +119,7 @@ def test_torch_huggingface_ort_input_tensors():
 
     x = ["this is a test input to see if the optimized model works."]
     inputs = tokenizer(x, return_tensors="pt").to(device)
+    model.to(device)
     res_original = model(**inputs)
     res_optimized = optimized_model(**inputs)
 
