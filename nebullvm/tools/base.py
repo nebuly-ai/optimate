@@ -169,10 +169,14 @@ class Device:
             raise Exception("CPU does not have memory")
         else:
             try:
-                output = subprocess.check_output(
-                    "nvidia-smi --query-gpu=memory.total "
-                    "--format=csv,nounits,noheader",
-                    shell=True,
+                output = (
+                    subprocess.check_output(
+                        "nvidia-smi --query-gpu=memory.total "
+                        "--format=csv,nounits,noheader",
+                        shell=True,
+                    )
+                    .decode("utf-8")
+                    .split()[self.idx]
                 )
                 return int(output) * 1024 * 1024
             except Exception:
@@ -187,10 +191,14 @@ class Device:
             raise Exception("CPU does not have memory")
         else:
             try:
-                output = subprocess.check_output(
-                    "nvidia-smi --query-gpu=memory.total "
-                    "--format=csv,nounits,noheader",
-                    shell=True,
+                output = (
+                    subprocess.check_output(
+                        "nvidia-smi --query-gpu=memory.free "
+                        "--format=csv,nounits,noheader",
+                        shell=True,
+                    )
+                    .decode("utf-8")
+                    .split()[self.idx]
                 )
                 return int(output) * 1024 * 1024
             except Exception:

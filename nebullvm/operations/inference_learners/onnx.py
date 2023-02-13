@@ -121,7 +121,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
                 "TensorrtExecutionProvider",
                 {
                     "device_id": device.idx,
-                    "trt_max_workspace_size": 23474836480,
+                    "trt_max_workspace_size": device.get_free_memory(),
                     "trt_fp16_enable": True
                     if quantization_type is not None
                     else False,

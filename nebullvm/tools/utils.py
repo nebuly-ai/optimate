@@ -225,9 +225,9 @@ def check_device(device: Optional[str]) -> Device:
                 )
                 idx = 0
             else:
-                name, index = device.split(":")
-                if index.isdigit():
-                    idx = int(index)
+                device_info = device.split(":")
+                if len(device_info) == 2 and device_info[1].isdigit():
+                    idx = int(device_info[1])
                 else:
                     idx = 0
             if not gpu_is_available():
