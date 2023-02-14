@@ -26,7 +26,6 @@ from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import (
     ModelParams,
     DeepLearningFramework,
-    DeviceType,
     Device,
 )
 from nebullvm.tools.data import DataManager
@@ -103,7 +102,7 @@ class OpenVinoInferenceLearner(BaseInferenceLearner, ABC):
 
         model_name = str(path / OPENVINO_FILENAMES["description_file"])
         model_weights = str(path / OPENVINO_FILENAMES["weights"])
-        metadata["device"] = Device(DeviceType(metadata["device"]))
+        metadata["device"] = Device.from_str(metadata["device"])
         return cls.from_model_name(
             model_name=model_name, model_weights=model_weights, **metadata
         )

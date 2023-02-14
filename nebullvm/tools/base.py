@@ -153,6 +153,18 @@ class Device:
         self.type = type
         self.idx = idx
 
+    @classmethod
+    def from_str(cls, string: str) -> "Device":
+        if string == "cpu":
+            return cls(DeviceType.CPU)
+        elif string.startswith("cuda") or string.startswith("gpu"):
+            return cls(
+                DeviceType.GPU,
+                int(string.split(":")[1] if ":" in string else 0),
+            )
+        else:
+            raise Exception("Invalid device string")
+
     def to_torch_format(self) -> str:
         if self.type is DeviceType.CPU:
             return "cpu"
@@ -203,6 +215,6 @@ class Device:
                 return int(output) * 1024 * 1024
             except Exception:
                 raise Exception(
-                    "Unable to get total memory of device. "
+                    "Unable to get free memory of device. "
                     "Please make sure nvidia-smi is available."
                 )

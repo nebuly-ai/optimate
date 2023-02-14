@@ -25,7 +25,6 @@ from nebullvm.tools.base import (
     ModelParams,
     DeepLearningFramework,
     Device,
-    DeviceType,
 )
 from nebullvm.tools.pytorch import (
     save_with_torch_fx,
@@ -138,7 +137,7 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         q_model = convert_fx(q_model)
 
         q_model.load_state_dict(state_dict)
-        device = Device(DeviceType(metadata.device))
+        device = Device.from_str(metadata.device)
 
         return cls(
             model=model,

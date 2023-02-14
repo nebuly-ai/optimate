@@ -19,7 +19,6 @@ from nebullvm.tools.base import (
     ModelParams,
     DeepLearningFramework,
     Device,
-    DeviceType,
 )
 from nebullvm.tools.transformations import MultiStageTransformation
 
@@ -116,7 +115,7 @@ class DeepSparseInferenceLearner(BaseInferenceLearner, ABC):
             input_tfms = MultiStageTransformation.from_dict(
                 metadata.input_tfms
             )
-        device = Device(DeviceType(metadata.device))
+        device = Device.from_str(metadata.device)
         return cls(
             input_tfms=input_tfms,
             network_parameters=ModelParams(**metadata.network_parameters),

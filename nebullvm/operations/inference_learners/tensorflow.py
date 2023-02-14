@@ -48,7 +48,7 @@ class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):
         model = tf.keras.models.load_model(
             path / TENSORFLOW_BACKEND_FILENAMES["tf_model"]
         )
-        device = Device(DeviceType(metadata.device))
+        device = Device.from_str(metadata.device)
         return cls(
             tf_model=model,
             network_parameters=network_parameters,
@@ -116,7 +116,7 @@ class TFLiteBackendInferenceLearner(TensorflowBaseInferenceLearner):
         metadata = LearnerMetadata.read(path)
         network_parameters = ModelParams(**metadata.network_parameters)
         input_tfms = metadata.input_tfms
-        device = Device(DeviceType(metadata.device))
+        device = Device.from_str(metadata.device)
         return cls(
             tflite_file=tflite_file,
             network_parameters=network_parameters,

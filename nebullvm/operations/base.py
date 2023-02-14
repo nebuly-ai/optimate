@@ -1,35 +1,11 @@
 import abc
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Union
 
 from loguru import logger
 
 from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.feedback_collector import FeedbackCollector
-from nebullvm.tools.utils import gpu_is_available
-
-
-def _check_device(device: Optional[str]) -> Device:
-    if device is None:
-        if gpu_is_available():
-            device = Device(DeviceType.GPU)
-        else:
-            device = Device(DeviceType.CPU)
-    else:
-        if device.lower() == "gpu":
-            if not gpu_is_available():
-                logger.warning(
-                    "Selected GPU device but no available GPU found on this "
-                    "platform. CPU will be used instead. Please make sure "
-                    "that the gpu is installed and can be used by your "
-                    "framework."
-                )
-                device = Device(DeviceType.CPU)
-            else:
-                device = Device(DeviceType.GPU)
-        else:
-            device = Device(DeviceType.CPU)
-
-    return device
+from nebullvm.tools.utils import check_device
 
 
 class Operation(abc.ABC):
@@ -60,7 +36,7 @@ class Operation(abc.ABC):
 
     def to(self, device: Union[str, Device]):
         if isinstance(device, str):
-            self.device = _check_device(device)
+            self.device = check_device(device)
         else:
             self.device = device
         return self

@@ -28,7 +28,6 @@ from nebullvm.tools.base import (
     ModelParams,
     DeepLearningFramework,
     Device,
-    DeviceType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
@@ -167,7 +166,7 @@ class ApacheTVMInferenceLearner(BaseInferenceLearner, ABC):
             metadata["input_tfms"] = MultiStageTransformation.from_dict(
                 input_tfms
             )
-        device = Device(DeviceType(metadata["device"]))
+        device = Device.from_str(metadata["device"])
         self = cls.from_runtime_module(
             network_parameters=network_parameters,
             lib=lib,

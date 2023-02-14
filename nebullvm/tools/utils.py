@@ -218,18 +218,12 @@ def check_device(device: Optional[str]) -> Device:
         else:
             device = Device(DeviceType.CPU)
     else:
-        if device.lower() == "gpu" or "cuda" in device.lower():
-            if device.lower() == "gpu":
-                logger.warning(
-                    "gpu tag is deprecated, please use cuda or cuda:0 instead."
-                )
-                idx = 0
+        if any(x in device.lower() for x in ["cuda", "gpu"]):
+            device_info = device.split(":")
+            if len(device_info) == 2 and device_info[1].isdigit():
+                idx = int(device_info[1])
             else:
-                device_info = device.split(":")
-                if len(device_info) == 2 and device_info[1].isdigit():
-                    idx = int(device_info[1])
-                else:
-                    idx = 0
+                idx = 0
             if not gpu_is_available():
                 logger.warning(
                     "Selected GPU device but no available GPU found on this "

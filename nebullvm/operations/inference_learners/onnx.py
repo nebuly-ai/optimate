@@ -243,7 +243,7 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         onnx_path = path / ONNX_FILENAMES["model_name"]
         metadata = LearnerMetadata.read(path)
         input_tfms = metadata.input_tfms
-        device = Device(DeviceType(metadata.device))
+        device = Device.from_str(metadata.device)
         quantization_type = (
             QuantizationType(metadata.quantization_type)
             if hasattr(metadata, "quantization_type")

@@ -17,7 +17,6 @@ from nebullvm.tools.base import (
     ModelParams,
     Device,
     QuantizationType,
-    DeviceType,
 )
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import create_model_inputs_torch
@@ -248,8 +247,8 @@ class LearnerMetadata:
     NAME: str = LEARNER_METADATA_FILENAME
     class_name: str
     module_name: str
-    device: DeviceType
-    quantization_type: QuantizationType
+    device: str
+    quantization_type: str
 
     def __init__(
         self,

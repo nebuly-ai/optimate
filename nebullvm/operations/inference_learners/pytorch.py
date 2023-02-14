@@ -74,7 +74,7 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
         path = Path(path)
         model = torch.jit.load(path / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
-        device = Device(DeviceType(metadata.device))
+        device = Device.from_str(metadata.device)
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),
