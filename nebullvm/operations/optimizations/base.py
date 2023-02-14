@@ -64,6 +64,7 @@ from nebullvm.tools.base import (
     ModelParams,
     DeepLearningFramework,
     ModelCompressor,
+    DeviceType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
@@ -97,6 +98,19 @@ class Optimizer(Operation, abc.ABC):
         # TODO: implement and select compressors from hardware
 
         compilers = self._select_compilers_from_hardware()
+
+        remove_compiler_list = []
+        add_compiler_list = []
+        for compiler in ignore_compilers:
+            if compiler in MULTI_FRAMEWORK_COMPILERS:
+                add_compiler_list += MULTI_FRAMEWORK_COMPILERS[compiler]
+                remove_compiler_list.append(compiler)
+
+        for c in remove_compiler_list:
+            ignore_compilers.remove(c)
+
+        ignore_compilers += add_compiler_list
+
         (
             self.compiler_ops,
             self.build_inference_learner_ops,
@@ -119,29 +133,38 @@ class Optimizer(Operation, abc.ABC):
     def _select_compilers_from_hardware(self):
         raise NotImplementedError()
 
+    @staticmethod
     def _load_compilers(
-        self,
         ignore_compilers: List[ModelCompiler],
         compilers: List[ModelCompiler],
     ):
         compiler_ops = {
-            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler][
-                self.pipeline_dl_framework
-            ]()
+            compiler: COMPILER_TO_OPTIMIZER_MAP[compiler]()
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
         }
         build_inference_learner_ops = {
-            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler][
-                self.pipeline_dl_framework
-            ]()
+            compiler: COMPILER_TO_INFERENCE_LEARNER_MAP[compiler]()
             for compiler in compilers
             if compiler not in ignore_compilers
             and compiler in COMPILER_TO_OPTIMIZER_MAP
         }
 
         return compiler_ops, build_inference_learner_ops
+
+    def free_model_gpu(self, model: Any):
+        # Free gpu memory
+        if self.device.type is DeviceType.GPU:
+            try:
+                model.cpu()
+            except Exception:
+                pass
+            try:
+                with torch.cuda.device(self.device.to_torch_format()):
+                    torch.cuda.empty_cache()
+            except Exception:
+                pass
 
     def _optimize(
         self,
@@ -177,6 +200,8 @@ class Optimizer(Operation, abc.ABC):
             for q_type in q_types:
                 input_tfms = MultiStageTransformation([])
 
+                self.free_model_gpu(model)
+
                 with TemporaryDirectory() as tmp_dir:
                     try:
                         compiler_op.to(self.device).execute(
@@ -201,6 +226,7 @@ class Optimizer(Operation, abc.ABC):
                                 model_params=model_params,
                                 input_tfms=input_tfms,
                                 source_dl_framework=self.source_dl_framework,
+                                quantization_type=q_type,
                             )
                             inference_learner = (
                                 build_inference_learner_op.get_result()
@@ -274,6 +300,9 @@ class Optimizer(Operation, abc.ABC):
                                         "discarded due to poor results "
                                         "obtained with the given metric."
                                     )
+
+                                if self.device.type is DeviceType.GPU:
+                                    inference_learner.free_gpu_memory()
                     except Exception as ex:
                         self.logger.warning(
                             f"Optimization failed with "
@@ -303,66 +332,43 @@ class Optimizer(Operation, abc.ABC):
         return self.optimized_models
 
 
-COMPILER_TO_OPTIMIZER_MAP: Dict[
-    ModelCompiler, Dict[DeepLearningFramework, Type[Compiler]]
-] = {
-    ModelCompiler.TORCHSCRIPT: {
-        DeepLearningFramework.PYTORCH: PytorchBackendCompiler
-    },
-    ModelCompiler.DEEPSPARSE: {
-        DeepLearningFramework.PYTORCH: DeepSparseCompiler
-    },
-    ModelCompiler.INTEL_NEURAL_COMPRESSOR: {
-        DeepLearningFramework.PYTORCH: IntelNeuralCompressorCompiler
-    },
-    ModelCompiler.TENSOR_RT: {
-        DeepLearningFramework.PYTORCH: PyTorchTensorRTCompiler,
-        DeepLearningFramework.NUMPY: ONNXTensorRTCompiler,
-    },
-    ModelCompiler.APACHE_TVM: {
-        DeepLearningFramework.PYTORCH: PyTorchApacheTVMCompiler,
-        DeepLearningFramework.NUMPY: ONNXApacheTVMCompiler,
-    },
-    ModelCompiler.ONNX_RUNTIME: {DeepLearningFramework.NUMPY: ONNXCompiler},
-    ModelCompiler.OPENVINO: {DeepLearningFramework.NUMPY: OpenVINOCompiler},
-    ModelCompiler.TFLITE: {
-        DeepLearningFramework.TENSORFLOW: TFLiteBackendCompiler
-    },
-    ModelCompiler.XLA: {
-        DeepLearningFramework.TENSORFLOW: TensorflowBackendCompiler
-    },
+MULTI_FRAMEWORK_COMPILERS = {
+    ModelCompiler.TENSOR_RT: [
+        ModelCompiler.TENSOR_RT_TORCH,
+        ModelCompiler.TENSOR_RT_ONNX,
+    ],
+    ModelCompiler.APACHE_TVM: [
+        ModelCompiler.APACHE_TVM_TORCH,
+        ModelCompiler.APACHE_TVM_ONNX,
+    ],
+}
+
+COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
+    ModelCompiler.TORCHSCRIPT: PytorchBackendCompiler,
+    ModelCompiler.DEEPSPARSE: DeepSparseCompiler,
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorCompiler,
+    ModelCompiler.TENSOR_RT_TORCH: PyTorchTensorRTCompiler,
+    ModelCompiler.TENSOR_RT_ONNX: ONNXTensorRTCompiler,
+    ModelCompiler.APACHE_TVM_TORCH: PyTorchApacheTVMCompiler,
+    ModelCompiler.APACHE_TVM_ONNX: ONNXApacheTVMCompiler,
+    ModelCompiler.ONNX_RUNTIME: ONNXCompiler,
+    ModelCompiler.OPENVINO: OpenVINOCompiler,
+    ModelCompiler.TFLITE: TFLiteBackendCompiler,
+    ModelCompiler.XLA: TensorflowBackendCompiler,
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
-    ModelCompiler, Dict[DeepLearningFramework, Type[BuildInferenceLearner]]
+    ModelCompiler, Type[BuildInferenceLearner]
 ] = {
-    ModelCompiler.TORCHSCRIPT: {
-        DeepLearningFramework.PYTORCH: PytorchBuildInferenceLearner
-    },
-    ModelCompiler.DEEPSPARSE: {
-        DeepLearningFramework.PYTORCH: DeepSparseBuildInferenceLearner
-    },
-    ModelCompiler.INTEL_NEURAL_COMPRESSOR: {
-        DeepLearningFramework.PYTORCH: IntelNeuralCompressorBuildInferenceLearner  # noqa: E501
-    },
-    ModelCompiler.TENSOR_RT: {
-        DeepLearningFramework.PYTORCH: PyTorchTensorRTBuildInferenceLearner,
-        DeepLearningFramework.NUMPY: ONNXTensorRTBuildInferenceLearner,
-    },
-    ModelCompiler.APACHE_TVM: {
-        DeepLearningFramework.PYTORCH: PyTorchApacheTVMBuildInferenceLearner,
-        DeepLearningFramework.NUMPY: ONNXApacheTVMBuildInferenceLearner,
-    },
-    ModelCompiler.ONNX_RUNTIME: {
-        DeepLearningFramework.NUMPY: ONNXBuildInferenceLearner
-    },
-    ModelCompiler.OPENVINO: {
-        DeepLearningFramework.NUMPY: OpenVINOBuildInferenceLearner
-    },
-    ModelCompiler.TFLITE: {
-        DeepLearningFramework.TENSORFLOW: TFLiteBuildInferenceLearner
-    },
-    ModelCompiler.XLA: {
-        DeepLearningFramework.TENSORFLOW: TensorflowBuildInferenceLearner
-    },
+    ModelCompiler.TORCHSCRIPT: PytorchBuildInferenceLearner,
+    ModelCompiler.DEEPSPARSE: DeepSparseBuildInferenceLearner,
+    ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorBuildInferenceLearner,  # noqa: E501
+    ModelCompiler.TENSOR_RT_TORCH: PyTorchTensorRTBuildInferenceLearner,
+    ModelCompiler.TENSOR_RT_ONNX: ONNXTensorRTBuildInferenceLearner,
+    ModelCompiler.APACHE_TVM_TORCH: PyTorchApacheTVMBuildInferenceLearner,
+    ModelCompiler.APACHE_TVM_ONNX: ONNXApacheTVMBuildInferenceLearner,
+    ModelCompiler.ONNX_RUNTIME: ONNXBuildInferenceLearner,
+    ModelCompiler.OPENVINO: OpenVINOBuildInferenceLearner,
+    ModelCompiler.TFLITE: TFLiteBuildInferenceLearner,
+    ModelCompiler.XLA: TensorflowBuildInferenceLearner,
 }

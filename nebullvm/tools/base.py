@@ -1,3 +1,4 @@
+import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple, List, Union, Dict
@@ -20,7 +21,7 @@ class DeepLearningFramework(Enum):
     NUMPY = "numpy"
 
 
-class Device(Enum):
+class DeviceType(Enum):
     CPU = "cpu"
     GPU = "gpu"
 
@@ -33,8 +34,12 @@ class DataType(str, Enum):
 
 class ModelCompiler(Enum):
     TENSOR_RT = "tensor_rt"
+    TENSOR_RT_ONNX = "onnx_tensor_rt"
+    TENSOR_RT_TORCH = "torch_tensor_rt"
     OPENVINO = "openvino"
     APACHE_TVM = "tvm"
+    APACHE_TVM_TORCH = "torch_tvm"
+    APACHE_TVM_ONNX = "onnx_tvm"
     ONNX_RUNTIME = "onnxruntime"
     DEEPSPARSE = "deepsparse"
     TORCHSCRIPT = "torchscript"
@@ -141,3 +146,75 @@ class ModelParams:
     def input_sizes(self):
         for input_info in self.input_infos:
             yield input_info.size
+
+
+class Device:
+    def __init__(self, type: DeviceType, idx: int = 0):
+        self.type = type
+        self.idx = idx
+
+    @classmethod
+    def from_str(cls, string: str) -> "Device":
+        if string == "cpu":
+            return cls(DeviceType.CPU)
+        elif string.startswith("cuda") or string.startswith("gpu"):
+            return cls(
+                DeviceType.GPU,
+                int(string.split(":")[1] if ":" in string else 0),
+            )
+        else:
+            raise Exception("Invalid device string")
+
+    def to_torch_format(self) -> str:
+        if self.type is DeviceType.CPU:
+            return "cpu"
+        return f"cuda:{self.idx}"
+
+    def to_tf_format(self) -> str:
+        if self.type is DeviceType.CPU:
+            return "CPU"
+        return f"GPU:{self.idx}"
+
+    def get_total_memory(self) -> int:
+        # Return total memory in bytes using nvidia-smi in bytes
+        if self.type is DeviceType.CPU:
+            raise Exception("CPU does not have memory")
+        else:
+            try:
+                output = (
+                    subprocess.check_output(
+                        "nvidia-smi --query-gpu=memory.total "
+                        "--format=csv,nounits,noheader",
+                        shell=True,
+                    )
+                    .decode("utf-8")
+                    .split()[self.idx]
+                )
+                return int(output) * 1024 * 1024
+            except Exception:
+                raise Exception(
+                    "Unable to get total memory of device. "
+                    "Please make sure nvidia-smi is available."
+                )
+
+    def get_free_memory(self) -> int:
+        # Return total memory in bytes using nvidia-smi in bytes
+        if self.type is DeviceType.CPU:
+            raise Exception("CPU does not have memory")
+        else:
+            try:
+                output = (
+                    subprocess.check_output(
+                        "nvidia-smi --query-gpu=memory.free "
+                        "--format=csv,nounits,noheader",
+                        shell=True,
+                    )
+                    .decode("utf-8")
+                    .split()[self.idx]
+                )
+                return int(output) * 1024 * 1024
+            except Exception:
+                raise Exception(
+                    "Unable to get free memory of device. "
+                    "Please make sure nvidia-smi is available."
+                )

@@ -14,7 +14,11 @@ from nebullvm.optional_modules.utils import (
     tensorflow_is_available,
     onnx_is_available,
 )
-from nebullvm.tools.base import DeepLearningFramework, ModelCompiler, Device
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    ModelCompiler,
+    DeviceType,
+)
 
 
 class PytorchOptimizer(Optimizer):
@@ -27,18 +31,18 @@ class PytorchOptimizer(Optimizer):
         if torch_is_available():
             compilers.append(ModelCompiler.TORCHSCRIPT)
             if tvm_is_available():
-                compilers.append(ModelCompiler.APACHE_TVM)
+                compilers.append(ModelCompiler.APACHE_TVM_TORCH)
             if bladedisc_is_available():
                 compilers.append(ModelCompiler.BLADEDISC)
 
-            if self.device is Device.CPU:
+            if self.device.type is DeviceType.CPU:
                 if deepsparse_is_available():
                     compilers.append(ModelCompiler.DEEPSPARSE)
                 if intel_neural_compressor_is_available():
                     compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
-            elif self.device is Device.GPU:
+            elif self.device.type is DeviceType.GPU:
                 if torch_tensorrt_is_available():
-                    compilers.append(ModelCompiler.TENSOR_RT)
+                    compilers.append(ModelCompiler.TENSOR_RT_TORCH)
         return compilers
 
 
@@ -66,9 +70,9 @@ class ONNXOptimizer(Optimizer):
             if onnxruntime_is_available():
                 compilers.append(ModelCompiler.ONNX_RUNTIME)
             if tvm_is_available():
-                compilers.append(ModelCompiler.APACHE_TVM)
-            if self.device is Device.GPU and tensorrt_is_available():
-                compilers.append(ModelCompiler.TENSOR_RT)
-            if self.device is Device.CPU and openvino_is_available():
+                compilers.append(ModelCompiler.APACHE_TVM_ONNX)
+            if self.device.type is DeviceType.GPU and tensorrt_is_available():
+                compilers.append(ModelCompiler.TENSOR_RT_ONNX)
+            if self.device.type is DeviceType.CPU and openvino_is_available():
                 compilers.append(ModelCompiler.OPENVINO)
         return compilers

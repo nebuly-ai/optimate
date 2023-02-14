@@ -1,6 +1,7 @@
 from typing import List, Tuple, Any, Optional, Dict
 
 import numpy as np
+from loguru import logger
 
 from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.optional_modules.onnx import onnx
@@ -12,6 +13,7 @@ from nebullvm.tools.base import (
     DataType,
     DeepLearningFramework,
     Device,
+    DeviceType,
 )
 
 
@@ -56,10 +58,18 @@ def run_onnx_model(
 ) -> List[np.ndarray]:
     from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 
+    if device.type is DeviceType.GPU:
+        ONNX_PROVIDERS["cuda"][1] = (
+            "CUDAExecutionProvider",
+            {
+                "device_id": device.idx,
+            },
+        )
+
     model = ort.InferenceSession(
         onnx_model,
-        providers=ONNX_PROVIDERS["cuda"]
-        if device is Device.GPU
+        providers=ONNX_PROVIDERS["cuda"][1:]
+        if device.type is DeviceType.GPU
         else ONNX_PROVIDERS["cpu"],
     )
     inputs = {
@@ -76,7 +86,6 @@ def _extract_dynamic_axis(
     onnx_model: str,
     data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
     input_sizes: List[Tuple[int, ...]],
-    batch_size: int,
     device: Device,
     max_data: int = 100,
 ) -> Optional[Dict]:
@@ -89,7 +98,7 @@ def _extract_dynamic_axis(
         if i >= max_data:
             break
         inspect_dynamic_size(
-            input_tensors, input_sizes, batch_size, dynamic_axis["inputs"]
+            input_tensors, input_sizes, dynamic_axis["inputs"]
         )
         outputs = tuple(
             run_onnx_model(onnx_model, list(input_tensors), device)
@@ -97,9 +106,7 @@ def _extract_dynamic_axis(
         if i == 0:
             dynamic_axis["outputs"] = [{}] * len(outputs)
             output_sizes = [tuple(output.shape[1:]) for output in outputs]
-        inspect_dynamic_size(
-            outputs, output_sizes, batch_size, dynamic_axis["outputs"]
-        )
+        inspect_dynamic_size(outputs, output_sizes, dynamic_axis["outputs"])
     if any(
         len(x) > 0 for x in (dynamic_axis["inputs"] + dynamic_axis["outputs"])
     ):
@@ -110,33 +117,28 @@ def _extract_dynamic_axis(
 def extract_info_from_np_data(
     onnx_model: str,
     data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
-    batch_size: int,
-    input_sizes: List[Tuple[int, ...]],
-    input_types: List[str],
     dynamic_axis: Dict,
     device: Device,
 ):
     from nebullvm.tools.utils import ifnone
 
     input_row = data[0][0]
-    batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
-    input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
-    input_types = ifnone(
-        input_types,
-        [
-            "int32"
-            if x.dtype is np.int32
-            else "int64"
-            if x.dtype is np.int64
-            else "float32"
-            for x in input_row
-        ],
-    )
+    batch_size = int(input_row[0].shape[0])
+    if not all([input_row[0].shape[0] == x.shape[0] for x in input_row]):
+        logger.warning("Detected not consistent batch size in the inputs.")
+
+    input_sizes = [tuple(x.shape) for x in input_row]
+    input_types = [
+        "int32"
+        if x.dtype is np.int32
+        else "int64"
+        if x.dtype is np.int64
+        else "float32"
+        for x in input_row
+    ]
     dynamic_axis = ifnone(
         dynamic_axis,
-        _extract_dynamic_axis(
-            onnx_model, data, input_sizes, batch_size, device
-        ),
+        _extract_dynamic_axis(onnx_model, data, input_sizes, device),
     )
     return batch_size, input_sizes, input_types, dynamic_axis
 
@@ -145,18 +147,16 @@ def get_output_sizes_onnx(
     onnx_model: str, input_tensors: List[np.ndarray], device
 ) -> List[Tuple[int, ...]]:
     res = run_onnx_model(onnx_model, input_tensors, device)
-    sizes = [tuple(output.shape[1:]) for output in res]
+    sizes = [tuple(output.shape) for output in res]
     return sizes
 
 
-def create_model_inputs_onnx(
-    batch_size: int, input_infos: List[InputInfo]
-) -> List[np.ndarray]:
+def create_model_inputs_onnx(input_infos: List[InputInfo]) -> List[np.ndarray]:
     input_tensors = (
-        np.random.randn(batch_size, *input_info.size).astype(np.float32)
+        np.random.randn(*input_info.size).astype(np.float32)
         if input_info.dtype is DataType.FLOAT32
         else np.random.randint(
-            size=(batch_size, *input_info.size),
+            size=input_info.size,
             low=input_info.min_value or 0,
             high=input_info.max_value or 100,
         )

@@ -14,6 +14,7 @@ from typing import (
     List,
 )
 
+from loguru import logger
 from nebullvm import setup_logger
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, MIN_NUMBER
 from nebullvm.operations.base import Operation
@@ -39,7 +40,7 @@ from nebullvm.operations.optimizations.utils import (
     map_compilers_and_compressors,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import Module, DataLoader
+from nebullvm.optional_modules.torch import torch, DataLoader
 from nebullvm.optional_modules.utils import check_dependencies
 from nebullvm.tools.base import (
     ModelCompiler,
@@ -47,7 +48,7 @@ from nebullvm.tools.base import (
     ModelParams,
     OptimizationTime,
     ModelCompressor,
-    Device,
+    DeviceType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FeedbackCollector
@@ -85,6 +86,18 @@ def _convert_technique(technique: str):
     else:
         technique = "int8_dynamic"
     return technique
+
+
+def _get_model_len(model: Any):
+    try:
+        return len(pickle.dumps(model, -1))
+    except Exception:
+        logger.warning(
+            "Cannot pickle input model. Unable to "
+            "extract original model size"
+        )
+        # Model is not pickable
+        return -1
 
 
 class SpeedsterRootOp(Operation):
@@ -131,7 +144,12 @@ class SpeedsterRootOp(Operation):
         store_latencies: bool = False,
         **kwargs,
     ):
-        self.logger.info(f"Running Speedster on {self.device.name}")
+        device_id = (
+            f":{self.device.idx}" if self.device.type is DeviceType.GPU else ""
+        )
+        self.logger.info(
+            f"Running Speedster on {self.device.type.name}{device_id}"
+        )
 
         check_dependencies(self.device)
 
@@ -282,11 +300,7 @@ class SpeedsterRootOp(Operation):
                     original_model_size = (
                         os.path.getsize(self.conversion_op.get_result()[0])
                         if isinstance(self.conversion_op.get_result()[0], str)
-                        else len(
-                            pickle.dumps(
-                                self.conversion_op.get_result()[0], -1
-                            )
-                        )
+                        else _get_model_len(self.conversion_op.get_result()[0])
                     )
                     for model in self.conversion_op.get_result():
                         optimized_models += self._optimize(
@@ -318,8 +332,11 @@ class SpeedsterRootOp(Operation):
                 orig_latency = self.orig_latency_measure_op.get_result()[1]
 
                 optimizations = self.feedback_collector.get("optimizations")
+                valid_optimizations = [
+                    v for v in optimizations if v["latency"] != -1
+                ]
                 best_technique = _convert_technique(
-                    sorted(optimizations, key=lambda x: x["latency"])[0][
+                    sorted(valid_optimizations, key=lambda x: x["latency"])[0][
                         "technique"
                     ]
                 )
@@ -364,7 +381,9 @@ class SpeedsterRootOp(Operation):
                         "model size",
                         f"{original_model_size / 1e6:.2f} MB",
                         f"{optimized_models[0][0].get_size() / 1e6:.2f} MB",
-                        f"{min(int((optimized_models[0][0].get_size()-original_model_size) / original_model_size * 100), 0)}%",  # noqa: E501
+                        f"{min(int((optimized_models[0][0].get_size()-original_model_size) / original_model_size * 100), 0)}%"  # noqa: E501
+                        if original_model_size > 0
+                        else "NA",
                     ],
                     ["metric drop", "", opt_metric_drop, ""],
                     [
@@ -389,7 +408,7 @@ class SpeedsterRootOp(Operation):
                 )
                 hw_info = get_hw_info(self.device)
                 hw_name = hw_info[
-                    "cpu" if self.device is Device.CPU else "gpu"
+                    "cpu" if self.device.type is DeviceType.CPU else "gpu"
                 ]
                 self.logger.info(
                     (
@@ -399,7 +418,7 @@ class SpeedsterRootOp(Operation):
                 )
 
                 if orig_latency / optimized_models[0][1] < 2:
-                    # if self.device is Device.CPU:
+                    # if self.device.type is DeviceType.CPU:
                     #     device = hw_info["cpu"]
                     # else:
                     #     device = hw_info["gpu"]
@@ -444,7 +463,7 @@ class SpeedsterRootOp(Operation):
     ) -> List[BaseInferenceLearner]:
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
-            if isinstance(model, Module):
+            if isinstance(model, torch.nn.Module):
                 optimization_op = self.torch_optimization_op
             elif isinstance(model, tf.Module) and model is not None:
                 optimization_op = self.tensorflow_optimization_op
@@ -465,6 +484,9 @@ class SpeedsterRootOp(Operation):
             )
 
             optimized_models = optimization_op.get_result()
+
+            if isinstance(model, torch.nn.Module):
+                optimization_op.free_model_gpu(model)
 
             return optimized_models
 

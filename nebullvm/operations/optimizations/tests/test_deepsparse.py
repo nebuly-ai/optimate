@@ -20,9 +20,14 @@ from nebullvm.operations.optimizations.compilers.utils import (
 )
 from nebullvm.operations.optimizations.tests.utils import initialize_model
 from nebullvm.operations.inference_learners.utils import load_model
-from nebullvm.tools.base import DeepLearningFramework, Device, ModelCompiler
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    DeviceType,
+    ModelCompiler,
+    Device,
+)
 
-device = Device.CPU
+device = Device(DeviceType.CPU)
 
 
 @pytest.mark.parametrize(
@@ -64,7 +69,7 @@ def test_deepsparse(
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
             ModelCompiler.DEEPSPARSE
-        ][DeepLearningFramework.PYTORCH]()
+        ]()
 
         build_inference_learner_op.to(device).execute(
             model=compiled_model,

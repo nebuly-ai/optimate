@@ -20,7 +20,12 @@ from packaging import version
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import DeepLearningFramework, Device, ModelParams
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    Device,
+    ModelParams,
+    DeviceType,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     extract_info_from_np_data,
@@ -46,11 +51,9 @@ def ifnone(target, new_value):
 def inspect_dynamic_size(
     tensors: Tuple[Any, ...],
     sizes: List[Tuple[int, ...]],
-    batch_size: int,
     axis_list: List[Dict],
 ):
     for idx, (tensor, size) in enumerate(zip(tensors, sizes)):
-        size = (batch_size, *size)
         for idy, (j, k) in enumerate(zip(tensor.shape, size)):
             if j != k:
                 if idy == 0:
@@ -172,9 +175,6 @@ def extract_info_from_data(
     ](
         model,
         input_data,
-        batch_size=None,
-        input_sizes=None,
-        input_types=None,
         dynamic_axis=dynamic_info,
         device=device,
     )
@@ -214,11 +214,16 @@ def is_dict_type(data_sample: Any):
 def check_device(device: Optional[str]) -> Device:
     if device is None:
         if gpu_is_available():
-            device = Device.GPU
+            device = Device(DeviceType.GPU)
         else:
-            device = Device.CPU
+            device = Device(DeviceType.CPU)
     else:
-        if device.lower() == "gpu":
+        if any(x in device.lower() for x in ["cuda", "gpu"]):
+            device_info = device.split(":")
+            if len(device_info) == 2 and device_info[1].isdigit():
+                idx = int(device_info[1])
+            else:
+                idx = 0
             if not gpu_is_available():
                 logger.warning(
                     "Selected GPU device but no available GPU found on this "
@@ -226,11 +231,11 @@ def check_device(device: Optional[str]) -> Device:
                     "that the gpu is installed and can be used by your "
                     "framework."
                 )
-                device = Device.CPU
+                device = Device(DeviceType.CPU)
             else:
-                device = Device.GPU
+                device = Device(DeviceType.GPU, idx=idx)
         else:
-            device = Device.CPU
+            device = Device(DeviceType.CPU)
 
     return device
 

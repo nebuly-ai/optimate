@@ -45,7 +45,7 @@ class TensorflowBackendCompiler(Compiler):
             input_data (DataManager): User defined data. Default: None.
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 
@@ -106,7 +106,7 @@ class TFLiteBackendCompiler(Compiler):
             input_data (DataManager): User defined data. Default: None
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 

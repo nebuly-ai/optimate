@@ -11,7 +11,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     intel_neural_compressor_is_available,
     torch_tensorrt_is_available,
 )
-from nebullvm.tools.base import Device
+from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.utils import gpu_is_available, check_module_version
 
 
@@ -131,7 +131,7 @@ def check_dependencies(device: Device):
         missing_suggested_compilers.append("onnxruntime")
     elif not _onnxmltools_is_available():
         missing_dependencies.append("onnxmltools")
-    if device is Device.GPU:
+    if device.type is DeviceType.GPU:
         if not tensorrt_is_available():
             missing_suggested_compilers.append("tensorrt")
         else:
@@ -139,7 +139,7 @@ def check_dependencies(device: Device):
                 missing_dependencies.append("onnxsim")
             elif not _polygraphy_is_available():
                 missing_dependencies.append("polygraphy")
-    if device is Device.CPU:
+    if device.type is DeviceType.CPU:
         if not openvino_is_available() and "intel" in processor:
             missing_suggested_compilers.append("openvino")
 
@@ -150,7 +150,7 @@ def check_dependencies(device: Device):
         if not bladedisc_is_available():
             missing_optional_compilers.append("torch_blade")
 
-        if device is Device.CPU:
+        if device.type is DeviceType.CPU:
             if not deepsparse_is_available() and "intel" in processor:
                 missing_suggested_compilers.append("deepsparse")
             if (
@@ -158,7 +158,7 @@ def check_dependencies(device: Device):
                 and "intel" in processor
             ):
                 missing_suggested_compilers.append("neural_compressor")
-        elif device is Device.GPU:
+        elif device.type is DeviceType.GPU:
             if not torch_tensorrt_is_available:
                 missing_suggested_compilers.append("torch_tensorrt")
     else:
