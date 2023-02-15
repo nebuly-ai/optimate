@@ -60,3 +60,4 @@ RUN if [ "$COMPILER" = "all" ] || [ "$COMPILER" = "tvm" ] ; then \
     fi
 
 ENV SIGOPT_PROJECT="tmp"
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/python3.8/dist-packages/tensorrt

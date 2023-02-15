@@ -198,7 +198,7 @@ class Device:
                 )
 
     def get_free_memory(self) -> int:
-        # Return total memory in bytes using nvidia-smi in bytes
+        # Return free memory in bytes using nvidia-smi in bytes
         if self.type is DeviceType.CPU:
             raise Exception("CPU does not have memory")
         else:

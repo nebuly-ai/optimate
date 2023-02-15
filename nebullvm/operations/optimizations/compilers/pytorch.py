@@ -92,6 +92,8 @@ class PytorchBackendCompiler(Compiler):
             if quantization_type is QuantizationType.HALF:
                 input_sample = [
                     t.to(self.device.to_torch_format()).half()
+                    if torch.is_floating_point(t)
+                    else t.to(self.device.to_torch_format())
                     for t in input_sample
                 ]
             else:
