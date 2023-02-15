@@ -1,7 +1,7 @@
 from nebullvm.optional_modules.torch import torch
 
 
-VERSION = "0.8.0"
+VERSION = "0.8.1"
 LEARNER_METADATA_FILENAME = "metadata.json"
 ONNX_OPSET_VERSION = 13
 NEBULLVM_DEBUG_FILE = "nebullvm_debug.json"
@@ -29,6 +29,7 @@ TVM_FILENAMES = {"engine": "compiled_lib.so"}
 ONNX_FILENAMES = {"model_name": "model.onnx"}
 ONNX_PROVIDERS = {
     "cuda": [
+        "TensorrtExecutionProvider",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
     ],

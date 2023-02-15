@@ -25,6 +25,7 @@ from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
     ModelCompiler,
+    DeviceType,
 )
 
 
@@ -53,6 +54,13 @@ from nebullvm.tools.base import (
             2,
             "numeric_precision",
         ),
+        (
+            DeepLearningFramework.PYTORCH,
+            True,
+            QuantizationType.STATIC,
+            2,
+            "numeric_precision",
+        ),
     ],
 )
 @pytest.mark.skipif(
@@ -66,7 +74,7 @@ def test_openvino(
     metric_drop_ths: int,
     metric: str,
 ):
-    device = Device.CPU
+    device = Device(DeviceType.CPU)
     with TemporaryDirectory() as tmp_dir:
         (
             model,
@@ -106,7 +114,7 @@ def test_openvino(
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
             ModelCompiler.OPENVINO
-        ][DeepLearningFramework.NUMPY]()
+        ]()
         build_inference_learner_op.to(device).execute(
             model=compiled_model,
             model_orig=compiler_op.model_orig

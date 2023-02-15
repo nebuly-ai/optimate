@@ -12,7 +12,7 @@ from nebullvm.optional_modules.utils import (
     torch_is_available,
     tensorflow_is_available,
 )
-from nebullvm.tools.base import Device
+from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.pytorch import torch_get_device_name
 from nebullvm.tools.tf import tensorflow_get_gpu_name
 
@@ -45,7 +45,7 @@ def get_hw_info(device: Device):
         "operative_system": platform.system(),
         "ram": f"{round(psutil.virtual_memory().total * 1e-9, 2)} GB",
     }
-    if device is Device.GPU:
+    if device.type is DeviceType.GPU:
         hw_info["gpu"] = _get_gpu_name()
     return hw_info
 

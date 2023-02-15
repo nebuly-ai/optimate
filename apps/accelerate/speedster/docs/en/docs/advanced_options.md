@@ -12,6 +12,7 @@ In particular, we will overview:
 - [Optimization Time: constrained vs unconstrained](#optimization-time-constrained-vs-unconstrained)
 - [Selecting specific compilers/compressors](#select-specific-compilerscompressors)
 - [Using dynamic shape](#using-dynamic-shape)
+- [Enable TensorrtExecutionProvider for ONNXRuntime on GPU](#enable-tensorrtexecutionprovider-for-onnxruntime-on-gpu)
 - [Custom models](#custom-models)
 - [Store the performances of all the optimization techniques](#store-the-performances-of-all-the-optimization-techniques)
 - [Set number of threads](#set-number-of-threads)
@@ -106,7 +107,7 @@ Default: False.
 
 `device`: str, optional
 
-Device used for inference, it can be cpu or gpu. gpu will be used if available, otherwise cpu. 
+Device used for inference, it can be cpu or gpu/cuda (both gpu and cuda options are supported). A specific gpu can be selected using notation gpu:1 or cuda:1. gpu will be used if available, otherwise cpu. 
 
 Default: None.
 
@@ -132,6 +133,16 @@ from speedster import optimize_model
 
 optimized_model = optimize_model(
   model, input_data=input_data, device="cpu"
+)
+```
+
+If we are working on a multi-gpu machine and we want to use a specific gpu, we can use:
+
+```python
+from speedster import optimize_model
+
+optimized_model = optimize_model(
+  model, input_data=input_data, device="cuda:1"  # also device="gpu:1" is supported
 )
 ```
 
@@ -162,11 +173,15 @@ optimized_model = optimize_model(
 # You can find the list of all compilers and compressors below
 # COMPILER_LIST = [
 #     "deepsparse",
-#     "tensor_rt",
+#     "tensor_rt",  # Skips all the tensor RT pipelines
+#     "torch_tensor_rt",  # Skips only the tensor RT pipeline for PyTorch
+#     "onnx_tensor_rt",  # Skips only the tensor RT pipeline for ONNX
 #     "torchscript",
 #     "onnxruntime",
 #     "tflite",
-#     "tvm",
+#     "tvm",  # Skips all the TVM pipelines
+#     "onnx_tvm",  # Skips only the TVM pipeline for ONNX
+#     "torch_tvm",  # Skips only the TVM pipeline for PyTorch
 #     "openvino",
 #     "bladedisc",
 #     "intel_neural_compressor",
@@ -236,6 +251,15 @@ optimized_model = optimize_model(
     optimization_time="constrained", 
     dynamic_info=dynamic_info
 )
+```
+
+## Enable TensorrtExecutionProvider for ONNXRuntime on GPU
+
+By default, `Speedster` will use the `CUDAExecutionProvider` for ONNXRuntime on GPU. If you want to use the `TensorrtExecutionProvider` instead, you must add the TensorRT installation path to the env variable LD_LIBRARY_PATH.
+If you installed TensorRT through the nebullvm auto_installer, you can do it by running the following command in the terminal:
+
+```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/<PATH_TO_PYTHON_FOLDER>/site-packages/tensorrt"
 ```
 
 ## Custom models
