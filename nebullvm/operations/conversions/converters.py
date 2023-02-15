@@ -29,7 +29,7 @@ class Converter(Operation, abc.ABC):
         self.model_name = model_name or "temp"
 
     def set_state(
-        self, model: Union[torch.nn.Module, tf.Module, str], data: DataManager
+        self, model: Union[torch.nn.Module, tf.Module, onnx.ModelProto, str], data: DataManager
     ):
         self.model = model
         self.data = data
@@ -126,13 +126,12 @@ class ONNXConverter(Converter):
 
     def pytorch_conversion(self, save_path, model_params):
         self.model_onnx = self.model
-        torch_path = save_path / f"{self.model_name}{self.TORCH_EXTENSION}"
-        torch_model_path = convert_onnx_to_torch(
-            onnx_model=self.model_onnx,
-            output_file_path=torch_path,
+        #torch_path = save_path / f"{self.model_name}{self.TORCH_EXTENSION}"
+        torch_model = convert_onnx_to_torch(
+            onnx_model=self.model_onnx
         )
         if self.converted_models is None:
-            self.converted_models = [torch_model_path]
+            self.converted_models = [torch_model]
         else:
-            self.converted_models.append(torch_model_path)
+            self.converted_models.append(torch_model)
         
