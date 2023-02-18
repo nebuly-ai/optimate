@@ -192,23 +192,17 @@ class NLPForwardForwardTrainer(BaseForwardForwardTrainer):
 class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
     def _train(self, epochs: int, theta: float, device: str, **kwargs):
         model = self.model.to(device)
+
+        # Get unsupervised labels using KMeans
+        unsupervised_loader, kmeans = self.get_unsupervised_label(device)
+
         for epoch in range(epochs):
             accumulated_goodness = None
             model.train()
-            # Preprocess the data
-            x_train = [data.numpy() for data, label in self.train_data]
-            x_test = [data.numpy() for data, label in self.test_data]
 
-            # Perform clustering
-            kmeans = KMeans(n_clusters=10, random_state=0)
-            train_labels = kmeans.fit_predict(x_train) 
-            train_dataset = torch.utils.data.TensorDataset(x_train, train_labels)
-            train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-            for j, (data, target) in enumerate(train_dataloader):
-                # TODO: THE IMAGE SHAPE SHOULD NOT BE DEFINED HERE
+            for j, (data, target) in enumerate(unsupervised_loader):
                 data = data.to(device)  
-                target = torch.functional.F.one_hot(torch.tensor([target]), num_classes=10,).to(device)
+                target = target.to(device)
                 
                 _, goodness = model.ff_train(data, target, theta)
                 if accumulated_goodness is None:
@@ -223,13 +217,40 @@ class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
             self.logger.info(f"Accumulated goodness: {accumulated_goodness}")
             self.logger.info(f"Goodness ratio: {goodness_ratio}")
             model.eval()
+
+            # Compute validation accuracy
             correct = 0
             with torch.no_grad():
                 for data, target in self.test_data:
                     data = data.to(device)
-                    target = torch.tensor([test_clusters[target]]).to(device)
-                    _, pred = model.positive_eval(data, theta)
-                    correct += (pred.item() == test_clusters[target]).sum().item()
+                    numpy_data = data.flatten().cpu().numpy()
+                    target = torch.from_numpy(kmeans.predict(numpy_data)).to(device)
+                    pred, _ = model.positive_eval(data.unsqueeze(1), theta)
+                    correct += pred.eq(target.view_as(pred)).sum().item()
             self.logger.info(
                 f"Test accuracy: {correct} / 10000 ({correct / 10000 * 100}%)"
-            )            
+            )
+
+    def get_unsupervised_label(self, device):
+        x_train = np.concatenate(
+            [data.detach().cpu().numpy() for data, label in self.train_data], axis=0)
+
+        # Perform clustering
+        kmeans = KMeans(n_clusters=10, random_state=0)
+        train_labels = kmeans.fit_predict(x_train)
+        train_labels = torch.from_numpy(train_labels).to(device)
+        label_injector = LabelsInjector([f"cluster_{i}" for i in range(10)])
+
+        train_bs = self.train_data.batch_size
+        progressive_train_dataset = ProgressiveTrainingDataset(
+            (label_injector.inject_train(
+                x.unsqueeze(1), 
+                train_labels[i*train_bs: (i+1)*train_bs]
+            ) for i, (x, y) in enumerate(self.train_data))
+        )
+        progressive_train_dataloader = torch.utils.data.DataLoader(
+            progressive_train_dataset,
+            batch_size=2 * train_bs, shuffle=False
+        )
+        return progressive_train_dataloader, kmeans
+         
