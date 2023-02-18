@@ -193,7 +193,7 @@ class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
     def _train(self, epochs: int, theta: float, device: str, **kwargs):
         model = self.model.to(device)
 
-        # Get unsupervised labels using KMeans
+        
         unsupervised_loader, kmeans = self.get_unsupervised_label(device)
 
         for epoch in range(epochs):
@@ -218,7 +218,7 @@ class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
             self.logger.info(f"Goodness ratio: {goodness_ratio}")
             model.eval()
 
-            # Compute validation accuracy
+            
             correct = 0
             with torch.no_grad():
                 for data, target in self.test_data:
@@ -235,7 +235,7 @@ class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
         x_train = np.concatenate(
             [data.detach().cpu().numpy() for data, label in self.train_data], axis=0)
 
-        # Perform clustering
+        
         kmeans = KMeans(n_clusters=10, random_state=0)
         train_labels = kmeans.fit_predict(x_train)
         train_labels = torch.from_numpy(train_labels).to(device)
