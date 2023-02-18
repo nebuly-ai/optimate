@@ -4,6 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Tuple, Union, Optional, List
 
+import numpy as np
+
 from nebullvm.operations.inference_learners.base import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
@@ -116,3 +118,19 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
             input_data=input_data,
             device=device,
         )
+
+
+class NumpyPytorchBackendInferenceLearner(
+    PytorchBackendInferenceLearner, PytorchBaseInferenceLearner
+):
+
+    """
+    Wrapper around PytorchBackendInferenceLearner to allow numpy inputs and outputs
+    """
+
+
+    def run(self, *input_tensors: np.ndarray) -> Tuple[np.ndarray, ...]:
+        input_tensors = [torch.from_numpy(t) for t in input_tensors]
+        # Call the PytorchBackendInferenceLearner run method
+        res = super().run(*input_tensors)
+        return tuple(out.numpy() for out in res)
