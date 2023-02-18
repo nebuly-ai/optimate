@@ -253,4 +253,3 @@ class UnsupervisedCNNForwardForwardTrainer(BaseForwardForwardTrainer):
             batch_size=2 * train_bs, shuffle=False
         )
         return progressive_train_dataloader, kmeans
-         
