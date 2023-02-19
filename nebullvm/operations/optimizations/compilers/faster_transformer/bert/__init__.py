@@ -74,3 +74,4 @@ def detect_and_swap_bert_model(
         model.bert = swap_model(
             model.bert, data_type, lib_path, remove_padding
         )
+    return model

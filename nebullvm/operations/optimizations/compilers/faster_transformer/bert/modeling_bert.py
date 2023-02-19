@@ -1143,3 +1143,7 @@ class BertModel(BertPreTrainedModel):
             1:
         ]  # add hidden_states and attentions if they are here
         return outputs  # sequence_output, pooled_output, (hidden_states), (attentions) # noqa: E501
+
+    def replace_encoder(self, new_encoder):
+        self.encoder = new_encoder
+        self.use_ext_encoder = True
