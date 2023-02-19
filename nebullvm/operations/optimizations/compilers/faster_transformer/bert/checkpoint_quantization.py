@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import argparse
 import re
+
 import numpy as np
 import torch
 
@@ -33,7 +32,7 @@ def checkpoint_quantization(
 
     def init_graph():
         layer_num = 0
-        regex = re.compile("layer.\d+")
+        regex = re.compile("layer.\d+")  # noqa: W605
         amaxTotalNum = 0
         for name, tensor_value in init_dict.items():
             if "intermediate.dense.weight" in name and amaxTotalNum == 0:
@@ -140,11 +139,12 @@ def checkpoint_quantization(
         ),
     ]
 
-    factor = 1000000.0
+    factor = 1000000.0  # noqa: F841
     for i in range(layer_num):
         amaxList = np.zeros([amaxTotalNum]).astype(np.float32)
         amax_id = 0
-        # verify some quantizers have same value. input_quantizer is per-tensor quantization
+        # verify some quantizers have same value.
+        # input_quantizer is per-tensor quantization
         for same_value_tuple in same_value_tuple_list:
             tmp_v = init_dict[
                 "bert.encoder.layer.{}.{}._amax".format(i, same_value_tuple[0])
@@ -272,15 +272,15 @@ def checkpoint_quantization(
             amax_id += 1
 
         # for trt fused MHA amax
-        #### QKV_addBias_amax
+        # QKV_addBias_amax
         amaxList[amax_id] = np.maximum(
             np.maximum(amaxList[8], amaxList[16]), amaxList[24]
         )
         amax_id += 1
-        #### softmax amax
+        # softmax amax
         amaxList[amax_id] = amaxList[32]
         amax_id += 1
-        #### bmm2 amax
+        # bmm2 amax
         amaxList[amax_id] = amaxList[36]
         amax_id += 1
 

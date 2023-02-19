@@ -216,12 +216,12 @@ def install_openvino(with_optimization: bool = True):
     subprocess.run(cmd)
 
     try:
-        from openvino.runtime import (
+        from openvino.runtime import (  # noqa F401
             CompiledModel,
             Core,
             InferRequest,
             Model,
-        )  # noqa F401
+        )
     except ImportError:
         return False
 
@@ -292,10 +292,10 @@ def install_intel_neural_compressor():
     subprocess.run(cmd)
 
     try:
-        from neural_compressor.experimental import (
+        from neural_compressor.experimental import (  # noqa F401
             MixedPrecision,
             Quantization,
-        )  # noqa F401
+        )
     except ImportError:
         return False
 
@@ -328,15 +328,16 @@ def install_faster_transformer(
     installation and having MacOS or a Linux-distribution as OS.
 
     Args:
-        working_dir (str, optional): The directory where the FasterTransformer repo will be
-            cloned and installed.
+        working_dir (str, optional): The directory where the FasterTransformer
+        repo will be cloned and installed.
     """
     if not gpu_is_available():
         return False
     path = Path(__file__).parent
     # install pre-requisites
     # TODO: use a different script
-    # installation_file_prerequisites = str(path / "install_tvm_prerequisites.sh")
+    # installation_file_prerequisites = str(
+    # path / "install_tvm_prerequisites.sh")
     # subprocess.run(
     #    ["bash", installation_file_prerequisites],
     #    cwd=working_dir or Path.home(),
@@ -345,13 +346,13 @@ def install_faster_transformer(
     try:
         import torch
 
-        compute_capability = torch.cuda.get_device_capability()
+        CP = compute_capability = torch.cuda.get_device_capability()
         assert len(compute_capability) == 2
     except (ImportError, AssertionError):
         return False
     installation_file = str(path / "install_fastertransformer.sh")
     env_dict = {
-        "COMPUTE_CAPABILITY": f"{compute_capability[0]}{compute_capability[1]}",
+        "COMPUTE_CAPABILITY": f"{CP[0]}{CP[1]}",
         **dict(os.environ.copy()),
     }
 

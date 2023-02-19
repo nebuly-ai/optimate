@@ -3,10 +3,10 @@ import os
 
 import torch
 
-from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (
+from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (  # noqa: E501
     BertModel as FasterBertModel,
 )
-from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (
+from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (  # noqa: E501
     CustomEncoder,
     EncoderWeights,
 )
@@ -25,7 +25,8 @@ default_lib_path = str(
 
 def swap_bert_encoder(model, data_type, lib_path, remove_padding=False):
     """
-    Replace the encoder of the model with a custom encoder that uses the Faster Transformer library.
+    Replace the encoder of the model with a custom encoder
+    that uses the Faster Transformer library.
     """
     weights = EncoderWeights(
         model.config.num_hidden_layers,
@@ -53,7 +54,8 @@ def swap_bert_encoder(model, data_type, lib_path, remove_padding=False):
 def swap_model(
     model: HFBertModel, data_type, lib_path, remove_padding=False
 ) -> FasterBertModel:
-    # bert model has some custom code to call the custom encoder, need to use custom bert class
+    # bert model has some custom code to call the custom encoder
+    # need to use custom bert class
     new_model = FasterBertModel(model.config)
     print(f"{type(model)=} -> {type(new_model)=}")
     new_model.load_state_dict(model.state_dict())

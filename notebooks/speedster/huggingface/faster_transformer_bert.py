@@ -1,42 +1,28 @@
 # %%
 import logging
-import os
 import random
 import time
 
 import speedster
 import torch
-
-# %%
-from nebullvm.operations.optimizations.compilers.faster_transformer.bert import (
-    detect_and_swap_bert_model,
-)
-
-# from faster_bert import (BertForSequenceClassification, CustomEncoder,
-#                         EncoderWeights)
-# %%
-from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (
-    BertForSequenceClassification,
-)
-from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (
-    BertModel as FasterBertModel,
-)
-from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (
-    CustomEncoder,
-    EncoderWeights,
-)
 from speedster import optimize_model
 
 # %%
-from transformers import BertTokenizer
+from nebullvm.operations.optimizations.compilers.faster_transformer.bert import (  # noqa: E501
+    detect_and_swap_bert_model,
+)
 
-# %%
-print(speedster.__file__)
 # %%
 from nebullvm.operations.optimizations.compilers.utils import (
     get_faster_transformer_repo_path,
 )
+from transformers import BertTokenizer
+from transformers.models.bert.modeling_bert import (
+    BertForSequenceClassification as HFBertForSequenceClassification,
+)
 
+# %%
+print(speedster.__file__)
 lib_path = str(
     get_faster_transformer_repo_path()
     / "build"
@@ -91,9 +77,6 @@ per_gpu_eval_batch_size = 1
 max_seq_length = 128
 model_name_or_path = "bert-base-cased-finetuned-mrpc"
 
-from transformers.models.bert.modeling_bert import (
-    BertForSequenceClassification as HFBertForSequenceClassification,
-)
 
 model = HFBertForSequenceClassification.from_pretrained(
     model_name_or_path, torchscript=True
@@ -146,13 +129,13 @@ def benchmark(model, model_desc="original BERT"):
     # Warmup for 30 iterations
     for encoded_input in encoded_inputs[:30]:
         with torch.no_grad():
-            final_out = model(**encoded_input)
+            _ = model(**encoded_input)
 
     # Benchmark
     for encoded_input in encoded_inputs:
         st = time.perf_counter()
         with torch.no_grad():
-            final_out = model(**encoded_input)
+            _ = model(**encoded_input)
         times.append(time.perf_counter() - st)
     original_model_time = sum(times) / len(times) * 1000
     print(f"Average response time for {model_desc}: {original_model_time} ms")
@@ -176,14 +159,15 @@ fastest_model = optimize_with_trace(
 )
 
 benchmark(fastest_model, "fastest BERT (no metric drop)")
-# Average response time for faster BERT (no metric drop): 1.5583459960762411 ms
+# Average response time for faster BERT (no metric drop): 1.5583459960762411 ms # noqa: E501
 
 
-# the above operations modifies `model` in-place, so we need reload a fresh one to test speedster
+# the above operations modifies `model` in-place
+# so we need reload a fresh one to test speedster
 model = HFBertForSequenceClassification.from_pretrained(
     model_name_or_path, torchscript=True
 )
-# Average response time for fastest BERT (no metric drop): 1.4657320715487003 ms
+# Average response time for fastest BERT (no metric drop): 1.4657320715487003 ms # noqa: E501
 
 model.eval().to(device)
 dynamic_info = {
@@ -198,10 +182,7 @@ speedster_optimized_model = optimize_model(
     model=model,
     input_data=encoded_inputs,
     optimization_time="constrained",
-    #    ignore_compilers=["tensor RT"],  #| TensorRT does not work for this model
-    # ignore_compilers=["tensor_rt", "tvm"],
-    # ignore_compilers=["tensor_rt", "tvm", "onnxruntime"],
-    # ignore_compilers=["torchscript", "tvm", "onnxruntime"],
+    # force it to use fastertransformer
     ignore_compilers=["tensor_rt", "tvm", "onnxruntime", "torchscript"],
     dynamic_info=dynamic_info,
 )
@@ -213,5 +194,5 @@ benchmark(
 benchmark(
     speedster_optimized_model, "speedster optimized BERT (no metric drop)"
 )
-# Average response time for speedster optimized BERT (no metric drop): 14.040142675396055 ms
-# Average response time for speedster optimized BERT (no metric drop): 3.4986357542220503 ms
+# Average response time for speedster optimized BERT (no metric drop): 14.040142675396055 ms # noqa: E501
+# Average response time for speedster optimized BERT (no metric drop): 3.4986357542220503 ms # noqa: E501

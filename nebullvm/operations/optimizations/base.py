@@ -34,9 +34,9 @@ from nebullvm.operations.optimizations.compilers.deepsparse import (
 from nebullvm.operations.optimizations.compilers.faster_transformer import (
     FasterTransformerCompiler,
 )
-from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (
+from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
     IntelNeuralCompressorCompiler,
-)  # noqa: E501
+)
 from nebullvm.operations.optimizations.compilers.onnxruntime import (
     ONNXCompiler,
 )

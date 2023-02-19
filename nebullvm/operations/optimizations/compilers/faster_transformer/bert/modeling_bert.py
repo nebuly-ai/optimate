@@ -16,14 +16,18 @@
 
 from __future__ import print_function
 
-import sys
 from typing import List, Optional
 
 import torch
 import torch.distributed as dist
 
 from transformers import BertConfig
-from transformers.models.bert.modeling_bert import BertEncoder
+from transformers.models.bert.modeling_bert import (
+    BertEmbeddings,
+    BertEncoder,
+    BertPooler,
+    BertPreTrainedModel,
+)
 
 from .checkpoint_quantization import checkpoint_quantization
 
@@ -51,9 +55,11 @@ class EncoderWeights(object):
         if self.use_mpi:
             try:
                 dist.init_process_group(backend="mpi")
-            except:
+            except:  # noqa: E722
                 print(
-                    "[INFO] WARNING: Exception occurred in dist.init_process_group(backend='mpi'). Maybe the process group has been initialized somewhere else."
+                    "[INFO] WARNING: Exception occurred in "
+                    "dist.init_process_group(backend='mpi')."
+                    "Maybe the process group has been initialized somewhere else."  # noqa: E501
                 )
         else:
             print("[INFO] MPI is not available in this PyTorch build.")
@@ -69,18 +75,9 @@ class EncoderWeights(object):
         self.device = self.rank % self.device_count
         torch.cuda.set_device(self.device)
 
-        world_size = dist.get_world_size() if self.use_mpi else 1
+        world_size = dist.get_world_size() if self.use_mpi else 1  # noqa: F841
         self.tensor_para_rank = self.rank % self.tensor_para_size
         self.pipeline_para_rank = self.rank // self.tensor_para_size
-        start_layer = (
-            self.pipeline_para_rank * self.layer_num // self.pipeline_para_size
-        )
-        end_layer = (
-            (self.pipeline_para_rank + 1)
-            * self.layer_num
-            // self.pipeline_para_size
-        )
-
         if weights is None:
             self._generated_weights = True
             for i in range(layer_num):
@@ -117,7 +114,7 @@ class EncoderWeights(object):
                 ] = torch.zeros(hidden_dim)
                 self.weights[pre + "intermediate.dense.weight"] = torch.zeros(
                     4 * hidden_dim, hidden_dim
-                )
+                )  # noqa: E501
                 self.weights[pre + "intermediate.dense.bias"] = torch.zeros(
                     4 * hidden_dim
                 )
@@ -747,7 +744,7 @@ class EncoderWeights(object):
     def to_bfloat16(self):
         if self.int8:
             raise RuntimeError(
-                "Cannot cast to bfloat16 if the weights have been casted to int8."
+                "Cannot cast to bfloat16 if the weights have been casted to int8."  # noqa: E501
             )
         for k, v in self.weights.items():
             self.weights[k] = v.bfloat16()
@@ -844,7 +841,7 @@ class EncoderWeights(object):
             not in self.weights
         ):
             raise RuntimeError(
-                "There is no quantization node in the checkpoint, cannot be quantized to int8."
+                "There is no quantization node in the checkpoint, cannot be quantized to int8."  # noqa: E501
             )
         if self.int8:
             return
@@ -889,9 +886,11 @@ class CustomEncoder(torch.nn.Module):
         if self.use_mpi:
             try:
                 dist.init_process_group(backend="mpi")
-            except:
+            except:  # noqa: E722
                 print(
-                    "[INFO] WARNING: Exception occurred in dist.init_process_group(backend='mpi'). Maybe the process group has been initialized somewhere else."
+                    "[INFO] WARNING: Exception occurred in"
+                    "dist.init_process_group(backend='mpi')."
+                    "Maybe the process group has been initialized somewhere else."  # noqa: E501
                 )
         else:
             print("[INFO] MPI is not available in this PyTorch build.")
@@ -917,7 +916,7 @@ class CustomEncoder(torch.nn.Module):
                     tensor_para_size,
                     pipeline_para_size,
                 )
-            except:
+            except:  # noqa: E722
                 # legacy ths for 20.03 image
                 self.encoders = torch.classes.FasterTransformerBert(
                     *weights_,
@@ -950,7 +949,7 @@ class CustomEncoder(torch.nn.Module):
                     sparse,
                     1.0,
                 )
-            except:
+            except:  # noqa: E722
                 # legacy ths for 20.03 image
                 self.encoders = torch.classes.FasterTransformerINT8Bert(
                     *weights_,
@@ -972,8 +971,10 @@ class HuggingFaceEncoder(torch.nn.Module):
     def __init__(self, layer_num, head_num, head_size, weights=None):
         super().__init__()
         hidden_dim = head_num * head_size
-        # TODO(bhsueh) The implementation of hidden_act='gelu' is different to FT's (and google BERT) implementation
-        # FT's implementation is equivalent to hidden_act='gelu_new', but there are some issues for int8 sparse under gelu_new
+        # TODO(bhsueh) The implementation of hidden_act='gelu' is differen
+        #  to FT's (and google BERT) implementation
+        # FT's implementation is equivalent to hidden_act='gelu_new',
+        # but there are some issues for int8 sparse under gelu_new
         conf = BertConfig(
             hidden_size=hidden_dim,
             intermediate_size=4 * hidden_dim,
@@ -1002,7 +1003,7 @@ class HuggingFaceEncoder(torch.nn.Module):
 
 # coding=utf-8
 # Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
-# Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
+# Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team. # noqa: E501
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1016,17 +1017,6 @@ class HuggingFaceEncoder(torch.nn.Module):
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """PyTorch BERT model modified from HuggingFace transformers. """
-
-import torch
-from torch import nn
-from torch.nn import CrossEntropyLoss, MSELoss
-
-from transformers.models.bert.modeling_bert import (
-    BertEmbeddings,
-    BertEncoder,
-    BertPooler,
-    BertPreTrainedModel,
-)
 
 
 class BertModel(BertPreTrainedModel):
@@ -1059,7 +1049,7 @@ class BertModel(BertPreTrainedModel):
     ):
         if input_ids is not None and inputs_embeds is not None:
             raise ValueError(
-                "You cannot specify both input_ids and inputs_embeds at the same time"
+                "You cannot specify both input_ids and inputs_embeds at the same time"  # noqa: E501
             )
         elif input_ids is not None:
             input_shape = input_ids.size()
@@ -1085,10 +1075,10 @@ class BertModel(BertPreTrainedModel):
             # if attention_mask.dim() == 3:
             #     extended_attention_mask = attention_mask
             # elif attention_mask.dim() == 2:
-            #     extended_attention_mask = attention_mask[:, None, :].repeat(1, input_shape[1], 1)
+            #     extended_attention_mask = attention_mask[:, None, :].repeat(1, input_shape[1], 1) # noqa: E501
             # else:
             #     raise ValueError(
-            #         "Wrong shape for input_ids (shape {}) or attention_mask (shape {})".format(
+            #         "Wrong shape for input_ids (shape {}) or attention_mask (shape {})".format(# noqa: E501
             #             input_shape, attention_mask.shape
             #         )
             #     )
@@ -1103,23 +1093,24 @@ class BertModel(BertPreTrainedModel):
             )  # fp16 compatibility
             seq_lens = torch.sum(attention_mask, 1, dtype=torch.int32).cuda()
         else:
-            # We can provide a self-attention mask of dimensions [batch_size, from_seq_length, to_seq_length]
-            # ourselves in which case we just need to make it broadcastable to all heads.
+            # We can provide a self-attention mask of dimensions [batch_size, from_seq_length, to_seq_length] # noqa: E501
+            # ourselves in which case we just need to make it broadcastable to all heads. # noqa: E501
             if attention_mask.dim() == 3:
                 extended_attention_mask = attention_mask[:, None, :, :]
             elif attention_mask.dim() == 2:
                 extended_attention_mask = attention_mask[:, None, None, :]
             else:
                 raise ValueError(
-                    "Wrong shape for input_ids (shape {}) or attention_mask (shape {})".format(
+                    "Wrong shape for input_ids (shape {}) or attention_mask (shape {})".format(  # noqa: E501
                         input_shape, attention_mask.shape
                     )
                 )
-            # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
-            # masked positions, this operation will create a tensor which is 0.0 for
-            # positions we want to attend and -10000.0 for masked positions.
-            # Since we are adding it to the raw scores before the softmax, this is
-            # effectively the same as removing these entirely.
+            # Since attention_mask is 1.0 for positions we want to attend
+            # and 0.0 for masked positions, this operation will create a
+            # tensor which is 0.0 for positions we want to attend
+            # and -10000.0 for masked positions.
+            # Since we are adding it to the raw scores before the softmax,
+            # this is effectively the same as removing these entirely.
             extended_attention_mask = extended_attention_mask.to(
                 dtype=next(self.parameters()).dtype
             )  # fp16 compatibility
@@ -1151,109 +1142,4 @@ class BertModel(BertPreTrainedModel):
         outputs = (sequence_output, pooled_output,) + encoder_outputs[
             1:
         ]  # add hidden_states and attentions if they are here
-        return outputs  # sequence_output, pooled_output, (hidden_states), (attentions)
-
-
-class BertForQuestionAnswering(BertPreTrainedModel):
-    def __init__(self, config):
-        super(BertForQuestionAnswering, self).__init__(config)
-        self.num_labels = config.num_labels
-
-        self.bert = BertModel(config)
-        self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
-
-        self.init_weights()
-
-    def forward(
-        self,
-        input_ids=None,
-        attention_mask=None,
-        token_type_ids=None,
-        position_ids=None,
-        head_mask=None,
-        inputs_embeds=None,
-        start_positions=None,
-        end_positions=None,
-    ):
-        outputs = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-        )
-
-        sequence_output = outputs[0]
-
-        logits = self.qa_outputs(sequence_output)
-        start_logits, end_logits = logits.split(1, dim=-1)
-        start_logits = start_logits.squeeze(-1)
-        end_logits = end_logits.squeeze(-1)
-        outputs = (
-            start_logits,
-            end_logits,
-        )
-        return outputs  # start_logits, end_logits
-
-    def replace_encoder(self, encoder):
-        self.bert.use_ext_encoder = True
-        self.bert.encoder = encoder
-
-
-class BertForSequenceClassification(BertPreTrainedModel):
-    def __init__(self, config):
-        super().__init__(config)
-        self.num_labels = config.num_labels
-
-        self.bert = BertModel(config)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
-
-        self.init_weights()
-
-    def forward(
-        self,
-        input_ids=None,
-        attention_mask=None,
-        token_type_ids=None,
-        labels=None,
-        position_ids=None,
-        head_mask=None,
-        inputs_embeds=None,
-    ):
-        outputs = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-        )
-
-        pooled_output = outputs[1]
-
-        pooled_output = self.dropout(pooled_output)
-        logits = self.classifier(pooled_output)
-
-        outputs = (logits,) + outputs[
-            2:
-        ]  # add hidden states and attention if they are here
-
-        if labels is not None:
-            if self.num_labels == 1:
-                #  We are doing regression
-                loss_fct = MSELoss()
-                loss = loss_fct(logits.view(-1), labels.view(-1))
-            else:
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(
-                    logits.view(-1, self.num_labels), labels.view(-1)
-                )
-            outputs = (loss,) + outputs
-
-        return outputs  # (loss), logits, (hidden_states), (attentions)
-
-    def replace_encoder(self, encoder):
-        self.bert.use_ext_encoder = True
-        self.bert.encoder = encoder
+        return outputs  # sequence_output, pooled_output, (hidden_states), (attentions) # noqa: E501
