@@ -18,6 +18,38 @@ from nebullvm.optional_modules.torch import (
 from nebullvm.tools.base import Device, QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
+from nebullvm.tools.huggingface import PyTorchTransformerWrapper
+
+from nebullvm.operations.optimizations.compilers.faster_transformer.bert import (  # noqa: E501
+    detect_and_swap_bert_model,
+)
+from nebullvm.operations.optimizations.compilers.utils import (
+    get_faster_transformer_repo_path,
+)
+
+default_lib_path = str(
+    get_faster_transformer_repo_path()
+    / "build"
+    / "lib"
+    / "libth_transformer.so"
+)
+
+
+def detect_and_swap_model(model, data_type="fp16", remove_padding=False):
+    """currently only supports:
+    - BertModel and model with BertModel as .bert attribute
+    """
+    model = detect_and_swap_bert_model(
+        model,
+        data_type=data_type,
+        lib_path=default_lib_path,
+        remove_padding=remove_padding,
+    )
+    if data_type == "fp16":
+        model.half()
+    elif data_type == "bf16":
+        model.bfloat16()
+    return model
 
 
 class FasterTransformerCompiler(Compiler):
@@ -95,6 +127,16 @@ class FasterTransformerCompiler(Compiler):
             else:
                 input_sample = [t.cuda() for t in input_sample]
 
+        if isinstance(model, PyTorchTransformerWrapper):
+            data_type = (
+                "fp16" if quantization_type is QuantizationType.HALF else None
+            )
+            # .core_model is a huggingface model
+            model.core_model = detect_and_swap_model(
+                model.core_model, data_type=data_type, remove_padding=False
+            )
+            if self.device is Device.GPU:
+                model.cuda()
         if not isinstance(model, torch.fx.GraphModule):
             model.eval()
             try:
