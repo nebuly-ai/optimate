@@ -54,8 +54,8 @@ def swap_bert_encoder(model, data_type, lib_path, remove_padding=False):
 def swap_model(
     model: HFBertModel, data_type, lib_path, remove_padding=False
 ) -> FasterBertModel:
-    # bert model has some custom code to call the custom encoder
-    # need to use custom bert class
+    # bert model need some custom code to call the custom encoder
+    # so we need to use custom bert class
     new_model = FasterBertModel(model.config)
     print(f"{type(model)=} -> {type(new_model)=}")
     new_model.load_state_dict(model.state_dict())

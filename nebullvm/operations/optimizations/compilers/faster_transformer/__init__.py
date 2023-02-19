@@ -1,4 +1,5 @@
 from typing import List, Tuple, Union
+from copy import deepcopy
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.operations.optimizations.compilers.base import Compiler
@@ -118,6 +119,7 @@ class FasterTransformerCompiler(Compiler):
         quantization_type: QuantizationType,
     ) -> ScriptModule:
         input_sample = input_data.get_list(1)[0]
+        model = deepcopy(model)
         if self.device is Device.GPU:
             if quantization_type is QuantizationType.HALF:
                 input_sample = [
@@ -128,10 +130,12 @@ class FasterTransformerCompiler(Compiler):
                 input_sample = [t.cuda() for t in input_sample]
 
         if isinstance(model, PyTorchTransformerWrapper):
-            data_type = (
-                "fp16" if quantization_type is QuantizationType.HALF else None
-            )
             # .core_model is a huggingface model
+            data_type = (
+                "fp16"
+                if quantization_type is QuantizationType.HALF
+                else "fp32"
+            )
             model.core_model = detect_and_swap_model(
                 model.core_model, data_type=data_type, remove_padding=False
             )
