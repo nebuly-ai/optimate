@@ -95,8 +95,7 @@ def convert_keras_to_onnx(
     ]
     # get input shapes for each input
     shapes = [
-        [model_params.batch_size]
-        + [int(x) for x in model_params.input_infos[i].size]
+        [int(x) for x in model_params.input_infos[i].size]
         for i in range(len(model_params.input_infos))
     ]
     # set the dynamic axes for each input

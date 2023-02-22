@@ -122,8 +122,8 @@ def _reduce_memory_consumption_before_storing(
     Args:
         possible_states (List[torch.Tensor]): The possible states.
     """
-    final_states = [state[:, 0:1] for state in possible_states]
-    previous_actions = possible_states[0][:, 1:]
+    final_states = [state[:, 0:2] for state in possible_states]
+    previous_actions = possible_states[0][:, 2:]
     storing_dict = {
         "final_states": final_states,
         "previous_actions": previous_actions,
@@ -394,8 +394,8 @@ def compute_improved_policy(
     N_bar: int,
 ):
     """Compute the improved policy given the state_dict, the list of states.
-    The improved policy is computed as (N_s_a / N_s_a.sum())ˆ(1/tau) where tau
-    is (log(N_s_a.sum()) / log(N_bar))
+    The improved policy is computed as (N_s_aˆ(1/tau) / (N_s_aˆ(1/tau)).sum())
+    where tau is (log(N_s_a.sum()) / log(N_bar))
     """
     policies = torch.zeros(len(states), model_n_steps, model_n_logits)
     N_bar = torch.tensor(N_bar)
@@ -406,7 +406,8 @@ def compute_improved_policy(
             tau = (torch.log(N_s_a.sum()) / torch.log(N_bar)).item()
         else:
             tau = 1
-        improved_policy = (N_s_a / N_s_a.sum()) ** (1 / tau)
+        N_s_a = N_s_a ** (1 / tau)
+        improved_policy = N_s_a / N_s_a.sum()
         for sample_id in range(actions.shape[1]):
             action_ids = actions[0, sample_id]
             for step_id, action_id in enumerate(action_ids):

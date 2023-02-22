@@ -15,7 +15,7 @@ from nebullvm.optional_modules.onnxruntime import (
     quantize_static,
 )
 from nebullvm.optional_modules.torch import DataLoader
-from nebullvm.tools.base import QuantizationType, Device
+from nebullvm.tools.base import QuantizationType, Device, DeviceType
 from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -143,7 +143,9 @@ def quantize_onnx(
     if quantization_type == QuantizationType.DYNAMIC:
         return _quantize_dynamic(model_path)
     elif quantization_type == QuantizationType.STATIC:
-        return _quantize_static(model_path, input_data, device is Device.GPU)
+        return _quantize_static(
+            model_path, input_data, device.type is DeviceType.GPU
+        )
     elif quantization_type == QuantizationType.HALF:
         return _convert_to_half_precision(model_path, input_tfms)
     else:

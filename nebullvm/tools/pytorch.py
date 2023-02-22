@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union, Sequence
 
+from loguru import logger
+
 from nebullvm.optional_modules.torch import torch, Module, DataLoader
-from nebullvm.tools.base import DataType, InputInfo, Device
+from nebullvm.tools.base import DataType, InputInfo, Device, DeviceType
 from nebullvm.tools.data import DataManager
 
 FX_MODULE_NAME = "NebullvmFxModule"
@@ -30,25 +32,25 @@ def get_outputs_sizes_torch(
     input_tensors: List[torch.Tensor],
     device: Device,
 ) -> List[Tuple[int, ...]]:
-    if device is Device.GPU:
-        input_tensors = [x.cuda() for x in input_tensors]
-        torch_model.cuda()
+    if device.type is DeviceType.GPU:
+        input_tensors = [x.to(device.to_torch_format()) for x in input_tensors]
+        torch_model.to(device.to_torch_format())
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
         if isinstance(outputs, torch.Tensor):
-            return [tuple(outputs.size())[1:]]
+            return [tuple(outputs.size())]
         else:
-            return [tuple(output.size())[1:] for output in outputs]
+            return [tuple(output.size()) for output in outputs]
 
 
 def create_model_inputs_torch(
-    batch_size: int, input_infos: List[InputInfo]
+    input_infos: List[InputInfo],
 ) -> List[torch.Tensor]:
     input_tensors = (
-        torch.randn((batch_size, *input_info.size))
+        torch.randn(*input_info.size)
         if input_info.dtype is DataType.FLOAT32
         else torch.randint(
-            size=(batch_size, *input_info.size),
+            size=input_info.size,
             low=input_info.min_value or 0,
             high=input_info.max_value or 100,
         )
@@ -64,13 +66,17 @@ def run_torch_model(
     dtype: torch.dtype = torch.float,
 ) -> List[torch.Tensor]:
     torch_model.eval()
-    if device is Device.GPU:
-        torch_model.cuda()
+    if device.type is DeviceType.GPU:
+        torch_model.to(device.to_torch_format())
         if dtype != torch.half:
-            input_tensors = (t.cuda() for t in input_tensors)
+            input_tensors = (
+                t.to(device.to_torch_format()) for t in input_tensors
+            )
         else:
             input_tensors = (
-                t.cuda().half() if t.dtype == torch.float else t.cuda()
+                t.to(device.to_torch_format()).half()
+                if t.dtype == torch.float
+                else t.to(device.to_torch_format())
                 for t in input_tensors
             )
     with torch.no_grad():
@@ -86,7 +92,6 @@ def _extract_dynamic_axis(
     torch_model: Module,
     dataloader: DataManager,
     input_sizes: List[Tuple[int, ...]],
-    batch_size: int,
     device: Device,
     max_data: int = 100,
 ) -> Optional[Dict]:
@@ -99,15 +104,13 @@ def _extract_dynamic_axis(
         if i >= max_data:
             break
         inspect_dynamic_size(
-            input_tensors, input_sizes, batch_size, dynamic_axis["inputs"]
+            input_tensors, input_sizes, dynamic_axis["inputs"]
         )
         outputs = tuple(run_torch_model(torch_model, input_tensors, device))
         if i == 0:
             dynamic_axis["outputs"] = [{}] * len(outputs)
-            output_sizes = [tuple(output.shape[1:]) for output in outputs]
-        inspect_dynamic_size(
-            outputs, output_sizes, batch_size, dynamic_axis["outputs"]
-        )
+            output_sizes = [tuple(output.shape) for output in outputs]
+        inspect_dynamic_size(outputs, output_sizes, dynamic_axis["outputs"])
     if any(
         len(x) > 0 for x in (dynamic_axis["inputs"] + dynamic_axis["outputs"])
     ):
@@ -118,9 +121,6 @@ def _extract_dynamic_axis(
 def extract_info_from_torch_data(
     model: Module,
     dataloader: Union[DataLoader, Sequence],
-    batch_size: int,
-    input_sizes: List[Tuple[int, ...]],
-    input_types: List[str],
     dynamic_axis: Dict,
     device: Device,
 ):
@@ -132,20 +132,19 @@ def extract_info_from_torch_data(
         else next(iter(dataloader))
     )
     input_row = input_data[0]
+    batch_size = int(input_row[0].shape[0])
+    if not all([input_row[0].shape[0] == x.shape[0] for x in input_row]):
+        logger.warning("Detected not consistent batch size in the inputs.")
 
-    batch_size = ifnone(batch_size, int(input_row[0].shape[0]))
-    input_sizes = ifnone(input_sizes, [tuple(x.shape[1:]) for x in input_row])
-    input_types = ifnone(
-        input_types,
-        [
-            "int64"
-            if isinstance(x.cpu(), torch.LongTensor)
-            else "int32"
-            if isinstance(x.cpu(), torch.IntTensor)
-            else "float32"
-            for x in input_row
-        ],
-    )
+    input_sizes = [tuple(x.shape) for x in input_row]
+    input_types = [
+        "int64"
+        if isinstance(x.cpu(), torch.LongTensor)
+        else "int32"
+        if isinstance(x.cpu(), torch.IntTensor)
+        else "float32"
+        for x in input_row
+    ]
 
     if dynamic_axis is not None:
         dynamic_axis["inputs"] = [
@@ -159,9 +158,7 @@ def extract_info_from_torch_data(
 
     dynamic_axis = ifnone(
         dynamic_axis,
-        _extract_dynamic_axis(
-            model, dataloader, input_sizes, batch_size, device
-        ),
+        _extract_dynamic_axis(model, dataloader, input_sizes, device),
     )
     return batch_size, input_sizes, input_types, dynamic_axis
 

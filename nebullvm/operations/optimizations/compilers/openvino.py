@@ -64,7 +64,7 @@ class OpenVINOCompiler(Compiler):
             input_data (DataManager): User defined data. Default: None
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 
@@ -88,21 +88,16 @@ class OpenVINOCompiler(Compiler):
             "--output_dir",
             str(Path(model).parent),
             "--input",
-            ",".join(get_input_names(model)),
+            ",".join(get_input_names(str(model))),
             "--input_shape",
-            ",".join(
-                [
-                    f"{list((model_params.batch_size,) + shape)}"
-                    for shape in model_params.input_sizes
-                ]
-            ),
+            ",".join([f"{list(shape)}" for shape in model_params.input_sizes]),
         ]
 
         if quantization_type is QuantizationType.DYNAMIC:
             return None
 
         if quantization_type is QuantizationType.HALF:
-            cmd = cmd + ["--data_type", "FP16"]
+            cmd = cmd + ["--compress_to_fp16"]
 
         process = subprocess.Popen(cmd)
         process.wait()
@@ -114,7 +109,7 @@ class OpenVINOCompiler(Compiler):
             openvino_model_path, openvino_model_weights = self._quantize_model(
                 model_topology=str(openvino_model_path),
                 model_weights=str(openvino_model_weights),
-                input_names=get_input_names(model),
+                input_names=get_input_names(str(model)),
                 input_data=train_input_data,
             )
 

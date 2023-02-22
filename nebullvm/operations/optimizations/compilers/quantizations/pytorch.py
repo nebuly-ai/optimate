@@ -15,7 +15,7 @@ from nebullvm.optional_modules.torch import (
     convert_fx,
     ScriptModule,
 )
-from nebullvm.tools.base import Device, QuantizationType
+from nebullvm.tools.base import Device, QuantizationType, DeviceType
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
     HalfPrecisionTransformation,
@@ -101,7 +101,7 @@ def _quantize_static(
     device: Device,
 ):
     assert (
-        device is not Device.GPU
+        device is not DeviceType.GPU
     ), "Quantization for torch is only available on CPU"
 
     backend = (
@@ -124,7 +124,7 @@ def _quantize_dynamic(
     device: Device,
 ):
     assert (
-        device is not Device.GPU
+        device is not DeviceType.GPU
     ), "Quantization for torch is only available on CPU"
 
     backend = (

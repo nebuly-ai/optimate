@@ -25,9 +25,10 @@ from nebullvm.tools.base import (
     QuantizationType,
     Device,
     ModelCompiler,
+    DeviceType,
 )
 
-device = Device.CPU
+device = Device(DeviceType.CPU)
 
 
 @pytest.mark.parametrize(
@@ -72,7 +73,7 @@ def test_neural_compressor(
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
             ModelCompiler.INTEL_NEURAL_COMPRESSOR
-        ][DeepLearningFramework.PYTORCH]()
+        ]()
 
         build_inference_learner_op.to(device).execute(
             model=compiled_model,

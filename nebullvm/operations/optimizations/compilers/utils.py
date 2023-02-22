@@ -1,7 +1,7 @@
+from nebullvm.tools.base import ModelCompiler, Device, DeviceType
 from pathlib import Path
 
 import nebullvm
-from nebullvm.tools.base import Device, ModelCompiler
 
 
 def onnxruntime_is_available() -> bool:
@@ -98,9 +98,9 @@ def select_compilers_from_hardware_onnx(device: Device):
             compilers.append(ModelCompiler.ONNX_RUNTIME)
         if tvm_is_available():
             compilers.append(ModelCompiler.APACHE_TVM)
-        if device is Device.GPU and tensorrt_is_available():
+        if device.type is DeviceType.GPU and tensorrt_is_available():
             compilers.append(ModelCompiler.TENSOR_RT)
-        if device is Device.CPU and openvino_is_available():
+        if device.type is DeviceType.CPU and openvino_is_available():
             compilers.append(ModelCompiler.OPENVINO)
     return compilers
 
@@ -116,12 +116,12 @@ def select_compilers_from_hardware_torch(device: Device):
         if bladedisc_is_available():
             compilers.append(ModelCompiler.BLADEDISC)
 
-        if device is Device.CPU:
+        if device.type is DeviceType.CPU:
             if deepsparse_is_available():
                 compilers.append(ModelCompiler.DEEPSPARSE)
             if intel_neural_compressor_is_available():
                 compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
-        elif device is Device.GPU:
+        elif device.type is DeviceType.GPU:
             if torch_tensorrt_is_available:
                 compilers.append(ModelCompiler.TENSOR_RT)
     return compilers

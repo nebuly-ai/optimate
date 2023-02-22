@@ -21,6 +21,7 @@ from nebullvm.tools.base import (
     ModelParams,
     Device,
     QuantizationType,
+    DeviceType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
@@ -71,10 +72,12 @@ def _build_static_model(
     model_params = {
         "batch_size": STATIC_BATCH_SIZE,
         "input_infos": [
-            {"size": INPUT_SHAPE, "dtype": "float32"},
-            {"size": INPUT_SHAPE, "dtype": "float32"},
+            {"size": (STATIC_BATCH_SIZE, *INPUT_SHAPE), "dtype": "float32"},
+            {"size": (STATIC_BATCH_SIZE, *INPUT_SHAPE), "dtype": "float32"},
         ],
-        "output_sizes": [OUTPUT_SHAPE],
+        "output_sizes": [
+            (STATIC_BATCH_SIZE, *OUTPUT_SHAPE),
+        ],
     }
     model_params = ModelParams(**model_params)
     if framework == DeepLearningFramework.PYTORCH:
@@ -92,10 +95,12 @@ def _build_dynamic_model(
     model_params = {
         "batch_size": DYNAMIC_BATCH_SIZE,
         "input_infos": [
-            {"size": INPUT_SHAPE, "dtype": "float32"},
-            {"size": INPUT_SHAPE, "dtype": "float32"},
+            {"size": (DYNAMIC_BATCH_SIZE, *INPUT_SHAPE), "dtype": "float32"},
+            {"size": (DYNAMIC_BATCH_SIZE, *INPUT_SHAPE), "dtype": "float32"},
         ],
-        "output_sizes": [OUTPUT_SHAPE],
+        "output_sizes": [
+            (DYNAMIC_BATCH_SIZE, *OUTPUT_SHAPE),
+        ],
         "dynamic_info": {
             "inputs": [
                 {
@@ -157,7 +162,11 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
 
     text = "Short text you wish to process"
     encoded_input = tokenizer(text, return_tensors="pt")
-    device = Device.GPU if gpu_is_available() else Device.CPU
+    device = (
+        Device(DeviceType.GPU)
+        if gpu_is_available()
+        else Device(DeviceType.CPU)
+    )
 
     (
         model,
@@ -186,7 +195,7 @@ def get_huggingface_model(temp_dir: str, dl_framework: DeepLearningFramework):
         model, input_data, dl_framework, None, device
     )
 
-    device = Device.GPU if gpu_is_available() else Device.CPU
+    device = DeviceType.GPU if gpu_is_available() else DeviceType.CPU
     convert_torch_to_onnx(
         model, input_data, model_params, Path(model_path), device
     )
@@ -208,7 +217,9 @@ def initialize_model(
     output_library: DeepLearningFramework,
     device: Device,
 ):
-    torch_device = torch.device("cuda" if device is Device.GPU else "cpu")
+    torch_device = torch.device(
+        "cuda" if device.type is DeviceType.GPU else "cpu"
+    )
     batch_size = DYNAMIC_BATCH_SIZE if dynamic else STATIC_BATCH_SIZE
 
     if output_library == DeepLearningFramework.PYTORCH:

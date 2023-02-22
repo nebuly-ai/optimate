@@ -9,7 +9,11 @@ from tqdm import tqdm
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
-from nebullvm.tools.base import DeepLearningFramework, ModelParams, Device
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    ModelParams,
+    DeviceType,
+)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import create_model_inputs_torch
@@ -39,17 +43,11 @@ def _create_model_inputs(
     dl_framework: DeepLearningFramework, model_params: ModelParams
 ):
     if dl_framework == DeepLearningFramework.PYTORCH:
-        input_data = create_model_inputs_torch(
-            model_params.batch_size, model_params.input_infos
-        )
+        input_data = create_model_inputs_torch(model_params.input_infos)
     elif dl_framework == DeepLearningFramework.TENSORFLOW:
-        input_data = create_model_inputs_tf(
-            model_params.batch_size, model_params.input_infos
-        )
+        input_data = create_model_inputs_tf(model_params.input_infos)
     elif dl_framework == DeepLearningFramework.NUMPY:
-        input_data = create_model_inputs_onnx(
-            model_params.batch_size, model_params.input_infos
-        )
+        input_data = create_model_inputs_onnx(model_params.input_infos)
     else:
         raise TypeError(f"Unknown framework {dl_framework}")
 
@@ -71,15 +69,14 @@ class BaseBenchmark(ABC):
 
 class PytorchBenchmark(BaseBenchmark):
     def benchmark(self):
-        device = torch.device("cuda" if self.device is Device.GPU else "cpu")
         input_tensors = [
-            [tensor.to(device) for tensor in tensors]
+            [tensor.to(self.device.to_torch_format()) for tensor in tensors]
             for tensors in self.input_tensors
         ]
         batch_size = input_tensors[0][0].shape[0]
 
         if isinstance(self.model, torch.nn.Module):
-            self.model.to(device).eval()
+            self.model.to(self.device.to_torch_format()).eval()
 
         with torch.no_grad():
             for i in tqdm(
@@ -89,7 +86,7 @@ class PytorchBenchmark(BaseBenchmark):
                 self.model(
                     *input_tensors[i % min(self.n_warmup, len(input_tensors))]
                 )
-        if self.device is Device.GPU:
+        if self.device.type is DeviceType.GPU:
             torch.cuda.synchronize()
         timings = []
         with torch.no_grad():
@@ -101,7 +98,7 @@ class PytorchBenchmark(BaseBenchmark):
                 self.model(
                     *input_tensors[i % min(self.n_runs, len(input_tensors))]
                 )
-                if self.device is Device.GPU:
+                if self.device.type is DeviceType.GPU:
                     torch.cuda.synchronize()
                 end_time = time.time()
                 timings.append(end_time - start_time)
@@ -119,14 +116,89 @@ class PytorchBenchmark(BaseBenchmark):
 
 class TensorflowBenchmark(BaseBenchmark):
     def benchmark(self):
-        # TODO: implement benchmark for tensorflow
-        raise NotImplementedError
+        batch_size = self.input_tensors[0][0].shape[0]
+
+        for i in tqdm(
+            range(self.n_warmup),
+            desc=f"Performing warm up on {self.n_warmup} iterations",
+        ):
+            with tf.device(self.device.to_tf_format()):
+                self.model(
+                    *self.input_tensors[
+                        i % min(self.n_warmup, len(self.input_tensors))
+                    ]
+                )
+
+        timings = []
+        for i in tqdm(
+            range(1, self.n_runs + 1),
+            desc=f"Performing benchmark on {self.n_runs} iterations",
+        ):
+            start_time = time.time()
+            with tf.device(self.device.to_tf_format()):
+                self.model(
+                    *self.input_tensors[
+                        i % min(self.n_runs, len(self.input_tensors))
+                    ]
+                )
+
+            end_time = time.time()
+            timings.append(end_time - start_time)
+
+        print(f"Batch size: {batch_size}")
+
+        throughput = batch_size / np.mean(timings)
+        latency = np.mean(timings) / batch_size
+
+        print("Average Throughput: %.2f data/second" % throughput)
+        print("Average Latency: %.4f seconds/data" % latency)
+
+        return throughput, latency
 
 
 class NumpyBenchmark(BaseBenchmark):
     def benchmark(self):
-        # TODO: implement benchmark for numpy
-        raise NotImplementedError
+        if not isinstance(self.model, BaseInferenceLearner):
+            # TODO: Add support for original onnx models
+            raise NotImplementedError(
+                "Benchmark function doesn't support original " "onnx models."
+            )
+        batch_size = self.input_tensors[0][0].shape[0]
+
+        for i in tqdm(
+            range(self.n_warmup),
+            desc=f"Performing warm up on {self.n_warmup} iterations",
+        ):
+            self.model(
+                *self.input_tensors[
+                    i % min(self.n_warmup, len(self.input_tensors))
+                ]
+            )
+
+        timings = []
+        for i in tqdm(
+            range(1, self.n_runs + 1),
+            desc=f"Performing benchmark on {self.n_runs} iterations",
+        ):
+            start_time = time.time()
+            self.model(
+                *self.input_tensors[
+                    i % min(self.n_runs, len(self.input_tensors))
+                ]
+            )
+
+            end_time = time.time()
+            timings.append(end_time - start_time)
+
+        print(f"Batch size: {batch_size}")
+
+        throughput = batch_size / np.mean(timings)
+        latency = np.mean(timings) / batch_size
+
+        print("Average Throughput: %.2f data/second" % throughput)
+        print("Average Latency: %.4f seconds/data" % latency)
+
+        return throughput, latency
 
 
 def benchmark(
@@ -163,7 +235,7 @@ def benchmark(
     else:
         device = model.device
 
-    logger.info(f"Running benchmark on {device.name}")
+    logger.info(f"Running benchmark on {device.type.name}")
 
     dl_framework = _get_dl_framework(model)
 

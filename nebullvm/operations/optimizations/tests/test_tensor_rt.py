@@ -24,11 +24,12 @@ from nebullvm.operations.inference_learners.utils import load_model
 from nebullvm.tools.base import (
     DeepLearningFramework,
     QuantizationType,
-    Device,
+    DeviceType,
     ModelCompiler,
+    Device,
 )
 
-device = Device.GPU
+device = Device(DeviceType.GPU)
 
 
 @pytest.mark.parametrize(
@@ -106,8 +107,8 @@ def test_tensorrt_onnx(
         compiled_model = compiler_op.get_result()
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
-            ModelCompiler.TENSOR_RT
-        ][DeepLearningFramework.NUMPY]()
+            ModelCompiler.TENSOR_RT_ONNX
+        ]()
         build_inference_learner_op.to(device).execute(
             model=compiled_model,
             model_orig=compiler_op.model_orig
@@ -239,8 +240,8 @@ def test_tensorrt_torch(
         compiled_model = compiler_op.get_result()
 
         build_inference_learner_op = COMPILER_TO_INFERENCE_LEARNER_MAP[
-            ModelCompiler.TENSOR_RT
-        ][DeepLearningFramework.PYTORCH]()
+            ModelCompiler.TENSOR_RT_TORCH
+        ]()
 
         build_inference_learner_op.to(device).execute(
             model=compiled_model,

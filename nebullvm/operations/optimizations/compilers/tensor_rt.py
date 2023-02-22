@@ -53,7 +53,7 @@ class TensorRTCompiler(Compiler, abc.ABC):
         inputs_shapes = []
 
         for i, info in enumerate(model_params.input_infos):
-            static_shape = (model_params.batch_size, *info.size)
+            static_shape = info.size
 
             if model_params.dynamic_info is not None:
                 input_dict = model_params.dynamic_info.inputs[i]
@@ -126,7 +126,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             input_data (DataManager): User defined data. Default: None
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 
@@ -164,16 +164,16 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
                 dataloader,
                 use_cache=False,
                 algo_type=torch_tensorrt.ptq.CalibrationAlgo.ENTROPY_CALIBRATION_2,  # noqa E501
-                device=torch.device("cuda:0"),
+                device=torch.device(self.device.to_torch_format()),
             )
         else:
             dtype = torch.float32
 
         # Convert int64 to int32 for transformers inputs
         input_tensors = [
-            tensor.cuda()
+            tensor.to(self.device.to_torch_format())
             if tensor.dtype != torch.int64
-            else tensor.to(torch.int32).cuda()
+            else tensor.to(torch.int32).to(self.device.to_torch_format())
             for tensor in input_data.get_list(1)[0]
         ]
 
@@ -188,6 +188,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
             quantization_type=quantization_type,
         )
 
+    @torch.no_grad()
     def _compile_model(
         self,
         model: Module,
@@ -198,12 +199,13 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
         quantization_type: QuantizationType,
     ):
 
-        model.cuda().eval()
+        model.to(self.device.to_torch_format()).eval()
 
         try:
-            ts_model = torch.jit.script(model)
             if quantization_type is QuantizationType.HALF:
-                ts_model.half()
+                ts_model = torch.jit.script(copy.deepcopy(model).half()).half()
+            else:
+                ts_model = torch.jit.script(model)
         except Exception:
             if quantization_type is QuantizationType.HALF:
                 ts_model = torch.jit.trace(
@@ -236,7 +238,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
                 workspace_size=1 << 30,
                 device={
                     "device_type": torch_tensorrt.DeviceType.GPU,
-                    "gpu_id": 0,
+                    "gpu_id": self.device.idx,
                     "dla_core": 0,
                     "allow_gpu_fallback": False,
                     "disable_tf32": False,
@@ -288,7 +290,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             input_data (DataManager): User defined data. Default: None
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 
@@ -325,6 +327,11 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                 assert os.path.isfile(onnx_model_path)
             except Exception:
                 # Use original model
+                self.logger.warning(
+                    "Unable to simplify model with ONNX Simplifier. "
+                    "Original ONNX model will be used to build "
+                    "TensorRT engine"
+                )
                 onnx_model_path = str(model)
                 self.simplify_model = False
         else:

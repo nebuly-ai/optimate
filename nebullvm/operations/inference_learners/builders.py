@@ -32,9 +32,14 @@ from nebullvm.operations.inference_learners.tvm import (
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import GraphModule, Module, ScriptModule
-from nebullvm.optional_modules.tvm import ExecutorFactoryModule, tvm
-from nebullvm.tools.base import DeepLearningFramework, Device, ModelParams
+from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
+from nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
+from nebullvm.tools.base import (
+    DeepLearningFramework,
+    ModelParams,
+    DeviceType,
+    QuantizationType,
+)
 from nebullvm.tools.onnx import get_input_names, get_output_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -116,6 +121,7 @@ class ONNXBuildInferenceLearner(BuildInferenceLearner):
         model_params: ModelParams,
         input_tfms: MultiStageTransformation,
         source_dl_framework: DeepLearningFramework,
+        quantization_type: QuantizationType,
         **kwargs,
     ):
         input_names = get_input_names(str(model))
@@ -128,6 +134,7 @@ class ONNXBuildInferenceLearner(BuildInferenceLearner):
             output_names=output_names,
             input_tfms=input_tfms,
             device=self.device,
+            quantization_type=quantization_type,
         )
 
 
@@ -225,7 +232,9 @@ class PyTorchApacheTVMBuildInferenceLearner(BuildInferenceLearner):
         **kwargs,
     ):
         target_device = (
-            str(tvm.target.cuda()) if self.device is Device.GPU else "llvm"
+            str(tvm.target.cuda())
+            if self.device.type is DeviceType.GPU
+            else "llvm"
         )
         dev = tvm.device(str(target_device), 0)
 
@@ -258,7 +267,9 @@ class ONNXApacheTVMBuildInferenceLearner(BuildInferenceLearner):
         **kwargs,
     ):
         target_device = (
-            str(tvm.target.cuda()) if self.device is Device.GPU else "llvm"
+            str(tvm.target.cuda())
+            if self.device.type is DeviceType.GPU
+            else "llvm"
         )
         dev = tvm.device(str(target_device), 0)
 

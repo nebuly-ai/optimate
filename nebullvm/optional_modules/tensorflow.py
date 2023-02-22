@@ -48,9 +48,10 @@ try:
         "GPU"
     )
     if len(physical_devices) > 0:
-        tensorflow.config.experimental.set_memory_growth(
-            physical_devices[0], True
-        )
+        for physical_device in physical_devices:
+            tensorflow.config.experimental.set_memory_growth(
+                physical_device, True
+            )
 
     tensorflow.get_logger().setLevel("ERROR")
     tensorflow.autograph.set_verbosity(0)
