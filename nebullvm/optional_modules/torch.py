@@ -33,6 +33,10 @@ except ImportError:
         def no_grad():
             return lambda x: None
 
+        @staticmethod
+        def inference_mode():
+            return lambda x: None
+
     class ScriptModule:
         pass
 

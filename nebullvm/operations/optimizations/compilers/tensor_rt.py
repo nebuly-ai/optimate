@@ -16,6 +16,7 @@ from nebullvm.operations.optimizations.compilers.quantizations.tensor_rt import 
 from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
+from nebullvm.optional_modules import onnx
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.optional_modules.torch_tensorrt import (
@@ -27,6 +28,7 @@ from nebullvm.tools.base import (
     ModelParams,
 )
 from nebullvm.tools.data import DataManager, PytorchDataset
+from nebullvm.tools.diffusers import UNet
 from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -271,6 +273,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         input_data: DataManager = None,
+        is_diffusion: bool = False,
         **kwargs,
     ):
         """Compile the input model using TensorRT Compiler from the
@@ -307,7 +310,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             QUANTIZATION_DATA_NUM
         )
 
-        if self.simplify_model:
+        if self.simplify_model and not is_diffusion:
             try:
                 import onnxsim  # noqa: F401
 
@@ -337,6 +340,13 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         else:
             onnx_model_path = str(model)
 
+        if is_diffusion:
+            optimized_model = str(model) + "/model_opt.onnx"
+            unet = UNet(hf_token=None)
+            opt_graph = unet.optimize(onnx.load(str(model)))
+            onnx.save(opt_graph, optimized_model)
+            onnx_model_path = optimized_model
+
         # -- Build phase --
         nvidia_logger = trt.Logger(trt.Logger.ERROR)
         builder = trt.Builder(nvidia_logger)
@@ -347,6 +357,17 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         # build the engine
         # TODO: setup config value for the class in a config file
         config = builder.create_builder_config()
+        try:
+            config.set_memory_pool_limit(
+                trt.MemoryPoolType.WORKSPACE, self.device.get_free_memory()
+            )
+        except AttributeError:
+            # The method set_memory_pool_limit is not available
+            # until TensorRT Release 8.4.1
+            self.logger.warning(
+                "Cannot call method set_memory_pool_limit for TensorRT."
+                "Please update TensorRT version."
+            )
 
         if quantization_type is not None:
             config = self._quantize_model(

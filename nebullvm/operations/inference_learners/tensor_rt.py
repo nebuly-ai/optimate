@@ -187,6 +187,10 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         ):
             buffers[input_idx] = input_ptr
             if input_shape is not None:
+                # If the input shape is empty, we set it to (1,) because
+                # TensorRT doesn't accept empty shapes.
+                if input_shape == torch.Size([]):
+                    input_shape = torch.Size((1,))
                 self.context.set_binding_shape(input_idx, input_shape)
         for output_idx, output_ptr in zip(output_idxs, output_ptrs):
             buffers[output_idx] = output_ptr

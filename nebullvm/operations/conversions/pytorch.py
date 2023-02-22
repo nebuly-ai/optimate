@@ -12,6 +12,7 @@ from nebullvm.tools.pytorch import (
 )
 
 
+@torch.inference_mode()
 def convert_torch_to_onnx(
     torch_model: Module,
     input_data: DataManager,

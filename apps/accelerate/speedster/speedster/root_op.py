@@ -14,6 +14,7 @@ from typing import (
     List,
 )
 
+from diffusers import UNet2DConditionModel
 from loguru import logger
 from nebullvm import setup_logger
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, MIN_NUMBER
@@ -39,6 +40,7 @@ from nebullvm.operations.optimizations.optimizers import (
 from nebullvm.operations.optimizations.utils import (
     map_compilers_and_compressors,
 )
+from nebullvm.optional_modules.diffusers import diffusers
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
 from nebullvm.optional_modules.utils import check_dependencies
@@ -461,10 +463,19 @@ class SpeedsterRootOp(Operation):
         ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
     ) -> List[BaseInferenceLearner]:
+        is_diffusion = False
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
             if isinstance(model, torch.nn.Module):
                 optimization_op = self.torch_optimization_op
+                if (
+                    isinstance(model, UNet2DConditionModel)
+                    or hasattr(model, "model")
+                    and isinstance(
+                        model.model, diffusers.models.UNet2DConditionModel
+                    )
+                ):
+                    is_diffusion = True
             elif isinstance(model, tf.Module) and model is not None:
                 optimization_op = self.tensorflow_optimization_op
             else:
@@ -481,6 +492,7 @@ class SpeedsterRootOp(Operation):
                 ignore_compilers=ignore_compilers,
                 ignore_compressors=ignore_compressors,
                 source_dl_framework=source_dl_framework,
+                is_diffusion=is_diffusion,
             )
 
             optimized_models = optimization_op.get_result()

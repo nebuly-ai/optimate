@@ -92,6 +92,7 @@ class Optimizer(Operation, abc.ABC):
         ignore_compilers: List[ModelCompiler],
         ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
+        is_diffusion: bool = False,
     ):
         self.source_dl_framework = source_dl_framework
 
@@ -127,6 +128,7 @@ class Optimizer(Operation, abc.ABC):
             model_params=model_params,
             model_outputs=model_outputs,
             ignore_compilers=ignore_compilers,
+            is_diffusion=is_diffusion,
         )
 
     @abc.abstractmethod
@@ -176,6 +178,7 @@ class Optimizer(Operation, abc.ABC):
         model_params: ModelParams,
         model_outputs: List[Tuple[Any, ...]],
         ignore_compilers: List[ModelCompiler],
+        is_diffusion: bool = False,
     ):
 
         if metric_drop_ths is not None:
@@ -214,6 +217,7 @@ class Optimizer(Operation, abc.ABC):
                             quantization_type=q_type,
                             input_tfms=input_tfms,
                             onnx_output_path=tmp_dir,
+                            is_diffusion=is_diffusion,
                         )
 
                         compiled_model = compiler_op.get_result()
