@@ -119,10 +119,11 @@ def check_input_data(input_data: Union[Iterable, Sequence]):
         assert isinstance(
             input_data[0][0][0], (np.ndarray, torch.Tensor, tf.Tensor)
         )
-        assert isinstance(
-            input_data[0][1],
-            (np.ndarray, torch.Tensor, tf.Tensor, int, float, type(None)),
-        )
+        if len(input_data[0]) > 1:
+            assert isinstance(
+                input_data[0][1],
+                (np.ndarray, torch.Tensor, tf.Tensor, int, float, type(None)),
+            )
     except:  # noqa E722
         return False
     else:
