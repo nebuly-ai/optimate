@@ -16,7 +16,7 @@ from nebullvm.optional_modules.torch import (
     symbolic_trace,
     torch,
 )
-from nebullvm.tools.base import Device, QuantizationType
+from nebullvm.tools.base import QuantizationType, DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.huggingface import PyTorchTransformerWrapper
@@ -86,7 +86,7 @@ class FasterTransformerCompiler(Compiler):
             input_data (DataManager): User defined data. Default: None.
         """
 
-        if quantization_type not in self.supported_ops[self.device.value]:
+        if quantization_type not in self.supported_ops[self.device.type.value]:
             self.compiled_model = None
             return
 
@@ -112,6 +112,7 @@ class FasterTransformerCompiler(Compiler):
             model, input_data, quantization_type
         )
 
+    @torch.no_grad()
     def _compile_model(
         self,
         model: Union[Module, GraphModule],
@@ -120,14 +121,16 @@ class FasterTransformerCompiler(Compiler):
     ) -> ScriptModule:
         input_sample = input_data.get_list(1)[0]
         model = deepcopy(model)
-        if self.device is Device.GPU:
+        if self.device.type is DeviceType.GPU:
+
+            input_sample = [
+                t.to(self.device.to_torch_format()) for t in input_sample
+            ]
             if quantization_type is QuantizationType.HALF:
                 input_sample = [
-                    t.cuda().half() if torch.is_floating_point(t) else t.cuda()
+                    t.half() if torch.is_floating_point(t) else t
                     for t in input_sample
                 ]
-            else:
-                input_sample = [t.cuda() for t in input_sample]
 
         if isinstance(model, PyTorchTransformerWrapper):
             # .core_model is a huggingface model
@@ -139,7 +142,7 @@ class FasterTransformerCompiler(Compiler):
             model.core_model = detect_and_swap_model(
                 model.core_model, data_type=data_type, remove_padding=False
             )
-            if self.device is Device.GPU:
+            if self.device.type is DeviceType.GPU:
                 model.cuda()
         if not isinstance(model, torch.fx.GraphModule):
             model.eval()
@@ -156,6 +159,7 @@ class FasterTransformerCompiler(Compiler):
 
         return model_scripted
 
+    @torch.no_grad()
     def _quantize_model(
         self,
         model: Module,

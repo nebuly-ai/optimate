@@ -196,3 +196,22 @@ benchmark(
 )
 # Average response time for speedster optimized BERT (no metric drop): 14.040142675396055 ms # noqa: E501
 # Average response time for speedster optimized BERT (no metric drop): 3.4986357542220503 ms # noqa: E501
+speedster_optimized_model_fp16 = optimize_model(
+    model=model,
+    input_data=encoded_inputs,
+    optimization_time="constrained",
+    # force it to use fastertransformer
+    ignore_compilers=["tensor_rt", "tvm", "onnxruntime", "torchscript"],
+    dynamic_info=dynamic_info,
+    metric_drop_ths=0.1,
+)
+
+
+benchmark(
+    speedster_optimized_model_fp16, "speedster optimized BERT (metric drop)"
+)
+benchmark(
+    speedster_optimized_model_fp16, "speedster optimized BERT (metric drop)"
+)
+# Average response time for speedster optimized BERT (no metric drop): 14.040142675396055 ms # noqa: E501
+# Average response time for speedster optimized BERT (no metric drop): 3.4986357542220503 ms # noqa: E501
