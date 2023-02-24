@@ -7,8 +7,8 @@ import torchvision.transforms as transforms
 from sklearn.cluster import KMeans
 from torch.utils.data import DataLoader
 from torchvision import datasets
-from nebulavm.operations.base import Operation
-from nebulavm.operations.fetch_operations.local import FetchModelFromLocal
+from nebullvm.operations.base import Operation
+from nebullvm.operations.fetch_operations.local import FetchModelFromLocal
 
 from forward_forward.operations.data import VOCABULARY
 from forward_forward.operations.fetch_operations import (
