@@ -15,6 +15,11 @@ from nebullvm.operations.optimizations.compilers.utils import (
 )
 from transformers.models.bert.modeling_bert import BertModel as HFBertModel
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 default_lib_path = str(
     get_faster_transformer_repo_path()
     / "build"
@@ -56,8 +61,8 @@ def swap_model(
 ) -> FasterBertModel:
     # bert model need some custom code to call the custom encoder
     # so we need to use custom bert class
+    logger.info("Swapping bert model to use Faster Transformer")
     new_model = FasterBertModel(model.config)
-    print(f"{type(model)=} -> {type(new_model)=}")
     new_model.load_state_dict(model.state_dict())
     swap_bert_encoder(new_model, data_type, lib_path, remove_padding)
     return new_model
@@ -67,10 +72,8 @@ def detect_and_swap_bert_model(
     model, data_type, lib_path=default_lib_path, remove_padding=False
 ):
     if type(model) == HFBertModel:
-        print("detected model is BertModel")
         model = swap_model(model, data_type, lib_path, remove_padding)
     if hasattr(model, "bert") and type(model.bert) == HFBertModel:
-        print("detected model.bert is BertModel")
         model.bert = swap_model(
             model.bert, data_type, lib_path, remove_padding
         )
