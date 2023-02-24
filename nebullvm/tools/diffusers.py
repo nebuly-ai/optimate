@@ -18,9 +18,11 @@
 
 from collections import OrderedDict
 from copy import deepcopy
+from tempfile import TemporaryDirectory
 from diffusers.models import AutoencoderKL, UNet2DConditionModel
 import numpy as np
 from onnx import shape_inference
+import onnx
 import onnx_graphsurgeon as gs
 from polygraphy.backend.onnx.loader import fold_constants
 import torch
@@ -64,7 +66,14 @@ class Optimizer:
     def infer_shapes(self, return_onnx=False):
         onnx_graph = gs.export_onnx(self.graph)
         if onnx_graph.ByteSize() > 2147483648:
-            raise TypeError("ERROR: model size exceeds supported 2GB limit")
+            with TemporaryDirectory() as tmp_dir:
+                onnx.save(
+                    onnx_graph,
+                    f"{tmp_dir}/model.onnx",
+                    save_as_external_data=True,
+                )
+                shape_inference.infer_shapes_path(f"{tmp_dir}/model.onnx")
+                onnx_graph = onnx.load(f"{tmp_dir}/model.onnx")
         else:
             onnx_graph = shape_inference.infer_shapes(onnx_graph)
 

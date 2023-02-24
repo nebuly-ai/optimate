@@ -7,16 +7,24 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.tools.base import InputInfo, DataType, Device
 
 
-def get_outputs_sizes_tf(
+def get_output_info_tf(
     tf_model: Union[tf.Module, tf.keras.Model],
     input_tensors: List[tf.Tensor],
     device: Device,
-) -> List[Tuple[int, ...]]:
+) -> List[Tuple[Tuple[int, ...], DataType]]:
     with tf.device(device.to_tf_format()):
         outputs = tf_model(input_tensors)
     if isinstance(outputs, tf.Tensor) and outputs is not None:
-        return [tuple(outputs.shape)]
-    return [tuple(x.shape) for x in outputs]
+        if outputs.dtype is tf.float16:
+            return [tuple(outputs.shape), DataType.FLOAT16]
+        else:
+            return [tuple(outputs.shape), DataType.FLOAT32]
+    return [
+        (tuple(x.shape), DataType.FLOAT16)
+        if x.dtype is tf.float16
+        else (tuple(x.shape), DataType.FLOAT32)
+        for x in outputs
+    ]
 
 
 def create_model_inputs_tf(input_infos: List[InputInfo]) -> List[tf.Tensor]:
@@ -104,6 +112,8 @@ def extract_info_from_tf_data(
         if x.dtype in [tf.int32, np.int32]
         else "int64"
         if x.dtype in [tf.int64, np.int64]
+        else "float16"
+        if x.dtype in [tf.float16, np.float16]
         else "float32"
         for x in input_row
     ]

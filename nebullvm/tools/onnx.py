@@ -133,6 +133,8 @@ def extract_info_from_np_data(
         if x.dtype is np.int32
         else "int64"
         if x.dtype is np.int64
+        else "float16"
+        if x.dtype is np.float16
         else "float32"
         for x in input_row
     ]
@@ -143,11 +145,16 @@ def extract_info_from_np_data(
     return batch_size, input_sizes, input_types, dynamic_axis
 
 
-def get_output_sizes_onnx(
+def get_output_info_onnx(
     onnx_model: str, input_tensors: List[np.ndarray], device
-) -> List[Tuple[int, ...]]:
+) -> List[Tuple[Tuple[int, ...], DataType]]:
     res = run_onnx_model(onnx_model, input_tensors, device)
-    sizes = [tuple(output.shape) for output in res]
+    sizes = [
+        (tuple(output.shape), DataType.FLOAT16)
+        if output.dtype is np.float16
+        else (tuple(output.shape), DataType.FLOAT32)
+        for output in res
+    ]
     return sizes
 
 

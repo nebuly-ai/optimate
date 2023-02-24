@@ -27,20 +27,27 @@ def load_with_torch_fx(
     return model
 
 
-def get_outputs_sizes_torch(
+def get_output_info_torch(
     torch_model: Module,
     input_tensors: List[torch.Tensor],
     device: Device,
-) -> List[Tuple[int, ...]]:
+) -> List[Tuple[Tuple[int, ...], DataType]]:
     if device.type is DeviceType.GPU:
         input_tensors = [x.to(device.to_torch_format()) for x in input_tensors]
         torch_model.to(device.to_torch_format())
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
-        if isinstance(outputs, torch.Tensor):
-            return [tuple(outputs.size())]
+        if isinstance(outputs, torch.FloatTensor):
+            return [(tuple(outputs.size()), DataType.FLOAT32)]
+        elif isinstance(outputs, torch.HalfTensor):
+            return [(tuple(outputs.size()), DataType.FLOAT16)]
         else:
-            return [tuple(output.size()) for output in outputs]
+            return [
+                (tuple(output.size()), DataType.FLOAT32)
+                if isinstance(output, torch.FloatTensor)
+                else (tuple(output.size()), DataType.FLOAT16)
+                for output in outputs
+            ]
 
 
 def create_model_inputs_torch(
@@ -142,6 +149,8 @@ def extract_info_from_torch_data(
         if isinstance(x.cpu(), torch.LongTensor)
         else "int32"
         if isinstance(x.cpu(), torch.IntTensor)
+        else "float16"
+        if isinstance(x.cpu(), torch.HalfTensor)
         else "float32"
         for x in input_row
     ]

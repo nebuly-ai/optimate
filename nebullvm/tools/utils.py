@@ -29,15 +29,15 @@ from nebullvm.tools.base import (
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     extract_info_from_np_data,
-    get_output_sizes_onnx,
+    get_output_info_onnx,
 )
 from nebullvm.tools.pytorch import (
     extract_info_from_torch_data,
-    get_outputs_sizes_torch,
+    get_output_info_torch,
 )
 from nebullvm.tools.tf import (
     extract_info_from_tf_data,
-    get_outputs_sizes_tf,
+    get_output_info_tf,
 )
 
 
@@ -178,15 +178,18 @@ def extract_info_from_data(
         dynamic_axis=dynamic_info,
         device=device,
     )
+
+    output_infos = OUTPUT_INFO_COMPUTATION_DICT[dl_framework](
+        model, input_data[0][0], device
+    )
     model_params = ModelParams(
         batch_size=batch_size,
         input_infos=[
             {"size": size, "dtype": dtype}
             for size, dtype in zip(input_sizes, input_types)
         ],
-        output_sizes=OUTPUT_SIZE_COMPUTATION_DICT[dl_framework](
-            model, input_data[0][0], device
-        ),
+        output_sizes=[info[0] for info in output_infos],
+        output_types=[info[1] for info in output_infos],
         dynamic_info=dynamic_info,
     )
     return model_params
@@ -246,8 +249,8 @@ INFO_EXTRACTION_DICT: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.NUMPY: extract_info_from_np_data,
 }
 
-OUTPUT_SIZE_COMPUTATION_DICT: Dict[DeepLearningFramework, Callable] = {
-    DeepLearningFramework.PYTORCH: get_outputs_sizes_torch,
-    DeepLearningFramework.TENSORFLOW: get_outputs_sizes_tf,
-    DeepLearningFramework.NUMPY: get_output_sizes_onnx,
+OUTPUT_INFO_COMPUTATION_DICT: Dict[DeepLearningFramework, Callable] = {
+    DeepLearningFramework.PYTORCH: get_output_info_torch,
+    DeepLearningFramework.TENSORFLOW: get_output_info_tf,
+    DeepLearningFramework.NUMPY: get_output_info_onnx,
 }

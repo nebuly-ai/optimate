@@ -1,13 +1,13 @@
+from contextlib import nullcontext
 from pathlib import Path
 
 from loguru import logger
 
 from nebullvm.config import ONNX_OPSET_VERSION
 from nebullvm.optional_modules.torch import torch, Module
-from nebullvm.tools.base import ModelParams, Device, DeviceType
+from nebullvm.tools.base import ModelParams, Device, DeviceType, DataType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.pytorch import (
-    get_outputs_sizes_torch,
     create_model_inputs_torch,
 )
 
@@ -38,7 +38,8 @@ def convert_torch_to_onnx(
     else:
         input_tensors = create_model_inputs_torch(model_params.input_infos)
 
-    output_sizes = get_outputs_sizes_torch(torch_model, input_tensors, device)
+    output_sizes = model_params.output_sizes
+    output_types = model_params.output_types
 
     input_names = [f"input_{i}" for i in range(len(input_tensors))]
     output_names = [f"output_{i}" for i in range(len(output_sizes))]
@@ -110,26 +111,29 @@ def convert_torch_to_onnx(
             torch_model.to(device.to_torch_format())
 
             try:
-                torch.onnx.export(
-                    torch_model,  # model being run
-                    tuple(
-                        input_tensors
-                    ),  # model input (or a tuple for multiple inputs)
-                    str(output_file_path),
-                    # where to save the model
-                    # (can be a file or file-like object)
-                    export_params=True,
-                    # store the trained parameter weights inside the model file
-                    opset_version=ONNX_OPSET_VERSION,
-                    # the ONNX version to export the model to
-                    do_constant_folding=True,
-                    # whether to execute constant folding for optimization
-                    input_names=input_names,
-                    # the model's input names
-                    output_names=output_names,
-                    # the model's output names
-                    dynamic_axes=dynamic_info,
-                )
+                with torch.autocast("cuda") if output_types[
+                    0
+                ] is DataType.FLOAT16 else nullcontext():
+                    torch.onnx.export(
+                        torch_model,  # model being run
+                        tuple(
+                            input_tensors
+                        ),  # model input (or a tuple for multiple inputs)
+                        str(output_file_path),
+                        # where to save the model
+                        # (can be a file or file-like object)
+                        export_params=True,
+                        # store the trained parameter weights inside the model
+                        opset_version=ONNX_OPSET_VERSION,
+                        # the ONNX version to export the model to
+                        do_constant_folding=True,
+                        # whether to execute constant folding for optimization
+                        input_names=input_names,
+                        # the model's input names
+                        output_names=output_names,
+                        # the model's output names
+                        dynamic_axes=dynamic_info,
+                    )
 
                 return output_file_path
             except Exception:

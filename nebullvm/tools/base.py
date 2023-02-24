@@ -27,6 +27,7 @@ class DeviceType(Enum):
 
 
 class DataType(str, Enum):
+    FLOAT16 = "float16"
     FLOAT32 = "float32"
     INT32 = "int32"
     INT64 = "int64"
@@ -118,6 +119,7 @@ class ModelParams:
     batch_size: int
     input_infos: List[InputInfo]
     output_sizes: List[Tuple[int, ...]]
+    output_types: List[DataType]
     dynamic_info: Union[DynamicAxisInfo, Dict] = None
 
     def __post_init__(self):
@@ -127,6 +129,7 @@ class ModelParams:
             InputInfo(**x) if isinstance(x, dict) else x
             for x in self.input_infos
         ]
+        self.output_types = [DataType(x) for x in self.output_types]
 
     def dict(self):
         def recursively_dictionarize(element):

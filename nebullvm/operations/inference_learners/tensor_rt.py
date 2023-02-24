@@ -24,6 +24,7 @@ from nebullvm.tools.base import (
     ModelParams,
     DeepLearningFramework,
     Device,
+    DataType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
@@ -374,16 +375,28 @@ class PytorchONNXTensorRTInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
+        # If tensor has shape () (i.e. a scalar) we need to reshape it to (1,)
+        input_tensors = [
+            input_tensor.reshape((1,))
+            if input_tensor.shape == torch.Size([])
+            else input_tensor
+            for input_tensor in input_tensors
+        ]
         input_tensors = [
             input_tensor.to(self.device.to_torch_format())
             for input_tensor in input_tensors
         ]
+        output_type = (
+            torch.half
+            if self.network_parameters.output_types[0] is DataType.FLOAT16
+            else torch.float32
+        )
         if self.network_parameters.dynamic_info is None:
             if self.output_tensors is None:
                 self.output_tensors = [
-                    torch.Tensor(*output_size).to(
-                        self.device.to_torch_format()
-                    )
+                    torch.Tensor(*output_size)
+                    .to(self.device.to_torch_format())
+                    .to(output_type)
                     for output_size in self.network_parameters.output_sizes
                 ]
             input_sizes = None
@@ -402,7 +415,9 @@ class PytorchONNXTensorRTInferenceLearner(
                         )
                         for i, x in enumerate(output_size)
                     ),
-                ).to(self.device.to_torch_format())
+                )
+                .to(self.device.to_torch_format())
+                .to(output_type)
                 for j, (output_size, dynamic_axis) in enumerate(
                     zip(
                         self.network_parameters.output_sizes,
@@ -410,6 +425,13 @@ class PytorchONNXTensorRTInferenceLearner(
                     )
                 )
             ]
+
+        self.output_tensors = [
+            t.half()
+            if self.network_parameters.output_types[0] is DataType.FLOAT16
+            else t
+            for t in self.output_tensors
+        ]
         input_ptrs = (
             input_tensor.data_ptr() for input_tensor in input_tensors
         )
@@ -452,7 +474,13 @@ class BaseArrayONNXTensorRTInferenceLearner(ONNXTensorRTInferenceLearner, ABC):
     ) -> Generator[np.ndarray, None, None]:
         if self.network_parameters.dynamic_info is None:
             cuda_output_arrays = [
-                polygraphy.cuda.DeviceArray(shape=output_size)
+                polygraphy.cuda.DeviceArray(
+                    shape=output_size,
+                    dtype=np.float16
+                    if self.network_parameters.output_types[0]
+                    is DataType.FLOAT16
+                    else np.float32,
+                )
                 for output_size in self.network_parameters.output_sizes
             ]
         else:
@@ -471,7 +499,11 @@ class BaseArrayONNXTensorRTInferenceLearner(ONNXTensorRTInferenceLearner, ABC):
                             input_shapes, j, i, x
                         )
                         for i, x in enumerate(output_size)
-                    )
+                    ),
+                    dtype=np.float16
+                    if self.network_parameters.output_types[0]
+                    is DataType.FLOAT16
+                    else np.float32,
                 )
                 for j, (output_size, dyn_out_axis) in enumerate(
                     zip(output_sizes, dynamic_info.outputs)

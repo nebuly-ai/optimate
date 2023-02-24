@@ -16,7 +16,7 @@ from nebullvm.operations.optimizations.compilers.quantizations.tensor_rt import 
 from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
-from nebullvm.optional_modules import onnx
+from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.optional_modules.torch_tensorrt import (
@@ -263,6 +263,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
         super().__init__()
         self.model_orig = None
+        self.onnx_model_path = None
         self.simplify_model = True
 
     def execute(
@@ -326,8 +327,8 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                     subprocess.run(cmd, stdout=subprocess.DEVNULL)
 
                 # First try with simplified model
-                onnx_model_path = simplified_model
-                assert os.path.isfile(onnx_model_path)
+                self.onnx_model_path = simplified_model
+                assert os.path.isfile(self.onnx_model_path)
             except Exception:
                 # Use original model
                 self.logger.warning(
@@ -335,17 +336,25 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                     "Original ONNX model will be used to build "
                     "TensorRT engine"
                 )
-                onnx_model_path = str(model)
+                self.onnx_model_path = str(model)
                 self.simplify_model = False
-        else:
-            onnx_model_path = str(model)
+        elif self.onnx_model_path is None:
+            self.onnx_model_path = str(model)
 
-        if is_diffusion:
-            optimized_model = str(model) + "/model_opt.onnx"
+        if self.simplify_model and is_diffusion:
+            optimized_model = str(Path(model).parent / "model_opt.onnx")
             unet = UNet(hf_token=None)
             opt_graph = unet.optimize(onnx.load(str(model)))
-            onnx.save(opt_graph, optimized_model)
-            onnx_model_path = optimized_model
+            try:
+                onnx.save(opt_graph, optimized_model)
+            except Exception:
+                onnx.save(
+                    opt_graph, optimized_model, save_as_external_data=True
+                )
+            self.onnx_model_path = optimized_model
+            self.simplify_model = False
+        elif self.onnx_model_path is None:
+            self.onnx_model_path = str(model)
 
         # -- Build phase --
         nvidia_logger = trt.Logger(trt.Logger.ERROR)
@@ -381,14 +390,14 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             )
 
         self.compiled_model = self._compile_model(
-            onnx_model_path=str(onnx_model_path),
+            onnx_model_path=str(self.onnx_model_path),
             model_params=model_params,
             config=config,
             network=network,
             builder=builder,
             nvidia_logger=nvidia_logger,
         )
-        self.model_orig = onnx_model_path
+        self.model_orig = self.onnx_model_path
 
     def _compile_model(
         self,
