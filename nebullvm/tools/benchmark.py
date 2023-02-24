@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
+from nebullvm.tools import HuggingFace
 from nebullvm.tools.base import DeepLearningFramework, ModelParams
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import create_model_inputs_onnx
@@ -52,50 +53,6 @@ def _create_model_inputs(
         raise TypeError(f"Unknown framework {dl_framework}")
 
     return input_data
-
-class HuggingFaceBenchmark(BaseBenchmark):
-    def __init__(self, model_name, input_texts, device, n_warmup=50, n_runs=1000):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
-        self.input_texts = input_texts
-        self.device = device
-        self.n_warmup = n_warmup
-        self.n_runs = n_runs
-
-    def benchmark(self):
-        input_tensors = []
-        for input_text in self.input_texts:
-            encoded = self.tokenizer(input_text, padding='max_length', truncation=True, max_length=512, return_tensors='pt')
-            input_tensors.append(encoded.to(self.device))
-
-        batch_size = input_tensors[0].shape[0]
-
-        with torch.no_grad():
-            for i in tqdm(
-                range(self.n_warmup),
-                desc=f"Performing warm up on {self.n_warmup} iterations",
-            ):
-                self.model(**input_tensors[i % min(self.n_warmup, len(input_tensors))])
-
-        if self.device.type is DeviceType.GPU:
-            torch.cuda.synchronize()
-        timings = []
-        with torch.no_grad():
-            for i in tqdm(
-                range(1, self.n_runs + 1),
-                desc=f"Performing benchmark on {self.n_runs} iterations",
-            ):
-                start_time = time.time()
-                self.model(**input_tensors[i % min(self.n_runs, len(input_tensors))])
-                if self.device.type is DeviceType.GPU:
-                    torch.cuda.synchronize()
-                end_time = time.time()
-                timings.append(end_time - start_time)
-
-        throughput = batch_size / np.mean(timings)
-        latency = np.mean(timings) / batch_size
-
-        return throughput, latency
 
 
 class BaseBenchmark(ABC):
