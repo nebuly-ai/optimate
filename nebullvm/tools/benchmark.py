@@ -11,6 +11,8 @@ from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
 from nebullvm.tools.base import DeepLearningFramework, ModelParams
 from nebullvm.tools.data import DataManager
+from nebullvm.tools.HuggingFace import PyTorchTransformerWrapper
+from nebullvm.tools.HuggingFace import TensorFlowTransformerWrapper
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import create_model_inputs_torch
 from nebullvm.tools.tf import create_model_inputs_tf
