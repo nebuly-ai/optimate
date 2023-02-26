@@ -1,4 +1,4 @@
-## **Open source implementation for LLaMA-based ChatGPT. 15x faster training process than ChatGPT**
+# **Open source implementation for LLaMA-based ChatGPT. 15x faster training process than ChatGPT**
 
 ![chatgpt_training](https://user-images.githubusercontent.com/38586138/221438456-5eaf123a-46cb-40aa-8d9b-fe75ec3e2f20.png)
 
