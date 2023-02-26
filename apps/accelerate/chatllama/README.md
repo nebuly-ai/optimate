@@ -15,7 +15,7 @@ Compared to the original ChatGPT, the training process and single-GPU inference 
 ChatLLaMA integrates DeepSpeed ZERO to speedup the fine-tuning process.
 - The library also supports all LLaMA model architectures (7B, 13B, 33B, 65B), so that you can fine-tune the model according to your preferences for training time and inference performance.
 
-If you like the project, please consider leaving us a star ⭐ on the GitHub repository.
+If you like the project, please consider [leaving us a star ⭐](https://github.com/nebuly-ai/nebullvm/stargazers).
 
 
 <img width="1032" alt="Screen Shot 2023-02-26 at 10 56 13 PM" src="https://user-images.githubusercontent.com/83510798/221439813-5972d029-dae5-4561-ab3d-5a55fa5cde09.png">
