@@ -1,6 +1,6 @@
 ## **Open source implementation for LLaMA-based ChatGPT. 15x faster training process than ChatGPT**
 
-
+![chatgpt_training](https://user-images.githubusercontent.com/38586138/221438456-5eaf123a-46cb-40aa-8d9b-fe75ec3e2f20.png)
 
 Meta has recently released LLaMA, a collection of foundational large language models ranging from 7 to 65 billion parameters. LLaMA is creating a lot of excitement because it is smaller than GPT-3 but has better performance. For example, LLaMA's 13B architecture outperforms GPT-3 despite being 10 times smaller. This new collection of fundamental models opens the door to faster inference performance and chatGPT-like real-time assistants, while being cost-effective and running on a single GPU.
 
