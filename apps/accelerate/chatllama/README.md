@@ -8,9 +8,7 @@ However, LLaMA was not fine-tuned for instruction task with a Reinforcement Lear
 The good news is that we introduce `ChatLLaMA`, the first open source implementation of LLaMA based on RLHF:
 
 - A complete open source implementation that enables you to build a ChatGPT-style service based on pre-trained LLaMA models.
-A complete open source implementation of LLaMA based on PyTorch that enables you to build a ChatGPT-style service based on pre-trained LLaMA models.
 - Compared to the original ChatGPT, the training process and single-GPU inference are much faster and cheaper by taking advantage of the smaller size of LLaMA architectures.
-Compared to the original ChatGPT, the training process and single-GPU inference can be much faster taking advantage of the smaller size of LLaMA architectures.
 - ChatLLaMA has built-in support for DeepSpeed ZERO to speedup the fine-tuning process.
 - The library also supports all LLaMA model architectures (7B, 13B, 33B, 65B), so that you can fine-tune the model according to your preferences for training time and inference performance.
 
