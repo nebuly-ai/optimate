@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import pickle
@@ -53,6 +54,11 @@ from nebullvm.tools.base import (
     DeviceType,
 )
 from nebullvm.tools.data import DataManager
+from nebullvm.tools.diffusers import (
+    is_diffusion_model,
+    preprocess_diffusers_for_speedster,
+    postprocess_diffusers_for_speedster,
+)
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from nebullvm.tools.utils import (
     get_dl_framework,
@@ -215,6 +221,13 @@ class SpeedsterRootOp(Operation):
                         "ter/get-started/examples-of-api-options#using-dynamic"
                         "-shape."
                     )
+
+            needs_conversion_to_diffusers = False
+            if is_diffusion_model(self.model):
+                self.pipe = copy.deepcopy(self.model)
+                self.model, dynamic_info = preprocess_diffusers_for_speedster(
+                    self.model, dynamic_info
+                )
 
             if not isinstance(self.data, DataManager):
                 if check_input_data(self.data):
@@ -449,6 +462,11 @@ class SpeedsterRootOp(Operation):
                         input_names=input_names,
                         output_type=output_type,
                     )
+                elif needs_conversion_to_diffusers:
+                    self.optimal_model = postprocess_diffusers_for_speedster(
+                        optimized_models[0][0], self.pipe
+                    )
+
                 else:
                     self.optimal_model = optimized_models[0][0]
 

@@ -19,15 +19,110 @@
 from collections import OrderedDict
 from copy import deepcopy
 from tempfile import TemporaryDirectory
-from diffusers.models import AutoencoderKL, UNet2DConditionModel
+from typing import Dict
+
 import numpy as np
-from onnx import shape_inference
 import onnx
 import onnx_graphsurgeon as gs
-from polygraphy.backend.onnx.loader import fold_constants
 import torch
-from transformers import CLIPTextModel
 from cuda import cudart
+from diffusers import StableDiffusionPipeline, DiffusionPipeline
+from diffusers.models import AutoencoderKL, UNet2DConditionModel
+from diffusers.models.unet_2d import UNet2DOutput
+from onnx import shape_inference
+from polygraphy.backend.onnx.loader import fold_constants
+from transformers import CLIPTextModel
+
+from nebullvm.operations.inference_learners.base import BaseInferenceLearner
+
+
+class DiffusionUNetWrapper(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, *x, **kwargs):
+        return tuple(
+            self.model(x[0], x[1], encoder_hidden_states=x[2]).values()
+        )
+
+
+class OptimizedDiffusionWrapper(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, *x, **kwargs):
+        return UNet2DOutput(
+            self.model(
+                x[0],
+                x[1].half() if x[0].dtype is torch.float16 else x[1].float(),
+                kwargs["encoder_hidden_states"],
+            )[0]
+        )
+
+
+def is_diffusion_model(model):
+    return isinstance(model, DiffusionPipeline)
+
+
+def _get_default_dynamic_info():
+    return {
+        "inputs": [
+            {
+                0: {
+                    "name": "2B",
+                    "min_val": 2,
+                    "opt_val": 2,
+                    "max_val": 2,
+                },
+                2: {
+                    "name": "H",
+                    "min_val": 64,
+                    "opt_val": 64,
+                    "max_val": 64,
+                },
+                3: {
+                    "name": "W",
+                    "min_val": 64,
+                    "opt_val": 64,
+                    "max_val": 64,
+                },
+            },
+            {},
+            {
+                0: {
+                    "name": "2B",
+                    "min_val": 2,
+                    "opt_val": 2,
+                    "max_val": 2,
+                }
+            },
+        ],
+        "outputs": [{0: "2B", 2: "H", 3: "W"}],
+    }
+
+
+def preprocess_diffusers_for_speedster(
+    pipe: DiffusionPipeline, dynamic_info: Dict
+):
+    model = DiffusionUNetWrapper(pipe.unet)
+    if dynamic_info is None and isinstance(pipe, StableDiffusionPipeline):
+        dynamic_info = _get_default_dynamic_info()
+    return model, dynamic_info
+
+
+def postprocess_diffusers_for_speedster(
+    optimized_model: BaseInferenceLearner, pipe: DiffusionPipeline
+):
+    final_model = OptimizedDiffusionWrapper(optimized_model)
+    final_model.sample_size = pipe.unet.sample_size
+    final_model.in_channels = pipe.unet.in_channels
+    final_model.device = torch.device("cuda")
+    final_model.config = pipe.unet.config
+    final_model.in_channels = pipe.unet.in_channels
+    pipe.unet = final_model
+    return pipe
 
 
 class Optimizer:

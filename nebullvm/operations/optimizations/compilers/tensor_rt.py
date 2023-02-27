@@ -341,7 +341,11 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         elif self.onnx_model_path is None:
             self.onnx_model_path = str(model)
 
-        if self.simplify_model and is_diffusion:
+        if (
+            self.simplify_model
+            and is_diffusion
+            and self._check_tensorrt_plugins()
+        ):
             optimized_model = str(Path(model).parent / "model_opt.onnx")
             unet = UNet(hf_token=None)
             opt_graph = unet.optimize(onnx.load(str(model)))
@@ -398,6 +402,23 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             nvidia_logger=nvidia_logger,
         )
         self.model_orig = self.onnx_model_path
+
+    def _check_tensorrt_plugins(self):
+        ld_preload_env_var = os.environ.get("LD_PRELOAD", "")
+        ld_library_path_env_var = os.environ.get("LD_LIBRARY_PATH", "")
+        if (
+            "libnvinfer_plugin.so" in ld_preload_env_var
+            and "TensorRT" in ld_library_path_env_var
+        ):
+            return True
+
+        self.logger.warning(
+            "TensorRT plugins are not available. "
+            "To get optimal results for stable diffusion, "
+            "Please install TensorRT plugins and set LD_PRELOAD "
+            "and LD_LIBRARY_PATH environment variables."
+        )
+        return False
 
     def _compile_model(
         self,
