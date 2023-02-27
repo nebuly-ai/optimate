@@ -22,6 +22,8 @@ Image from [OpenAI’s blog](https://openai.com/blog/chatgpt).
 
 # Get started with ChatLLaMA
 
+> :warning: Please note this code represents the algorithmic implementation for RLHF training process of LLaMA and does not contain the model weights. To access the model weights, you need to apply to Meta's [form](https://forms.gle/jk851eBVbX1m5TAv5).
+
 ChatLLaMA allows you to easily train LLaMA-based architectures in a similar way to ChatGPT, using RLHF.
 For example, below is the code to start the training in the case of ChatLLaMA 7B.
 
