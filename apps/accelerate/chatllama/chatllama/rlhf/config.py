@@ -40,6 +40,10 @@ class ConfigReward:
             None.
         llm_temperature (Optional[float]): Temperature for the LLM. Default
             to None.
+        deepspeed_enable (bool): Enable deepspeed for the reward model
+            training. Default to False.
+        deepspeed_config_path (str): Path to the deepspeed config file.
+            Default to None.
     """
 
     model: str
@@ -56,6 +60,8 @@ class ConfigReward:
     llm_model: Optional[str] = None
     llm_max_tokens: Optional[int] = None
     llm_temperature: Optional[float] = None
+    deepspeed_enable: bool = False
+    deepspeed_config_path: Optional[str] = None
 
 
 @dataclass
@@ -77,6 +83,10 @@ class ConfigActor:
         debug (bool): Enable prints for debugging
         train_dataset_path (str): Path to the training dataset
         validation_dataset_path (Optional[str]): Path to the validation dataset
+        deepspeed_enable (bool): Enable deepspeed for the actor.
+            Default to False.
+        deepspeed_config_path (str): Path to the deepspeed config file.
+            Default to None.
     """
 
     model: str
@@ -92,6 +102,8 @@ class ConfigActor:
     debug: bool
     train_dataset_path: str
     validation_dataset_path: Optional[str] = None
+    deepspeed_enable: bool = False
+    deepspeed_config_path: Optional[str] = None
 
 
 @dataclass
@@ -134,6 +146,10 @@ class ConfigTrainer:
         device (torch.device): Device to be used for the actor and critici
         checkpoint_folder (str): Folder to store the checkpoints while training
         debug (bool): Enable prints for debugging
+        deepspeed_enable (bool): Enable deepspeed for the actor and critic.
+            Default to False.
+        deepspeed_config_path (str): Path to the deepspeed config file.
+            Default to None.
     """
 
     update_timesteps: int

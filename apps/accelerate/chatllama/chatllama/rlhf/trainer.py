@@ -263,6 +263,18 @@ class RLTrainer:
         if not os.path.exists(self.config.trainer.checkpoint_folder):
             os.mkdir(self.config.trainer.checkpoint_folder)
 
+        self.model_engine = None  # deepspeed model engine
+        if self.deepspeed_enable is True:
+            if self.deepspeed_config_path is None:
+                raise ValueError(
+                    "DeepSpeed config path is None, but deepspeed is enabled"
+                )
+            if os.path.exists(self.deepspeed_config_path) is False:
+                raise ValueError(
+                    f"DeepSpeed config path {self.deepspeed_config_path}"
+                    f"does not exist"
+                )
+
     def save_checkpoint(
         self,
         current_episode: int,
