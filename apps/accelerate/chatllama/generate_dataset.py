@@ -25,6 +25,8 @@ def create_conversation(human_agent: LLMChain, bot_agent: LLMChain):
 
 
 def build_agents():
+    # be aware that too long completions will not fit the sequence length
+    # of possible critic or reward models ...
     llm = OpenAI(max_tokens=2048, temperature=0.7)
     human_template = PromptTemplate(**PERSON_CHATBOT_TEMPLATE)
     human_agent = LLMChain(

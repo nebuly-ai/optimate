@@ -14,7 +14,7 @@ def test_actor_training(path=None, device=None, debug=False):
 
 
 def test_reward_training(path=None, device=None, debug=False):
-    device = torch.device("cuda:1")
+    device = torch.device("cuda:0")
     config = Config(path=path, device=device, debug=debug)
     trainer = RewardTrainer(config.reward)
     trainer.train()
@@ -22,7 +22,7 @@ def test_reward_training(path=None, device=None, debug=False):
 
 
 def test_rl_trainig(path=None, device=None, debug=False):
-    device = torch.device("cuda:1")
+    device = torch.device("cuda:0")
     config = Config(path=path, device=device, debug=debug)
     trainer = RLTrainer(config.trainer)
     trainer.distillate()
@@ -35,7 +35,8 @@ if __name__ == "__main__":
     rl_training = False
     actor_training = False
 
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # place here the path to the config.yaml file
     config_path = "/home/pierpaolo/Documents/optimapi/ptuning/config.yaml"
 
     if reward_training:
