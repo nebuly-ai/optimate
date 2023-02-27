@@ -5,7 +5,7 @@ from collections import deque, namedtuple
 
 import torch
 from beartype import beartype
-from beartype.typing import Deque, Tuple, List, Dict
+from beartype.typing import Deque, Tuple, List
 from einops import rearrange
 from torch.utils.data import Dataset, DataLoader
 
@@ -91,13 +91,10 @@ class ActorCritic(torch.nn.Module):
     def generate(
         self, states: torch.Tensor, state_mask: torch.Tensor
     ) -> Tuple:
-        """Generate actions, actions_logits,
-            values and sequences from states (i.e. input of the
-            prompt generator model)
+        """Generate actions, actions_logits, values and sequences from states
 
         Args:
-            states (torch.Tensor): States the input of the user to
-                generate the prompt (action)
+            states (torch.Tensor): user inputs
             state_mask (torch.Tensor): Mask for the states of the environment
 
         Returns:
@@ -183,29 +180,13 @@ class ExamplesSampler:
     read a json file with the following format:
     [
         {
-            "general_info": "..."
-            "general_purpose": "..."
-            "contract_name": "..."
-            "section_key_points": "..."
-            "section_name": "..."
-            "section_number": ...
-            "text": "..."
-            "text_type": "..."
-            "score": ...
+            "user_input" : "",
         } ,
         ...
     ]
     Where:
-        general_info: general information of the contract (names, dates, ...)
-        general_purpose: purpose of the contract
-        contract_name: name of the contract
-        section_key_points: key points of this section
-        section_name: name of the section
-        section_number: number of the section (to determine the order)
-        text: text of the section
-        text_type: could be (data, davinci, curie, etc... depending on how it
-            was generated)
-        score: score of the section (0-5)
+        user_input: is the input of the user or directly the input of the user
+            with the memory preappended (i.e. user_input + memory)
     """
 
     def __init__(
@@ -276,7 +257,6 @@ class RLTrainer:
         self.eps = 1e-8
 
         # make models directory
-        # TODO make this more general
         if not os.path.exists("./models"):
             os.mkdir("./models")
 
@@ -489,20 +469,6 @@ class RLTrainer:
         self.actorcritic.eval()
         print("End Learning")
 
-    def generate_user_input(self, inputs: List[Dict]) -> List[str]:
-        user_inputs = []
-        for i, input in enumerate(inputs):
-            section = input["section_name"]
-            contract = input["contract_name"]
-            purpose = input["general_purpose"]
-            key_points = input["section_key_points"]
-            user_inputs.append(
-                f"Write the contract section {section} for the contract "
-                f"{contract} whose purpose is:\n{purpose}\n"
-                f"The key points for this section should be:\n{key_points}\n"
-            )
-        return user_inputs
-
     def train(
         self,
     ) -> None:
@@ -558,13 +524,9 @@ class RLTrainer:
                 # sample num_examples examples from  example dataset
                 inputs = self.example_sampler.sample(num_examples)
 
-                # generate user input from contract
-                # section info for each example
-                user_inputs = self.generate_user_input(inputs)
-
                 # tokenize examples
                 tokenized_inputs = self.actorcritic.actor.tokenizer(
-                    user_inputs, padding=True, return_tensors="pt"
+                    inputs, padding=True, return_tensors="pt"
                 )
                 if self.debug:
                     print("RLTrainer.train()")

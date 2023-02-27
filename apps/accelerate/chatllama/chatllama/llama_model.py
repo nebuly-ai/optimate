@@ -22,7 +22,7 @@ class HFLikeTokenizer:
     def __call__(self, texts: Union[List[str], str], *args, **kwargs):
         if isinstance(texts, str):
             text = self.tokenizer.encode(texts, bos=True, eos=True)
-            return torch.tensor(text).cuda().long()
+            tokens = torch.tensor(text).cuda().long()
         else:
             texts = [
                 self.tokenizer.encode(text, bos=True, eos=True)
@@ -36,7 +36,11 @@ class HFLikeTokenizer:
             )
             for i, text in enumerate(texts):
                 tokens[i, : len(text)] = torch.tensor(text).cuda().long()
-            return tokens
+        output = {
+            "input_ids": tokens,
+            "attention_mask": (tokens != self.tokenizer.pad_id).long(),
+        }
+        return output
 
     def decode(self, tokens):
         return self.tokenizer.decode(tokens)
