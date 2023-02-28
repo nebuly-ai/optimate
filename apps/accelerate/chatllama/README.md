@@ -1,5 +1,7 @@
 # **Open source implementation for LLaMA-based ChatGPT training process. 15x faster training than ChatGPT (wip)**
 
+> :warning: Please note this code represents the algorithmic implementation for RLHF training process of LLaMA and does not contain the model weights. To access the model weights, you need to apply to Meta's [form](https://forms.gle/jk851eBVbX1m5TAv5).
+
 Meta has recently released LLaMA, a collection of foundational large language models ranging from 7 to 65 billion parameters.
 LLaMA is creating a lot of excitement because it is smaller than GPT-3 but has better performance. For example, LLaMA's 13B architecture outperforms GPT-3 despite being 10 times smaller. This new collection of fundamental models opens the door to faster inference performance and chatGPT-like real-time assistants, while being cost-effective and running on a single GPU.
 
