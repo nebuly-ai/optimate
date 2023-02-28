@@ -7,7 +7,7 @@ LLaMA is creating a lot of excitement because it is smaller than GPT-3 but has b
 
 However, LLaMA was not fine-tuned for instruction task with a Reinforcement Learning from Human Feedback (RLHF) training process.
 
-The good news is that we introduce `ChatLLaMA`, the first open source implementation of RLHF process that levarges LLaMA:
+The good news is that we introduce `ChatLLaMA`, the first open source implementation of RLHF process that leverages LLaMA:
 
 - A complete open source implementation that enables you to build a ChatGPT-style service based on pre-trained LLaMA models.
 - Compared to the original ChatGPT, the training process and single-GPU inference are much faster and cheaper by taking advantage of the smaller size of LLaMA architectures.
@@ -16,11 +16,9 @@ The good news is that we introduce `ChatLLaMA`, the first open source implementa
 
 If you like the project, please show your support by [leaving a star ⭐](https://github.com/nebuly-ai/nebullvm/stargazers).
 
-
 <img width="1032" alt="Screen Shot 2023-02-26 at 10 56 13 PM" src="https://user-images.githubusercontent.com/83510798/221439813-5972d029-dae5-4561-ab3d-5a55fa5cde09.png">
 
 Image from [OpenAI’s blog](https://openai.com/blog/chatgpt).
-
 
 # Get started with ChatLLaMA
 
