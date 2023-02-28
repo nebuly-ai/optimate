@@ -34,7 +34,7 @@ from chatllama.rlhf.config import Config
 path = "path_to_config_file.yaml"
 config = Config(path=path)
 trainer = RLTrainer(config.trainer)
-trainer.distillate()
+trainer.distill()
 trainer.train()
 trainer.training_stats.plot()
 ```
