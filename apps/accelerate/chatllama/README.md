@@ -27,16 +27,31 @@ Image from [OpenAI’s blog](https://openai.com/blog/chatgpt).
 ChatLLaMA allows you to easily train LLaMA-based architectures in a similar way to ChatGPT, using RLHF.
 For example, below is the code to start the training in the case of ChatLLaMA 7B.
 
-```python
-from chatllama.rlhf.trainer import RLTrainer
-from chatllama.rlhf.config import Config
 
+
+```python
+from chatllama.rlhf.actor import ActorTrainer
+from chatllama.rlhf.config import Config
+from chatllama.rlhf.reward import RewardTrainer
+from chatllama.rlhf.trainer import RLTrainer
+
+# Load config for training
 path = "path_to_config_file.yaml"
 config = Config(path=path)
-trainer = RLTrainer(config.trainer)
-trainer.distill()
-trainer.train()
-trainer.training_stats.plot()
+
+# Reward Pre-Training
+rw_trainer = RewardTrainer(config.reward)
+rw_trainer.distill()
+rw_trainer.train()
+
+# Actor Pre-Training
+act_trainer = ActorTrainer(config.actor)
+act_trainer.train()
+
+# RLHF Training
+rlhf_trainer = RLTrainer(config.trainer)
+rlhf_trainer.train()
+rlhf_trainer.training_stats.plot()
 ```
 
 Note that you should provide Meta's original weights and your custom dataset before starting the fine-tuning process. Alternatively, you can generate your own dataset using LangChain's agents.
