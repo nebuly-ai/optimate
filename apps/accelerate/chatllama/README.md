@@ -7,7 +7,7 @@ LLaMA is creating a lot of excitement because it is smaller than GPT-3 but has b
 
 However, LLaMA was not fine-tuned for instruction task with a Reinforcement Learning from Human Feedback (RLHF) training process.
 
-The good news is that we introduce `ChatLLaMA`, the first open source implementation of LLaMA based on RLHF:
+The good news is that we introduce `ChatLLaMA`, the first open source implementation of RLHF prcoess that levarges LLaMA:
 
 - A complete open source implementation that enables you to build a ChatGPT-style service based on pre-trained LLaMA models.
 - Compared to the original ChatGPT, the training process and single-GPU inference are much faster and cheaper by taking advantage of the smaller size of LLaMA architectures.
