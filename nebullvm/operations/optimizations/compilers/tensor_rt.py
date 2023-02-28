@@ -405,10 +405,11 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
 
     def _check_tensorrt_plugins(self):
         ld_preload_env_var = os.environ.get("LD_PRELOAD", "")
-        ld_library_path_env_var = os.environ.get("LD_LIBRARY_PATH", "")
+        # ld_library_path_env_var = os.environ.get("LD_LIBRARY_PATH", "")
         if (
-            "libnvinfer_plugin.so" in ld_preload_env_var
-            and "TensorRT" in ld_library_path_env_var
+            "libnvinfer_plugin.so"
+            in ld_preload_env_var
+            # and "TensorRT" in ld_library_path_env_var
         ):
             return True
 

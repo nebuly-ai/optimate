@@ -62,7 +62,7 @@ class OptimizedDiffusionWrapper(torch.nn.Module):
         )
 
 
-def is_diffusion_model(model):
+def is_diffusion_model_pipe(model):
     return isinstance(model, DiffusionPipeline)
 
 
@@ -1038,7 +1038,7 @@ class Optimizer:
                 (
                     mha
                     and len(node.inputs[0].inputs) > 0
-                    and node.i().op == "Add"
+                    and node.i().op in ["Add", "Cast"]
                 )
                 or (not mha and len(node.inputs[0].inputs) == 0)
             )
@@ -1064,22 +1064,57 @@ class Optimizer:
                 and o.o().o().o().op == "MatMul"
                 and o.o().o().o().i(0).op == "Softmax"
                 and o.o().o().o().i(1).op == "Reshape"
-                and o.o().o().o().i(0).i().op == "Mul"
-                and o.o().o().o().i(0).i().i().op == "MatMul"
-                and o.o().o().o().i(0).i().i().i(0).op == "Reshape"
-                and o.o().o().o().i(0).i().i().i(1).op == "Transpose"
-                and o.o().o().o().i(0).i().i().i(1).i().op == "Reshape"
-                and o.o().o().o().i(0).i().i().i(1).i().i().op == "Transpose"
-                and o.o().o().o().i(0).i().i().i(1).i().i().i().op == "Reshape"
-                and o.o().o().o().i(0).i().i().i(1).i().i().i().i().op
-                == "MatMul"
-                and node.name
-                != o.o().o().o().i(0).i().i().i(1).i().i().i().i().name
+                and (
+                    (
+                        # This pattern works for older versions of PyTorch
+                        o.o().o().o().i(0).i().op == "Mul"
+                        and o.o().o().o().i(0).i().i().op == "MatMul"
+                        and o.o().o().o().i(0).i().i().i(0).op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i(1).op == "Transpose"
+                        and o.o().o().o().i(0).i().i().i(1).i().op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i(1).i().i().op
+                        == "Transpose"
+                        and o.o().o().o().i(0).i().i().i(1).i().i().i().op
+                        == "Reshape"
+                        and o.o().o().o().i(0).i().i().i(1).i().i().i().i().op
+                        == "MatMul"
+                        and node.name
+                        != o.o().o().o().i(0).i().i().i(1).i().i().i().i().name
+                    )
+                    or (
+                        # This pattern works for newer versions of PyTorch
+                        o.o().o().o().i(0).i().op == "Add"
+                        and o.o().o().o().i(0).i().i().op == "Mul"
+                        and o.o().o().o().i(0).i().i().i().op == "MatMul"
+                        and o.o().o().o().i(0).i().i().i().i(0).op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i().i(1).op
+                        == "Transpose"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().op
+                        == "Reshape"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().op
+                        == "Transpose"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().op
+                        == "Reshape"
+                        # fmt: off
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().i().op
+                        == "MatMul"
+                        and node.name != o.o().o().o().i().i(0).i().i().i(1).i().i().i().i().name
+                        # fmt: on
+                    )
+                )
             ):
                 # "len(node.outputs) == 1" to make sure we are not in the
                 # already fused node
-                node_q = o.o().o().o().i(0).i().i().i(0).i().i().i()
-                node_k = o.o().o().o().i(0).i().i().i(1).i().i().i().i()
+                if o.o().o().o().i(0).i().op == "Mul":
+                    # Older versions of PyTorch
+                    node_q = o.o().o().o().i(0).i().i().i(0).i().i().i()
+                    node_k = o.o().o().o().i(0).i().i().i(1).i().i().i().i()
+                else:
+                    # Newer versions of PyTorch
+                    node_q = o.o().o().o().i(0).i().i().i().i(0).i().i().i()
+                    node_k = (
+                        o.o().o().o().i(0).i().i().i().i(1).i().i().i().i()
+                    )
                 node_v = node
                 final_tranpose = o.o().o().o().o(num_dynamic_q).o()
                 # Sanity check to make sure that the graph looks like expected

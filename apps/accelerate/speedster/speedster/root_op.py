@@ -55,7 +55,8 @@ from nebullvm.tools.base import (
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.diffusers import (
-    is_diffusion_model,
+    DiffusionUNetWrapper,
+    is_diffusion_model_pipe,
     preprocess_diffusers_for_speedster,
     postprocess_diffusers_for_speedster,
 )
@@ -223,11 +224,30 @@ class SpeedsterRootOp(Operation):
                     )
 
             needs_conversion_to_diffusers = False
-            if is_diffusion_model(self.model):
+            is_diffusion = False
+
+            if is_diffusion_model_pipe(self.model):
+                self.logger.info(
+                    "The provided model is a diffusion model. "
+                    "Speedster will optimize the UNet part of the model."
+                )
                 self.pipe = copy.deepcopy(self.model)
                 self.model, dynamic_info = preprocess_diffusers_for_speedster(
                     self.model, dynamic_info
                 )
+                needs_conversion_to_diffusers = True
+                is_diffusion = True
+            elif (
+                isinstance(model, UNet2DConditionModel)
+                or isinstance(model, DiffusionUNetWrapper)
+                or (
+                    hasattr(model, "model")
+                    and isinstance(
+                        model.model, diffusers.models.UNet2DConditionModel
+                    )
+                )
+            ):
+                is_diffusion = True
 
             if not isinstance(self.data, DataManager):
                 if check_input_data(self.data):
@@ -270,7 +290,7 @@ class SpeedsterRootOp(Operation):
             model_name = get_model_name(self.model)
             model_info = {
                 "model_name": model_name,
-                "model_size": read_model_size(model),
+                "model_size": read_model_size(self.model),
                 "framework": dl_framework.value,
             }
             self.feedback_collector.store_info(
@@ -327,6 +347,7 @@ class SpeedsterRootOp(Operation):
                             ignore_compilers=ignore_compilers,
                             ignore_compressors=ignore_compressors,
                             source_dl_framework=dl_framework,
+                            is_diffusion=is_diffusion,
                         )
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
@@ -463,6 +484,12 @@ class SpeedsterRootOp(Operation):
                         output_type=output_type,
                     )
                 elif needs_conversion_to_diffusers:
+                    if self.device.type is DeviceType.GPU:
+                        self.pipe.to("cuda")
+                        try:
+                            self.pipe.enable_xformers_memory_efficient_attention()  # noqa: E501
+                        except Exception:
+                            pass
                     self.optimal_model = postprocess_diffusers_for_speedster(
                         optimized_models[0][0], self.pipe
                     )
@@ -480,20 +507,12 @@ class SpeedsterRootOp(Operation):
         ignore_compilers: List[ModelCompiler],
         ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
+        is_diffusion: bool = False,
     ) -> List[BaseInferenceLearner]:
-        is_diffusion = False
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
             if isinstance(model, torch.nn.Module):
                 optimization_op = self.torch_optimization_op
-                if (
-                    isinstance(model, UNet2DConditionModel)
-                    or hasattr(model, "model")
-                    and isinstance(
-                        model.model, diffusers.models.UNet2DConditionModel
-                    )
-                ):
-                    is_diffusion = True
             elif isinstance(model, tf.Module) and model is not None:
                 optimization_op = self.tensorflow_optimization_op
             else:
