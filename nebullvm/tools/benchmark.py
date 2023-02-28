@@ -9,6 +9,10 @@ from tqdm import tqdm
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
+from nebullvm.tools.huggingface import (
+    PyTorchTransformerWrapper, 
+    TensorFlowTransformerWrapper,
+)
 from nebullvm.tools.base import (
     DeepLearningFramework,
     ModelParams,
@@ -66,7 +70,6 @@ class BaseBenchmark(ABC):
     def benchmark(self):
         raise NotImplementedError
 
-
 class PytorchBenchmark(BaseBenchmark):
     def benchmark(self):
         input_tensors = [
@@ -75,15 +78,18 @@ class PytorchBenchmark(BaseBenchmark):
         ]
         batch_size = input_tensors[0][0].shape[0]
 
+        # Create the PyTorchTransformerWrapper instance
+        transformer = PyTorchTransformerWrapper(self.model, input_tensors)
+
         if isinstance(self.model, torch.nn.Module):
-            self.model.to(self.device.to_torch_format()).eval()
+            transformer.to(self.device.to_torch_format()).eval()
 
         with torch.no_grad():
             for i in tqdm(
                 range(self.n_warmup),
                 desc=f"Performing warm up on {self.n_warmup} iterations",
             ):
-                self.model(
+                transformer(
                     *input_tensors[i % min(self.n_warmup, len(input_tensors))]
                 )
         if self.device.type is DeviceType.GPU:
@@ -95,7 +101,7 @@ class PytorchBenchmark(BaseBenchmark):
                 desc=f"Performing benchmark on {self.n_runs} iterations",
             ):
                 start_time = time.time()
-                self.model(
+                transformer(
                     *input_tensors[i % min(self.n_runs, len(input_tensors))]
                 )
                 if self.device.type is DeviceType.GPU:
@@ -113,17 +119,17 @@ class PytorchBenchmark(BaseBenchmark):
 
         return throughput, latency
 
-
 class TensorflowBenchmark(BaseBenchmark):
     def benchmark(self):
         batch_size = self.input_tensors[0][0].shape[0]
+        transformer = TensorFlowTransformerWrapper(self.model, self.input_tensors)
 
         for i in tqdm(
             range(self.n_warmup),
             desc=f"Performing warm up on {self.n_warmup} iterations",
         ):
             with tf.device(self.device.to_tf_format()):
-                self.model(
+                transformer(
                     *self.input_tensors[
                         i % min(self.n_warmup, len(self.input_tensors))
                     ]
@@ -136,7 +142,7 @@ class TensorflowBenchmark(BaseBenchmark):
         ):
             start_time = time.time()
             with tf.device(self.device.to_tf_format()):
-                self.model(
+                transformer(
                     *self.input_tensors[
                         i % min(self.n_runs, len(self.input_tensors))
                     ]
