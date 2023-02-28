@@ -258,7 +258,7 @@ class RewardTrainer:
         train: Train the reward model
         generate_user_input: Generate the user input for the LLM to evaluate a
             couple, (user_input, completion) and assing a score
-        distillate: Parse the dataset and assign scores using LLMs
+        distill: Parse the dataset and assign scores using LLMs
     """
 
     def __init__(self, config: ConfigReward) -> None:
@@ -324,7 +324,7 @@ class RewardTrainer:
                 config=self.config.deepspeed_config_path,
             )
 
-    def distillate(
+    def distill(
         self,
     ):
         """Parse the dataset and assign scores using LLMs
