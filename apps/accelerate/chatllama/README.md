@@ -1,4 +1,4 @@
-# **Open source implementation for LLaMA-based ChatGPT training process. 15x faster training than ChatGPT (wip)**
+# **Open source implementation for LLaMA-based ChatGPT training process. 15x potential faster training than ChatGPT (wip)**
 
 > :warning: Please note this code represents the algorithmic implementation for RLHF training process of LLaMA and does not contain the model weights. To access the model weights, you need to apply to Meta's [form](https://forms.gle/jk851eBVbX1m5TAv5).
 
