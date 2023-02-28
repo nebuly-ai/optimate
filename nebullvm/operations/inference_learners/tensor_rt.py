@@ -375,13 +375,6 @@ class PytorchONNXTensorRTInferenceLearner(
                 1 to 1 mapping. In fact the output tensors are produced as the
                 multiple-output of the model given a (multi-) tensor input.
         """
-        # If tensor has shape () (i.e. a scalar) we need to reshape it to (1,)
-        input_tensors = [
-            input_tensor.reshape((1,))
-            if input_tensor.shape == torch.Size([])
-            else input_tensor
-            for input_tensor in input_tensors
-        ]
         input_tensors = [
             input_tensor.to(self.device.to_torch_format())
             for input_tensor in input_tensors

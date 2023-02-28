@@ -34,6 +34,7 @@ from polygraphy.backend.onnx.loader import fold_constants
 from transformers import CLIPTextModel
 
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
+from nebullvm.tools.base import Device, DeviceType
 
 
 class DiffusionUNetWrapper(torch.nn.Module):
@@ -56,7 +57,7 @@ class OptimizedDiffusionWrapper(torch.nn.Module):
         return UNet2DOutput(
             self.model(
                 x[0],
-                x[1].half() if x[0].dtype is torch.float16 else x[1].float(),
+                x[1].reshape((1,)) if x[1].shape == torch.Size([]) else x[1],
                 kwargs["encoder_hidden_states"],
             )[0]
         )
@@ -104,21 +105,27 @@ def _get_default_dynamic_info():
 
 
 def preprocess_diffusers_for_speedster(
-    pipe: DiffusionPipeline, dynamic_info: Dict
+    pipe: DiffusionPipeline, dynamic_info: Dict, device: Device
 ):
     model = DiffusionUNetWrapper(pipe.unet)
-    if dynamic_info is None and isinstance(pipe, StableDiffusionPipeline):
+    if (
+        dynamic_info is None
+        and device.type is DeviceType.GPU
+        and isinstance(pipe, StableDiffusionPipeline)
+    ):
         dynamic_info = _get_default_dynamic_info()
     return model, dynamic_info
 
 
 def postprocess_diffusers_for_speedster(
-    optimized_model: BaseInferenceLearner, pipe: DiffusionPipeline
+    optimized_model: BaseInferenceLearner,
+    pipe: DiffusionPipeline,
+    device: Device,
 ):
     final_model = OptimizedDiffusionWrapper(optimized_model)
     final_model.sample_size = pipe.unet.sample_size
     final_model.in_channels = pipe.unet.in_channels
-    final_model.device = torch.device("cuda")
+    final_model.device = torch.device(device.to_torch_format())
     final_model.config = pipe.unet.config
     final_model.in_channels = pipe.unet.in_channels
     pipe.unet = final_model

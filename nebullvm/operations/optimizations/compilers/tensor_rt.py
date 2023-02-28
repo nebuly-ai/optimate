@@ -34,6 +34,7 @@ from nebullvm.tools.transformations import (
     MultiStageTransformation,
     HalfPrecisionTransformation,
 )
+from nebullvm.tools.utils import get_gpu_compute_capability
 
 
 class TensorRTCompiler(Compiler, abc.ABC):
@@ -345,6 +346,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             self.simplify_model
             and is_diffusion
             and self._check_tensorrt_plugins()
+            and get_gpu_compute_capability(self.device.idx) >= 7.5
         ):
             optimized_model = str(Path(model).parent / "model_opt.onnx")
             unet = UNet(hf_token=None)

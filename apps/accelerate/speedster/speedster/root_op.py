@@ -233,7 +233,7 @@ class SpeedsterRootOp(Operation):
                 )
                 self.pipe = copy.deepcopy(self.model)
                 self.model, dynamic_info = preprocess_diffusers_for_speedster(
-                    self.model, dynamic_info
+                    self.model, dynamic_info, self.device
                 )
                 needs_conversion_to_diffusers = True
                 is_diffusion = True
@@ -491,7 +491,7 @@ class SpeedsterRootOp(Operation):
                         except Exception:
                             pass
                     self.optimal_model = postprocess_diffusers_for_speedster(
-                        optimized_models[0][0], self.pipe
+                        optimized_models[0][0], self.pipe, self.device
                     )
 
                 else:

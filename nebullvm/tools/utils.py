@@ -244,6 +244,13 @@ def check_device(device: Optional[str]) -> Device:
     return device
 
 
+def get_gpu_compute_capability(gpu_idx: int) -> float:
+    compute_capability = subprocess.check_output(
+        ["nvidia-smi", "--query-gpu=compute_cap", "--format=csv,noheader"]
+    ).decode("utf-8")
+    return float(compute_capability.split("\n")[gpu_idx])
+
+
 INFO_EXTRACTION_DICT: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.PYTORCH: extract_info_from_torch_data,
     DeepLearningFramework.TENSORFLOW: extract_info_from_tf_data,

@@ -29,7 +29,7 @@ class OpenVINOCompiler(Compiler):
     supported_ops = {
         "cpu": [
             None,
-            QuantizationType.STATIC,
+            # QuantizationType.STATIC,
             QuantizationType.HALF,
         ],
         "gpu": [],
