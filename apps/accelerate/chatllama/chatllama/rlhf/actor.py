@@ -1,6 +1,7 @@
 import json
 import os
 
+import deepspeed
 import torch
 from beartype import beartype
 from beartype.typing import Optional, Tuple
@@ -211,47 +212,75 @@ class ActorTrainer:
     """
 
     def __init__(self, config: ConfigActor) -> None:
-        # load the model
+        # load the model, optimizer, loss function and config
         self.config = config
         self.model = ActorModel(config)
         self.loss_function = torch.nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=config.lr
         )
-        self.validation_flag = False
-        self.training_stats = TrainingStats()
+
+        # check checkpoint, datasets and other data
         if not os.path.exists(config.model_folder):
             os.mkdir(config.model_folder)
+        self.validation_flag = False
+        self.training_stats = TrainingStats()
         if config.validation_dataset_path is not None:
             self.validation_flag = True
+
+        # create dataloaders
+        self.train_dataset = ActorDataset(config.train_dataset_path)
+        self.train_dataloader = DataLoader(
+            self.train_dataset, batch_size=config.batch_size
+        )
+        if self.validation_flag:
+            self.eval_dataset = ActorDataset(config.validation_dataset_path)
+            self.validation_dataloader = DataLoader(
+                self.eval_dataset, batch_size=config.batch_size
+            )
+
+        # initialize deepspeed
+        self.model_engine = None
+        if config.deepspeed_enable is True:
+            if config.deepspeed_config_path is None:
+                raise ValueError(
+                    "DeepSpeed config path is None, but deepspeed is enabled"
+                )
+            if os.path.exists(config.deepspeed_config_path) is False:
+                raise ValueError(
+                    f"DeepSpeed config path {config.deepspeed_config_path}"
+                    f"does not exist"
+                )
+        if self.config.deepspeed_enable:
+            (
+                self.model_engine,
+                self.optimizer,
+                self.train_dataloader,
+                _,
+            ) = deepspeed.initialize(
+                args=None,
+                model=self.model,
+                model_parameters=self.model.parameters(),
+                training_data=self.train_dataloader,
+                config=self.config.deepspeed_config_path,
+            )
 
     def train(
         self,
     ) -> None:
         print("Start Actor Model Pretraining")
         # get config parameters
-        train_dataset_path = self.config.train_dataset_path
-        validation_dataset_path = self.config.validation_dataset_path
         batch_size = self.config.batch_size
         epochs = self.config.epochs
         device = self.config.device
 
-        # create dataloaders
-        train_dataset = ActorDataset(train_dataset_path, device=device)
-        train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
-        if self.validation_flag:
-            eval_dataset = ActorDataset(validation_dataset_path, device=device)
-            validation_dataloader = DataLoader(
-                eval_dataset, batch_size=batch_size
-            )
-
         # compute the number of iterations
-        n_iter = int(len(train_dataset) / batch_size)
+        n_iter = int(len(self.train_dataset) / batch_size)
 
         # traing loop
         for epoch in range(epochs):
             self.model.train()
-            for i, input_output in enumerate(train_dataloader):
+            for i, input_output in enumerate(self.train_dataloader):
                 input_output_tokenized = self.model.tokenizer(
                     input_output,
                     return_tensors="pt",
@@ -268,16 +297,27 @@ class ActorTrainer:
                 attention_mask = attention_mask.to(device)
 
                 # forward pass
-                est_output = self.model.forward(training_input, attention_mask)
+                if self.config.deepspeed_enable:
+                    est_output = self.model_engine(
+                        training_input, attention_mask
+                    )
+                else:
+                    est_output = self.model.forward(
+                        training_input, attention_mask
+                    )
                 est_output = rearrange(est_output, "b s v -> (b s) v")
                 training_output = rearrange(training_output, "b s -> (b s)")
                 loss = self.loss_function(est_output, training_output)
                 self.training_stats.training_loss.append(loss.item())
 
                 # backward pass
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
+                if self.config.deepspeed_enable:
+                    self.model_engine.backward(loss)
+                    self.model_engine.step()
+                else:
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
 
                 # print progress
                 if i % self.config.iteration_per_print == 0:
@@ -288,7 +328,7 @@ class ActorTrainer:
                     )
             if self.validation_flag:
                 self.model.eval()
-                for i, input_output in enumerate(validation_dataloader):
+                for i, input_output in enumerate(self.validation_dataloader):
                     input_output_tokenized = self.model.tokenizer(
                         input_output, return_tensors="pt", padding=True
                     )
@@ -312,7 +352,6 @@ class ActorTrainer:
                     est_output = rearrange(est_output, "b s v -> (b s) v")
                     loss = self.loss_function(est_output, validation_output)
                     self.training_stats.validation_loss.append(loss.item())
-
                     # print progress
                     if i % self.config.iteration_per_print == 0:
                         print(

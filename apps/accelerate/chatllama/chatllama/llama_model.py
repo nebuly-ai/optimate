@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Tuple, List, Union
 
+import deepspeed
 import torch.distributed
 import torch.nn as nn
 from fairscale.nn.model_parallel.initialize import initialize_model_parallel
@@ -127,6 +128,18 @@ def setup_model_parallel() -> Tuple[int, int]:
 
     torch.distributed.init_process_group("nccl")
     initialize_model_parallel(world_size)
+    torch.cuda.set_device(local_rank)
+
+    # seed must be the same in all processes
+    torch.manual_seed(1)
+    return local_rank, world_size
+
+
+def setup_model_deepspeed() -> Tuple[int, int]:
+    local_rank = int(os.environ.get("LOCAL_RANK", -1))
+    world_size = int(os.environ.get("WORLD_SIZE", -1))
+
+    deepspeed.init_distributed()
     torch.cuda.set_device(local_rank)
 
     # seed must be the same in all processes
