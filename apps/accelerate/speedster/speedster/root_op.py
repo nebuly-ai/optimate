@@ -59,6 +59,7 @@ from nebullvm.tools.diffusers import (
     is_diffusion_model_pipe,
     preprocess_diffusers_for_speedster,
     postprocess_diffusers_for_speedster,
+    get_unet_inputs,
 )
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from nebullvm.tools.utils import (
@@ -199,6 +200,46 @@ class SpeedsterRootOp(Operation):
                         "depending on the framework used.\n"
                     )
 
+            needs_conversion_to_diffusers = False
+            is_diffusion = False
+            if is_diffusion_model_pipe(self.model):
+                self.logger.info(
+                    "The provided model is a diffusion model. "
+                    "Speedster will optimize the UNet part of the model."
+                )
+                self.pipe = copy.deepcopy(self.model)
+                self.model.get_unet_inputs = get_unet_inputs
+                self.data = [
+                    (
+                        tuple(
+                            d.reshape((1,)) if d.shape == torch.Size([]) else d
+                            for d in self.model.get_unet_inputs(
+                                self.model, prompt=prompt
+                            )
+                            if d is not None
+                        ),
+                        None,
+                    )
+                    for prompt in self.data
+                ]
+
+                self.model, dynamic_info = preprocess_diffusers_for_speedster(
+                    self.model, dynamic_info, self.device
+                )
+                needs_conversion_to_diffusers = True
+                is_diffusion = True
+            elif (
+                isinstance(model, UNet2DConditionModel)
+                or isinstance(model, DiffusionUNetWrapper)
+                or (
+                    hasattr(model, "model")
+                    and isinstance(
+                        model.model, diffusers.models.UNet2DConditionModel
+                    )
+                )
+            ):
+                is_diffusion = True
+
             needs_conversion_to_hf = False
             if is_huggingface_data(self.data[0]):
                 (
@@ -222,32 +263,6 @@ class SpeedsterRootOp(Operation):
                         "speedster/how-to-guides"
                         "#using-dynamic-shape."
                     )
-
-            needs_conversion_to_diffusers = False
-            is_diffusion = False
-
-            if is_diffusion_model_pipe(self.model):
-                self.logger.info(
-                    "The provided model is a diffusion model. "
-                    "Speedster will optimize the UNet part of the model."
-                )
-                self.pipe = copy.deepcopy(self.model)
-                self.model, dynamic_info = preprocess_diffusers_for_speedster(
-                    self.model, dynamic_info, self.device
-                )
-                needs_conversion_to_diffusers = True
-                is_diffusion = True
-            elif (
-                isinstance(model, UNet2DConditionModel)
-                or isinstance(model, DiffusionUNetWrapper)
-                or (
-                    hasattr(model, "model")
-                    and isinstance(
-                        model.model, diffusers.models.UNet2DConditionModel
-                    )
-                )
-            ):
-                is_diffusion = True
 
             if not isinstance(self.data, DataManager):
                 if check_input_data(self.data):
