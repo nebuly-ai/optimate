@@ -20,6 +20,21 @@ If you like the project, please show your support by [leaving a star ⭐](https:
 
 Image from [OpenAI’s blog](https://openai.com/blog/chatgpt).
 
+# Installation
+You can install the package with pip:
+```bash
+pip install chatllama-py
+```
+Then you need to install the Llama models cloned from [Meta's repository](https://github.com/facebookresearch/llama):
+```bash
+git clone https://github.com/facebookresearch/llama.git
+cd llama
+pip install -r requirements.txt
+pip install -e .
+```
+Follow the instructions in the Llama repository to download the model weights and tokenizer.
+
+
 # Get started with ChatLLaMA
 
 > :warning: Please note this code represents the algorithmic implementation for RLHF training process of LLaMA and does not contain the model weights. To access the model weights, you need to apply to Meta's [form](https://forms.gle/jk851eBVbX1m5TAv5).
