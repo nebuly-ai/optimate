@@ -23,14 +23,14 @@
 
 ---
 
-`Nebullvm` is an ecosystem of plug and play modules to optimize the performances of your AI systems. The optimization modules are stack-agnostic and work with any library. They are designed to be easily integrated into your system, providing a quick and seamless boost to its performance. Simply plug and play to start realizing the benefits of optimized performance right away.
+`Nebullvm` is an ecosystem of plug and play modules built to optimize the performances of your AI systems. The optimization modules are stack-agnostic and work with any library. They are designed to be easily integrated into your system, providing a quick and seamless boost to its performance. Simply plug and play to start realizing the benefits of optimized performance right away.
 
 If you like the idea, give us a star to show your support for the project ⭐
 
 
 ## **What can this help with?**
 
-There are multiple modules we actually provide to boost the performances of your AI systems:
+There are multiple modules that we actually provide to boost the performances of your AI systems:
 
 ✅ [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): Automatically apply the best set of SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
 
