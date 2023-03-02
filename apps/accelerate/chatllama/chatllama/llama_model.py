@@ -11,6 +11,9 @@ from fairscale.nn.model_parallel.layers import (
     ParallelEmbedding,
     ColumnParallelLinear,
 )
+
+# All code imported from llama is owned by Meta and used here with no
+# modification
 from llama import ModelArgs, Tokenizer
 from llama.generation import sample_top_p
 from llama.model import TransformerBlock, RMSNorm, precompute_freqs_cis
@@ -48,6 +51,12 @@ class HFLikeTokenizer:
 
 
 class Transformer(nn.Module):
+    """This class is a modification of the Transformer class implemented in
+    the LLaMA repo. The class has been modified for training, since the
+    original one just supports inference. The generate method was inspired by
+    the generate function you can find in `llama.generation`.
+    """
+
     def __init__(self, params: ModelArgs):
         super().__init__()
         self.params = params
@@ -182,56 +191,3 @@ def load_model(
     model.load_state_dict(checkpoint, strict=False)
     tokenizer = HFLikeTokenizer(tokenizer)
     return model, tokenizer
-
-
-def generate(
-    model: Transformer,
-    tokenizer: Tokenizer,
-    prompts: List[str],
-    max_gen_len: int,
-    temperature: float = 0.8,
-    top_p: float = 0.95,
-) -> List[str]:
-    bsz = len(prompts)
-    params = model.params
-    assert bsz <= params.max_batch_size, (bsz, params.max_batch_size)
-
-    prompt_tokens = [tokenizer.encode(x, bos=True, eos=False) for x in prompts]
-
-    min_prompt_size = min([len(t) for t in prompt_tokens])
-    max_prompt_size = max([len(t) for t in prompt_tokens])
-
-    total_len = min(params.max_seq_len, max_gen_len + max_prompt_size)
-
-    tokens = torch.full((bsz, total_len), tokenizer.pad_id).cuda().long()
-    for k, t in enumerate(prompt_tokens):
-        tokens[k, : len(t)] = torch.tensor(t).long()
-    input_text_mask = tokens != tokenizer.pad_id
-    start_pos = min_prompt_size
-    prev_pos = 0
-    for cur_pos in range(start_pos, total_len):
-        logits = model._forward(tokens[:, prev_pos:cur_pos], prev_pos)
-        if temperature > 0:
-            probs = torch.softmax(logits / temperature, dim=-1)
-            next_token = sample_top_p(probs, top_p)
-        else:
-            next_token = torch.argmax(logits, dim=-1)
-        next_token = next_token.reshape(-1)
-        # only replace token if prompt has already been generated
-        next_token = torch.where(
-            input_text_mask[:, cur_pos], tokens[:, cur_pos], next_token
-        )
-        tokens[:, cur_pos] = next_token
-        prev_pos = cur_pos
-
-    decoded = []
-    for i, t in enumerate(tokens.tolist()):
-        # cut to max gen len
-        t = t[: len(prompt_tokens[i]) + max_gen_len]
-        # cut to eos tok if any
-        try:
-            t = t[: t.index(tokenizer.eos_id)]
-        except ValueError:
-            pass
-        decoded.append(tokenizer.decode(t))
-    return decoded
