@@ -115,6 +115,7 @@ class SpeedsterRootOp(Operation):
         super().__init__()
 
         self.model = None
+        self.pipe = None
         self.data = None
         self.optimal_model = None
         self.conversion_op = None
@@ -228,14 +229,12 @@ class SpeedsterRootOp(Operation):
                 )
                 needs_conversion_to_diffusers = True
                 is_diffusion = True
-            elif (
-                isinstance(model, UNet2DConditionModel)
-                or isinstance(model, DiffusionUNetWrapper)
-                or (
-                    hasattr(model, "model")
-                    and isinstance(
-                        model.model, diffusers.models.UNet2DConditionModel
-                    )
+            elif isinstance(
+                model, (UNet2DConditionModel, DiffusionUNetWrapper)
+            ) or (
+                hasattr(model, "model")
+                and isinstance(
+                    model.model, diffusers.models.UNet2DConditionModel
                 )
             ):
                 is_diffusion = True
