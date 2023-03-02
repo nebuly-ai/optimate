@@ -89,3 +89,6 @@ You can participate in the following ways:
 
 1. Submit an issue or PR on GitHub
 2. Join our [Discord group](https://discord.gg/77d5kGSa8e) to chat
+
+# License
+See the [LICENSE](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/LICENSE) file.
