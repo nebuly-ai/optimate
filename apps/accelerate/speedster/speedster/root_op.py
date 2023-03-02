@@ -407,6 +407,14 @@ class SpeedsterRootOp(Operation):
                 self.feedback_collector.reset("model_id")
                 self.feedback_collector.reset("model_metadata")
 
+                # Normal models have batch size B, diffusion models
+                # have batch size 2B
+                batch_size = (
+                    model_params.batch_size
+                    if not is_diffusion
+                    else model_params.batch_size / 2
+                )
+
                 table = [
                     [
                         "backend",
@@ -422,9 +430,9 @@ class SpeedsterRootOp(Operation):
                     ],
                     [
                         "throughput",
-                        f"{(1 / orig_latency) * model_params.batch_size:.2f} "
+                        f"{(1 / orig_latency) * batch_size:.2f} " f"data/sec",
+                        f"{1 / optimized_models[0][1]* batch_size:.2f} "
                         f"data/sec",
-                        f"{1 / optimized_models[0][1]:.2f} data/sec",
                         f"{(1 / optimized_models[0][1]) / (1 / orig_latency):.2f}x",  # noqa: E501
                     ],
                     [
