@@ -11,6 +11,7 @@ REQUIREMENTS = [
     "torch",
     "tqdm",
     "transformers",
+    "openai"
 ]
 
 this_directory = Path(__file__).parent
