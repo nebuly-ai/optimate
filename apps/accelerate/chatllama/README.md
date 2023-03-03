@@ -34,6 +34,17 @@ pip install -e .
 ```
 Follow the instructions in the Llama repository to download the model weights and tokenizer.
 
+Finally you need to add your OpenAI API key as an environment variable by running the following command in your terminal or command prompt (replacing YOUR_API_KEY with your actual API key):
+
+For Linux/Mac:
+```
+export OPENAI_API_KEY=YOUR_API_KEY
+```
+
+For Windows:
+```
+set OPENAI_API_KEY=YOUR_API_KEY
+```
 
 # Get started with ChatLLaMA
 
