@@ -1,3 +1,4 @@
+# Based on https://github.com/NVIDIA/TensorRT/blob/main/demo/Diffusion/models.py
 #
 # SPDX-FileCopyrightText: Copyright (c) 1993-2022 NVIDIA CORPORATION &
 # AFFILIATES. All rights reserved.
@@ -22,17 +23,20 @@ from tempfile import TemporaryDirectory
 from typing import Dict, Union, List, Optional, Any
 
 import numpy as np
-import onnx
-import onnx_graphsurgeon as gs
-import torch
-from diffusers import StableDiffusionPipeline, DiffusionPipeline
-from diffusers.models import AutoencoderKL, UNet2DConditionModel
-from diffusers.models.unet_2d import UNet2DOutput
-from onnx import shape_inference
-from transformers import CLIPTextModel
 
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
+from nebullvm.optional_modules.diffusers import (
+    DiffusionPipeline,
+    StableDiffusionPipeline,
+    UNet2DConditionModel,
+    UNet2DOutput,
+    AutoencoderKL,
+    onnx_graphsurgeon as gs,
+)
+from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensor_rt import fold_constants
+from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.huggingface import CLIPTextModel
 from nebullvm.tools.base import Device, DeviceType
 
 
@@ -258,10 +262,10 @@ class Optimizer:
                     f"{tmp_dir}/model.onnx",
                     save_as_external_data=True,
                 )
-                shape_inference.infer_shapes_path(f"{tmp_dir}/model.onnx")
+                onnx.shape_inference.infer_shapes_path(f"{tmp_dir}/model.onnx")
                 onnx_graph = onnx.load(f"{tmp_dir}/model.onnx")
         else:
-            onnx_graph = shape_inference.infer_shapes(onnx_graph)
+            onnx_graph = onnx.shape_inference.infer_shapes(onnx_graph)
 
         self.graph = gs.import_onnx(onnx_graph)
         if return_onnx:

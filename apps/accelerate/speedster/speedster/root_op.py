@@ -15,7 +15,6 @@ from typing import (
     List,
 )
 
-from diffusers import UNet2DConditionModel
 from loguru import logger
 from nebullvm import setup_logger
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, MIN_NUMBER
@@ -41,7 +40,7 @@ from nebullvm.operations.optimizations.optimizers import (
 from nebullvm.operations.optimizations.utils import (
     map_compilers_and_compressors,
 )
-from nebullvm.optional_modules.diffusers import diffusers
+from nebullvm.optional_modules.diffusers import diffusers, UNet2DConditionModel
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
 from nebullvm.optional_modules.utils import check_dependencies
@@ -210,6 +209,7 @@ class SpeedsterRootOp(Operation):
                 )
                 self.pipe = copy.deepcopy(self.model)
                 self.model.get_unet_inputs = get_unet_inputs
+                self.model.to(self.device.to_torch_format())
                 self.data = [
                     (
                         tuple(

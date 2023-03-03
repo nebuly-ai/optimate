@@ -502,6 +502,53 @@ class HuggingFaceInstaller(BaseInstaller):
         return True
 
 
+class DiffusersInstaller(BaseInstaller):
+    @staticmethod
+    def install_dependencies(include_framework: List[str]):
+        cmd = ["pip3", "install", "transformers"]
+        subprocess.run(cmd)
+
+        if gpu_is_available():
+            cmd = ["pip3", "install", "cuda-python"]
+            subprocess.run(cmd)
+
+            cmd = ["pip3", "install", "onnx>=1.10.0"]
+            subprocess.run(cmd)
+
+            cmd = [
+                "pip3",
+                "install",
+                "onnx_graphsurgeon",
+                "--index-url",
+                "https://pypi.ngc.nvidia.com",
+            ]
+            subprocess.run(cmd)
+
+    @staticmethod
+    def check_framework():
+        try:
+            import diffusers  # noqa F401
+        except ImportError:
+            return False
+
+        if not check_module_version(diffusers, min_version="0.13.0"):
+            return False
+
+        return True
+
+    @staticmethod
+    def install_framework():
+        cmd = ["pip3", "install", "diffusers>=0.13.0"]
+        subprocess.run(cmd)
+
+        try:
+            import diffusers  # noqa F401
+        except ImportError:
+            return False
+
+        return True
+
+
 COMPILER_INSTALLERS = {
     "openvino": install_openvino,
     "tensor_rt": install_tensor_rt,
