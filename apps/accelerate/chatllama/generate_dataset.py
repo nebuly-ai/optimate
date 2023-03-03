@@ -57,3 +57,6 @@ def main():
         conversations.append(conversation)
     with open(args.output_file, "w") as f:
         f.write("\n\nNEW CONVERSATION\n\n".join(conversations))
+
+if __name__ == "__main__":
+    main()
