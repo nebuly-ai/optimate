@@ -37,7 +37,7 @@ Follow the instructions in the Llama repository to download the model weights an
 ## Generate Synthetic Conversations
 We provide a script for generating synthetic conversations that can be used to train the ChatLLaMA model. The script is based on LangChain conversation bots which use OpenAI's `davinci-003` model. Note that generating the synthetic conversations requires an OpenAI API key (and a paid subscription).
 
-> :warning: Generate the full dataset with davinci-003 would cost approximately ~200$.
+> :warning: Generating the full dataset with davinci-003 would cost approximately ~200$.
 
 You can add your OpenAI API key as an environment variable by running the following command in your terminal or command prompt (replacing YOUR_API_KEY with your actual API key):
 
