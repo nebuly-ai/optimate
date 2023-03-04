@@ -51,6 +51,13 @@ For Windows:
 set OPENAI_API_KEY=YOUR_API_KEY
 ```
 
+You can generate your own dataset using LangChain's agents.
+
+```python
+python generate_dataset.py
+```
+
+
 # Get started with ChatLLaMA
 
 > :warning: Please note this code represents the algorithmic implementation for RLHF training process of LLaMA and does not contain the model weights. To access the model weights, you need to apply to Meta's [form](https://forms.gle/jk851eBVbX1m5TAv5).
@@ -85,13 +92,9 @@ rlhf_trainer.train()
 rlhf_trainer.training_stats.plot()
 ```
 
-Note that you should provide Meta's original weights and your custom dataset before starting the fine-tuning process. Alternatively, you can generate your own dataset using LangChain's agents.
+Note that you should provide Meta's original weights and your custom dataset before starting the fine-tuning process.
+# Call for open-source 
 
-```python
-python generate_dataset.py
-```
-
-# Call for open-source contributions
 
 We have open-sourced the complete code to replicate the ChatLLaMA implementation, opening up the possibility for each user to fine-tune their own personalized ChatLLaMA assistants. The library is in its very early stages. It can be further extended with the following additions:
 
