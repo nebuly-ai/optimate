@@ -9,10 +9,42 @@ from beartype.typing import Deque, Tuple, List
 from einops import rearrange
 from torch.utils.data import Dataset, DataLoader
 
-from actor import ActorModel
-from reward import RewardModel, CriticModel
-from config import ConfigReward, ConfigActor, Config
-from utils import TrainingStats, ConversationLog
+from rlhf.actor import ActorModel
+from rlhf.reward import RewardModel, CriticModel
+from rlhf.config import ConfigReward, ConfigActor, Config
+from rlhf.utils import TrainingStats, ConversationLog
+
+
+'''
+┌─────────────────────────────┐
+│                             │◄─────────────────────────┐
+│                             │                          │
+│      ┌─────────────┐        │                          │
+│      │ user input  │        │                          │
+│      └─────┬───────┘        │             ┌────────────┴─────────────┐
+│            │                │             │                          │
+│            │                │             │       ┌────────┐         │
+│            │                │             │       │ Update │         │
+│            │                │             │       └────▲───┘         │
+│   ┌────────▼────────────┐   │             │            │             │
+│   │  Actor (LLM Model)  │   │             │        ┌───┴──┐          │
+│   └────────┬────────────┘   │             │        │ PPO  │          │
+│            │                │             │        └▲────▲┘          │
+│            │                │             │         │    │           │
+│            │                │             │         │    │           │
+│    ┌───────▼──────┐         │             │ ┌───────┴─┐ ┌┴───────┐   │
+│    │ Reward Model │         │             │ │  Actor  │ │ Critic │   │
+│    └──────────────┘         │             │ └─────────┘ └────────┘   │
+│                             │             │                          │
+│                             │ x N         └─────────────▲────────────┘
+└───────────────┬─────────────┘                           │
+                │                                         │  x Epochs
+         ┌──────▼──────┐                                  │
+         │             │                                  │
+         │  Memories   ├──────────────────────────────────┘
+         │             │
+         └─────────────┘
+'''
 
 
 class ActorCritic(torch.nn.Module):
@@ -108,7 +140,7 @@ class ActorCritic(torch.nn.Module):
         """
         # generate action sequence
         actions, sequence = self.actor.generate(states, state_mask)
-        sequences_mask = sequence != self.actor.tokenizer.pad_token_id
+        sequences_mask = sequence != self.actor.tokenizer.pad_id
         action_len = actions.shape[1]
 
         # generate actions_logits and values
@@ -195,7 +227,8 @@ class ExamplesSampler:
     ) -> None:
         self.path = path
         with open(path, "r") as f:
-            self.data = json.load(f)
+            data = json.load(f)
+        self.data = [d["user_input"] for d in data]
 
     def sample(self, n: int) -> List:
         """Sample n examples from the data
@@ -263,17 +296,6 @@ class RLTrainer:
         if not os.path.exists(self.config.trainer.checkpoint_folder):
             os.mkdir(self.config.trainer.checkpoint_folder)
 
-        self.model_engine = None  # deepspeed model engine
-        if self.deepspeed_enable is True:
-            if self.deepspeed_config_path is None:
-                raise ValueError(
-                    "DeepSpeed config path is None, but deepspeed is enabled"
-                )
-            if os.path.exists(self.deepspeed_config_path) is False:
-                raise ValueError(
-                    f"DeepSpeed config path {self.deepspeed_config_path}"
-                    f"does not exist"
-                )
 
     def save_checkpoint(
         self,
@@ -535,6 +557,8 @@ class RLTrainer:
 
                 # sample num_examples examples from  example dataset
                 inputs = self.example_sampler.sample(num_examples)
+                
+                print(inputs)
 
                 # tokenize examples
                 tokenized_inputs = self.actorcritic.actor.tokenizer(
@@ -628,7 +652,7 @@ class RLTrainer:
                     self.conversation_log.add_conversation(
                         inputs[i],
                         completions[i],
-                        rewards[i].detach().cpu(),
+                        rewards[i].detach().cpu().item(),
                         current_learn_counter,
                     )
 

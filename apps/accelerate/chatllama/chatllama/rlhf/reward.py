@@ -11,9 +11,9 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import GPT2Tokenizer, GPT2Model, BartModel
 from transformers import BartTokenizer, BartConfig, AutoModel, AutoTokenizer
 
-from chatllama.langchain_modules.prompt_templates import REWARD_TEMPLATE
-from config import ConfigReward
-from utils import TrainingStats
+from langchain_modules.prompt_templates import REWARD_TEMPLATE
+from rlhf.config import ConfigReward
+from rlhf.utils import TrainingStats
 
 
 class RewardModel(torch.nn.Module):
@@ -174,11 +174,11 @@ class RewardModel(torch.nn.Module):
                     f"and returning without loading the model:\n{path}"
                 )
                 return
-        # load the model and the tokenizer
+        # load the model
         if os.path.exists(path) is False:
             print(
-                f"Impossible to load the model:\n{path}\n"
-                f"The path doesn't exist."
+                f"Warning, Impossible to load the model:\n{path}\n"
+                f"No previous checkpoint found."
             )
             return
         model_dict = torch.load(path)
@@ -233,7 +233,8 @@ class RewardDataset(Dataset):
     def __getitem__(self, idx: int):
         user_input = self.data[idx]["user_input"]
         completion = self.data[idx]["completion"]
-        item = tuple([user_input, completion])
+        score = float(self.data[idx]["score"])
+        item = (user_input + " " + completion, score)
         return item
 
     def __len__(
@@ -290,13 +291,16 @@ class RewardTrainer:
             )
 
         # initialize LLM and LangChain
-        openai_llm = OpenAI(
-            model_name=self.config.llm_model,
-            temperature=self.config.llm_temperature,
-            max_tokens=self.config.llm_max_tokens,
-        )
-        prompt_template = PromptTemplate(**REWARD_TEMPLATE)
-        self.llm = LLMChain(llm=openai_llm, prompt=prompt_template)
+        if config.llm_enable:
+            openai_llm = OpenAI(
+                model_name=self.config.llm_model,
+                temperature=self.config.llm_temperature,
+                max_tokens=self.config.llm_max_tokens,
+            )
+            # Customaize your own Reward template by changing the
+            # prompt_template
+            prompt_template = PromptTemplate(**REWARD_TEMPLATE)
+            self.llm = LLMChain(llm=openai_llm, prompt=prompt_template)
 
         # initialize deepspeed
         self.model_engine = None
@@ -314,7 +318,7 @@ class RewardTrainer:
             (
                 self.model_engine,
                 self.optimizer,
-                train_dataloader,
+                self.train_dataloader,
                 _,
             ) = deepspeed.initialize(
                 args=None,
@@ -330,12 +334,19 @@ class RewardTrainer:
         """Parse the dataset and assign scores using LLMs
         then save back the dataset with the uploaded scores
         """
+        if self.config.llm_enable is False:
+            raise ValueError("LLM is disabled, cannot distill")
+        print("Distilling the dataset")
         # load the dataset
         with open(self.config.train_dataset_path, "r") as f:
             train_data = json.load(f)
         # for each element of the dataset, assing a score.
         for i, data in enumerate(train_data):
             if data.get("score", None) is None:
+                print("Distilling data", i)
+                print("user_input:", data["user_input"])
+                print("completion:", data["completion"])
+                print("score:", data["score"])
                 prompt_tokens = (
                     data["user_input"]
                     + data["completion"]
@@ -354,7 +365,7 @@ class RewardTrainer:
                     user_input=data["user_input"],
                     completion=data["completion"],
                 ).strip()
-                # TODO extract from score the float value with a regex
+                # TODO: extract from score the float value with a regex
                 score = score.split(" ")[0]
                 try:
                     score = float(score)
@@ -365,9 +376,13 @@ class RewardTrainer:
                     )
                     continue
                 data["score"] = score
+                print("score:", data["score"])
         # save the dataset back
+        print("Writing the dataset back to disk...")
         with open(self.config.train_dataset_path, "w") as f:
             json.dump(train_data, f)
+        print("End of distillation")
+            
 
     def train(
         self,
@@ -387,29 +402,40 @@ class RewardTrainer:
         for epoch in range(epochs):
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
-
-                input_text = inputs["user_input"] + inputs["completion"]
+                input_text = inputs[0]
+                score = inputs[1]
+                
                 # tokenizer (placed here instead of dataset class)
                 input_tokens = self.model.tokenizer(
                     input_text, padding=True, truncation=True
                 )
 
-                score = None  # TODO: load the score
-
                 # TODO: check on the length of the input tokens if they are
                 # too many it can create problems
-                output = torch.tensor(score, dtype=torch.float32).to(device)
+                output = torch.as_tensor(score, dtype=torch.float32, device=device)
 
                 # forward pass
                 if self.config.deepspeed_enable:
                     est_output = self.model_engine(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
+                        torch.as_tensor(
+                            input_tokens["input_ids"],
+                            device=device
+                        ),
+                        torch.as_tensor(
+                            input_tokens["attention_mask"],
+                            device=device
+                        )
                     )[:, -1]
                 else:
                     est_output = self.model.get_reward(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
+                        torch.as_tensor(
+                            input_tokens["input_ids"],
+                            device=device
+                        ),
+                        torch.as_tensor(
+                            input_tokens["attention_mask"],
+                            device=device,
+                        )
                     )
 
                 loss = self.loss_function(est_output, output)
@@ -464,4 +490,5 @@ class RewardTrainer:
                             f"Iteration: {i+1}/{n_iter}, "
                             f"Validation Loss: {loss.item()}"
                         )
+        print("Saving the model...")
         self.model.save()

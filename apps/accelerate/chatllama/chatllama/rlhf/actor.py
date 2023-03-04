@@ -7,10 +7,11 @@ from beartype import beartype
 from beartype.typing import Optional, Tuple
 from einops import rearrange
 from torch.utils.data import Dataset, DataLoader
-from config import ConfigActor
-from utils import TrainingStats
 
-from chatllama.llama_model import load_model
+from rlhf.config import ConfigActor
+from rlhf.utils import TrainingStats
+
+from llama_model import load_model
 
 
 class ActorModel(torch.nn.Module):
@@ -20,8 +21,6 @@ class ActorModel(torch.nn.Module):
     Attributes:
         model: The model from LLaMA to be used
         tokenizer: The LLaMA tokenizer
-        max_model_tokens (int): Maximum number of tokens that the model can
-            handle
         config (ConfigActor): Configuration for the actor model
 
     Methods:
@@ -35,12 +34,13 @@ class ActorModel(torch.nn.Module):
         super().__init__()
         # load the model
 
-        self.max_model_tokens = 1024
         self.model, self.tokenizer = load_model(
-            ckpt_dir=config.model_folder,
+            ckpt_dir=config.model_path,
             tokenizer_path=config.tokenizer_folder,
             local_rank=int(os.environ.get("LOCAL_RANK", -1)),
             world_size=int(os.environ.get("WORLD_SIZE", -1)),
+            froze_embeddings=config.froze_embeddings,
+            use_fairscale=config.use_fairscale,
             max_batch_size=config.batch_size,
         )
         # save config
@@ -70,13 +70,13 @@ class ActorModel(torch.nn.Module):
             logits (torch.Tensor): Logits for the actions taken
         """
         model_output = self.model.forward(
-            sequences, attention_mask=sequences_mask
+            sequences, sequences_mask
         )
         if self.config.debug:
             print("ActorModel.forward")
-            print("model_output_logits shape", model_output.logits.shape)
-            print("model_output logits", model_output.logits)
-        return model_output.logits
+            print("model_output_logits shape", model_output.shape)
+            print("model_output logits", model_output)
+        return model_output
 
     @beartype
     @torch.no_grad()
@@ -95,9 +95,9 @@ class ActorModel(torch.nn.Module):
             sequences (torch.Tensor): Sequences generated from the
                 state as [states, actions]
         """
-        max_sequence = states.shape[1]
-        max_tokens = self.config.max_tokens + max_sequence
+        max_tokens = self.config.max_tokens
         temperature = self.config.temperature
+        max_sequence = self.config.max_sequence_length
         # What if the states + completion are longer than the max context of
         # the model?
         sequences = self.model.generate(
@@ -105,6 +105,7 @@ class ActorModel(torch.nn.Module):
             attention_mask=state_mask,
             max_length=max_tokens,
             temperature=temperature,
+            max_sequence=max_sequence
         )
         actions = sequences[:, states.shape[1] :]  # noqa E203
         if self.config.debug:
@@ -125,9 +126,9 @@ class ActorModel(torch.nn.Module):
             path (str): Path to the model
         """
         if path is None:
-            path = self.config.model_folder + "/" + self.config.model + ".pt"
-            if os.path.exists(self.config.model_folder) is False:
-                os.mkdir(self.config.model_folder)
+            path = self.config.model_path + "/" + self.config.model + ".pt"
+            if os.path.exists(self.config.model_path) is False:
+                os.mkdir(self.config.model_path)
                 print(
                     f"Impossible to load the model: {path}"
                     f"The path doesn't exist."
@@ -152,9 +153,9 @@ class ActorModel(torch.nn.Module):
                 Defaults to None.
         """
         if path is None:
-            path = self.config.model_folder + "/" + self.config.model + ".pt"
-            if os.path.exists(self.config.model_folder) is False:
-                os.mkdir(self.config.model_folder)
+            path = self.config.checkpoint_folder + "/" + self.config.model + ".pth"
+            if os.path.exists(self.config.model_path) is False:
+                os.mkdir(self.config.model_path)
         torch.save({"model": self.model.state_dict()}, path)
 
 
@@ -165,7 +166,7 @@ class ActorDataset(Dataset):
         {
             "user_input": "..."
             "completion": "..."
-        } ,
+        },
         ...
     ]
     Where:
@@ -173,13 +174,12 @@ class ActorDataset(Dataset):
         completion: the output of the user
     """
 
-    def __init__(self, path: str, device: torch.device) -> None:
-        self.device = device
+    def __init__(self, path: str) -> None:
         self.path = path
         with open(path, "r") as f:
             data = json.load(f)
             self.data = [
-                d["user_input"] + "\n\n###\n\n" + d["completion"] for d in data
+                d["user_input"] + " " + d["completion"] for d in data
             ]
         self.len = len(self.data)
 
@@ -221,8 +221,8 @@ class ActorTrainer:
         )
 
         # check checkpoint, datasets and other data
-        if not os.path.exists(config.model_folder):
-            os.mkdir(config.model_folder)
+        if not os.path.exists(config.model_path):
+            os.mkdir(config.model_path)
         self.validation_flag = False
         self.training_stats = TrainingStats()
         if config.validation_dataset_path is not None:
@@ -281,20 +281,21 @@ class ActorTrainer:
         for epoch in range(epochs):
             self.model.train()
             for i, input_output in enumerate(self.train_dataloader):
-                input_output_tokenized = self.model.tokenizer(
-                    input_output,
-                    return_tensors="pt",
-                    padding=True,
-                    truncation=True,
-                )
-                training_output = input_output_tokenized["input_ids"][:, 1:]
-                training_input = input_output_tokenized["input_ids"][:, :-1]
-                attention_mask = input_output_tokenized["attention_mask"][
-                    :, :-1
-                ]
-                training_output = training_output.to(device)
-                training_input = training_input.to(device)
-                attention_mask = attention_mask.to(device)
+                with torch.no_grad():
+                    input_output_tokenized = self.model.tokenizer(
+                        input_output,
+                        return_tensors="pt",
+                        padding=True,
+                        truncation=True,
+                    )
+                    training_output = input_output_tokenized["input_ids"][:, 1:]
+                    training_input = input_output_tokenized["input_ids"][:, :-1]
+                    attention_mask = input_output_tokenized["attention_mask"][
+                        :, :-1
+                    ]
+                    training_output = training_output.to(device)
+                    training_input = training_input.to(device)
+                    attention_mask = attention_mask.to(device)
 
                 # forward pass
                 if self.config.deepspeed_enable:
@@ -302,7 +303,7 @@ class ActorTrainer:
                         training_input, attention_mask
                     )
                 else:
-                    est_output = self.model.forward(
+                    est_output = self.model(
                         training_input, attention_mask
                     )
                 est_output = rearrange(est_output, "b s v -> (b s) v")
@@ -359,5 +360,6 @@ class ActorTrainer:
                             f"Iteration: {i+1}/{n_iter}, "
                             f"Validation Loss: {loss}"
                         )
+        print("Saving the model...")
         self.model.save()
         print("Training Finished ")
