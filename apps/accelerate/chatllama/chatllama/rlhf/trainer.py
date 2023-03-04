@@ -14,8 +14,7 @@ from rlhf.reward import RewardModel, CriticModel
 from rlhf.config import ConfigReward, ConfigActor, Config
 from rlhf.utils import TrainingStats, ConversationLog
 
-
-'''
+"""
 train()
 ┌─────────────────────────────┐
 │                             │◄─────────────────────────┐
@@ -45,7 +44,7 @@ train()
          │  Memories   ├──────────────────────────────────┘
          │             │ (update timesteps x N Examples)
          └─────────────┘
-'''
+"""  # noqa W291
 
 
 class ActorCritic(torch.nn.Module):
@@ -296,7 +295,6 @@ class RLTrainer:
 
         if not os.path.exists(self.config.trainer.checkpoint_folder):
             os.mkdir(self.config.trainer.checkpoint_folder)
-
 
     def save_checkpoint(
         self,
@@ -558,7 +556,7 @@ class RLTrainer:
 
                 # sample num_examples examples from  example dataset
                 inputs = self.example_sampler.sample(num_examples)
-                
+
                 print(inputs)
 
                 # tokenize examples

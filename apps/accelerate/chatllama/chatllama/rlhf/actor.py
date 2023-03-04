@@ -69,9 +69,7 @@ class ActorModel(torch.nn.Module):
         Returns:
             logits (torch.Tensor): Logits for the actions taken
         """
-        model_output = self.model.forward(
-            sequences, sequences_mask
-        )
+        model_output = self.model.forward(sequences, sequences_mask)
         if self.config.debug:
             print("ActorModel.forward")
             print("model_output_logits shape", model_output.shape)
@@ -105,7 +103,7 @@ class ActorModel(torch.nn.Module):
             attention_mask=state_mask,
             max_length=max_tokens,
             temperature=temperature,
-            max_sequence=max_sequence
+            max_sequence=max_sequence,
         )
         actions = sequences[:, states.shape[1] :]  # noqa E203
         if self.config.debug:
@@ -153,7 +151,12 @@ class ActorModel(torch.nn.Module):
                 Defaults to None.
         """
         if path is None:
-            path = self.config.checkpoint_folder + "/" + self.config.model + ".pth"
+            path = (
+                self.config.checkpoint_folder
+                + "/"
+                + self.config.model
+                + ".pth"
+            )
             if os.path.exists(self.config.model_path) is False:
                 os.mkdir(self.config.model_path)
         torch.save({"model": self.model.state_dict()}, path)
@@ -178,9 +181,7 @@ class ActorDataset(Dataset):
         self.path = path
         with open(path, "r") as f:
             data = json.load(f)
-            self.data = [
-                d["user_input"] + " " + d["completion"] for d in data
-            ]
+            self.data = [d["user_input"] + " " + d["completion"] for d in data]
         self.len = len(self.data)
 
     def __getitem__(self, idx):
@@ -288,8 +289,12 @@ class ActorTrainer:
                         padding=True,
                         truncation=True,
                     )
-                    training_output = input_output_tokenized["input_ids"][:, 1:]
-                    training_input = input_output_tokenized["input_ids"][:, :-1]
+                    training_output = input_output_tokenized["input_ids"][
+                        :, 1:
+                    ]
+                    training_input = input_output_tokenized["input_ids"][
+                        :, :-1
+                    ]
                     attention_mask = input_output_tokenized["attention_mask"][
                         :, :-1
                     ]
@@ -303,9 +308,7 @@ class ActorTrainer:
                         training_input, attention_mask
                     )
                 else:
-                    est_output = self.model(
-                        training_input, attention_mask
-                    )
+                    est_output = self.model(training_input, attention_mask)
                 est_output = rearrange(est_output, "b s v -> (b s) v")
                 training_output = rearrange(training_output, "b s -> (b s)")
                 loss = self.loss_function(est_output, training_output)

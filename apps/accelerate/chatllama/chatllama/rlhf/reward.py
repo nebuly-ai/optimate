@@ -382,7 +382,6 @@ class RewardTrainer:
         with open(self.config.train_dataset_path, "w") as f:
             json.dump(train_data, f)
         print("End of distillation")
-            
 
     def train(
         self,
@@ -404,7 +403,7 @@ class RewardTrainer:
             for i, inputs in enumerate(self.train_dataloader):
                 input_text = inputs[0]
                 score = inputs[1]
-                
+
                 # tokenizer (placed here instead of dataset class)
                 input_tokens = self.model.tokenizer(
                     input_text, padding=True, truncation=True
@@ -412,30 +411,29 @@ class RewardTrainer:
 
                 # TODO: check on the length of the input tokens if they are
                 # too many it can create problems
-                output = torch.as_tensor(score, dtype=torch.float32, device=device)
+                output = torch.as_tensor(
+                    score, dtype=torch.float32, device=device
+                )
 
                 # forward pass
                 if self.config.deepspeed_enable:
                     est_output = self.model_engine(
                         torch.as_tensor(
-                            input_tokens["input_ids"],
-                            device=device
+                            input_tokens["input_ids"], device=device
                         ),
                         torch.as_tensor(
-                            input_tokens["attention_mask"],
-                            device=device
-                        )
+                            input_tokens["attention_mask"], device=device
+                        ),
                     )[:, -1]
                 else:
                     est_output = self.model.get_reward(
                         torch.as_tensor(
-                            input_tokens["input_ids"],
-                            device=device
+                            input_tokens["input_ids"], device=device
                         ),
                         torch.as_tensor(
                             input_tokens["attention_mask"],
                             device=device,
-                        )
+                        ),
                     )
 
                 loss = self.loss_function(est_output, output)

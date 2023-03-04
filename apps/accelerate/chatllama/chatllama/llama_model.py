@@ -1,5 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
-# This software may be used and distributed according to the terms of the GNU General Public License version 3.
+# This software may be used and distributed according to the terms
+# of the GNU General Public License version 3.
 
 import json
 import math
@@ -26,23 +27,23 @@ from llama import Tokenizer
 from llama.generation import sample_top_p
 
 
-class MyTokenizer():
-    '''Masked tokenizer of hugging face to be similar to the one of meta, 
+class MyTokenizer:
+    """Masked tokenizer of hugging face to be similar to the one of meta,
     just used for testing purposes.
-    '''
-    
+    """
+
     def __init__(self, model_path: Optional[str] = None):
-        
+
         if model_path is None:
             self.sp_model = AutoTokenizer.from_pretrained("gpt2")
         else:
             self.sp_model = AutoTokenizer.from_pretrained(model_path)
-        
+
         self.n_words = self.sp_model.vocab_size
         self.bos_id = self.sp_model.bos_token_id
-        self.eos_id = self.sp_model.eos_token_id 
+        self.eos_id = self.sp_model.eos_token_id
         self.pad_id = self.sp_model.eos_token_id
-        
+
     def encode(self, s: str, bos: bool, eos: bool) -> List[int]:
         output = self.sp_model.encode(s)
         t = list(output)
@@ -56,7 +57,7 @@ class MyTokenizer():
         input = torch.as_tensor(t)
         output = self.sp_model.decode(input)
         return output
-    
+
 
 class HFLikeTokenizer:
     def __init__(self, tokenizer: Tokenizer):
@@ -64,34 +65,22 @@ class HFLikeTokenizer:
         self.pad_id = self.tokenizer.pad_id
         self.eos_id = self.tokenizer.eos_id
         self.bos_id = self.tokenizer.bos_id
-        
-    def create_sequence_mask(
-        self,
-        tokens: torch.Tensor
-        ) -> torch.Tensor:
+
+    def create_sequence_mask(self, tokens: torch.Tensor) -> torch.Tensor:
         mask = torch.where(
             tokens == self.tokenizer.pad_id,
             torch.zeros_like(tokens),
-            torch.ones_like(tokens)
+            torch.ones_like(tokens),
         )
         mask = torch.where(
-            tokens == self.tokenizer.bos_id,
-            torch.zeros_like(tokens),
-            mask
+            tokens == self.tokenizer.bos_id, torch.zeros_like(tokens), mask
         )
         mask = torch.where(
-            tokens == self.tokenizer.eos_id, 
-            torch.zeros_like(tokens), 
-            mask
+            tokens == self.tokenizer.eos_id, torch.zeros_like(tokens), mask
         )
         return mask
 
-    def __call__(
-        self,
-        texts: Union[List[str], str],
-        *args,
-        **kwargs
-    ):
+    def __call__(self, texts: Union[List[str], str], *args, **kwargs):
         if isinstance(texts, str):
             text = self.tokenizer.encode(texts, bos=True, eos=True)
             tokens = torch.tensor(text).cuda().long()
@@ -108,18 +97,19 @@ class HFLikeTokenizer:
             )
             for i, text in enumerate(texts):
                 tokens[i, : len(text)] = torch.tensor(text).cuda().long()
-                
+
             # create left padded tokens
             # TODO: decide how oes and bos should be handled
-            left_tokens = self.tokenizer.pad_id*torch.ones_like(tokens)
+            left_tokens = self.tokenizer.pad_id * torch.ones_like(tokens)
             left_tokens[:, -1] = self.tokenizer.eos_id
             mask = self.create_sequence_mask(tokens)
             for i in range(tokens.shape[0]):
                 current_tokens = tokens[i, mask[i] == 1]
-                left_tokens[i, -len(current_tokens):] = current_tokens
-                # left_tokens[i, -len(current_tokens)-1:-1] = current_tokens
+                left_tokens[
+                    i, -len(current_tokens) :  # noqa E203
+                ] = current_tokens
             mask = self.create_sequence_mask(left_tokens).cuda()
-            
+
         output = {
             "input_ids": left_tokens,
             "attention_mask": mask,
@@ -136,18 +126,19 @@ class ModelArgs:
     the LLaMA repo. The class has been modified for training, since the
     original one just supports inference.
     """
+
     dim: int = 512
     n_layers: int = 8
     n_heads: int = 8
     # defined later by tokenizer
-    vocab_size: int = -1  
+    vocab_size: int = -1
     # make SwiGLU hidden layer size multiple of large power of 2
-    multiple_of: int = 256  
+    multiple_of: int = 256
     norm_eps: float = 1e-5
 
     max_batch_size: int = 32
     max_seq_len: int = 1024
-    
+
     # added attributes
     forze_embeddings: bool = True
     use_fairscale: bool = True
@@ -158,6 +149,7 @@ class RMSNorm(torch.nn.Module):
     the LLaMA repo. The class has been modified for training, since the
     original one just supports inference.
     """
+
     def __init__(self, dim: int, eps: float = 1e-6):
         super().__init__()
         self.eps = eps
@@ -172,7 +164,9 @@ class RMSNorm(torch.nn.Module):
 
 
 def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0):
-    freqs = 1.0/(theta**(torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
+    freqs = 1.0 / (
+        theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim)
+    )
     t = torch.arange(end, device=freqs.device)  # type: ignore
     freqs = torch.outer(t, freqs).float()  # type: ignore
     freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
@@ -185,7 +179,7 @@ def reshape_for_broadcast(freqs_cis: torch.Tensor, x: torch.Tensor):
     assert freqs_cis.shape == (x.shape[1], x.shape[-1])
     shape = [
         d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)
-        ]
+    ]
     return freqs_cis.view(*shape)
 
 
@@ -207,12 +201,14 @@ class Attention(nn.Module):
     the LLaMA repo. The class has been modified for training, since the
     original one just supports inference.
     """
+
     def __init__(self, args: ModelArgs):
         super().__init__()
-        
+
         if args.use_fairscale:
-            self.n_local_heads = (args.n_heads  
-                                  // fs_init.get_model_parallel_world_size())
+            self.n_local_heads = (
+                args.n_heads // fs_init.get_model_parallel_world_size()
+            )
         else:
             self.n_local_heads = args.n_heads
         self.head_dim = args.dim // args.n_heads
@@ -248,50 +244,38 @@ class Attention(nn.Module):
             )
         else:
             self.wq = nn.Linear(
-                args.dim,
-                args.n_heads * self.head_dim,
-                bias=False
+                args.dim, args.n_heads * self.head_dim, bias=False
             )
             self.wk = nn.Linear(
-                args.dim,
-                args.n_heads * self.head_dim,
-                bias=False
+                args.dim, args.n_heads * self.head_dim, bias=False
             )
             self.wv = nn.Linear(
-                args.dim,
-                args.n_heads * self.head_dim,
-                bias=False
+                args.dim, args.n_heads * self.head_dim, bias=False
             )
             self.wo = nn.Linear(
-                args.n_heads * self.head_dim,
-                args.dim,
-                bias=False
+                args.n_heads * self.head_dim, args.dim, bias=False
             )
-        
+
         self.dim_cache = (
             args.max_batch_size,
             args.max_seq_len,
             self.n_local_heads,
-            self.head_dim
+            self.head_dim,
         )
-        self.cache_k = torch.zeros(
-            self.dim_cache
-        ).cuda()
+        self.cache_k = torch.zeros(self.dim_cache).cuda()
 
-        self.cache_v = torch.zeros(
-            self.dim_cache
-        ).cuda()
+        self.cache_v = torch.zeros(self.dim_cache).cuda()
 
     def forward(
         self,
         x: torch.Tensor,
         attention_mask: torch.Tensor,
-        freqs_cis: torch.Tensor, 
-        cache_k: Optional[torch.Tensor] = None, 
-        cache_v: Optional[torch.Tensor] = None
+        freqs_cis: torch.Tensor,
+        cache_k: Optional[torch.Tensor] = None,
+        cache_v: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        start_pos = 0 # Temporary
-        
+        start_pos = 0  # Temporary
+
         bsz, seqlen, _ = x.shape
         xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)
 
@@ -302,8 +286,9 @@ class Attention(nn.Module):
         xq, xk = apply_rotary_emb(xq, xk, freqs_cis=freqs_cis)
 
         # Modified code to allow training, caching is not good for training
-        if ((cache_k is None and cache_v is not None) or
-            (cache_k is not None and cache_v is None)):
+        if (cache_k is None and cache_v is not None) or (
+            cache_k is not None and cache_v is None
+        ):
             raise ValueError("cache_k is None while cache_v is not None")
         if cache_k is None:
             keys = xk
@@ -311,24 +296,22 @@ class Attention(nn.Module):
         else:
             cache_k.to(xk.device)
             cache_v.to(xv.device)
-            cache_k[:bsz, start_pos : start_pos + seqlen] = xk
-            cache_v[:bsz, start_pos : start_pos + seqlen] = xv
-            keys = self.cache_k[:bsz, : start_pos + seqlen]
-            values = self.cache_v[:bsz, : start_pos + seqlen]
+            cache_k[:bsz, start_pos : start_pos + seqlen] = xk  # noqa E203
+            cache_v[:bsz, start_pos : start_pos + seqlen] = xv  # noqa E203
+            keys = self.cache_k[:bsz, : start_pos + seqlen]  # noqa E203
+            values = self.cache_v[:bsz, : start_pos + seqlen]  # noqa E203
 
         xq = xq.transpose(1, 2)
         keys = keys.transpose(1, 2)
         values = values.transpose(1, 2)
-        scores = torch.matmul(xq, keys.transpose(2, 3))/ math.sqrt(
+        scores = torch.matmul(xq, keys.transpose(2, 3)) / math.sqrt(
             self.head_dim
-            )
+        )
         if attention_mask is not None:
-            scores = scores + attention_mask  
+            scores = scores + attention_mask
         scores = F.softmax(scores.float(), dim=-1).type_as(xq)
-        output = torch.matmul(scores, values)  
-        output = output.transpose(
-            1, 2
-        ).contiguous().view(bsz, seqlen, -1)
+        output = torch.matmul(scores, values)
+        output = output.transpose(1, 2).contiguous().view(bsz, seqlen, -1)
         if cache_k is None:
             return self.wo(output), None, None
         else:
@@ -340,17 +323,15 @@ class FeedForward(nn.Module):
     the LLaMA repo. The class has been modified for training, since the
     original one just supports inference.
     """
+
     def __init__(
-        self,
-        dim: int,
-        hidden_dim: int,
-        multiple_of: int,
-        use_fairscale: bool
+        self, dim: int, hidden_dim: int, multiple_of: int, use_fairscale: bool
     ):
         super().__init__()
         hidden_dim = int(2 * hidden_dim / 3)
-        hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) 
-                                    // multiple_of)
+        hidden_dim = multiple_of * (
+            (hidden_dim + multiple_of - 1) // multiple_of
+        )
 
         if use_fairscale:
             self.w1 = ColumnParallelLinear(
@@ -358,21 +339,21 @@ class FeedForward(nn.Module):
                 hidden_dim,
                 bias=False,
                 gather_output=False,
-                init_method=lambda x: x
+                init_method=lambda x: x,
             )
             self.w2 = RowParallelLinear(
                 hidden_dim,
                 dim,
                 bias=False,
                 input_is_parallel=True,
-                init_method=lambda x: x
+                init_method=lambda x: x,
             )
             self.w3 = ColumnParallelLinear(
                 dim,
                 hidden_dim,
                 bias=False,
                 gather_output=False,
-                init_method=lambda x: x
+                init_method=lambda x: x,
             )
         else:
             self.w1 = nn.Linear(dim, hidden_dim, bias=False)
@@ -388,6 +369,7 @@ class TransformerBlock(nn.Module):
     implemented in the LLaMA repo. The class has been modified for training,
     since the original one just supports inference.
     """
+
     def __init__(self, layer_id: int, args: ModelArgs):
         super().__init__()
         self.n_heads = args.n_heads
@@ -398,7 +380,7 @@ class TransformerBlock(nn.Module):
             dim=args.dim,
             hidden_dim=4 * args.dim,
             multiple_of=args.multiple_of,
-            use_fairscale=args.use_fairscale
+            use_fairscale=args.use_fairscale,
         )
         self.layer_id = layer_id
         self.attention_norm = RMSNorm(args.dim, eps=args.norm_eps)
@@ -407,20 +389,16 @@ class TransformerBlock(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        attention_mask: torch.Tensor, 
+        attention_mask: torch.Tensor,
         freqs_cis: torch.Tensor,
         cache_k: Optional[torch.Tensor] = None,
-        cache_v: Optional[torch.Tensor] = None
+        cache_v: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         # modified from orignal code to enable external cache
         attention_mask = attention_mask[:, None, :, :]
         attention_mask = attention_mask.expand(-1, self.n_heads, -1, -1)
         attn, cache_k, cache_v = self.attention.forward(
-            self.attention_norm(x),
-            attention_mask,
-            freqs_cis,
-            cache_k,
-            cache_v
+            self.attention_norm(x), attention_mask, freqs_cis, cache_k, cache_v
         )
         h = x + attn
         out = h + self.feed_forward.forward(self.ffn_norm(h))
@@ -436,33 +414,34 @@ class Transformer(nn.Module):
 
     def __init__(self, params: ModelArgs):
         super().__init__()
-        
+
         self.params = params
         self.vocab_size = params.vocab_size
         self.n_layers = params.n_layers
         if params.use_fairscale:
-            self.n_local_heads = (params.n_heads  // 
-                                fs_init.get_model_parallel_world_size())
+            self.n_local_heads = (
+                params.n_heads // fs_init.get_model_parallel_world_size()
+            )
         else:
             self.n_local_heads = params.n_heads
-            
+
         self.head_dim = params.dim // params.n_heads
         dim = (
             params.max_batch_size,
             params.max_seq_len,
             self.n_local_heads,
-            self.head_dim
+            self.head_dim,
         )
         self.cache_k = [torch.zeros(dim) for _ in range(self.n_layers)]
         self.cache_v = [torch.zeros(dim) for _ in range(self.n_layers)]
-        
+
         if params.use_fairscale:
             self.tok_embeddings = ParallelEmbedding(
                 params.vocab_size, params.dim, init_method=lambda x: x
             )
         else:
             self.tok_embeddings = nn.Embedding(params.vocab_size, params.dim)
-            
+
         if params.forze_embeddings:
             for param in self.tok_embeddings.parameters():
                 param.requires_grad = False
@@ -477,14 +456,10 @@ class Transformer(nn.Module):
                 params.dim,
                 params.vocab_size,
                 bias=False,
-                init_method=lambda x: x
+                init_method=lambda x: x,
             )
         else:
-            self.output = nn.Linear(
-                params.dim,
-                params.vocab_size,
-                bias=False
-            )
+            self.output = nn.Linear(params.dim, params.vocab_size, bias=False)
 
         # TODO: How too modify this for training?
         self.freqs_cis = precompute_freqs_cis(
@@ -492,28 +467,23 @@ class Transformer(nn.Module):
         )
 
     def forward(
-        self,
-        tokens: torch.Tensor,
-        mask: torch.Tensor
-        ) -> torch.Tensor:
+        self, tokens: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         mask = mask.detach()
         logits = self._forward(tokens, mask)
         return logits
 
     def _forward(
-        self,
-        tokens: torch.Tensor,
-        mask: torch.Tensor
+        self, tokens: torch.Tensor, mask: torch.Tensor
     ) -> torch.Tensor:
         _bsz, seqlen = tokens.shape
         h = self.tok_embeddings(tokens)
         self.freqs_cis = self.freqs_cis.to(h.device)
-        start_pos = 1 # TEMPORARY
+        start_pos = 1  # TEMPORARY
         freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]  # noqa E203
         attention_mask = torch.zeros(
-            (_bsz, seqlen, seqlen),
-            device=mask.device
-            )
+            (_bsz, seqlen, seqlen), device=mask.device
+        )
         # if the mask is a boolean tensor, convert it to int
         if mask.dtype == torch.bool:
             mask = mask.long()
@@ -521,39 +491,29 @@ class Transformer(nn.Module):
             start_pos = torch.argmax(mask[i])
             for j in range(tokens.shape[1]):
                 if mask[i, j] != 0:
-                    attention_mask[i, j, start_pos:j+1] = 1
+                    attention_mask[i, j, start_pos : j + 1] = 1  # noqa E203
         attention_mask = torch.where(
-            attention_mask == 0,
-            float("-inf"),
-            attention_mask
+            attention_mask == 0, float("-inf"), attention_mask
         )
-        attention_mask = torch.where(
-            attention_mask == 1,
-            float(0.0),
-            attention_mask
-        ).long().detach()
-        
+        attention_mask = (
+            torch.where(attention_mask == 1, float(0.0), attention_mask)
+            .long()
+            .detach()
+        )
+
         for i, layer in enumerate(self.layers):
             if not self.training:
                 cache_k = self.cache_k[i]
                 cache_v = self.cache_v[i]
                 h, cache_k, cache_v = layer(
-                    h,
-                    attention_mask,
-                    freqs_cis,
-                    cache_k,
-                    cache_v
+                    h, attention_mask, freqs_cis, cache_k, cache_v
                 )
             else:
-                h, _, _ = layer(
-                    h,
-                    attention_mask,
-                    freqs_cis
-                )
+                h, _, _ = layer(h, attention_mask, freqs_cis)
             if not self.training:
                 self.cache_k[i] = cache_k.detach()
                 self.cache_v[i] = cache_v.detach()
-            
+
         h = self.norm(h)
         output = self.output(h)
         return output
@@ -583,12 +543,9 @@ class Transformer(nn.Module):
             next_token = next_token.reshape(-1)
             inputs = torch.cat([inputs, next_token.unsqueeze(1)], dim=1)
             attention_mask = torch.cat(
-                [
-                    attention_mask,
-                    torch.ones_like(next_token).unsqueeze(1)
-                ],
-                dim=1
-                )
+                [attention_mask, torch.ones_like(next_token).unsqueeze(1)],
+                dim=1,
+            )
             generated_tokens.append(next_token)
         return torch.stack(generated_tokens, dim=1)
 
@@ -644,7 +601,7 @@ def load_model(
     use_fairscale: bool,
     max_batch_size: int = 32,
 ) -> Tuple[Transformer, HFLikeTokenizer]:
-    
+
     # test the model with hf tokenizer
     test = True
     if not test:
@@ -673,5 +630,5 @@ def load_model(
         model_args.vocab_size = tokenizer.n_words
         model = Transformer(model_args).cuda()
         tokenizer = HFLikeTokenizer(tokenizer)
-        
+
     return model, tokenizer

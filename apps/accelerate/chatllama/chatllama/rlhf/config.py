@@ -48,6 +48,7 @@ class ConfigReward:
             Default to None.
         debug (bool): enable prints for Debugging
     """
+
     device: torch.device
     model: str
     model_head_hidden_size: int
@@ -64,9 +65,8 @@ class ConfigReward:
     llm_max_tokens: Optional[int] = 64
     deepspeed_enable: bool = False
     deepspeed_config_path: Optional[str] = None
-    
+
     debug: bool = False
-    
 
 
 @dataclass
@@ -82,7 +82,7 @@ class ConfigActor:
         train_dataset_path (str): Path to the training dataset
         validation_dataset_path (Optional[str]): Path to the validation dataset
         froze_embeddings (bool): Froze embeddings for the actor
-        use_fairscale (bool): Use fairscale module for the actor instead of 
+        use_fairscale (bool): Use fairscale module for the actor instead of
             pytorch native modules.
         max_sequence_length (int): Max sequence length for the actor
         max_tokens (int): Max tokens for actor generation
@@ -115,10 +115,10 @@ class ConfigActor:
     iteration_per_print: int
     lr: float
     epochs: int
-    
+
     deepspeed_enable: bool
     deepspeed_config_path: Optional[str]
-    
+
     device: torch.device
     debug: bool = False
 
@@ -156,7 +156,7 @@ class ConfigTrainer:
         update_checkpoint (int): Number of timesteps to update the checkpoint
         checkpoint_folder (str): Folder to store the checkpoints
     """
-  
+
     actor_lr: int
     critic_lr: int
     actor_eps_clip: float
@@ -171,7 +171,7 @@ class ConfigTrainer:
     epochs: int
     update_checkpoint: int
     checkpoint_folder: str
-    
+
     device: torch.device
     debug: bool = False
 
@@ -217,7 +217,7 @@ class Config:
             if torch.cuda.is_available():
                 device = torch.device("cuda")
             else:
-                raise ValueError("No GPU available") 
+                raise ValueError("No GPU available")
             print(f"Current device used :{str(device)}")
 
         if path is None or os.path.exists(path) is False:
