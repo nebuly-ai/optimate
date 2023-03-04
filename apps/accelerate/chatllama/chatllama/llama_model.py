@@ -652,6 +652,10 @@ def load_model(
         model_args: ModelArgs = ModelArgs(
             max_seq_len=1024, max_batch_size=max_batch_size, **params
         )
+        checkpoint, params = load_checkpoints(ckpt_dir, local_rank, world_size)
+        model_args: ModelArgs = ModelArgs(
+            max_seq_len=1024, max_batch_size=max_batch_size, **params
+        )
         model_args.forze_embeddings = froze_embeddings
         model_args.use_fairscale = use_fairscale
         tokenizer = Tokenizer(model_path=tokenizer_path)

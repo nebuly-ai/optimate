@@ -7,30 +7,30 @@ trainer_config:
   actor_eps_clip: 0.2
   critic_eps_clip: 0.2
   beta_s: 0.1
-  # path to examples to be sampled (training dataset)
-  examples_path: "/home/pierpaolo/nebullvm/apps/accelerate/chatllama/chatllama/datasets/rlhf_dataset.json"
+  # path to examples to be sampled (training dataset) see rlhf_dataset.json
+  examples_path: "path-to-json-of-examples"
   # number of episodes and generation performed for each episode
   # in the train() method
-  num_episodes: 2
-  max_timesteps: 1
+  num_episodes: 128
+  max_timesteps: 4
   # number of timesteps after which the learn() method is called 
   # (to update the weights)
-  update_timesteps: 1
+  update_timesteps: 4
   # number of example sampled at each timestep
-  num_examples: 1
+  num_examples: 32
   # batch and epochs for the training
-  batch_size: 1
-  epochs: 2
+  batch_size: 32
+  epochs: 8
   # number of learning steps (i.e. learn()) after which a checkpoint is saved
-  update_checkpoint: 2
+  update_checkpoint: 8
   checkpoint_folder: "./models/checkpoints"
 
 actor_config:
   model: "llama-7B" 
-  model_path: "/home/pierpaolo/nebullvm/apps/accelerate/chatllama/chatllama/models/random_model.pth"
-  checkpoint_folder: "/home/pierpaolo/nebullvm/apps/accelerate/chatllama/chatllama/models"
-  tokenizer_folder: "/home/pierpaolo/nebullvm/apps/accelerate/chatllama/chatllama/models/random_tokenizer.json"
-  train_dataset_path: "/home/pierpaolo/nebullvm/apps/accelerate/chatllama/chatllama/datasets/actor_dataset.json"
+  model_path: "path-to-model"
+  checkpoint_folder: "path-to-checkpoint-folder"
+  tokenizer_folder: "path-to-tokenizer"
+  train_dataset_path: "path-to-training-dataset"
   validation_dataset_path: null
   # froze model embedding during training
   froze_embeddings: True
@@ -42,11 +42,11 @@ actor_config:
   max_tokens: 512
   # temperature for the actor
   temperature: 0.9
-  batch_size: 1
+  batch_size: 32
   # number iteration after print
   iteration_per_print: 1
   lr: 0.0001
-  epochs: 2
+  epochs: 32
   # deepspeed settings
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
@@ -58,10 +58,10 @@ reward_config:
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
   model_folder: "./models"
-  train_dataset_path: "/home/pierpaolo/nebullvm/apps/accelerate/chatllama/chatllama/datasets/reward_dataset.json"
+  train_dataset_path: "path-to-training-dataset"
   validation_dataset_path: null
-  batch_size: 1
-  epochs: 1
+  batch_size: 64
+  epochs: 32
   iteration_per_print: 1
   lr: 0.0001
   # llm parameters for dataset generation

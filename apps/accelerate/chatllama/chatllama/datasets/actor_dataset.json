@@ -1,22 +1,6 @@
 [
     {
-        "user_input": "i am a",
-        "completion": "i am glad for your input",
-        "score": 2
-    },
-    {
-        "user_input": "i am a user input, quest frase deve ",
-        "completion": "i am glad for your input",
-        "score": 2
-    },
-    {
-        "user_input": "i am a user input",
-        "completion": "i am glad for your input",
-        "score": 2
-    },
-    {
-        "user_input": "i am a user",
-        "completion": "i am glad for your input",
-        "score": 2
+        "user_input": "here the input of the user",
+        "completion": "here the model completion"
     }
 ]
