@@ -430,8 +430,10 @@ class TransformerBlock(nn.Module):
 class Transformer(nn.Module):
     """This class is a modification of the Transformer class implemented in
     the LLaMA repo. The class has been modified for training, since the
-    original one just supports inference.
+    original one just supports inference. The generate method was inspired by
+    the generate function you can find in `llama.generation`.
     """
+
     def __init__(self, params: ModelArgs):
         super().__init__()
         

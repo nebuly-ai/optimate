@@ -20,6 +20,32 @@ If you like the project, please show your support by [leaving a star ⭐](https:
 
 Image from [OpenAI’s blog](https://openai.com/blog/chatgpt).
 
+# Installation
+You can install the package with pip:
+```bash
+pip install chatllama-py
+```
+Then you need to install the Llama models cloned from [Meta's repository](https://github.com/facebookresearch/llama):
+```bash
+git clone https://github.com/facebookresearch/llama.git
+cd llama
+pip install -r requirements.txt
+pip install -e .
+```
+Follow the instructions in the Llama repository to download the model weights and tokenizer.
+
+Finally you need to add your OpenAI API key as an environment variable by running the following command in your terminal or command prompt (replacing YOUR_API_KEY with your actual API key):
+
+For Linux/Mac:
+```
+export OPENAI_API_KEY=YOUR_API_KEY
+```
+
+For Windows:
+```
+set OPENAI_API_KEY=YOUR_API_KEY
+```
+
 # Get started with ChatLLaMA
 
 > :warning: Please note this code represents the algorithmic implementation for RLHF training process of LLaMA and does not contain the model weights. To access the model weights, you need to apply to Meta's [form](https://forms.gle/jk851eBVbX1m5TAv5).
@@ -74,3 +100,6 @@ You can participate in the following ways:
 
 1. Submit an issue or PR on GitHub
 2. Join our [Discord group](https://discord.gg/77d5kGSa8e) to chat
+
+# License
+See the [LICENSE](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/LICENSE) file.
