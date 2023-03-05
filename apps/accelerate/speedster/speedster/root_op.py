@@ -209,9 +209,9 @@ class SpeedsterRootOp(Operation):
                         "HuggingFace model. The resulting optimized model "
                         "will be usable only with a fixed input shape. "
                         "To optimize the model for dynamic shapes, please "
-                        "look here: https://nebuly.gitbook.io/nebuly/speeds"
-                        "ter/get-started/examples-of-api-options#using-dynamic"
-                        "-shape."
+                        "look here: https://nebuly.gitbook.io/nebuly/modules/"
+                        "speedster/how-to-guides"
+                        "#using-dynamic-shape."
                     )
 
             if not isinstance(self.data, DataManager):

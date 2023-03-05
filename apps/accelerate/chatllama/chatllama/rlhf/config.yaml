@@ -1,0 +1,53 @@
+---
+trainer_config:
+  update_timesteps: 1
+  num_examples: 2
+  actor_lr: 0.00001
+  critic_lr: 0.00001
+  num_episodes: 10
+  max_timesteps: 10
+  examples_path: "dataset/sections_dataset.json"
+  batch_size: 1
+  epochs: 5
+  actor_eps_clip: 0.2
+  critic_eps_clip: 0.2
+  beta_s: 0.1
+  update_checkpoint: 10
+  llm_model_id: "text-davinci-003"
+  llm_max_tokens: 1024
+  llm_temperature: 0.5
+  checkpoint_folder: "./models/checkpoints"
+
+actor_config:
+  model: "llama-7B"
+  max_tokens: 1024
+  temperature: 0.9
+  train_dataset_path: "dataset/sections_dataset.json"
+  validation_dataset_path: null
+  batch_size: 16
+  iteration_per_print: 10
+  lr: 0.00001
+  epochs: 1
+  model_folder: "path-to-checkpoints"
+  deepspeed_enable: True
+  deepspeed_config_path: "path-to-deepspeed-conf"
+
+reward_config:
+  # model to be chosen are gp2-large, bart-base, longformer-base-4096
+  model: "longformer-base-4096"
+  model_head_hidden_size: 2048
+  model_folder: "./models"
+  train_dataset_path: "/home/pierpaolo/Documents/optimapi/dataset/sections_dataset.json"
+  validation_dataset_path: null
+  batch_size: 64
+  epochs: 20
+  iteration_per_print: 10
+  lr: 0.0001
+  deepspeed_enable: True
+  deepspeed_config_path: "path-to-deepspeed-conf"
+
+critic_config:
+  # model to be chosen are gp2-large, bart-base, longformer-base-4096
+  model: "longformer-base-4096"
+  model_head_hidden_size: 2048
+  model_folder: "./models"

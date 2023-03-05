@@ -36,6 +36,8 @@ There are multiple modules we actually provide to boost the performances of your
 
 ✅ [Nos](https://github.com/nebuly-ai/nos): Automatically maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning and elastic quotas - Effortless optimization at its finest!
 
+✅ [ChatLLaMA](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/chatllama): Build faster and cheaper ChatGPT-like training process based on LLaMA architectures.
+
 ✅ [OpenAlphaTensor](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/open_alpha_tensor): Increase the computational performances of an AI model with custom-generated matrix multiplication algorithm fine-tuned for your specific hardware.
 
 ✅ [Forward-Forward](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/forward_forward): The Forward Forward algorithm is a method for training deep neural networks that replaces the backpropagation forward and backward passes with two forward passes.
@@ -43,7 +45,7 @@ There are multiple modules we actually provide to boost the performances of your
 ## Next modules and roadmap
 We are actively working on incorporating the following modules, as requested by members of our community, in upcoming releases:
 
-- [ ]  [Promptify](https://github.com/nebuly-ai/nebullvm/blob/main/apps/extract/promptify): Effortlessly personalize large APIs generative models from OpenAI, Cohere, HF to your specific context and requirements.
+- [ ]  [GPToptimizer](https://github.com/nebuly-ai/nebullvm/blob/main/apps/extract/promptify): Effortlessly optimize large APIs generative models from OpenAI, Cohere, HF.
 - [ ]  [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/cloud_surfer): Automatically discover the optimal cloud configuration and hardware on AWS, GCP and Azure to run your AI models.
 - [ ]  [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/optimate): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
 - [ ]  [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/training_sim): Easily simulate the training of large AI models on a distributed infrastructure to predict training behaviours without actual implementation.

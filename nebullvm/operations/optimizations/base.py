@@ -171,7 +171,7 @@ class Optimizer(Operation, abc.ABC):
         model: Union[torch.nn.Module, tf.Module, str],
         input_data: DataManager,
         optimization_time: OptimizationTime,
-        metric_drop_ths: str,
+        metric_drop_ths: float,
         metric: Callable,
         model_params: ModelParams,
         model_outputs: List[Tuple[Any, ...]],
