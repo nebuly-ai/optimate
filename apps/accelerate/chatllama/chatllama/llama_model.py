@@ -96,22 +96,21 @@ class HFLikeTokenizer:
                 .long()
             )
             for i, text in enumerate(texts):
-                tokens[i, : len(text)] = torch.tensor(text).cuda().long()
-
-            # create left padded tokens
-            # TODO: decide how oes and bos should be handled
-            left_tokens = self.tokenizer.pad_id * torch.ones_like(tokens)
-            left_tokens[:, -1] = self.tokenizer.eos_id
+                tokens[i, -len(text) :] = (  # noqa E203
+                    torch.tensor(text).cuda().long()
+                )
+            # TODO: decide how eos and bos should be handled - i need to mask
+            # them? or not?
             mask = self.create_sequence_mask(tokens)
             for i in range(tokens.shape[0]):
                 current_tokens = tokens[i, mask[i] == 1]
-                left_tokens[
-                    i, -len(current_tokens) :  # noqa E203
+                tokens[
+                    i, -len(current_tokens) - 1 : -1  # noqa E203
                 ] = current_tokens
-            mask = self.create_sequence_mask(left_tokens).cuda()
+            mask = self.create_sequence_mask(tokens).cuda()
 
         output = {
-            "input_ids": left_tokens,
+            "input_ids": tokens,
             "attention_mask": mask,
         }
         return output
@@ -140,7 +139,7 @@ class ModelArgs:
     max_seq_len: int = 1024
 
     # added attributes
-    forze_embeddings: bool = True
+    froze_embeddings: bool = True
     use_fairscale: bool = True
 
 
@@ -442,7 +441,7 @@ class Transformer(nn.Module):
         else:
             self.tok_embeddings = nn.Embedding(params.vocab_size, params.dim)
 
-        if params.forze_embeddings:
+        if params.froze_embeddings:
             for param in self.tok_embeddings.parameters():
                 param.requires_grad = False
 
@@ -479,14 +478,18 @@ class Transformer(nn.Module):
         _bsz, seqlen = tokens.shape
         h = self.tok_embeddings(tokens)
         self.freqs_cis = self.freqs_cis.to(h.device)
-        start_pos = 1  # TEMPORARY
+        # TEMPORARY FIX, need to understand how to manage the positioning
+        # embedding and the batch size with the current padding and masking.
+        start_pos = 1
         freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]  # noqa E203
-        attention_mask = torch.zeros(
-            (_bsz, seqlen, seqlen), device=mask.device
-        )
+        # mask has size (bsz, seqlen). It should be transformed in
+        # (bsz, seqlen, seqlen)
         # if the mask is a boolean tensor, convert it to int
         if mask.dtype == torch.bool:
             mask = mask.long()
+        attention_mask = torch.zeros(
+            (_bsz, seqlen, seqlen), device=mask.device
+        )
         for i in range(tokens.shape[0]):
             start_pos = torch.argmax(mask[i])
             for j in range(tokens.shape[1]):
@@ -609,11 +612,7 @@ def load_model(
         model_args: ModelArgs = ModelArgs(
             max_seq_len=1024, max_batch_size=max_batch_size, **params
         )
-        checkpoint, params = load_checkpoints(ckpt_dir, local_rank, world_size)
-        model_args: ModelArgs = ModelArgs(
-            max_seq_len=1024, max_batch_size=max_batch_size, **params
-        )
-        model_args.forze_embeddings = froze_embeddings
+        model_args.froze_embeddings = froze_embeddings
         model_args.use_fairscale = use_fairscale
         tokenizer = Tokenizer(model_path=tokenizer_path)
         model_args.vocab_size = tokenizer.n_words
@@ -624,7 +623,7 @@ def load_model(
         tokenizer = HFLikeTokenizer(tokenizer)
     else:
         model_args = ModelArgs()
-        model_args.forze_embeddings = froze_embeddings
+        model_args.froze_embeddings = froze_embeddings
         model_args.use_fairscale = use_fairscale
         tokenizer = MyTokenizer(model_path=tokenizer_path)
         model_args.vocab_size = tokenizer.n_words
