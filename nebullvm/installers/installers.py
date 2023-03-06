@@ -212,7 +212,7 @@ def install_openvino(with_optimization: bool = True):
         )
 
     openvino_version = "openvino-dev" if with_optimization else "openvino"
-    cmd = ["pip3", "install", f"{openvino_version}>=2022.1.0"]
+    cmd = ["pip3", "install", "--user", f"{openvino_version}>=2022.1.0"]
     subprocess.run(cmd)
 
     cmd = ["pip3", "install", "scipy>=1.7.3"]
@@ -272,6 +272,13 @@ def install_deepsparse():
 
     cmd = ["pip3", "install", "deepsparse"]
     subprocess.run(cmd)
+
+    try:
+        cmd = ["pip3", "install", "numpy>=1.22.0,<1.24.0"]
+        subprocess.run(cmd)
+    except Exception:
+        # For python 3.7 numpy 1.22.0 is not available
+        pass
 
     try:
         from deepsparse import compile_model, cpu  # noqa F401

@@ -14,4 +14,5 @@ except ImportError:
     MixedPrecision = Quantization = Pruning = object
 except ValueError:
     # MacOS
+    cfg_to_qconfig = cfgs_to_fx_cfgs = None
     MixedPrecision = Quantization = Pruning = object
