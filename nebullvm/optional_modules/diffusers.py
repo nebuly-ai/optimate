@@ -9,7 +9,6 @@ try:
         UNet2DConditionModel,
     )  # noqa F401
     from diffusers.models.unet_2d import UNet2DOutput  # noqa F401
-    import onnx_graphsurgeon  # noqa F401
 except ImportError:
     diffusers = None
     StableDiffusionPipeline = None
@@ -17,4 +16,8 @@ except ImportError:
     UNet2DConditionModel = None
     AutoencoderKL = None
     UNet2DOutput = None
+
+try:
+    import onnx_graphsurgeon  # noqa F401
+except ImportError:
     onnx_graphsurgeon = None

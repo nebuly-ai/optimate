@@ -44,9 +44,8 @@ optimized_model = optimize_model(
 )
 
 # Try the optimized model
-res = optimized_model(test_prompt).images[0]
-
 test_prompt = "futuristic llama with a cyberpunk city on the background"
+res = optimized_model(test_prompt).images[0]
 ```
 
 ## Setup TensorRT Plugins (Optional)
