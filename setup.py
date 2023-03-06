@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
-    "numpy>=1.20.0, <=1.23.1",
+    "numpy>=1.21.0, <1.24.0",
     "py-cpuinfo>=8.0.0",
     "PyYAML>=6.0",
     "psutil>=5.0.0",

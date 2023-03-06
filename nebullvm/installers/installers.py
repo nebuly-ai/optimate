@@ -274,6 +274,13 @@ def install_deepsparse():
     subprocess.run(cmd)
 
     try:
+        cmd = ["pip3", "install", "numpy>=1.22.0,<1.24.0"]
+        subprocess.run(cmd)
+    except Exception:
+        # For python 3.7 numpy 1.22.0 is not available
+        pass
+
+    try:
         from deepsparse import compile_model, cpu  # noqa F401
     except ImportError:
         return False
