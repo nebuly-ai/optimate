@@ -2,6 +2,11 @@
 
 This section contains all the available notebooks that show how to leverage Speedster to optimize Diffusers models.
 
+## Notebooks:
+| Notebook                                                                                                                                                                             | Description                                                                        |                                                                                                                                                                                                                                             |
+|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Accelerate Diffusers Stable Diffusion](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_StableDiffusion_with_Speedster.ipynb) | Show how to optimize with Speedster the Stable Diffusion models from Diffusers. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_StableDiffusion_with_Speedster.ipynb) |
+
 ## Diffusers API quick view:
 
 ``` python
@@ -34,15 +39,61 @@ optimized_model = optimize_model(
     model=pipe,
     input_data=input_data,
     optimization_time="unconstrained",
-    ignore_compilers=["torch_tensor_rt"],  # TensorRT from the torch pipeline has some issues, so we are going to skip it
+    ignore_compilers=["torch_tensor_rt", "tvm"],
     metric_drop_ths=0.1,
 )
 
 # Try the optimized model
 res = optimized_model(test_prompt).images[0]
+
+test_prompt = "futuristic llama with a cyberpunk city on the background"
 ```
 
-## Notebooks:
-| Notebook                                                                                                                                                                             | Description                                                                        |                                                                                                                                                                                                                                             |
-|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Accelerate Diffusers Stable Diffusion 1.4](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_StableDiffusion_1_4_with_Speedster.ipynb) | Show how to optimize with Speedster the Stable Diffusion 1.4 model from Diffusers. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_StableDiffusion_1_4_with_Speedster.ipynb) |
+## Setup TensorRT Plugins (Optional)
+Official Source: https://github.com/NVIDIA/TensorRT/tree/main/demo/Diffusion
+
+If you want to optimise Stable Diffusion on Nvidia GPUs, you need to install and use the TensorRT Plugins for getting the maximum speed-up. In our experiments, they improved the speed of the model compared to the basic version of TensorRT by more than 60%. 
+
+The easiest option to use the plugins is to use the nebullvm docker image, where everything is preinstalled by default:
+
+```
+docker pull nebulydocker/nebullvm:latest
+```
+
+If you prefer instead to setup your environment manually, you can follow the following guide:
+
+### Step 1: Download and extract TensorRT tar
+Reference: https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html#installing-tar
+- [Download](https://developer.nvidia.com/tensorrt) the TensorRT tar file that matches the CPU architecture and CUDA version you are using.
+- Extract in a folder <TRT_FOLDER> the tar file:
+```
+tar -xzvf TensorRT-8.5.3.1.Linux.x86_64-gnu.cuda-11.8.cudnn8.6.tar.gz
+```
+- Add the absolute path to the TensorRT lib directory to the environment variable LD_LIBRARY_PATH:
+```
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<TRT_FOLDER_ABSOLUTE_PATH>/TensorRT-8.5.3.1/lib>
+```
+
+:warning: It could be necessary to add this path also to the PATH env variable, if you have issues in the following steps run also `export PATH=$PATH:<TRT_FOLDER_ABSOLUTE_PATH>/TensorRT-8.5.3.1/lib>`
+
+
+### Step 2: Clone the TensorRT repository
+```
+git clone https://github.com/NVIDIA/TensorRT.git
+cd TensorRT
+git submodule update --init --recursive
+```
+
+### Step 3: Build TensorRT plugins library
+
+```
+mkdir -p build && cd build
+cmake .. -DTRT_OUT_DIR=$PWD/out
+cd plugin
+make -j$(nproc)
+
+export PLUGIN_LIBS="$PWD/build/out/libnvinfer_plugin.so"
+export LD_PRELOAD=$PLUGIN_LIBS
+```
+
+You are now ready to use plugins to optimise stable diffusion!
