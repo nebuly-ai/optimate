@@ -252,7 +252,6 @@ class ActorTrainer:
                     f"DeepSpeed config path {config.deepspeed_config_path}"
                     f"does not exist"
                 )
-        if self.config.deepspeed_enable:
             (
                 self.model_engine,
                 self.optimizer,

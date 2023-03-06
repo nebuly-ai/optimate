@@ -81,3 +81,6 @@ critic_config:
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
   model_folder: "./models"
+  # deepspeed settings
+  deepspeed_enable: False
+  deepspeed_config_path: "path-to-deepspeed-conf"

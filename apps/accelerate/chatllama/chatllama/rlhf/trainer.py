@@ -3,6 +3,7 @@ import os
 import random
 from collections import deque, namedtuple
 
+import deepspeed
 import torch
 from beartype import beartype
 from beartype.typing import Deque, Tuple, List
@@ -375,6 +376,63 @@ class RLTrainer:
             ExperienceDataset(memories, device), batch_size=batch_size
         )
 
+        # initialize deepspeed for actor
+        if self.config.actor.deepspeed_enable:
+            if self.config.actor.deepspeed_config_path is None:
+                raise ValueError(
+                    "DeepSpeed config path is None, but deepspeed is enabled"
+                )
+            if (
+                os.path.exists(self.config.actor.deepspeed_config_path)
+                is False
+            ):
+                raise ValueError(
+                    f"DeepSpeed config path"
+                    f"{self.config.actor.deepspeed_config_path}"
+                    f"does not exist"
+                )
+            (
+                actor_model_engine,
+                actor_optimizer,
+                dataloader,
+                _,
+            ) = deepspeed.initialize(
+                args=None,
+                model=self.actorcritic.actor,
+                model_parameters=self.actorcritic.actor.parameters(),
+                training_data=dataloader,
+                config=self.config.actor.deepspeed_config_path,
+            )
+            self.actorcritic.actor = actor_model_engine
+
+        # initialize deepspeed for critic
+        if self.config.critic.deepspeed_enable:
+            if self.config.critic.deepspeed_config_path is None:
+                raise ValueError(
+                    "DeepSpeed config path is None, but deepspeed is enabled"
+                )
+            if (
+                os.path.exists(self.config.critic.deepspeed_config_path)
+                is False
+            ):
+                raise ValueError(
+                    f"DeepSpeed config path"
+                    f"{self.config.critic.deepspeed_config_path}"
+                    f"does not exist"
+                )
+            (
+                critic_model_engine,
+                critic_optimizer,
+                _,
+                _,
+            ) = deepspeed.initialize(
+                args=None,
+                model=self.actorcritic.critic,
+                model_parameters=self.actorcritic.critic.parameters(),
+                config=self.config.critic.deepspeed_config_path,
+            )
+            self.actorcritic.critic = critic_model_engine
+
         # train agent-critic
         self.actorcritic.train()
         for epoch in range(epochs):
@@ -470,9 +528,13 @@ class RLTrainer:
                     print("entropies", entropies)
 
                 # update actor with loss
-                self.actor_optim.zero_grad()
-                loss.backward()
-                self.actor_optim.step()
+                if self.config.actor.deeepspeed_enable:
+                    actor_model_engine.backward(loss)
+                    actor_model_engine.step()
+                else:
+                    self.actor_optim.zero_grad()
+                    loss.backward()
+                    self.actor_optim.step()
 
                 torch.cuda.synchronize(device)
 
@@ -488,9 +550,13 @@ class RLTrainer:
                 print("value_loss", value_loss.item())
 
                 # upate critic with loss
-                self.critic_optim.zero_grad()
-                value_loss.backward()
-                self.critic_optim.step()
+                if self.config.critic.deepspeed_enable:
+                    critic_model_engine.backward(value_loss)
+                    critic_model_engine.step()
+                else:
+                    self.critic_optim.zero_grad()
+                    value_loss.backward()
+                    self.critic_optim.step()
 
                 self.training_stats.training_loss.append(
                     loss.detach().cpu().item()
