@@ -3,22 +3,23 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
-    "numpy>=1.21.0, <1.24.0",
-    "py-cpuinfo>=8.0.0",
-    "PyYAML>=6.0",
-    "psutil>=5.0.0",
-    "requests>=2.26.0",
-    "tqdm>=4.36.0",
-    "packaging>=21.3",
-    "loguru>=0.5.3",
+    "beartype",
+    "deepspeed",
+    "einops",
+    "fairscale",
+    "langchain",
+    "torch",
+    "tqdm",
+    "transformers",
+    "openai",
 ]
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding="utf8")
 
 setup(
-    name="nebullvm",
-    version="0.8.1",
+    name="chatllama-py",
+    version="0.0.2",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     long_description=long_description,
