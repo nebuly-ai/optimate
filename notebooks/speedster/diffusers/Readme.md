@@ -1,60 +1,48 @@
-# **HuggingFace Optimization**
+# **Diffusers Optimization**
 
-This section contains all the available notebooks that show how to leverage Speedster to optimize HuggingFace models.
+This section contains all the available notebooks that show how to leverage Speedster to optimize Diffusers models.
 
-HuggingFace hosts models that can use either PyTorch or TensorFlow as backend. Both the backends are supported by Speedster.
-
-## HuggingFace API quick view:
+## Diffusers API quick view:
 
 ``` python
+import torch
 from speedster import optimize_model
-from transformers import AlbertModel, AlbertTokenizer
+from diffusers import StableDiffusionPipeline
 
-# Load Albert as example
-model = AlbertModel.from_pretrained("albert-base-v1")
-tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
 
-# Case 1: dictionary input format
-text = "This is an example text for the huggingface model."
-input_dict = tokenizer(text, return_tensors="pt")  # set return_tensors="tf" or "np" for tensorflow models
+# Load Stable Diffusion 1.4 as example
+model_id = "CompVis/stable-diffusion-v1-4"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+if device == "cuda":
+    # On GPU we load by default the model in half precision, because it's faster and lighter.
+    pipe = StableDiffusionPipeline.from_pretrained(model_id, revision='fp16', torch_dtype=torch.float16)
+else:
+    pipe = StableDiffusionPipeline.from_pretrained(model_id)
+
+# Create some example input data
+input_data = [
+    "a photo of an astronaut riding a horse on mars",
+    "a monkey eating a banana in a forest",
+    "white car on a road surrounded by palm trees",
+    "a fridge full of bottles of beer",
+    "madara uchiha throwing asteroids against people"
+]
 
 # Run Speedster optimization
 optimized_model = optimize_model(
-  model, input_data=[input_dict]
+    model=pipe,
+    input_data=input_data,
+    optimization_time="unconstrained",
+    ignore_compilers=["torch_tensor_rt"],  # TensorRT from the torch pipeline has some issues, so we are going to skip it
+    metric_drop_ths=0.1,
 )
 
-## Warmup the model
-## This step is necessary before the latency computation of the 
-## optimized model in order to get reliable results.
-# for _ in range(10):
-#   optimized_model(**input_dict)
-
 # Try the optimized model
-res = optimized_model(**input_dict)
-
-# # Case 2: strings input format
-# input_data = [
-#     "This is a test.",
-#     "Hi my name is John.",
-#     "The cat is on the table.",
-# ]
-# tokenizer_args = dict(
-#     return_tensors="pt",  # set return_tensors="tf" or "np" for tensorflow models
-#     padding="longest",
-#     truncation=True,
-# )
-# 
-# # Run Speedster optimization
-# optimized_model = optimize_model(
-#   model, input_data=input_data, tokenizer=tokenizer, tokenizer_args=tokenizer_args
-# )
+res = optimized_model(test_prompt).images[0]
 ```
 
 ## Notebooks:
-| Notebook                                                                                                                                                                                     | Description                                                                                     |                                                                                                                                                                                                                                                     |
-|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Accelerate HuggingFace PyTorch GPT2](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_PyTorch_GPT2_with_Speedster.ipynb)             | Show how to optimize with Speedster the GPT2 model from Huggingface with PyTorch backend.       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_PyTorch_GPT2_with_Speedster.ipynb)       |
-| [Accelerate HuggingFace PyTorch BERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_PyTorch_BERT_with_Speedster.ipynb)             | Show how to optimize with Speedster the BERT model from Huggingface with PyTorch backend.       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_PyTorch_BERT_with_Speedster.ipynb)       |
-| [Accelerate HuggingFace PyTorch DistilBERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_PyTorch_DistilBERT_with_Speedster.ipynb) | Show how to optimize with Speedster the DistilBERT model from Huggingface with PyTorch backend. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_PyTorch_DistilBERT_with_Speedster.ipynb) |                                                            |
-| [Accelerate HuggingFace TensorFlow BERT](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_TensorFlow_BERT_with_Speedster.ipynb)       | Show how to optimize with Speedster the BERT model from Huggingface with TensorFlow backend.    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_TensorFlow_BERT_with_Speedster.ipynb)    |
-| [Accelerate HuggingFace PyTorch T5](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_PyTorch_T5_with_Speedster.ipynb)                 | Show how to optimize with Speedster the T5 model from Huggingface with PyTorch backend.         | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/huggingface/Accelerate_Hugging_Face_PyTorch_T5_with_Speedster.ipynb)         |
+| Notebook                                                                                                                                                                             | Description                                                                        |                                                                                                                                                                                                                                             |
+|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Accelerate Diffusers Stable Diffusion 1.4](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_StableDiffusion_1_4_with_Speedster.ipynb) | Show how to optimize with Speedster the Stable Diffusion 1.4 model from Diffusers. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_StableDiffusion_1_4_with_Speedster.ipynb) |
