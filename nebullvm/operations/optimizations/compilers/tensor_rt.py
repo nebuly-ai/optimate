@@ -238,7 +238,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
                 calibrator=calibrator
                 if quantization_type is QuantizationType.STATIC
                 else None,
-                workspace_size=1 << 30,
+                workspace_size=self.device.get_free_memory(),
                 device={
                     "device_type": torch_tensorrt.DeviceType.GPU,
                     "gpu_id": self.device.idx,
