@@ -109,9 +109,9 @@ def main():
 
     for i in range(args.num_prompts):
         example = np.random.choice(examples)
-        new_example = chain.run(example=example)
-        examples.append(new_example)
-        print(len(examples))
+        new_example = chain.run(example=example["user_input"])
+        example_dict = {"user_input": new_example}
+        examples.append(example_dict)
 
     with open(os.path.join(data_dir, "rlhf_training_data.json"), "w") as f:
         json.dump(examples, f)
