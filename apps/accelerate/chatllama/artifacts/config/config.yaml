@@ -65,12 +65,6 @@ reward_config:
   epochs: 32
   iteration_per_print: 1
   lr: 0.0001
-  # llm parameters for dataset generation
-  # disable llm if you dont have an API key
-  llm_enable: True
-  llm_model: "text-davinci-003"
-  llm_temperature: 0.5
-  llm_max_tokens: 1024
   # deepspeed settings
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"

@@ -6,7 +6,6 @@ import torch
 from beartype import beartype
 from beartype.typing import Optional, Iterable
 from einops.layers.torch import Rearrange
-from langchain import OpenAI, LLMChain, PromptTemplate
 from torch.utils.data import Dataset, DataLoader
 from transformers import BartModel
 from transformers import (
@@ -16,7 +15,6 @@ from transformers import (
     AutoTokenizer,
 )
 
-from chatllama.langchain_modules.prompt_templates import REWARD_TEMPLATE
 from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.utils import TrainingStats
@@ -293,18 +291,6 @@ class RewardTrainer:
                 self.eval_dataset, batch_size=config.batch_size
             )
 
-        # initialize LLM and LangChain
-        if config.llm_enable:
-            openai_llm = OpenAI(
-                model_name=self.config.llm_model,
-                temperature=self.config.llm_temperature,
-                max_tokens=self.config.llm_max_tokens,
-            )
-            # Customaize your own Reward template by changing the
-            # prompt_template
-            prompt_template = PromptTemplate(**REWARD_TEMPLATE)
-            self.llm = LLMChain(llm=openai_llm, prompt=prompt_template)
-
         # initialize deepspeed
         self.model_engine = None
         if config.deepspeed_enable is True:
@@ -330,61 +316,6 @@ class RewardTrainer:
                 training_data=self.train_dataloader,
                 config=self.config.deepspeed_config_path,
             )
-
-    def distill(
-        self,
-    ):
-        """Parse the dataset and assign scores using LLMs
-        then save back the dataset with the uploaded scores
-        """
-        if self.config.llm_enable is False:
-            raise ValueError("LLM is disabled, cannot distill")
-        print("Distilling the dataset")
-        # load the dataset
-        with open(self.config.train_dataset_path, "r") as f:
-            train_data = json.load(f)
-        # for each element of the dataset, assing a score.
-        for i, data in enumerate(train_data):
-            if data.get("score", None) is None:
-                print("Distilling data", i)
-                print("user_input:", data["user_input"])
-                print("completion:", data["completion"])
-                print("score:", data["score"])
-                prompt_tokens = (
-                    data["user_input"]
-                    + data["completion"]
-                    + self.llm.prompt.template
-                )
-                prompt_len = int(len(prompt_tokens.split(" ")) / 0.75)
-                # 80% of the max length as safety margin
-                if prompt_len > self.config.llm_max_tokens * 0.8:
-                    print(
-                        f"The prompt of the data {i} is too long\n"
-                        f"tokens: {prompt_len}\n"
-                        f"max_tokens: {self.config.llm_max_tokens * 0.8}"
-                    )
-                    continue
-                score = self.llm.run(
-                    user_input=data["user_input"],
-                    completion=data["completion"],
-                ).strip()
-                # TODO: extract from score the float value with a regex
-                score = score.split(" ")[0]
-                try:
-                    score = float(score)
-                except Exception:
-                    print(
-                        f"The score returned by the LLM for the"
-                        f"data, {i}, is not a float float:\n{score}"
-                    )
-                    continue
-                data["score"] = score
-                print("score:", data["score"])
-        # save the dataset back
-        print("Writing the dataset back to disk...")
-        with open(self.config.train_dataset_path, "w") as f:
-            json.dump(train_data, f)
-        print("End of distillation")
 
     def train(
         self,
