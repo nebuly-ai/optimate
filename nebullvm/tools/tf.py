@@ -16,9 +16,9 @@ def get_output_info_tf(
         outputs = tf_model(input_tensors)
     if isinstance(outputs, tf.Tensor) and outputs is not None:
         if outputs.dtype is tf.float16:
-            return [tuple(outputs.shape), DataType.FLOAT16]
+            return [(tuple(outputs.shape), DataType.FLOAT16)]
         else:
-            return [tuple(outputs.shape), DataType.FLOAT32]
+            return [(tuple(outputs.shape), DataType.FLOAT32)]
     return [
         (tuple(x.shape), DataType.FLOAT16)
         if x.dtype is tf.float16
