@@ -137,14 +137,23 @@ if __name__ == "__main__":
         "-r",
         "--reward_template",
         help="Specify the reward template to be used",
-        default=REWARD_TEMPLATE,
+        default=None,
     )
 
     # parse arguments
     args = parser.parse_args()
 
+    if args.reward_template:
+        templates = json.loads(args.reward_template)
+        if templates.get("reward", None) is None:
+            rw_template = REWARD_TEMPLATE
+        else:
+            rw_template = templates["reward"]
+    else:
+        rw_template = REWARD_TEMPLATE
+
     score_generator = ScoreGenerator(
-        args.model, args.temperature, args.max_tokens, args.reward_template
+        args.model, args.temperature, args.max_tokens, rw_template
     )
 
     score_generator.distill(args.dataset_path)

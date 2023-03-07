@@ -43,20 +43,59 @@ def build_agents():
     return human_agent, bot_agent
 
 
+def get_sub_conversations(conversation: str, system_prompt: str):
+    interactions = conversation.split("AI:")
+    sub_conversations = []
+    for i in range(len(interactions) - 1):
+        user_input = system_prompt + "AI:".join(interactions[: i + 1])
+        completion = interactions[i + 1].split("Human:")[0].strip()
+        sub_conversations.append(
+            {"user_input": user_input, "completion": completion}
+        )
+    return sub_conversations
+
+
 def main():
+    import json
+    import os
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
     parser.add_argument("--num_conversations", type=int, default=1000)
-    parser.add_argument("--output_file", type=str, default="conversations.txt")
+    parser.add_argument("--output_dir", type=str, default="conversations")
+    parser.add_argument("--templates", type=str, default=None)
     args = parser.parse_args()
-    conversations = []
+
+    if args.templates is not None:
+        with open(args.templates, "r") as f:
+            templates = json.load(f)
+        template = templates["actor"]
+    else:
+        template = ""
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
     for conv in range(args.num_conversations):
         human_agent, bot_agent = build_agents()
         conversation = create_conversation(human_agent, bot_agent)
-        conversations.append(conversation)
-    with open(args.output_file, "w") as f:
-        f.write("\n\nNEW CONVERSATION\n\n".join(conversations))
+        with open(
+            os.path.join(args.output_dir, f"conversation_{conv}.txt"), "w"
+        ) as f:
+            f.write(conversation)
+
+    # convert the conversations to a single json file
+    data = []
+    for conv in range(args.num_conversations):
+        with open(
+            os.path.join(args.output_dir, f"conversation_{conv}.txt"), "r"
+        ) as f:
+            conversation = f.read()
+        sub_conversations = get_sub_conversations(conversation, template)
+        data.extend(sub_conversations)
+    with open(
+        os.path.join(args.output_dir, "actor_training_data.json"), "w"
+    ) as f:
+        json.dump(data, f)
+
 
 if __name__ == "__main__":
     main()
