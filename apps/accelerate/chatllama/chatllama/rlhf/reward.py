@@ -21,6 +21,8 @@ from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.utils import TrainingStats
 
+# TODO: Remove distillation from here
+
 
 class RewardModel(torch.nn.Module):
     """Model to be trained to predict the reward for RL.
