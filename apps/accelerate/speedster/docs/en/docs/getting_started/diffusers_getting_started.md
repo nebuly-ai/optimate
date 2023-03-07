@@ -47,7 +47,7 @@ Once the `model` and `input_data` have been defined, everything is ready to use 
 
 The function takes the following arguments as inputs:
 
-- `model`: model to be optimized in your preferred framework (PyTorch in this case)
+- `model`: model to be optimized in your preferred framework (A Diffusers pipe in this case)
 - `input_data`: sample data needed to test the optimization performances (latency, throughput, accuracy loss, etc)
 - `optimization_time`: if "constrained" mode, `Speedster` takes advantage only of compilers and precision reduction techniques, such as quantization. "unconstrained" optimization_time allows it to exploit more time-consuming techniques, such as pruning and distillation 
 - `metric_drop_ths`: maximum drop in your preferred accuracy metric that you are willing to trade to gain in acceleration
