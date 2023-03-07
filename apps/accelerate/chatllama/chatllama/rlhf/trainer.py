@@ -10,10 +10,11 @@ from beartype.typing import Deque, Tuple, List
 from einops import rearrange
 from torch.utils.data import Dataset, DataLoader
 
-from rlhf.actor import ActorModel
-from rlhf.reward import RewardModel, CriticModel
-from rlhf.config import ConfigReward, ConfigActor, Config
-from rlhf.utils import TrainingStats, ConversationLog
+from chatllama.rlhf.actor import ActorModel
+from chatllama.rlhf.config import ConfigReward, ConfigActor, Config
+from chatllama.rlhf.reward import RewardModel, CriticModel
+from chatllama.rlhf.utils import TrainingStats, ConversationLog
+
 
 """
 train()
@@ -141,7 +142,8 @@ class ActorCritic(torch.nn.Module):
         """
         # generate action sequence
         actions, sequence = self.actor.generate(states, state_mask)
-        sequences_mask = sequence != self.actor.tokenizer.pad_id
+        sequences_mask = sequence != self.actor.tokenizer.pad_token_id
+        sequences_mask = sequences_mask.to(sequence.device).long().detach()
         action_len = actions.shape[1]
 
         # generate actions_logits and values
@@ -528,7 +530,7 @@ class RLTrainer:
                     print("entropies", entropies)
 
                 # update actor with loss
-                if self.config.actor.deeepspeed_enable:
+                if self.config.actor.deepspeed_enable:
                     actor_model_engine.backward(loss)
                     actor_model_engine.step()
                 else:
@@ -622,8 +624,6 @@ class RLTrainer:
 
                 # sample num_examples examples from  example dataset
                 inputs = self.example_sampler.sample(num_examples)
-
-                print(inputs)
 
                 # tokenize examples
                 tokenized_inputs = self.actorcritic.actor.tokenizer(

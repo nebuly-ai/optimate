@@ -8,12 +8,18 @@ from beartype.typing import Optional, Iterable
 from einops.layers.torch import Rearrange
 from langchain import OpenAI, LLMChain, PromptTemplate
 from torch.utils.data import Dataset, DataLoader
-from transformers import GPT2Tokenizer, GPT2Model, BartModel
-from transformers import BartTokenizer, BartConfig, AutoModel, AutoTokenizer
+from transformers import BartModel
+from transformers import (
+    BartTokenizer,
+    BartConfig,
+    AutoModel,
+    AutoTokenizer,
+)
 
-from langchain_modules.prompt_templates import REWARD_TEMPLATE
-from rlhf.config import ConfigReward
-from rlhf.utils import TrainingStats
+from chatllama.langchain_modules.prompt_templates import REWARD_TEMPLATE
+from chatllama.rlhf.config import ConfigReward
+from chatllama.rlhf.model_list import hf_models
+from chatllama.rlhf.utils import TrainingStats
 
 
 class RewardModel(torch.nn.Module):
@@ -38,15 +44,13 @@ class RewardModel(torch.nn.Module):
         super().__init__()
         # load the model -- add here other models
         head_hidden_size = config.model_head_hidden_size
-        if config.model == "gpt2-large":
-            self.max_model_tokens = 1024
-            self.model = GPT2Model.from_pretrained("gpt2-large")
-            self.tokenizer = GPT2Tokenizer.from_pretrained(
-                "gpt2-large",
+        if config.model in hf_models:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                config.model,
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
+            self.model = AutoModel.from_pretrained("gpt2-large")
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.head = torch.nn.Sequential(
                 torch.nn.Linear(self.model.config.n_embd, head_hidden_size),
@@ -55,7 +59,6 @@ class RewardModel(torch.nn.Module):
                 Rearrange("... 1 -> ..."),
             )
         elif config.model == "bart-base":
-            self.max_model_tokens = 1024
             bart_config = BartConfig.from_pretrained("facebook/bart-base")
             bart_config.max_position_embeddings = 2048 + 1024
             self.model = BartModel(bart_config)
@@ -63,7 +66,6 @@ class RewardModel(torch.nn.Module):
                 "facebook/bart-large",
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.head = torch.nn.Sequential(
@@ -73,7 +75,6 @@ class RewardModel(torch.nn.Module):
                 Rearrange("... 1 -> ..."),
             )
         elif config.model == "longformer-base-4096":
-            self.max_model_tokens = 4096
             self.model = AutoModel.from_pretrained(
                 "allenai/longformer-base-4096"
             )
@@ -81,7 +82,6 @@ class RewardModel(torch.nn.Module):
                 "allenai/longformer-base-4096",
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
             self.tokenizer.eos_token = self.tokenizer.pad_token
             self.head = torch.nn.Sequential(
@@ -156,6 +156,7 @@ class RewardModel(torch.nn.Module):
             output_sequence_mask (torch.Tensor): Mask for the attention
         """
         rewards = self.forward(output_sequence, output_sequence_mask)
+        print("rewards shape", rewards.shape)
         return rewards[:, -1]
 
     @beartype

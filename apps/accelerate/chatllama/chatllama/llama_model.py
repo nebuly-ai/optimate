@@ -66,6 +66,9 @@ class HFLikeTokenizer:
         self.eos_id = self.tokenizer.eos_id
         self.bos_id = self.tokenizer.bos_id
 
+        # to match hugging face attribute
+        self.pad_token_id = self.pad_id
+
     def create_sequence_mask(self, tokens: torch.Tensor) -> torch.Tensor:
         mask = torch.where(
             tokens == self.tokenizer.pad_id,
@@ -268,7 +271,7 @@ class Attention(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        attention_mask: torch.Tensor,
+        kv_mask: torch.Tensor,
         freqs_cis: torch.Tensor,
         cache_k: Optional[torch.Tensor] = None,
         cache_v: Optional[torch.Tensor] = None,
@@ -306,8 +309,8 @@ class Attention(nn.Module):
         scores = torch.matmul(xq, keys.transpose(2, 3)) / math.sqrt(
             self.head_dim
         )
-        if attention_mask is not None:
-            scores = scores + attention_mask
+        if kv_mask is not None:
+            scores = scores + kv_mask
         scores = F.softmax(scores.float(), dim=-1).type_as(xq)
         output = torch.matmul(scores, values)
         output = output.transpose(1, 2).contiguous().view(bsz, seqlen, -1)
@@ -466,14 +469,14 @@ class Transformer(nn.Module):
         )
 
     def forward(
-        self, tokens: torch.Tensor, mask: torch.Tensor
+        self, tokens: torch.Tensor, attention_mask: torch.Tensor
     ) -> torch.Tensor:
-        mask = mask.detach()
-        logits = self._forward(tokens, mask)
+        attention_mask = attention_mask.detach()
+        logits = self._forward(tokens, attention_mask)
         return logits
 
     def _forward(
-        self, tokens: torch.Tensor, mask: torch.Tensor
+        self, tokens: torch.Tensor, attention_mask: torch.Tensor
     ) -> torch.Tensor:
         _bsz, seqlen = tokens.shape
         h = self.tok_embeddings(tokens)
@@ -485,23 +488,13 @@ class Transformer(nn.Module):
         # mask has size (bsz, seqlen). It should be transformed in
         # (bsz, seqlen, seqlen)
         # if the mask is a boolean tensor, convert it to int
-        if mask.dtype == torch.bool:
-            mask = mask.long()
-        attention_mask = torch.zeros(
-            (_bsz, seqlen, seqlen), device=mask.device
-        )
-        for i in range(tokens.shape[0]):
-            start_pos = torch.argmax(mask[i])
-            for j in range(tokens.shape[1]):
-                if mask[i, j] != 0:
-                    attention_mask[i, j, start_pos : j + 1] = 1  # noqa E203
-        attention_mask = torch.where(
-            attention_mask == 0, float("-inf"), attention_mask
-        )
-        attention_mask = (
-            torch.where(attention_mask == 1, float(0.0), attention_mask)
-            .long()
-            .detach()
+        if attention_mask.dtype == torch.bool:
+            attention_mask = attention_mask.long()
+        kv_mask = attention_mask[:, None, :].expand(_bsz, seqlen, seqlen)
+        kv_mask = torch.tril(kv_mask, diagonal=0)
+        kv_mask = 1 - kv_mask
+        kv_mask = (
+            torch.where(kv_mask == 1, float("-inf"), kv_mask).detach().long()
         )
 
         for i, layer in enumerate(self.layers):
@@ -509,10 +502,10 @@ class Transformer(nn.Module):
                 cache_k = self.cache_k[i]
                 cache_v = self.cache_v[i]
                 h, cache_k, cache_v = layer(
-                    h, attention_mask, freqs_cis, cache_k, cache_v
+                    h, kv_mask, freqs_cis, cache_k, cache_v
                 )
             else:
-                h, _, _ = layer(h, attention_mask, freqs_cis)
+                h, _, _ = layer(h, kv_mask, freqs_cis)
             if not self.training:
                 self.cache_k[i] = cache_k.detach()
                 self.cache_v[i] = cache_v.detach()
@@ -524,27 +517,24 @@ class Transformer(nn.Module):
     @torch.no_grad()
     def generate(
         self,
-        inputs: torch.Tensor,
+        input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
         max_length: int,
         temperature: float,
-        max_sequence: int,
         top_p: float = 1.0,
     ):
-        prompt_size = inputs.shape[1]
+        prompt_size = input_ids.shape[1]
         start_pos = prompt_size  # We assume left padding
         generated_tokens = []
-        max_generation_possible = max_sequence - prompt_size
-        total_len = min(max_length, max_generation_possible)
-        for cur_pos in range(start_pos, total_len):
-            logits = self._forward(inputs, attention_mask)[:, -1, :]
+        for cur_pos in range(start_pos, max_length):
+            logits = self._forward(input_ids, attention_mask)[:, -1, :]
             if temperature > 0:
                 probs = torch.softmax(logits / temperature, dim=-1)
                 next_token = sample_top_p(probs, top_p)
             else:
                 next_token = torch.argmax(logits, dim=-1)
             next_token = next_token.reshape(-1)
-            inputs = torch.cat([inputs, next_token.unsqueeze(1)], dim=1)
+            input_ids = torch.cat([input_ids, next_token.unsqueeze(1)], dim=1)
             attention_mask = torch.cat(
                 [attention_mask, torch.ones_like(next_token).unsqueeze(1)],
                 dim=1,
