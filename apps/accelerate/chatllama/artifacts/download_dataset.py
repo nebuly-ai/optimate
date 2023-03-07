@@ -1,6 +1,9 @@
 import argparse
 import json
 import os
+import re
+
+import numpy as np
 
 from datasets import load_dataset
 
@@ -9,13 +12,17 @@ class StanfordNLPSHPDataset:
     def __init__(
         self,
     ) -> None:
-
+        print("Download the dataset")
         self.dataset = load_dataset("stanfordnlp/SHP")
+        print("Download Completed")
 
     def save_dataset(
         self,
         dataset_folder: str,
+        number_of_samples: int,
     ) -> None:
+
+        print("Generate datasets for RLHF")
 
         # TODO: score in the dataset are not used until now
         # use the train and test dataset to create the finetuning dataset
@@ -34,7 +41,7 @@ class StanfordNLPSHPDataset:
             }
             conversations.append(conv)
 
-        for i, data in enumerate(data["test"]):
+        for i, data in enumerate(self.dataset["test"]):
             if data["score_A"] > data["score_B"]:
                 response = data["human_ref_A"]
             else:
@@ -46,9 +53,15 @@ class StanfordNLPSHPDataset:
             }
             conversations.append(conv)
 
-        with open(f"{dataset_folder}/actor_dataset.json") as f:
+        with open(f"{dataset_folder}/actor_dataset.json", "w") as f:
             json.dump(conversations, f)
-        with open(f"{dataset_folder}/reward_dataset.json") as f:
+
+        # sample N number of index from 0 to len(conversations)
+        indexes = np.random.choice(
+            len(conversations), size=number_of_samples, replace=False
+        )
+        conversations = [conversations[i] for i in indexes]
+        with open(f"{dataset_folder}/reward_dataset.json", "w") as f:
             json.dump(conversations, f)
 
         # use the validation part for the rlhf training
@@ -59,8 +72,10 @@ class StanfordNLPSHPDataset:
             }
             conversations.append(conv)
 
-        with open(f"{dataset_folder}/rlhf_dataset.json") as f:
+        with open(f"{dataset_folder}/rlhf_dataset.json", "w") as f:
             json.dump(conversations, f)
+
+        print("Generation Completed")
 
 
 class AnthropicRLHF:
@@ -68,33 +83,45 @@ class AnthropicRLHF:
         self,
     ) -> None:
 
+        print("Download the dataset")
         self.dataset = load_dataset("Anthropic/hh-rlhf")
-        print(self.dataset)
+        print("Download Completed")
 
     def save_dataset(
         self,
         dataset_folder: str,
+        number_of_samples: int,
     ) -> None:
+
+        print("Generate datasets for RLHF")
 
         # generate actor and reward dataset
         conversations = []
         for i, data in enumerate(self.dataset["train"]):
             current_conv = data["chosen"]
 
-            sections = current_conv.split("Assistant:")
+            sections = re.split("Assistant:|User:", current_conv)
             if len(sections) == 2:
                 user_input = sections[0]
                 completion = sections[1]
-            elif len(sections) == 3:
-                user_input = f"{sections[0]}\n" f"Assistant: {sections[1]}"
-                completion = sections[2]
-            elif len(sections) == 5:
+            elif len(sections) == 4:
                 user_input = (
-                    f"{sections[0]}\n"
+                    f"Human:{sections[0]}\n"
                     f"Assistant: {sections[1]}"
-                    f"{sections[2]}\n"
+                    f"Human:{sections[2]}\n"
                 )
-                completion = sections[2]
+                completion = sections[3]
+            elif len(sections) == 6:
+                user_input = (
+                    f"Human:{sections[0]}\n"
+                    f"Assistant: {sections[1]}"
+                    f"Human:{sections[2]}\n"
+                    f"Assistant: {sections[3]}\n"
+                    f"Human:{sections[4]}\n"
+                )
+                completion = sections[5]
+            else:
+                continue
 
             conv = {
                 "user_input": user_input,
@@ -103,9 +130,15 @@ class AnthropicRLHF:
             }
             conversations.append(conv)
 
-        with open(f"{dataset_folder}/actor_dataset.json") as f:
+        with open(f"{dataset_folder}/actor_dataset.json", "w") as f:
             json.dump(conversations, f)
-        with open(f"{dataset_folder}/reward_dataset.json") as f:
+
+        # sample N number of index from 0 to len(conversations)
+        indexes = np.random.choice(
+            len(conversations), size=number_of_samples, replace=False
+        )
+        conversations = [conversations[i] for i in indexes]
+        with open(f"{dataset_folder}/reward_dataset.json", "w") as f:
             json.dump(conversations, f)
 
         # rlhf dataset
@@ -113,21 +146,46 @@ class AnthropicRLHF:
         for i, data in enumerate(self.dataset["train"]):
             current_conv = data["chosen"]
 
-            # ABA --> B
-            sections = current_conv.split("Assistant:")
-            user_input = f"{sections[0]}\n" f"Assistant: {sections[1]}"
-            conv = {
-                "user_input": user_input,
-            }
-            conversations.append(conv)
+            sections = re.split("Assistant:|User:", current_conv)
+            if len(sections) >= 2:
+                user_input = sections[0]
+                completion = sections[1]
+                conv = {
+                    "user_input": user_input,
+                    "completion": completion,
+                }
+                conversations.append(conv)
+            if len(sections) >= 4:
+                user_input = (
+                    f"Human:{sections[0]}\n"
+                    f"Assistant: {sections[1]}"
+                    f"Human:{sections[2]}\n"
+                )
+                completion = sections[3]
+                conv = {
+                    "user_input": user_input,
+                    "completion": completion,
+                }
+                conversations.append(conv)
+            if len(sections) == 6:
+                user_input = (
+                    f"Human:{sections[0]}\n"
+                    f"Assistant: {sections[1]}"
+                    f"Human:{sections[2]}\n"
+                    f"Assistant: {sections[3]}\n"
+                    f"Human:{sections[4]}\n"
+                )
+                completion = sections[5]
+                conv = {
+                    "user_input": user_input,
+                    "completion": completion,
+                }
+                conversations.append(conv)
 
-            # A --> B
-            sections = current_conv.split("Assistant:")
-            conv = {"user_input": sections[0]}
-            conversations.append(conv)
-
-        with open(f"{dataset_folder}/rlhf_dataset.json") as f:
+        with open(f"{dataset_folder}/rlhf_dataset.json", "w") as f:
             json.dump(conversations, f)
+
+        print("Generation Completed")
 
 
 if __name__ == "__main__":
@@ -149,15 +207,29 @@ if __name__ == "__main__":
         help="Specify the path for the dataset",
         default="./datasets",
     )
+    parser.add_argument(
+        "-n",
+        "--number_of_samples",
+        help="Specify the number of samples for the reward dataset",
+        default=200,
+    )
 
     args = parser.parse_args()
-    if os.path.exists(args.path):
+    if os.path.exists(args.path) is False:
         os.mkdir(args.path)
+
+    try:
+        n_samples = int(args.number_of_samples)
+    except ValueError:
+        raise ValueError("Number of samples should be an integer")
 
     if args.dataset_name == "SHP":
         dataset = StanfordNLPSHPDataset()
-        dataset.save_dataset(args.path)
+        dataset.save_dataset(args.path, n_samples)
 
     elif args.dataset_name == "ARLHF":
         dataset = AnthropicRLHF()
-        dataset.save_dataset(args.path)
+        dataset.save_dataset(
+            args.path,
+            n_samples,
+        )
