@@ -545,7 +545,7 @@ class DiffusersInstaller(BaseInstaller):
 
     @staticmethod
     def install_framework():
-        cmd = ["pip3", "install", "diffusers>=0.13.0"]
+        cmd = ["pip3", "install", "diffusers>=0.13.0, <=0.14.0"]
         subprocess.run(cmd)
 
         try:

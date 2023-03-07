@@ -5,7 +5,7 @@ then
   # Installation for centos type linux distribution
   # Try installation with pip if fails then install from source
   pip3 install --upgrade "setuptools<=65.7.0" pip
-  python3 -m pip install --upgrade  tensorrt
+  python3 -m pip install --upgrade  "tensorrt<=8.5.3.1"
   pip3 install colored polygraphy --extra-index-url https://pypi.ngc.nvidia.com
 
   if [[ $(python3 -c "import tensorrt; print(tensorrt.__version__); assert tensorrt.Builder(tensorrt.Logger())" || echo 1) == 1 ]]
@@ -22,7 +22,7 @@ then
 else
   # Try installation with pip if fails then install from source
   pip install --upgrade "setuptools<=65.7.0" pip
-  python3 -m pip install --upgrade tensorrt
+  python3 -m pip install --upgrade "tensorrt<=8.5.3.1"
   pip install colored polygraphy --extra-index-url https://pypi.ngc.nvidia.com
 
   if [[ $(python3 -c "import tensorrt; print(tensorrt.__version__); assert tensorrt.Builder(tensorrt.Logger())" || echo 1) == 1 ]]

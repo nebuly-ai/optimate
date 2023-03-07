@@ -3,9 +3,9 @@
 This section contains all the available notebooks that show how to leverage Speedster to optimize Diffusers models.
 
 ## Notebooks:
-| Notebook                                                                                                                                                                             | Description                                                                        |                                                                                                                                                                                                                                             |
-|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Accelerate Diffusers Stable Diffusion](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_StableDiffusion_with_Speedster.ipynb) | Show how to optimize with Speedster the Stable Diffusion models from Diffusers. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_StableDiffusion_with_Speedster.ipynb) |
+| Notebook                                                                                                                                                                | Description                                                                     |                                                                                                                                                                                                                                    |
+|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Accelerate Diffusers Stable Diffusion](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_Stable_Diffusion_with_Speedster.ipynb) | Show how to optimize with Speedster the Stable Diffusion models from Diffusers. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Accelerate_Stable_Diffusion_with_Speedster.ipynb) |
 
 ## Diffusers API quick view:
 
@@ -53,7 +53,7 @@ Official Source: https://github.com/NVIDIA/TensorRT/tree/main/demo/Diffusion
 
 If you want to optimise Stable Diffusion on Nvidia GPUs, you need to install and use the TensorRT Plugins for getting the maximum speed-up. In our experiments, they improved the speed of the model compared to the basic version of TensorRT by more than 60%. 
 
-The easiest option to use the plugins is to use the nebullvm docker image, where everything is preinstalled by default:
+The easiest option to use the plugins is to use the nebullvm docker image, where everything is preinstalled and activated by default:
 
 ```
 docker pull nebulydocker/nebullvm:latest
