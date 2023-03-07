@@ -8,6 +8,7 @@ nav:
   - Getting started:
     - PyTorch: getting_started/pytorch_getting_started.md
     - 🤗 HuggingFace: getting_started/hf_getting_started.md
+    - Stable Diffusion: getting_started/diffusers_getting_started.md
     - TensorFlow/Keras: getting_started/tf_getting_started.md
     - ONNX: getting_started/onnx_getting_started.md
   - Notebooks: notebooks.md
