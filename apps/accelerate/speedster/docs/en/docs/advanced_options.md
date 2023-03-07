@@ -13,6 +13,7 @@ In particular, we will overview:
 - [Selecting specific compilers/compressors](#select-specific-compilerscompressors)
 - [Using dynamic shape](#using-dynamic-shape)
 - [Enable TensorrtExecutionProvider for ONNXRuntime on GPU](#enable-tensorrtexecutionprovider-for-onnxruntime-on-gpu)
+- [Use TensorRT Plugins to boost Stable Diffusion optimization on GPU](#use-tensorrt-plugins-to-boost-stable-diffusion-optimization-on-gpu)
 - [Custom models](#custom-models)
 - [Store the performances of all the optimization techniques](#store-the-performances-of-all-the-optimization-techniques)
 - [Set number of threads](#set-number-of-threads)

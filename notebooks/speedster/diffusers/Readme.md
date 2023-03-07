@@ -59,7 +59,7 @@ The easiest option to use the plugins is to use the nebullvm docker image, where
 docker pull nebulydocker/nebullvm:latest
 ```
 
-If you prefer instead to setup your environment manually, you can follow the following guide:
+If you prefer instead to set up your environment manually, you can use the following guide (we also provide a [tutorial](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Build_TensorRT_Plugins_Tutorial.ipynb) to setup everything in colab):
 
 ### Step 1: Download and extract TensorRT tar
 Reference: https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html#installing-tar
@@ -68,13 +68,11 @@ Reference: https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.htm
 ```
 tar -xzvf TensorRT-8.5.3.1.Linux.x86_64-gnu.cuda-11.8.cudnn8.6.tar.gz
 ```
-- Add the absolute path to the TensorRT lib directory to the environment variable LD_LIBRARY_PATH:
+- Add the absolute path to the TensorRT lib directory to the environment variables PATH and LD_LIBRARY_PATH:
 ```
+export PATH=$PATH:<TRT_FOLDER_ABSOLUTE_PATH>/TensorRT-8.5.3.1/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<TRT_FOLDER_ABSOLUTE_PATH>/TensorRT-8.5.3.1/lib>
 ```
-
-:warning: It could be necessary to add this path also to the PATH env variable, if you have issues in the following steps run also `export PATH=$PATH:<TRT_FOLDER_ABSOLUTE_PATH>/TensorRT-8.5.3.1/lib>`
-
 
 ### Step 2: Clone the TensorRT repository
 ```
