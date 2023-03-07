@@ -27,6 +27,7 @@ class ScoreGenerator:
         # Customaize your own Reward template by changing the
         # prompt_template
         prompt_template = PromptTemplate(**reward_template)
+        print(prompt_template)
         self.llm = LLMChain(llm=openai_llm, prompt=prompt_template)
 
     def distill(
@@ -47,11 +48,13 @@ class ScoreGenerator:
         for i, data in enumerate(train_data):
             if data.get("score", None) is None:
 
-                print("Distilling data", i)
-                print("user_input:", data["user_input"])
-                print("completion:", data["completion"])
-                print("score:", data["score"])
-
+                user_input = data["user_input"]
+                completion = data["completion"]
+                print(
+                    f"#### Data {i}:\n"
+                    f"#### User_input:\n {user_input}\n"
+                    f"#### Completion:\n {completion}\n"
+                )
                 prompt_tokens = (
                     data["user_input"]
                     + data["completion"]
@@ -71,7 +74,6 @@ class ScoreGenerator:
                     completion=data["completion"],
                 ).strip()
                 # TODO: extract from score the float value with a regex
-                score = score.split(" ")[0]
                 try:
                     score = float(score)
                 except Exception:
@@ -81,7 +83,7 @@ class ScoreGenerator:
                     )
                     continue
                 data["score"] = score
-                print("score:", data["score"])
+                print(f"### Score: {score} \n\n")
         # save the dataset back
         print("Writing the updated dataset back to disk ... ")
         with open(dataset_path, "w") as f:
@@ -94,16 +96,15 @@ if __name__ == "__main__":
 
     REWARD_TEMPLATE = dict(
         template=(
-            "Lets pretend that you are a lawyer and you have to"
-            "evalaute the following completion task from a given"
-            "assigment with a score between 0 and 5 where 0 represents"
-            "a bad assignment completion and 5 a perfect completion.\n"
+            "You have to evaluate the following chat with a score"
+            "between 0 and 5"
             "You MUST evaluate: text quality, content quality and"
             "coherence.\n"
             "You MUST return only the number that represents your"
             "judgment.\n"
-            "The assignement is:\n{user_input}\n"
-            "The completion is:\n{completion}\n"
+            "The input of the user is: {user_input}\n"
+            "The output of the chatbot is: {completion}\n"
+            "The score is:\n"
         ),
         input_variables=["user_input", "completion"],
     )
@@ -125,13 +126,13 @@ if __name__ == "__main__":
         "-t",
         "--temperature",
         help="Specify the temperature of the score assignment",
-        default=0.1,
+        default=0.5,
     )
     parser.add_argument(
         "-k",
         "--max_tokens",
         help="Specify the max tokens of the score assignement",
-        default=50,
+        default=2048,
     )
     parser.add_argument(
         "-r",

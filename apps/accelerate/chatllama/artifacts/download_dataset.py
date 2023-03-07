@@ -53,7 +53,7 @@ class StanfordNLPSHPDataset:
             }
             conversations.append(conv)
 
-        with open(f"{dataset_folder}/actor_dataset.json", "w") as f:
+        with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
             json.dump(conversations, f)
 
         # sample N number of index from 0 to len(conversations)
@@ -61,7 +61,7 @@ class StanfordNLPSHPDataset:
             len(conversations), size=number_of_samples, replace=False
         )
         conversations = [conversations[i] for i in indexes]
-        with open(f"{dataset_folder}/reward_dataset.json", "w") as f:
+        with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
             json.dump(conversations, f)
 
         # use the validation part for the rlhf training
@@ -72,7 +72,7 @@ class StanfordNLPSHPDataset:
             }
             conversations.append(conv)
 
-        with open(f"{dataset_folder}/rlhf_dataset.json", "w") as f:
+        with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
             json.dump(conversations, f)
 
         print("Generation Completed")
@@ -130,7 +130,7 @@ class AnthropicRLHF:
             }
             conversations.append(conv)
 
-        with open(f"{dataset_folder}/actor_dataset.json", "w") as f:
+        with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
             json.dump(conversations, f)
 
         # sample N number of index from 0 to len(conversations)
@@ -138,7 +138,7 @@ class AnthropicRLHF:
             len(conversations), size=number_of_samples, replace=False
         )
         conversations = [conversations[i] for i in indexes]
-        with open(f"{dataset_folder}/reward_dataset.json", "w") as f:
+        with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
             json.dump(conversations, f)
 
         # rlhf dataset
@@ -182,7 +182,7 @@ class AnthropicRLHF:
                 }
                 conversations.append(conv)
 
-        with open(f"{dataset_folder}/rlhf_dataset.json", "w") as f:
+        with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
             json.dump(conversations, f)
 
         print("Generation Completed")

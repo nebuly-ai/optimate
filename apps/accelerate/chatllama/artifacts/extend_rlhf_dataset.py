@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 def _get_template_and_variables(prompt: str, with_examples: bool):
     if with_examples:
-        template = prompt + "\n\n{example}"
+        template = prompt + "\n\nExample: {example}"
         variables = ["example"]
     else:
         template = prompt
@@ -70,7 +70,12 @@ def main():
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
-    parser.add_argument("--model", type=str, help="Model name.")
+    parser.add_argument(
+        "--model",
+        type=str,
+        help="Model name.",
+        default="google/flan-t5-xl",
+    )
     parser.add_argument("--templates", type=str, help="Path to templates.")
     parser.add_argument("--num_prompts", type=int, default=1000)
     parser.add_argument(
@@ -87,7 +92,7 @@ def main():
 
     with open(templates_path, "r") as f:
         templates = json.load(f)
-    user_prompt = templates.get("rlhs")
+    user_prompt = templates.get("rlhf")
     if user_prompt is None:
         raise ValueError("No rlhs template found.")
 
@@ -106,6 +111,7 @@ def main():
         example = np.random.choice(examples)
         new_example = chain.run(example=example)
         examples.append(new_example)
+        print(len(examples))
 
     with open(os.path.join(data_dir, "rlhf_training_data.json"), "w") as f:
         json.dump(examples, f)
