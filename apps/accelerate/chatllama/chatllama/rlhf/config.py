@@ -46,6 +46,7 @@ class ConfigReward:
             training. Default to False.
         deepspeed_config_path (str): Path to the deepspeed config file.
             Default to None.
+        accelerate_enable (bool): Enable accelerate for the reward model
         debug (bool): enable prints for Debugging
     """
 
@@ -65,8 +66,12 @@ class ConfigReward:
     llm_max_tokens: Optional[int] = 64
     deepspeed_enable: bool = False
     deepspeed_config_path: Optional[str] = None
+    accelerate_enable: bool = False
 
     debug: bool = False
+
+
+ConfigCritic = ConfigReward
 
 
 @dataclass
@@ -96,6 +101,7 @@ class ConfigActor:
             Default to False.
         deepspeed_config_path (str): Path to the deepspeed config file.
             Default to None.
+        accelerate_enable (bool): Enable accelerate for the actor
         device (torch.device): Device to be used for the actor
         debug (bool): Enable prints for debugging
     """
@@ -118,6 +124,8 @@ class ConfigActor:
 
     deepspeed_enable: bool
     deepspeed_config_path: Optional[str]
+
+    accelerate_enable: bool = False
 
     device: torch.device
     debug: bool = False
@@ -243,7 +251,7 @@ class Config:
         # Critic Config
         critic_dict["device"] = device
         critic_dict["debug"] = debug
-        self.critic = ConfigReward(**critic_dict)
+        self.critic = ConfigCritic(**critic_dict)
         # Reward Config
         reward_dict["device"] = device
         reward_dict["debug"] = debug

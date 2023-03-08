@@ -51,11 +51,13 @@ actor_config:
   # deepspeed settings
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
+  # accelerate settings
+  accelerate_enable: False
 
 reward_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
   # more can be simply added in the reward.py __init__()
-  model: "gpt2-large"
+  model: "EleutherAI/gpt-neo-1.3B"
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
   model_folder: "./models"
@@ -68,6 +70,8 @@ reward_config:
   # deepspeed settings
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
+  # accelerate settings
+  accelerate_enable: False
 
 critic_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
@@ -79,3 +83,5 @@ critic_config:
   # deepspeed settings
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
+  # accelerate settings
+  accelerate_enable: False
