@@ -1,6 +1,6 @@
 from langchain import OpenAI, LLMChain, PromptTemplate
 from langchain.chains.conversation.memory import (
-    ConversationalBufferWindowMemory,
+    ConversationBufferWindowMemory,
 )
 
 from chatllama.langchain_modules.prompt_templates import (
