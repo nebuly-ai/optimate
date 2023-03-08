@@ -1,0 +1,12 @@
+[
+    {
+        "user_input": "here type the user input",
+        "completion": "here type the completion",
+        "score": 4.0
+    },
+    {
+        "user_input": "here type the user input",
+        "completion": "if score is null, it can be evaluated by davinci using reward_trainer.distill()",
+        "score": null 
+    }
+]
