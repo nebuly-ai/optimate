@@ -5,6 +5,7 @@ from collections import deque, namedtuple
 
 import deepspeed
 import torch
+from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Deque, Tuple, List
 from einops import rearrange
@@ -272,10 +273,10 @@ class RLTrainer:
 
         # initialize agent-critic
         self.actorcritic = ActorCritic(config.actor, config.critic)
-        self.actor_optim = torch.optim.Adam(
+        self.actor_optimizer = torch.optim.Adam(
             self.actorcritic.actor.parameters(), lr=config.trainer.actor_lr
         )
-        self.critic_optim = torch.optim.Adam(
+        self.critic_optimizier = torch.optim.Adam(
             self.actorcritic.critic.parameters(), lr=config.trainer.critic_lr
         )
 
@@ -314,8 +315,8 @@ class RLTrainer:
                 "episode": current_episode,
                 "actor_state_dict": self.actorcritic.actor.state_dict(),
                 "critic_state_dict": self.actorcritic.critic.state_dict(),
-                "actor_optim_state_dict": self.actor_optim.state_dict(),
-                "critic_optim_state_dict": self.critic_optim.state_dict(),
+                "actor_optim_state_dict": self.actor_optimizer.state_dict(),
+                "critic_optim_state_dict": self.critic_optimizier.state_dict(),
                 "training_stats": self.training_stats,
             },
             path,
@@ -347,8 +348,10 @@ class RLTrainer:
         self.actorcritic.critic.load_state_dict(
             checkpoint["critic_state_dict"]
         )
-        self.actor_optim.load_state_dict(checkpoint["actor_optim_state_dict"])
-        self.critic_optim.load_state_dict(
+        self.actor_optimizer.load_state_dict(
+            checkpoint["actor_optim_state_dict"]
+        )
+        self.critic_optimizier.load_state_dict(
             checkpoint["critic_optim_state_dict"]
         )
         self.trainign_stats = checkpoint["training_stats"]
@@ -406,7 +409,6 @@ class RLTrainer:
                 config=self.config.actor.deepspeed_config_path,
             )
             self.actorcritic.actor = actor_model_engine
-
         # initialize deepspeed for critic
         if self.config.critic.deepspeed_enable:
             if self.config.critic.deepspeed_config_path is None:
@@ -424,7 +426,7 @@ class RLTrainer:
                 )
             (
                 critic_model_engine,
-                critic_optimizer,
+                self.critic_optimizer,
                 _,
                 _,
             ) = deepspeed.initialize(
@@ -434,6 +436,32 @@ class RLTrainer:
                 config=self.config.critic.deepspeed_config_path,
             )
             self.actorcritic.critic = critic_model_engine
+
+        # initialize actor accelerate
+        if self.config.actor.accelerate_enable is True:
+            self.actor_accelerator = Accelerator()
+            (
+                actor_model,
+                self.actor_optimizer,
+                dataloader,
+                _,
+            ) = self.actor_accelerator.prepare(
+                self.actorcritic.actor, self.actor_optimizer, dataloader
+            )
+            self.actorcritic.actor = actor_model
+        # initialize critic accelerate
+        if self.config.critic.accelerate_enable is True:
+            self.critic_accelerator = Accelerator()
+            (
+                critic_model,
+                self.critic_optimizer,
+                _,
+                _,
+            ) = self.critic_accelerator.prepare(
+                self.actorcritic.critic,
+                self.critic_optimizer,
+            )
+            self.actorcritic.critic = critic_model
 
         # train agent-critic
         self.actorcritic.train()
@@ -533,10 +561,14 @@ class RLTrainer:
                 if self.config.actor.deepspeed_enable:
                     actor_model_engine.backward(loss)
                     actor_model_engine.step()
+                elif self.config.actor.accelerate_enable:
+                    self.actor_optimizer.zero_grad()
+                    self.actor_accelerator.backward(loss)
+                    self.actor_optimizer.step()
                 else:
-                    self.actor_optim.zero_grad()
+                    self.actor_optimizer.zero_grad()
                     loss.backward()
-                    self.actor_optim.step()
+                    self.actor_optimizer.step()
 
                 torch.cuda.synchronize(device)
 
@@ -555,10 +587,14 @@ class RLTrainer:
                 if self.config.critic.deepspeed_enable:
                     critic_model_engine.backward(value_loss)
                     critic_model_engine.step()
+                elif self.config.critic.accelerate_enable:
+                    self.critic_optimizer.zero_grad()
+                    self.critic_accelerator.backward(loss)
+                    self.critic_optimizer.step()
                 else:
-                    self.critic_optim.zero_grad()
+                    self.critic_optimizier.zero_grad()
                     value_loss.backward()
-                    self.critic_optim.step()
+                    self.critic_optimizier.step()
 
                 self.training_stats.training_loss.append(
                     loss.detach().cpu().item()

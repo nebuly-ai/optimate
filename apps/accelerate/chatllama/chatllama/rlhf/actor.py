@@ -3,6 +3,7 @@ import os
 
 import deepspeed
 import torch
+from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Optional, Tuple
 from einops import rearrange
@@ -329,6 +330,20 @@ class ActorTrainer:
                 config=self.config.deepspeed_config_path,
             )
 
+        # initialize accelerate
+        if config.accelerate_enable is True:
+            self.accelerator = Accelerator()
+            (
+                self.model,
+                self.optimizer,
+                self.train_dataloader,
+                _,
+            ) = self.accelerator.prepare(
+                self.model,
+                self.optimizer,
+                self.train_dataloader,
+            )
+
     def train(
         self,
     ) -> None:
@@ -380,6 +395,10 @@ class ActorTrainer:
                 if self.config.deepspeed_enable:
                     self.model_engine.backward(loss)
                     self.model_engine.step()
+                elif self.config.accelerate_enable:
+                    self.optimizer.zero_grad()
+                    self.accelerator.backward(loss)
+                    self.optimizer.step()
                 else:
                     self.optimizer.zero_grad()
                     loss.backward()
