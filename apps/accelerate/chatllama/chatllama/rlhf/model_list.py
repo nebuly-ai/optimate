@@ -8,6 +8,7 @@ hf_models_seq_2_seq = [
     "google/flan-t5-xl",
     "google/flan-t5-large",
     "google/flan-t5-base",
+    "google/flan-t5-small",
 ]
 
 # decoder only TODO: codegen is still broken
