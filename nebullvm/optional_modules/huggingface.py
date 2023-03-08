@@ -1,3 +1,5 @@
+from nebullvm.optional_modules.dummy import DummyClass
+
 try:
     from transformers import (
         PreTrainedModel,
@@ -6,6 +8,6 @@ try:
     from transformers.tokenization_utils import PreTrainedTokenizer
 except ImportError:
     # add placeholders for function definition
-    PreTrainedModel = None
-    CLIPTextModel = None
-    PreTrainedTokenizer = None
+    PreTrainedModel = DummyClass
+    CLIPTextModel = DummyClass
+    PreTrainedTokenizer = DummyClass

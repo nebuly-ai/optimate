@@ -1,3 +1,5 @@
+from nebullvm.optional_modules.dummy import DummyClass
+
 try:
     import torch  # noqa F401
     from torch.nn import Module  # noqa F401
@@ -14,19 +16,13 @@ try:
     from torch.quantization import default_dynamic_qconfig
 except ImportError:
 
-    class Tensor:
-        pass
-
-    class Module:
-        pass
-
     class nn:
-        Module = Module
+        Module = DummyClass
 
     class torch:
         float = half = int8 = None
-        Tensor = Tensor
-        dtype = None
+        Tensor = DummyClass
+        dtype = DummyClass
         nn = nn
 
         @staticmethod
@@ -37,15 +33,11 @@ except ImportError:
         def inference_mode():
             return lambda x: None
 
-    class ScriptModule:
-        pass
-
-    class GraphModule:
-        pass
-
-    Dataset = object
-    DataLoader = type(None)
+    Dataset = DummyClass
+    Module = DummyClass
+    ScriptModule = DummyClass
+    GraphModule = DummyClass
+    DataLoader = DummyClass
     symbolic_trace = None
-    QuantStub = (
-        DeQuantStub
-    ) = default_dynamic_qconfig = prepare_fx = convert_fx = None
+    QuantStub = DeQuantStub = DummyClass
+    default_dynamic_qconfig = prepare_fx = convert_fx = None
