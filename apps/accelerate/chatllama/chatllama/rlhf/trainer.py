@@ -300,6 +300,19 @@ class RLTrainer:
         if not os.path.exists(self.config.trainer.checkpoint_folder):
             os.mkdir(self.config.trainer.checkpoint_folder)
 
+        # consistency check
+        if config.actor.accelerate_enable and config.actor.deepspeed_enable:
+            raise ValueError(
+                "Both DeepSpeed and Accelerate are enabled for the Actor."
+                "Please choose one of them."
+            )
+        # consistency check
+        if config.critic.accelerate_enable and config.critic.deepspeed_enable:
+            raise ValueError(
+                "Both DeepSpeed and Accelerate are enabled for the Critic."
+                "Please choose one of them."
+            )
+
     def save_checkpoint(
         self,
         current_episode: int,

@@ -305,6 +305,13 @@ class ActorTrainer:
                 self.eval_dataset, batch_size=config.batch_size
             )
 
+        # consistency check
+        if config.accelerate_enable and config.deepspeed_enable:
+            raise ValueError(
+                "Both DeepSpeed and Accelerate are enabled for the Actor."
+                "Please choose one of them."
+            )
+
         # initialize deepspeed
         self.model_engine = None
         if config.deepspeed_enable is True:

@@ -20,8 +20,6 @@ from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.utils import TrainingStats
 
-# TODO: Remove distillation from here
-
 
 class RewardModel(torch.nn.Module):
     """Model to be trained to predict the reward for RL.
@@ -290,6 +288,13 @@ class RewardTrainer:
             self.eval_dataset = RewardDataset(config.validation_dataset_path)
             self.validation_dataloader = DataLoader(
                 self.eval_dataset, batch_size=config.batch_size
+            )
+
+        # consistency check
+        if config.accelerate_enable and config.deepspeed_enable:
+            raise ValueError(
+                "Both DeepSpeed and Accelerate are enabled for the Reward."
+                "Please choose one of them."
             )
 
         # initialize deepspeed
