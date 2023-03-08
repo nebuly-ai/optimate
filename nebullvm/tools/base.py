@@ -47,6 +47,7 @@ class DataType(str, Enum):
             framework = "tensorflow"
         else:
             framework = "numpy"
+            dtype = dtype.type
         return FRAMEWORK_TO_DATA_TYPE_CONVERSION_DICT[framework][dtype]
 
     def to_torch_format(self):
