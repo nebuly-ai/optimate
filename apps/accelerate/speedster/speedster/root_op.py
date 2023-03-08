@@ -486,9 +486,8 @@ class SpeedsterRootOp(Operation):
                         f"{orig_latency / optimized_models[0][1]:.2f}x. "
                         f"If you want to get a faster optimized model, "
                         f"see the following link for some suggestions: "
-                        f"https://docs.nebuly.com/modules/speedster/getting-"
-                        f"started/run-the-optimization#acceleration-sugges"
-                        f"tions\n"
+                        f"https://docs.nebuly.com/Speedster/advanced_"
+                        f"options/#acceleration-suggestions\n"
                     )
 
                 self.logger.remove(handler_id)
@@ -535,10 +534,13 @@ class SpeedsterRootOp(Operation):
             model_outputs = self.orig_latency_measure_op.get_result()[0]
             if isinstance(model, torch.nn.Module):
                 optimization_op = self.torch_optimization_op
+                self.logger.info("> Running PyTorch Optimization Pipeline")
             elif isinstance(model, tf.Module) and model is not None:
                 optimization_op = self.tensorflow_optimization_op
+                self.logger.info("> Running TensorFlow Optimization Pipeline")
             else:
                 optimization_op = self.onnx_optimization_op
+                self.logger.info("> Running ONNX Optimization Pipeline")
 
             optimization_op.to(self.device).execute(
                 model=model,
