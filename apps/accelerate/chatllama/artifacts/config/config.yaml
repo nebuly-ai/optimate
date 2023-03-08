@@ -11,16 +11,16 @@ trainer_config:
   examples_path: "./datasets/rlhf_training_data.json"
   # number of episodes and generation performed for each episode
   # in the train() method
-  num_episodes: 1
-  max_timesteps: 1
+  num_episodes: 100
+  max_timesteps: 32
   # number of timesteps after which the learn() method is called 
   # (to update the weights)
-  update_timesteps: 1
+  update_timesteps: 32
   # number of example sampled at each timestep
-  num_examples: 1
+  num_examples: 32
   # batch and epochs for the training
   batch_size: 1
-  epochs: 2
+  epochs: 1
   # number of learning steps (i.e. learn()) after which a checkpoint is saved
   update_checkpoint: 8
   checkpoint_folder: "./models/checkpoints"
