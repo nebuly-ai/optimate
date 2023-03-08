@@ -595,29 +595,40 @@ def load_model(
     max_batch_size: int = 32,
 ) -> Tuple[Transformer, HFLikeTokenizer]:
 
+    checkpoint, params = load_checkpoints(ckpt_dir, local_rank, world_size)
+    model_args: ModelArgs = ModelArgs(
+        max_seq_len=1024, max_batch_size=max_batch_size, **params
+    )
+    model_args.froze_embeddings = froze_embeddings
+    model_args.use_fairscale = use_fairscale
+    tokenizer = Tokenizer(model_path=tokenizer_path)
+    model_args.vocab_size = tokenizer.n_words
+    torch.set_default_tensor_type(torch.cuda.HalfTensor)
+    model = Transformer(model_args)
+    torch.set_default_tensor_type(torch.FloatTensor)
+    model.load_state_dict(checkpoint, strict=False)
+    tokenizer = HFLikeTokenizer(tokenizer)
+
+    return model, tokenizer
+
+
+def load_model_test(
+    ckpt_dir: str,
+    tokenizer_path: str,
+    local_rank: int,
+    world_size: int,
+    froze_embeddings: bool,
+    use_fairscale: bool,
+    max_batch_size: int = 32,
+) -> Tuple[Transformer, HFLikeTokenizer]:
+
     # test the model with hf tokenizer
-    test = True
-    if not test:
-        checkpoint, params = load_checkpoints(ckpt_dir, local_rank, world_size)
-        model_args: ModelArgs = ModelArgs(
-            max_seq_len=1024, max_batch_size=max_batch_size, **params
-        )
-        model_args.froze_embeddings = froze_embeddings
-        model_args.use_fairscale = use_fairscale
-        tokenizer = Tokenizer(model_path=tokenizer_path)
-        model_args.vocab_size = tokenizer.n_words
-        torch.set_default_tensor_type(torch.cuda.HalfTensor)
-        model = Transformer(model_args)
-        torch.set_default_tensor_type(torch.FloatTensor)
-        model.load_state_dict(checkpoint, strict=False)
-        tokenizer = HFLikeTokenizer(tokenizer)
-    else:
-        model_args = ModelArgs()
-        model_args.froze_embeddings = froze_embeddings
-        model_args.use_fairscale = use_fairscale
-        tokenizer = MyTokenizer(model_path=tokenizer_path)
-        model_args.vocab_size = tokenizer.n_words
-        model = Transformer(model_args).cuda()
-        tokenizer = HFLikeTokenizer(tokenizer)
+    model_args = ModelArgs()
+    model_args.froze_embeddings = froze_embeddings
+    model_args.use_fairscale = use_fairscale
+    tokenizer = MyTokenizer(model_path=tokenizer_path)
+    model_args.vocab_size = tokenizer.n_words
+    model = Transformer(model_args).cuda()
+    tokenizer = HFLikeTokenizer(tokenizer)
 
     return model, tokenizer

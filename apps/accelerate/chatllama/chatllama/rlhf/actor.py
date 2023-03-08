@@ -44,6 +44,7 @@ class ActorModel(torch.nn.Module):
         # load the model
 
         if config.model in llama_models:
+            # use load_model_test for testing
             self.model, self.tokenizer = load_model(
                 ckpt_dir=config.model_path,
                 tokenizer_path=config.tokenizer_folder,
