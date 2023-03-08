@@ -37,15 +37,19 @@ def get_output_info_torch(
         torch_model.to(device.to_torch_format())
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
-        if isinstance(outputs, torch.FloatTensor):
-            return [(tuple(outputs.size()), DataType.FLOAT32)]
-        elif isinstance(outputs, torch.HalfTensor):
-            return [(tuple(outputs.size()), DataType.FLOAT16)]
+        if isinstance(outputs, torch.Tensor):
+            return [
+                (
+                    tuple(outputs.size()),
+                    DataType.from_framework_format(outputs.dtype),
+                )
+            ]
         else:
             return [
-                (tuple(output.size()), DataType.FLOAT32)
-                if isinstance(output, torch.FloatTensor)
-                else (tuple(output.size()), DataType.FLOAT16)
+                (
+                    tuple(output.size()),
+                    DataType.from_framework_format(output.dtype),
+                )
                 for output in outputs
             ]
 

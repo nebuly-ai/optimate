@@ -150,9 +150,7 @@ def get_output_info_onnx(
 ) -> List[Tuple[Tuple[int, ...], DataType]]:
     res = run_onnx_model(onnx_model, input_tensors, device)
     sizes = [
-        (tuple(output.shape), DataType.FLOAT16)
-        if output.dtype is np.float16
-        else (tuple(output.shape), DataType.FLOAT32)
+        (tuple(output.shape), DataType.from_framework_format(output.dtype))
         for output in res
     ]
     return sizes

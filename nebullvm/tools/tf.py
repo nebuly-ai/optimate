@@ -15,14 +15,14 @@ def get_output_info_tf(
     with tf.device(device.to_tf_format()):
         outputs = tf_model(input_tensors)
     if isinstance(outputs, tf.Tensor) and outputs is not None:
-        if outputs.dtype is tf.float16:
-            return [(tuple(outputs.shape), DataType.FLOAT16)]
-        else:
-            return [(tuple(outputs.shape), DataType.FLOAT32)]
+        return [
+            (
+                tuple(outputs.shape),
+                DataType.from_framework_format(outputs.dtype),
+            )
+        ]
     return [
-        (tuple(x.shape), DataType.FLOAT16)
-        if x.dtype is tf.float16
-        else (tuple(x.shape), DataType.FLOAT32)
+        (tuple(x.shape), DataType.from_framework_format(x.dtype))
         for x in outputs
     ]
 
