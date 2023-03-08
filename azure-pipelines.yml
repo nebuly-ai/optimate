@@ -1,5 +1,13 @@
 trigger:
-  - main
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - .github/*
+      - docs/**
+      - README.md
+      - notebooks/*
 
 pool:
   name: gpu-t4-pool
