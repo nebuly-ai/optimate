@@ -70,8 +70,6 @@ class ConversationLog:
         model_output: str,
         reward: float,
         learn_counter: int,
-        previous_reward: float,
-        previous_completion: str,
     ):
         """Add a conversation to the log
 
@@ -81,11 +79,7 @@ class ConversationLog:
             reward (float): Reward of the reward model assigned to the output
             learn_counter (int): Number of the learning iteration to
                 distinguish the conversations that happens at different
-                points of the training loop
-            previous_reward (float): Reward of the reward model assigned to
-                the output of original dataset
-            previous_completion (str): Completion of the LLM model of the
-                original dataset
+                points of the training loopt
         """
         self.conversation.append(
             {
@@ -93,8 +87,6 @@ class ConversationLog:
                 "model_output": model_output,
                 "reward": reward,
                 "learn_counter": learn_counter,
-                "previous_reward": previous_reward,
-                "previous_completion": previous_completion,
             }
         )
 
@@ -127,7 +119,6 @@ class ConversationLog:
                     f"## User Input:\n\n{c['user_input']}\n\n"
                     f"## Model Output:\n\n{c['model_output']}\n\n"
                     f"## Reward: {c['reward']}\n\n"
-                    f"## Previous Reward: {c['previous_reward']}\n\n"
                 )
             else:
                 if current_iteration == c["learn_counter"]:
@@ -139,5 +130,4 @@ class ConversationLog:
                         f"## User Input:\n\n{c['user_input']}\n\n"
                         f"## Model Output:\n\n{c['model_output']}\n\n"
                         f"## Reward: {c['reward']}\n\n"
-                        f"## Previous Reward: {c['previous_reward']}\n\n"
                     )

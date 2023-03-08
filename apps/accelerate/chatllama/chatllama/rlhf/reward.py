@@ -6,14 +6,20 @@ import torch
 from beartype import beartype
 from beartype.typing import Optional, Iterable
 from einops.layers.torch import Rearrange
-from langchain import OpenAI, LLMChain, PromptTemplate
 from torch.utils.data import Dataset, DataLoader
-from transformers import GPT2Tokenizer, GPT2Model, BartModel
-from transformers import BartTokenizer, BartConfig, AutoModel, AutoTokenizer
+from transformers import BartModel
+from transformers import (
+    BartTokenizer,
+    BartConfig,
+    AutoModel,
+    AutoTokenizer,
+)
 
-from chatllama.langchain_modules.prompt_templates import REWARD_TEMPLATE
-from config import ConfigReward
-from utils import TrainingStats
+from chatllama.rlhf.config import ConfigReward
+from chatllama.rlhf.model_list import hf_models
+from chatllama.rlhf.utils import TrainingStats
+
+# TODO: Remove distillation from here
 
 
 class RewardModel(torch.nn.Module):
@@ -38,15 +44,13 @@ class RewardModel(torch.nn.Module):
         super().__init__()
         # load the model -- add here other models
         head_hidden_size = config.model_head_hidden_size
-        if config.model == "gpt2-large":
-            self.max_model_tokens = 1024
-            self.model = GPT2Model.from_pretrained("gpt2-large")
-            self.tokenizer = GPT2Tokenizer.from_pretrained(
-                "gpt2-large",
+        if config.model in hf_models:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                config.model,
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
+            self.model = AutoModel.from_pretrained("gpt2-large")
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.head = torch.nn.Sequential(
                 torch.nn.Linear(self.model.config.n_embd, head_hidden_size),
@@ -55,7 +59,6 @@ class RewardModel(torch.nn.Module):
                 Rearrange("... 1 -> ..."),
             )
         elif config.model == "bart-base":
-            self.max_model_tokens = 1024
             bart_config = BartConfig.from_pretrained("facebook/bart-base")
             bart_config.max_position_embeddings = 2048 + 1024
             self.model = BartModel(bart_config)
@@ -63,7 +66,6 @@ class RewardModel(torch.nn.Module):
                 "facebook/bart-large",
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.head = torch.nn.Sequential(
@@ -73,7 +75,6 @@ class RewardModel(torch.nn.Module):
                 Rearrange("... 1 -> ..."),
             )
         elif config.model == "longformer-base-4096":
-            self.max_model_tokens = 4096
             self.model = AutoModel.from_pretrained(
                 "allenai/longformer-base-4096"
             )
@@ -81,7 +82,6 @@ class RewardModel(torch.nn.Module):
                 "allenai/longformer-base-4096",
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
             self.tokenizer.eos_token = self.tokenizer.pad_token
             self.head = torch.nn.Sequential(
@@ -156,6 +156,7 @@ class RewardModel(torch.nn.Module):
             output_sequence_mask (torch.Tensor): Mask for the attention
         """
         rewards = self.forward(output_sequence, output_sequence_mask)
+        print("rewards shape", rewards.shape)
         return rewards[:, -1]
 
     @beartype
@@ -174,11 +175,11 @@ class RewardModel(torch.nn.Module):
                     f"and returning without loading the model:\n{path}"
                 )
                 return
-        # load the model and the tokenizer
+        # load the model
         if os.path.exists(path) is False:
             print(
-                f"Impossible to load the model:\n{path}\n"
-                f"The path doesn't exist."
+                f"Warning, Impossible to load the model:\n{path}\n"
+                f"No previous checkpoint found."
             )
             return
         model_dict = torch.load(path)
@@ -233,7 +234,8 @@ class RewardDataset(Dataset):
     def __getitem__(self, idx: int):
         user_input = self.data[idx]["user_input"]
         completion = self.data[idx]["completion"]
-        item = tuple([user_input, completion])
+        score = float(self.data[idx]["score"])
+        item = (user_input + " " + completion, score)
         return item
 
     def __len__(
@@ -289,15 +291,6 @@ class RewardTrainer:
                 self.eval_dataset, batch_size=config.batch_size
             )
 
-        # initialize LLM and LangChain
-        openai_llm = OpenAI(
-            model_name=self.config.llm_model,
-            temperature=self.config.llm_temperature,
-            max_tokens=self.config.llm_max_tokens,
-        )
-        prompt_template = PromptTemplate(**REWARD_TEMPLATE)
-        self.llm = LLMChain(llm=openai_llm, prompt=prompt_template)
-
         # initialize deepspeed
         self.model_engine = None
         if config.deepspeed_enable is True:
@@ -314,7 +307,7 @@ class RewardTrainer:
             (
                 self.model_engine,
                 self.optimizer,
-                train_dataloader,
+                self.train_dataloader,
                 _,
             ) = deepspeed.initialize(
                 args=None,
@@ -323,51 +316,6 @@ class RewardTrainer:
                 training_data=self.train_dataloader,
                 config=self.config.deepspeed_config_path,
             )
-
-    def distill(
-        self,
-    ):
-        """Parse the dataset and assign scores using LLMs
-        then save back the dataset with the uploaded scores
-        """
-        # load the dataset
-        with open(self.config.train_dataset_path, "r") as f:
-            train_data = json.load(f)
-        # for each element of the dataset, assing a score.
-        for i, data in enumerate(train_data):
-            if data.get("score", None) is None:
-                prompt_tokens = (
-                    data["user_input"]
-                    + data["completion"]
-                    + self.llm.prompt.template
-                )
-                prompt_len = int(len(prompt_tokens.split(" ")) / 0.75)
-                # 80% of the max length as safety margin
-                if prompt_len > self.config.llm_max_tokens * 0.8:
-                    print(
-                        f"The prompt of the data {i} is too long\n"
-                        f"tokens: {prompt_len}\n"
-                        f"max_tokens: {self.config.llm_max_tokens * 0.8}"
-                    )
-                    continue
-                score = self.llm.run(
-                    user_input=data["user_input"],
-                    completion=data["completion"],
-                ).strip()
-                # TODO extract from score the float value with a regex
-                score = score.split(" ")[0]
-                try:
-                    score = float(score)
-                except Exception:
-                    print(
-                        f"The score returned by the LLM for the"
-                        f"data, {i}, is not a float float:\n{score}"
-                    )
-                    continue
-                data["score"] = score
-        # save the dataset back
-        with open(self.config.train_dataset_path, "w") as f:
-            json.dump(train_data, f)
 
     def train(
         self,
@@ -387,29 +335,39 @@ class RewardTrainer:
         for epoch in range(epochs):
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
+                input_text = inputs[0]
+                score = inputs[1]
 
-                input_text = inputs["user_input"] + inputs["completion"]
                 # tokenizer (placed here instead of dataset class)
                 input_tokens = self.model.tokenizer(
                     input_text, padding=True, truncation=True
                 )
 
-                score = None  # TODO: load the score
-
                 # TODO: check on the length of the input tokens if they are
                 # too many it can create problems
-                output = torch.tensor(score, dtype=torch.float32).to(device)
+                output = torch.as_tensor(
+                    score, dtype=torch.float32, device=device
+                )
 
                 # forward pass
                 if self.config.deepspeed_enable:
                     est_output = self.model_engine(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
+                        torch.as_tensor(
+                            input_tokens["input_ids"], device=device
+                        ),
+                        torch.as_tensor(
+                            input_tokens["attention_mask"], device=device
+                        ),
                     )[:, -1]
                 else:
                     est_output = self.model.get_reward(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
+                        torch.as_tensor(
+                            input_tokens["input_ids"], device=device
+                        ),
+                        torch.as_tensor(
+                            input_tokens["attention_mask"],
+                            device=device,
+                        ),
                     )
 
                 loss = self.loss_function(est_output, output)
@@ -464,4 +422,5 @@ class RewardTrainer:
                             f"Iteration: {i+1}/{n_iter}, "
                             f"Validation Loss: {loss.item()}"
                         )
+        print("Saving the model...")
         self.model.save()

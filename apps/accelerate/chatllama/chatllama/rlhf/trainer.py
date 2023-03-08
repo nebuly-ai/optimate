@@ -3,16 +3,50 @@ import os
 import random
 from collections import deque, namedtuple
 
+import deepspeed
 import torch
 from beartype import beartype
 from beartype.typing import Deque, Tuple, List
 from einops import rearrange
 from torch.utils.data import Dataset, DataLoader
 
-from actor import ActorModel
-from reward import RewardModel, CriticModel
-from config import ConfigReward, ConfigActor, Config
-from utils import TrainingStats, ConversationLog
+from chatllama.rlhf.actor import ActorModel
+from chatllama.rlhf.config import ConfigReward, ConfigActor, Config
+from chatllama.rlhf.reward import RewardModel, CriticModel
+from chatllama.rlhf.utils import TrainingStats, ConversationLog
+
+
+"""
+train()
+┌─────────────────────────────┐
+│                             │◄─────────────────────────┐
+│                             │                          │
+│      ┌─────────────┐        │                          │
+│      │ user input  │        │                          │ learn()
+│      └─────┬───────┘        │             ┌────────────┴─────────────┐
+│            │                │             │                          │
+│            │                │             │       ┌────────┐         │
+│            │                │             │   ┌───│ Update │──┐      │
+│            │                │             │   │   └────▲───┘  │      │
+│   ┌────────▼────────────┐   │             │   │        │      │      │
+│   │  Actor (LLM Model)  │   │             │   │     ┌──┴───┐  │      │
+│   └────────┬────────────┘   │             │   │     │ PPO  │  │      │
+│            │                │             │   │     └▲────▲┘  │      │
+│            │                │             │   │      │    │   │      │
+│            │                │             │   │      │    │   │      │
+│    ┌───────▼──────┐         │             │ ┌─▼──────┴┐ ┌─┴───▼──┐   │
+│    │ Reward Model │         │             │ │  Actor  │ │ Critic │   │
+│    └──────────────┘         │             │ └─────────┘ └────────┘   │
+│                             │             │                          │
+│                             │ x Episodes  └─────────────▲────────────┘
+└───────────────┬─────────────┘                           │   x Epochs
+                │ store N Examples per Timestep           │  
+         ┌──────▼──────┐                                  │
+         │             │                                  │
+         │  Memories   ├──────────────────────────────────┘
+         │             │ (update timesteps x N Examples)
+         └─────────────┘
+"""  # noqa W291
 
 
 class ActorCritic(torch.nn.Module):
@@ -109,6 +143,7 @@ class ActorCritic(torch.nn.Module):
         # generate action sequence
         actions, sequence = self.actor.generate(states, state_mask)
         sequences_mask = sequence != self.actor.tokenizer.pad_token_id
+        sequences_mask = sequences_mask.to(sequence.device).long().detach()
         action_len = actions.shape[1]
 
         # generate actions_logits and values
@@ -195,7 +230,8 @@ class ExamplesSampler:
     ) -> None:
         self.path = path
         with open(path, "r") as f:
-            self.data = json.load(f)
+            data = json.load(f)
+        self.data = [d["user_input"] for d in data]
 
     def sample(self, n: int) -> List:
         """Sample n examples from the data
@@ -262,18 +298,6 @@ class RLTrainer:
 
         if not os.path.exists(self.config.trainer.checkpoint_folder):
             os.mkdir(self.config.trainer.checkpoint_folder)
-
-        self.model_engine = None  # deepspeed model engine
-        if self.deepspeed_enable is True:
-            if self.deepspeed_config_path is None:
-                raise ValueError(
-                    "DeepSpeed config path is None, but deepspeed is enabled"
-                )
-            if os.path.exists(self.deepspeed_config_path) is False:
-                raise ValueError(
-                    f"DeepSpeed config path {self.deepspeed_config_path}"
-                    f"does not exist"
-                )
 
     def save_checkpoint(
         self,
@@ -353,6 +377,63 @@ class RLTrainer:
         dataloader = DataLoader(
             ExperienceDataset(memories, device), batch_size=batch_size
         )
+
+        # initialize deepspeed for actor
+        if self.config.actor.deepspeed_enable:
+            if self.config.actor.deepspeed_config_path is None:
+                raise ValueError(
+                    "DeepSpeed config path is None, but deepspeed is enabled"
+                )
+            if (
+                os.path.exists(self.config.actor.deepspeed_config_path)
+                is False
+            ):
+                raise ValueError(
+                    f"DeepSpeed config path"
+                    f"{self.config.actor.deepspeed_config_path}"
+                    f"does not exist"
+                )
+            (
+                actor_model_engine,
+                actor_optimizer,
+                dataloader,
+                _,
+            ) = deepspeed.initialize(
+                args=None,
+                model=self.actorcritic.actor,
+                model_parameters=self.actorcritic.actor.parameters(),
+                training_data=dataloader,
+                config=self.config.actor.deepspeed_config_path,
+            )
+            self.actorcritic.actor = actor_model_engine
+
+        # initialize deepspeed for critic
+        if self.config.critic.deepspeed_enable:
+            if self.config.critic.deepspeed_config_path is None:
+                raise ValueError(
+                    "DeepSpeed config path is None, but deepspeed is enabled"
+                )
+            if (
+                os.path.exists(self.config.critic.deepspeed_config_path)
+                is False
+            ):
+                raise ValueError(
+                    f"DeepSpeed config path"
+                    f"{self.config.critic.deepspeed_config_path}"
+                    f"does not exist"
+                )
+            (
+                critic_model_engine,
+                critic_optimizer,
+                _,
+                _,
+            ) = deepspeed.initialize(
+                args=None,
+                model=self.actorcritic.critic,
+                model_parameters=self.actorcritic.critic.parameters(),
+                config=self.config.critic.deepspeed_config_path,
+            )
+            self.actorcritic.critic = critic_model_engine
 
         # train agent-critic
         self.actorcritic.train()
@@ -449,9 +530,13 @@ class RLTrainer:
                     print("entropies", entropies)
 
                 # update actor with loss
-                self.actor_optim.zero_grad()
-                loss.backward()
-                self.actor_optim.step()
+                if self.config.actor.deepspeed_enable:
+                    actor_model_engine.backward(loss)
+                    actor_model_engine.step()
+                else:
+                    self.actor_optim.zero_grad()
+                    loss.backward()
+                    self.actor_optim.step()
 
                 torch.cuda.synchronize(device)
 
@@ -467,9 +552,13 @@ class RLTrainer:
                 print("value_loss", value_loss.item())
 
                 # upate critic with loss
-                self.critic_optim.zero_grad()
-                value_loss.backward()
-                self.critic_optim.step()
+                if self.config.critic.deepspeed_enable:
+                    critic_model_engine.backward(value_loss)
+                    critic_model_engine.step()
+                else:
+                    self.critic_optim.zero_grad()
+                    value_loss.backward()
+                    self.critic_optim.step()
 
                 self.training_stats.training_loss.append(
                     loss.detach().cpu().item()
@@ -628,7 +717,7 @@ class RLTrainer:
                     self.conversation_log.add_conversation(
                         inputs[i],
                         completions[i],
-                        rewards[i].detach().cpu(),
+                        rewards[i].detach().cpu().item(),
                         current_learn_counter,
                     )
 
@@ -654,6 +743,4 @@ class RLTrainer:
 
         self.actorcritic.critic.save()
         self.actorcritic.actor.save()
-        # print("Show conversations log")
-        # self.conversation_log.show()
         print("End RL Training")
