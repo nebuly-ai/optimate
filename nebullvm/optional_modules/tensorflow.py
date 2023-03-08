@@ -26,6 +26,7 @@ class Tensorflow:
     keras = Keras()
     data = data
     dtypes = dtypes
+    float16 = float32 = int32 = int64 = DummyClass
 
     @staticmethod
     def function(**kwargs):
