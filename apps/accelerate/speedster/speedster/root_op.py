@@ -351,7 +351,7 @@ class SpeedsterRootOp(Operation):
                         if isinstance(self.conversion_op.get_result()[0], str)
                         else _get_model_len(self.conversion_op.get_result()[0])
                     )
-                    for model in self.conversion_op.get_result():
+                    for i, model in enumerate(self.conversion_op.get_result()):
                         optimized_models += self._optimize(
                             model=model,
                             optimization_time=optimization_time,
@@ -361,6 +361,8 @@ class SpeedsterRootOp(Operation):
                             ignore_compilers=ignore_compilers,
                             ignore_compressors=ignore_compressors,
                             source_dl_framework=dl_framework,
+                            pipeline_idx=i + 1,
+                            len_pipelines=len(self.conversion_op.get_result()),
                             is_diffusion=is_diffusion,
                         )
 
@@ -528,19 +530,30 @@ class SpeedsterRootOp(Operation):
         ignore_compilers: List[ModelCompiler],
         ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
+        pipeline_idx: int,
+        len_pipelines: int,
         is_diffusion: bool = False,
     ) -> List[BaseInferenceLearner]:
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
             if isinstance(model, torch.nn.Module):
                 optimization_op = self.torch_optimization_op
-                self.logger.info("> Running PyTorch Optimization Pipeline")
+                self.logger.info(
+                    f"[{pipeline_idx}/{len_pipelines}] Running PyTorch "
+                    f"Optimization Pipeline"
+                )
             elif isinstance(model, tf.Module) and model is not None:
                 optimization_op = self.tensorflow_optimization_op
-                self.logger.info("> Running TensorFlow Optimization Pipeline")
+                self.logger.info(
+                    f"[{pipeline_idx}/{len_pipelines}] Running TensorFlow "
+                    f"Optimization Pipeline"
+                )
             else:
                 optimization_op = self.onnx_optimization_op
-                self.logger.info("> Running ONNX Optimization Pipeline")
+                self.logger.info(
+                    f"[{pipeline_idx}/{len_pipelines}] Running ONNX "
+                    f"Optimization Pipeline"
+                )
 
             optimization_op.to(self.device).execute(
                 model=model,
