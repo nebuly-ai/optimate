@@ -11,6 +11,7 @@ REQUIREMENTS = [
     "torch",
     "tqdm",
     "transformers",
+    "datasets",
     "openai",
 ]
 
