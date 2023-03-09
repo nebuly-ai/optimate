@@ -276,7 +276,7 @@ class RLTrainer:
         self.actor_optimizer = torch.optim.Adam(
             self.actorcritic.actor.parameters(), lr=config.trainer.actor_lr
         )
-        self.critic_optimizier = torch.optim.Adam(
+        self.critic_optimizer = torch.optim.Adam(
             self.actorcritic.critic.parameters(), lr=config.trainer.critic_lr
         )
 
@@ -329,7 +329,7 @@ class RLTrainer:
                 "actor_state_dict": self.actorcritic.actor.state_dict(),
                 "critic_state_dict": self.actorcritic.critic.state_dict(),
                 "actor_optim_state_dict": self.actor_optimizer.state_dict(),
-                "critic_optim_state_dict": self.critic_optimizier.state_dict(),
+                "critic_optim_state_dict": self.critic_optimizer.state_dict(),
                 "training_stats": self.training_stats,
             },
             path,
@@ -364,7 +364,7 @@ class RLTrainer:
         self.actor_optimizer.load_state_dict(
             checkpoint["actor_optim_state_dict"]
         )
-        self.critic_optimizier.load_state_dict(
+        self.critic_optimizer.load_state_dict(
             checkpoint["critic_optim_state_dict"]
         )
         self.trainign_stats = checkpoint["training_stats"]
@@ -457,7 +457,6 @@ class RLTrainer:
                 actor_model,
                 self.actor_optimizer,
                 dataloader,
-                _,
             ) = self.actor_accelerator.prepare(
                 self.actorcritic.actor, self.actor_optimizer, dataloader
             )
@@ -468,8 +467,6 @@ class RLTrainer:
             (
                 critic_model,
                 self.critic_optimizer,
-                _,
-                _,
             ) = self.critic_accelerator.prepare(
                 self.actorcritic.critic,
                 self.critic_optimizer,
@@ -605,9 +602,9 @@ class RLTrainer:
                     self.critic_accelerator.backward(loss)
                     self.critic_optimizer.step()
                 else:
-                    self.critic_optimizier.zero_grad()
+                    self.critic_optimizer.zero_grad()
                     value_loss.backward()
-                    self.critic_optimizier.step()
+                    self.critic_optimizer.step()
 
                 self.training_stats.training_loss.append(
                     loss.detach().cpu().item()

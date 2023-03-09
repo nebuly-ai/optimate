@@ -125,7 +125,7 @@ class ConfigActor:
     deepspeed_enable: bool
     deepspeed_config_path: Optional[str]
 
-    accelerate_enable: bool = False
+    accelerate_enable: bool
 
     device: torch.device
     debug: bool = False

@@ -152,7 +152,7 @@ class ActorModel(torch.nn.Module):
         # take the minimum between the maximum token that you want to generate
         # and the token that is possible to generate given the maximum sequence
         # supported
-        max_completion = min(max_tokens, max_generation_possible)
+        max_completion = min(max_tokens, max_generation_possible) - 1
         if max_completion <= 0:
             raise ValueError(
                 "The maximum completion available is <= 0 the prompt is too "
@@ -344,7 +344,6 @@ class ActorTrainer:
                 self.model,
                 self.optimizer,
                 self.train_dataloader,
-                _,
             ) = self.accelerator.prepare(
                 self.model,
                 self.optimizer,

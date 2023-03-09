@@ -52,7 +52,9 @@ class RewardModel(torch.nn.Module):
             self.model = AutoModel.from_pretrained(config.model)
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.head = torch.nn.Sequential(
-                torch.nn.Linear(self.model.config.n_embd, head_hidden_size),
+                torch.nn.Linear(
+                    self.model.config.hidden_size, head_hidden_size
+                ),
                 torch.nn.ReLU(),
                 torch.nn.Linear(head_hidden_size, 1),
                 Rearrange("... 1 -> ..."),
@@ -132,6 +134,7 @@ class RewardModel(torch.nn.Module):
         output = self.model(
             output_sequence, attention_mask=output_sequence_mask
         )
+
         # What if the output_sequence is longer than the max context of
         # the model?
         rewards = self.head(output.last_hidden_state)
@@ -155,7 +158,6 @@ class RewardModel(torch.nn.Module):
             output_sequence_mask (torch.Tensor): Mask for the attention
         """
         rewards = self.forward(output_sequence, output_sequence_mask)
-        print("rewards shape", rewards.shape)
         return rewards[:, -1]
 
     @beartype
@@ -329,7 +331,6 @@ class RewardTrainer:
                 self.model,
                 self.optimizer,
                 self.train_dataloader,
-                _,
             ) = self.accelerator.prepare(
                 self.model,
                 self.optimizer,
