@@ -50,7 +50,7 @@ class RewardModel(torch.nn.Module):
                 padding_side="left",
                 truncation_side="left",
             )
-            self.model = AutoModel.from_pretrained(config.model)
+            self.model = AutoModel.from_pretrained("gpt2-large")
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.head = torch.nn.Sequential(
                 torch.nn.Linear(self.model.config.n_embd, head_hidden_size),
