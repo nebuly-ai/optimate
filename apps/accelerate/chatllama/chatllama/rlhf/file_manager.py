@@ -1,6 +1,6 @@
 import os
 
-from beartype.typing import Union, Optional
+from beartype.typing import Union, Optional, Tuple
 
 from chatllama.rlhf.config import (
     Config,
@@ -22,58 +22,56 @@ class ModelLoader:
     ) -> None:
         pass
 
-    def get_model_name(
+    def get_model_path(
         self,
-        model_string: str,
-    ) -> str:
-        # if the model is hf model, remove the "/"
-        # otherwise return just the name
-        if model_string in hf_models:
-            model_name = os.path.split(model_string)[-1]
-        else:
-            model_name = model_string
-        # add extension
-        return f"{model_name}.pt"
-
-    def get_model_folder(
-        self,
-        model_folder: str,
+        config: ConfigType,
         is_checkpoint: bool = False,
-    ) -> str:
-        # Create the model folder if it does not exist
+    ) -> Tuple[str, str, str]:
+        """Method to get the path to the right model file.
+        -- model_folder: here store the models trained, for each type of model
+                        there is a dedicated folder
+            -- actor
+            -- critic
+            -- reward
+            -- actor_rl
+            -- checkpoints: here store the checkpoints during training, for
+                            each type of model there is a dedicated folder
+                -- actor
+                -- critic
+                -- reward
+                -- actor_rl
+        """
+        # Get model folder from settings
+        model_folder = config.model_folder
+        # Create the checkpoint folder if it does not exist
+        if is_checkpoint:
+            os.path.join(model_folder, "checkpoints")
+        # Create the folder for the model type (Actor, Critic, Reward, RLHF)
+        if isinstance(config, ConfigReward):
+            model_folder = os.path.join(model_folder, "reward")
+        elif isinstance(config, ConfigActor):
+            model_folder = os.path.join(model_folder, "actor")
+        elif isinstance(config, ConfigCritic):
+            model_folder = os.path.join(model_folder, "critic")
+        elif isinstance(config, ConfigTrainer):
+            model_folder = os.path.join(model_folder, "actor_rl")
+        else:
+            raise ValueError(
+                "Model type not recognized during saving or loading"
+            )
         if os.path.exists(model_folder) is False:
             os.makedirs(model_folder)
             print(
                 f"Model folder does not exist." f"Creating it: {model_folder}"
             )
-        # Create the checkpoint folder if it does not exist
-        if is_checkpoint:
-            os.path.join(model_folder, "checkpoints")
-            if os.path.exists(model_folder) is False:
-                os.makedirs(model_folder)
-                print(
-                    f"Checkpoint folder does not exist."
-                    f"Creating it: {model_folder}"
-                )
-        # Return the model folder
-        return model_folder
-
-    def get_model_path(
-        self, config: ConfigType, is_checkpoint: bool = False
-    ) -> str:
-        """Method to get the path to the right model file,
-        called when saving the model
-        """
-
-        # Reward model
-        if isinstance(config, ConfigReward):
-            model_name = self.get_model_name(config.model)
-            model_folder = self.get_model_folder(
-                config.model_folder,
-                is_checkpoint,
-            )
-            model_path = os.path.join(model_folder, model_name)
-            return model_path
+        # Create the model name
+        if config.model in hf_models:
+            model_name = os.path.split(config.model)[-1]
+        else:
+            model_name = config.model
+        model_name = f"{model_name}.pt"
+        path = os.path.join(model_folder, model_name)
+        return model_folder, model_name, path
 
     def check_model_path(
         self, config: ConfigType, is_checkpoint: bool = False
@@ -81,12 +79,20 @@ class ModelLoader:
         """Method to check if the model path exists,
         called when loadding the model
         """
-        model_path = self.get_model_path(config, is_checkpoint)
-        if os.path.exists(model_path) is False:
+        model_folder, model_name, path = self.get_model_path(
+            config, is_checkpoint
+        )
+        if os.path.exists(path) is False:
             if is_checkpoint:
-                print(f"No previous checkpoint found at {model_path}")
+                print(
+                    f"No previous checkpoint found at"
+                    f"{model_folder} for {model_name}"
+                )
             else:
-                print(f"No previous model found at {model_path}")
+                print(
+                    f"No previous model found at"
+                    f"{model_folder} for model {model_name}"
+                )
             return None
         else:
-            return model_path
+            return path

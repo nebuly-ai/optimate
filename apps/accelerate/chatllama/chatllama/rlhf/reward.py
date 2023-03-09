@@ -194,7 +194,7 @@ class RewardModel(torch.nn.Module):
                 Defaults to None.
         """
         ml = ModelLoader()
-        path = ml.get_model_folder(
+        path = ml.get_model_path(
             self.config,
             False,
         )

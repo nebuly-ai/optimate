@@ -209,7 +209,7 @@ class ActorModel(torch.nn.Module):
                 Defaults to None.
         """
         ml = ModelLoader()
-        path = ml.get_model_folder(
+        path = ml.get_model_path(
             self.config,
             False,
         )
@@ -318,6 +318,37 @@ class ActorTrainer:
                 training_data=self.train_dataloader,
                 config=self.config.deepspeed_config_path,
             )
+
+    @beartype
+    def load_checkpoints(self) -> None:
+        """Load the model from the path
+
+        Args:
+            path (str): Path to the model
+        """
+        ml = ModelLoader()
+        path = ml.check_model_path(
+            self.config,
+            False,
+        )
+        if path is not None:
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict["model"])
+
+    @beartype
+    def save_savecheckpoints(self) -> None:
+        """Save the model to the path
+
+        Args:
+            path (Optional[str], optional): Path to store the model.
+                Defaults to None.
+        """
+        ml = ModelLoader()
+        path = ml.get_model_path(
+            self.config,
+            False,
+        )
+        torch.save({"model": self.model.state_dict()}, path)
 
     def train(
         self,
