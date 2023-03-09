@@ -188,6 +188,66 @@ class AnthropicRLHF:
         print("Generation Completed")
 
 
+class SelfInstruct:
+    def __init__(
+        self,
+    ) -> None:
+        print("Download the dataset")
+        self.dataset = load_dataset("yizhongw/self_instruct")
+        print("Download Completed")
+
+    def save(
+        self,
+        dataset_folder: str,
+        number_of_samples: int,
+    ) -> None:
+
+        print("Generate datasets for RLHF...")
+
+        train_data = self.dataset["train"]
+
+        # here do a tiling to reformat the dataset (otherwise is slow)
+        def reformat_shard(data):
+            rshard = [
+                {
+                    "user_input": data["prompt"][i],
+                    "completion": data["completion"][i],
+                }
+                for i in range(len(data["prompt"]))
+            ]
+            return rshard
+
+        n_split = 100
+        shard_size = len(train_data) // n_split
+        reformat_data = []
+        for i in range(n_split):
+            current_shard = train_data[
+                i * shard_size : (i + 1) * shard_size  # noqa E203
+            ]
+            reformat_data.extend(reformat_shard(current_shard))
+
+        # now split the dataset 20 / 80 and save
+        data1 = reformat_data[: int(len(reformat_data) * 0.8)]
+        data3 = reformat_data[int(len(reformat_data) * 0.8) :]  # noqa E203
+
+        with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
+            json.dump(data1, f)
+
+        # sample N number of index from 0 to len(conversations)
+        indexes = np.random.choice(
+            len(data1), size=number_of_samples, replace=False
+        )
+        data2 = [data1[i] for i in indexes]
+        with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
+            json.dump(data2, f)
+
+        # generate RL dataset
+        with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
+            json.dump(data3, f)
+
+        print("Generation Completed")
+
+
 if __name__ == "__main__":
 
     # Setup argument parser
@@ -199,7 +259,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "dataset_name",
         help="dataset name it can be. SSHP: stanfordnlp/SHP or ",
-        choices=["SHP", "ARLHF"],
+        choices=["SHP", "ARLHF", "SINST"],
     )
     parser.add_argument(
         "-p",
@@ -226,10 +286,15 @@ if __name__ == "__main__":
     if args.dataset_name == "SHP":
         dataset = StanfordNLPSHPDataset()
         dataset.save_dataset(args.path, n_samples)
-
     elif args.dataset_name == "ARLHF":
         dataset = AnthropicRLHF()
         dataset.save_dataset(
+            args.path,
+            n_samples,
+        )
+    elif args.dataset_name == "SINST":
+        dataset = SelfInstruct()
+        dataset.save(
             args.path,
             n_samples,
         )
