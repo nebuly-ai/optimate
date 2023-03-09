@@ -1,6 +1,6 @@
 from langchain import OpenAI, LLMChain, PromptTemplate
 from langchain.chains.conversation.memory import (
-    ConversationalBufferWindowMemory,
+    ConversationBufferWindowMemory,
 )
 
 from chatllama.langchain_modules.prompt_templates import (
@@ -32,13 +32,13 @@ def build_agents():
     human_agent = LLMChain(
         llm=llm,
         prompt=human_template,
-        memory=ConversationalBufferWindowMemory(k=4),
+        memory=ConversationBufferWindowMemory(k=4),
     )
     bot_template = PromptTemplate(**AI_CHATBOT_TEMPLATE)
     bot_agent = LLMChain(
         llm=llm,
         prompt=bot_template,
-        memory=ConversationalBufferWindowMemory(k=4),
+        memory=ConversationBufferWindowMemory(k=4),
     )
     return human_agent, bot_agent
 

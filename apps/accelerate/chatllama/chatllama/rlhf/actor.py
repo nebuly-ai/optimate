@@ -14,7 +14,6 @@ from transformers import (
     AutoModelForCausalLM,
 )
 
-from chatllama.llama_model import load_model
 from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
     llama_models,
@@ -45,12 +44,19 @@ class ActorModel(torch.nn.Module):
         # load the model
 
         if config.model in llama_models:
+            # llama module might not be present when HF models are used
+            from chatllama.llama_model import (
+                load_model,
+                setup_model_parallel,
+            )  # noqa
+
+            local_rank, world_size = setup_model_parallel()
             # use load_model_test for testing
             self.model, self.tokenizer = load_model(
                 ckpt_dir=config.model_path,
                 tokenizer_path=config.tokenizer_folder,
-                local_rank=int(os.environ.get("LOCAL_RANK", -1)),
-                world_size=int(os.environ.get("WORLD_SIZE", -1)),
+                local_rank=local_rank,
+                world_size=world_size,
                 froze_embeddings=config.froze_embeddings,
                 use_fairscale=config.use_fairscale,
                 max_batch_size=config.batch_size,
@@ -190,9 +196,11 @@ class ActorModel(torch.nn.Module):
                 model_name = os.path.split(self.config.model)[-1]
             else:
                 model_name = self.config.model
-            path = self.config.model_path + "/" + model_name + ".pt"
-            if os.path.exists(self.config.model_path) is False:
-                os.mkdir(self.config.model_path)
+            path = os.path.join(
+                self.config.checkpoint_folder, f"{model_name}.pt"
+            )
+            if os.path.exists(self.config.checkpoint_folder) is False:
+                os.mkdir(self.config.checkpoint_folder)
                 print(
                     f"Impossible to load the model: {path}"
                     f"The path doesn't exist."
@@ -221,9 +229,11 @@ class ActorModel(torch.nn.Module):
                 model_name = os.path.split(self.config.model)[-1]
             else:
                 model_name = self.config.model
-            path = self.config.checkpoint_folder + "/" + model_name + ".pt"
-            if os.path.exists(self.config.model_path) is False:
-                os.mkdir(self.config.model_path)
+            path = os.path.join(
+                self.config.checkpoint_folder, f"{model_name}.pt"
+            )
+            if os.path.exists(self.config.checkpoint_folder) is False:
+                os.mkdir(self.config.checkpoint_folder)
         torch.save({"model": self.model.state_dict()}, path)
 
 

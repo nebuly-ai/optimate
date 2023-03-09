@@ -7,7 +7,7 @@ REQUIREMENTS = [
     "deepspeed",
     "einops",
     "fairscale",
-    "langchain",
+    "langchain>=0.0.103",
     "torch",
     "tqdm",
     "transformers",

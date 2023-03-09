@@ -26,7 +26,7 @@ trainer_config:
   checkpoint_folder: "./models/checkpoints"
 
 actor_config:
-  model: "facebook/opt-125m" 
+  model: "facebook/opt-1.3b"
   model_path: "path-to-model"
   checkpoint_folder: "./models"
   tokenizer_folder: "path-to-tokenizer"
