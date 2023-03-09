@@ -58,7 +58,7 @@ class RewardModel(torch.nn.Module):
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
             head_dim = self.model.config.hidden_size
-            if (config.model == "gpt2") or (config.model == "gpt2-large"):
+            if config.model.startswith("gpt2"):
                 head_dim = self.model.config.n_embd
             self.head = torch.nn.Sequential(
                 torch.nn.Linear(head_dim, head_hidden_size),
@@ -179,7 +179,7 @@ class RewardModel(torch.nn.Module):
                 model_name = os.path.split(self.config.model)[-1]
             else:
                 model_name = self.config.model
-            path = self.config.model_folder + "/" + model_name + ".pt"
+            path = os.path.join(self.config.model_folder, f"{model_name}.pt")
             if os.path.exists(self.config.model_folder) is False:
                 os.makedirs(self.config.model_folder)
                 print(
@@ -211,7 +211,7 @@ class RewardModel(torch.nn.Module):
                 model_name = os.path.split(self.config.model)[-1]
             else:
                 model_name = self.config.model
-            path = self.config.model_folder + "/" + model_name + ".pt"
+            path = os.path.join(self.config.model_folder, f"{model_name}.pt")
             if os.path.exists(self.config.model_folder) is False:
                 os.makedirs(self.config.model_folder)
         torch.save(
