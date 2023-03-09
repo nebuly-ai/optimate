@@ -431,10 +431,16 @@ class TensorflowInstaller(BaseInstaller):
     @staticmethod
     def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0", "numpy<1.24"]
+            cmd = [
+                "conda",
+                "install",
+                "-y",
+                "tensorflow>=2.7.0, 2.12.0",
+                "numpy<1.24",
+            ]
             subprocess.run(cmd)
         else:
-            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0"]
+            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0, <2.12.0"]
             subprocess.run(cmd)
 
         try:
@@ -471,7 +477,7 @@ class ONNXInstaller(BaseInstaller):
             cmd = ["pip3", "install", "cmake"]
             subprocess.run(cmd)
 
-        cmd = ["pip3", "install", "onnx>=1.10.0"]
+        cmd = ["pip3", "install", "onnx>=1.10.0, <1.14.0"]
         subprocess.run(cmd)
 
         try:
@@ -519,7 +525,7 @@ class DiffusersInstaller(BaseInstaller):
             cmd = ["pip3", "install", "cuda-python"]
             subprocess.run(cmd)
 
-            cmd = ["pip3", "install", "onnx>=1.10.0"]
+            cmd = ["pip3", "install", "onnx>=1.10.0, <1.14.0"]
             subprocess.run(cmd)
 
             cmd = [
