@@ -20,11 +20,10 @@
 from collections import OrderedDict
 from copy import deepcopy
 from tempfile import TemporaryDirectory
-from typing import Dict, Union, List, Optional, Any
+from typing import Dict, Union, List, Optional, Any, Tuple
 
 import numpy as np
 
-from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.diffusers import (
     DiffusionPipeline,
     StableDiffusionPipeline,
@@ -155,36 +154,36 @@ def is_diffusion_model_pipe(model):
     return isinstance(model, DiffusionPipeline)
 
 
-def _get_default_dynamic_info():
+def get_default_dynamic_info(input_shape: List[Tuple[int, ...]]):
     return {
         "inputs": [
             {
                 0: {
                     "name": "2B",
-                    "min_val": 2,
-                    "opt_val": 2,
-                    "max_val": 2,
+                    "min_val": input_shape[0][0],
+                    "opt_val": input_shape[0][0],
+                    "max_val": input_shape[0][0],
                 },
                 2: {
                     "name": "H",
-                    "min_val": 64,
-                    "opt_val": 64,
-                    "max_val": 64,
+                    "min_val": input_shape[0][2],
+                    "opt_val": input_shape[0][2],
+                    "max_val": input_shape[0][2],
                 },
                 3: {
                     "name": "W",
-                    "min_val": 64,
-                    "opt_val": 64,
-                    "max_val": 64,
+                    "min_val": input_shape[0][3],
+                    "opt_val": input_shape[0][3],
+                    "max_val": input_shape[0][3],
                 },
             },
             {},
             {
                 0: {
                     "name": "2B",
-                    "min_val": 2,
-                    "opt_val": 2,
-                    "max_val": 2,
+                    "min_val": input_shape[2][0],
+                    "opt_val": input_shape[2][0],
+                    "max_val": input_shape[2][0],
                 }
             },
         ],
@@ -192,21 +191,13 @@ def _get_default_dynamic_info():
     }
 
 
-def preprocess_diffusers_for_speedster(
-    pipe: DiffusionPipeline, dynamic_info: Dict, device: Device
-):
+def preprocess_diffusers_for_speedster(pipe: DiffusionPipeline):
     model = DiffusionUNetWrapper(pipe.unet)
-    if (
-        dynamic_info is None
-        and device.type is DeviceType.GPU
-        and isinstance(pipe, StableDiffusionPipeline)
-    ):
-        dynamic_info = _get_default_dynamic_info()
-    return model, dynamic_info
+    return model
 
 
 def postprocess_diffusers_for_speedster(
-    optimized_model: BaseInferenceLearner,
+    optimized_model: Any,
     pipe: DiffusionPipeline,
     device: Device,
 ):
@@ -1178,22 +1169,38 @@ class Optimizer:
                     )
                     or (
                         # This pattern works for newer versions of PyTorch
+                        # for Stable Diffusion 1.4, 1.5 and 2.1-base
                         o.o().o().o().i(0).i().op == "Add"
                         and o.o().o().o().i(0).i().i().op == "Mul"
                         and o.o().o().o().i(0).i().i().i().op == "MatMul"
-                        and o.o().o().o().i(0).i().i().i().i(0).op == "Reshape"
-                        and o.o().o().o().i(0).i().i().i().i(1).op
-                        == "Transpose"
-                        and o.o().o().o().i(0).i().i().i().i(1).i().op
-                        == "Reshape"
-                        and o.o().o().o().i(0).i().i().i().i(1).i().i().op
-                        == "Transpose"
-                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().op
-                        == "Reshape"
                         # fmt: off
-                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().i().op
-                        == "MatMul"
+                        and o.o().o().o().i(0).i().i().i().i(0).op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i().i(1).op == "Transpose"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().op == "Transpose"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().i().op == "MatMul"
                         and node.name != o.o().o().o().i().i(0).i().i().i(1).i().i().i().i().name
+                        # fmt: on
+                    )
+                    or (
+                        # This pattern works for newer versions of PyTorch
+                        # for Stable Diffusion 2.1
+                        o.o().o().o().i(0).i().op == "Add"
+                        and o.o().o().o().i(0).i().i().op == "Mul"
+                        and o.o().o().o().i(0).i().i().i().op == "MatMul"
+                        # fmt: off
+                        and o.o().o().o().i(0).i().i().i().i(0).op == "Cast"
+                        and o.o().o().o().i(0).i().i().i().i(0).i(0).op == "Cast"
+                        and o.o().o().o().i(0).i().i().i().i(0).i(0).i(0).op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i().i(1).op == "Cast"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().op == "Transpose"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().op == "Cast"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().i().op == "Transpose"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().i().i().op == "Reshape"
+                        and o.o().o().o().i(0).i().i().i().i(1).i().i().i().i().i().i().op == "MatMul"
+                        and node.name != o.o().o().o().i(0).i().i().i().i(1).i().i().i().i().i().i().name
                         # fmt: on
                     )
                 )
@@ -1206,10 +1213,22 @@ class Optimizer:
                     node_k = o.o().o().o().i(0).i().i().i(1).i().i().i().i()
                 else:
                     # Newer versions of PyTorch
-                    node_q = o.o().o().o().i(0).i().i().i().i(0).i().i().i()
-                    node_k = (
-                        o.o().o().o().i(0).i().i().i().i(1).i().i().i().i()
-                    )
+                    if o.o().o().o().i(0).i().i().i().i(0).op == "Reshape":
+                        # Stable Diffusion 1.4, 1.5 and 2.1-base
+                        node_q = (
+                            o.o().o().o().i(0).i().i().i().i(0).i().i().i()
+                        )
+                        node_k = (
+                            o.o().o().o().i(0).i().i().i().i(1).i().i().i().i()
+                        )
+                    else:
+                        # Stable Diffusion 2.1
+                        # fmt: off
+                        node_q = o.o().o().o().i(0).i().i().i().i(0).i(0).i(0).i().i().i()
+                        node_k = (
+                            o.o().o().o().i(0).i().i().i().i(1).i().i().i().i().i().i()
+                        )
+                        # fmt: on
                 node_v = node
                 final_tranpose = o.o().o().o().o(num_dynamic_q).o()
                 # Sanity check to make sure that the graph looks like expected

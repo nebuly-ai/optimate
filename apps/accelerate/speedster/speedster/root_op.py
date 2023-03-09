@@ -224,9 +224,7 @@ class SpeedsterRootOp(Operation):
                     for prompt in self.data
                 ]
 
-                self.model, dynamic_info = preprocess_diffusers_for_speedster(
-                    self.model, dynamic_info, self.device
-                )
+                self.model = preprocess_diffusers_for_speedster(self.model)
                 needs_conversion_to_diffusers = True
                 is_diffusion = True
             elif isinstance(
@@ -297,6 +295,7 @@ class SpeedsterRootOp(Operation):
                 dl_framework=dl_framework,
                 dynamic_info=dynamic_info,
                 device=self.device,
+                is_diffusion=is_diffusion,
             )
 
             self.data.split(TRAIN_TEST_SPLIT_RATIO)

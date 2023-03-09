@@ -6,6 +6,7 @@ from loguru import logger
 from nebullvm.optional_modules.torch import torch, Module, DataLoader
 from nebullvm.tools.base import DataType, InputInfo, Device, DeviceType
 from nebullvm.tools.data import DataManager
+from nebullvm.tools.diffusers import get_default_dynamic_info
 
 FX_MODULE_NAME = "NebullvmFxModule"
 
@@ -134,6 +135,7 @@ def extract_info_from_torch_data(
     dataloader: Union[DataLoader, Sequence],
     dynamic_axis: Dict,
     device: Device,
+    is_diffusion: bool = False,
 ):
     from nebullvm.tools.utils import ifnone
 
@@ -158,6 +160,12 @@ def extract_info_from_torch_data(
         else "float32"
         for x in input_row
     ]
+
+    # For the Stable Diffusion UNet we must provide dynamic axis
+    # even when using static shapes, because otherwise the converted
+    # onnx model will have size issues.
+    if dynamic_axis is None and device.type is DeviceType.GPU and is_diffusion:
+        dynamic_axis = get_default_dynamic_info(input_sizes)
 
     if dynamic_axis is not None:
         dynamic_axis["inputs"] = [

@@ -169,6 +169,7 @@ def extract_info_from_data(
     dl_framework: DeepLearningFramework,
     dynamic_info: Optional[Dict],
     device: Device,
+    is_diffusion: bool = False,
 ):
     check_dynamic_info_inputs(dynamic_info, input_data.get_list(1)[0])
     batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
@@ -178,6 +179,7 @@ def extract_info_from_data(
         input_data,
         dynamic_axis=dynamic_info,
         device=device,
+        is_diffusion=is_diffusion,
     )
 
     output_infos = OUTPUT_INFO_COMPUTATION_DICT[dl_framework](
