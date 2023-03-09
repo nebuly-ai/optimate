@@ -98,6 +98,7 @@ def extract_info_from_tf_data(
     dataset: List[Tuple[Tuple[tf.Tensor, ...], Any]],
     dynamic_axis: Dict,
     device: Device,
+    **kwargs,
 ):
     from nebullvm.tools.utils import ifnone
 

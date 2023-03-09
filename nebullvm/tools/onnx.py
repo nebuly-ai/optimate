@@ -119,6 +119,7 @@ def extract_info_from_np_data(
     data: List[Tuple[Tuple[np.ndarray, ...], np.ndarray]],
     dynamic_axis: Dict,
     device: Device,
+    **kwargs,
 ):
     from nebullvm.tools.utils import ifnone
 
