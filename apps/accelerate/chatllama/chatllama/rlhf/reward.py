@@ -18,6 +18,7 @@ from transformers import (
 from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.utils import TrainingStats
+from chatllama.rlhf.file_manager import ModelLoader
 
 # TODO: Remove distillation from here
 
@@ -168,35 +169,21 @@ class RewardModel(torch.nn.Module):
         return rewards[:, -1]
 
     @beartype
-    def load(self, path: Optional[str] = None) -> None:
+    def load(self) -> None:
         """Load the model from the path
 
         Args:
             path (str): path to the model
         """
-        if path is None:
-            if self.config.model in hf_models:
-                model_name = os.path.split(self.config.model)[-1]
-            else:
-                model_name = self.config.model
-            path = os.path.join(self.config.model_folder, f"{model_name}.pt")
-            if os.path.exists(self.config.model_folder) is False:
-                os.makedirs(self.config.model_folder)
-                print(
-                    f"Model folder does not exist. Creating it,"
-                    f"and returning without loading the model:\n{path}"
-                )
-                return
-        # load the model
-        if os.path.exists(path) is False:
-            print(
-                f"Warning, Impossible to load the model:\n{path}\n"
-                f"No previous checkpoint found."
-            )
-            return
-        model_dict = torch.load(path)
-        self.model.load_state_dict(model_dict["model"])
-        self.head.load_state_dict(model_dict["head"])
+        ml = ModelLoader()
+        path = ml.check_model_path(
+            self.config,
+            False,
+        )
+        if path is not None:
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict["model"])
+            self.head.load_state_dict(model_dict["head"])
 
     @beartype
     def save(self, path: Optional[str] = None) -> None:
@@ -206,14 +193,11 @@ class RewardModel(torch.nn.Module):
             path (Optional[str], optional): Path to store the model.
                 Defaults to None.
         """
-        if path is None:
-            if self.config.model in hf_models:
-                model_name = os.path.split(self.config.model)[-1]
-            else:
-                model_name = self.config.model
-            path = os.path.join(self.config.model_folder, f"{model_name}.pt")
-            if os.path.exists(self.config.model_folder) is False:
-                os.makedirs(self.config.model_folder)
+        ml = ModelLoader()
+        path = ml.get_model_folder(
+            self.config,
+            False,
+        )
         torch.save(
             {"model": self.model.state_dict(), "head": self.head.state_dict()},
             path,

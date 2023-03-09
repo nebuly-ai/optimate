@@ -4,7 +4,7 @@ import os
 import deepspeed
 import torch
 from beartype import beartype
-from beartype.typing import Optional, Tuple
+from beartype.typing import Tuple
 from einops import rearrange
 from torch.utils.data import Dataset, DataLoader
 from transformers import (
@@ -20,6 +20,7 @@ from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
 )
 from chatllama.rlhf.utils import TrainingStats
+from chatllama.rlhf.file_manager import ModelLoader
 
 
 class ActorModel(torch.nn.Module):
@@ -184,55 +185,34 @@ class ActorModel(torch.nn.Module):
         return actions, sequences
 
     @beartype
-    def load(self, path: Optional[str] = None) -> None:
+    def load(self) -> None:
         """Load the model from the path
 
         Args:
             path (str): Path to the model
         """
-        if path is None:
-            if self.config.model in hf_models_causal_lm:
-                model_name = os.path.split(self.config.model)[-1]
-            else:
-                model_name = self.config.model
-            path = os.path.join(
-                self.config.checkpoint_folder, f"{model_name}.pt"
-            )
-            if os.path.exists(self.config.checkpoint_folder) is False:
-                os.mkdir(self.config.checkpoint_folder)
-                print(
-                    f"Impossible to load the model: {path}"
-                    f"The path doesn't exist."
-                )
-                return
-        # load the model
-        if os.path.exists(path) is False:
-            print(
-                f"Impossible to load the model: {path}"
-                f"The path doesn't exist."
-            )
-            return
-        model_dict = torch.load(path)
-        self.model.load_state_dict(model_dict["model"])
+        ml = ModelLoader()
+        path = ml.check_model_path(
+            self.config,
+            False,
+        )
+        if path is not None:
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict["model"])
 
     @beartype
-    def save(self, path: Optional[str] = None) -> None:
+    def save(self) -> None:
         """Save the model to the path
 
         Args:
             path (Optional[str], optional): Path to store the model.
                 Defaults to None.
         """
-        if path is None:
-            if self.config.model in hf_models_causal_lm:
-                model_name = os.path.split(self.config.model)[-1]
-            else:
-                model_name = self.config.model
-            path = os.path.join(
-                self.config.checkpoint_folder, f"{model_name}.pt"
-            )
-            if os.path.exists(self.config.checkpoint_folder) is False:
-                os.mkdir(self.config.checkpoint_folder)
+        ml = ModelLoader()
+        path = ml.get_model_folder(
+            self.config,
+            False,
+        )
         torch.save({"model": self.model.state_dict()}, path)
 
 
