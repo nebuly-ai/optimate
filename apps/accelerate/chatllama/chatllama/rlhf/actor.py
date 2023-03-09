@@ -190,9 +190,11 @@ class ActorModel(torch.nn.Module):
                 model_name = os.path.split(self.config.model)[-1]
             else:
                 model_name = self.config.model
-            path = self.config.model_path + "/" + model_name + ".pt"
-            if os.path.exists(self.config.model_path) is False:
-                os.mkdir(self.config.model_path)
+            path = os.path.join(
+                self.config.checkpoint_folder, f"{model_name}.pt"
+            )
+            if os.path.exists(self.config.checkpoint_folder) is False:
+                os.mkdir(self.config.checkpoint_folder)
                 print(
                     f"Impossible to load the model: {path}"
                     f"The path doesn't exist."
@@ -221,9 +223,11 @@ class ActorModel(torch.nn.Module):
                 model_name = os.path.split(self.config.model)[-1]
             else:
                 model_name = self.config.model
-            path = self.config.checkpoint_folder + "/" + model_name + ".pt"
-            if os.path.exists(self.config.model_path) is False:
-                os.mkdir(self.config.model_path)
+            path = os.path.join(
+                self.config.checkpoint_folder, f"{model_name}.pt"
+            )
+            if os.path.exists(self.config.checkpoint_folder) is False:
+                os.mkdir(self.config.checkpoint_folder)
         torch.save({"model": self.model.state_dict()}, path)
 
 

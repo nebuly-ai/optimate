@@ -50,10 +50,18 @@ class RewardModel(torch.nn.Module):
                 padding_side="left",
                 truncation_side="left",
             )
-            self.model = AutoModel.from_pretrained("gpt2-large")
+            self.model = AutoModel.from_pretrained(config.model)
+            # galactica tokenizer eos_token is None
+            if self.tokenizer.eos_token is None:
+                self.tokenizer.eos_token = "</s>"
+                self.tokenizer.eos_token_id = 0
             self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+            head_dim = self.model.config.hidden_size
+            if config.model.startswith("gpt2"):
+                head_dim = self.model.config.n_embd
             self.head = torch.nn.Sequential(
-                torch.nn.Linear(self.model.config.n_embd, head_hidden_size),
+                torch.nn.Linear(head_dim, head_hidden_size),
                 torch.nn.ReLU(),
                 torch.nn.Linear(head_hidden_size, 1),
                 Rearrange("... 1 -> ..."),
@@ -167,7 +175,11 @@ class RewardModel(torch.nn.Module):
             path (str): path to the model
         """
         if path is None:
-            path = self.config.model_folder + "/" + self.config.model + ".pt"
+            if self.config.model in hf_models:
+                model_name = os.path.split(self.config.model)[-1]
+            else:
+                model_name = self.config.model
+            path = os.path.join(self.config.model_folder, f"{model_name}.pt")
             if os.path.exists(self.config.model_folder) is False:
                 os.makedirs(self.config.model_folder)
                 print(
@@ -195,7 +207,11 @@ class RewardModel(torch.nn.Module):
                 Defaults to None.
         """
         if path is None:
-            path = self.config.model_folder + "/" + self.config.model + ".pt"
+            if self.config.model in hf_models:
+                model_name = os.path.split(self.config.model)[-1]
+            else:
+                model_name = self.config.model
+            path = os.path.join(self.config.model_folder, f"{model_name}.pt")
             if os.path.exists(self.config.model_folder) is False:
                 os.makedirs(self.config.model_folder)
         torch.save(
