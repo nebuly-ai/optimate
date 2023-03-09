@@ -13,6 +13,7 @@ REQUIREMENTS = [
     "transformers",
     "datasets",
     "openai",
+    "plotly",
 ]
 
 this_directory = Path(__file__).parent
