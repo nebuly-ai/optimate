@@ -13,7 +13,7 @@ from transformers import (
     AutoModelForCausalLM,
 )
 
-from chatllama.llama_model import load_model
+from chatllama.llama_model import load_model, setup_model_parallel
 from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
     llama_models,
@@ -44,12 +44,13 @@ class ActorModel(torch.nn.Module):
         # load the model
 
         if config.model in llama_models:
+            local_rank, world_size = setup_model_parallel()
             # use load_model_test for testing
             self.model, self.tokenizer = load_model(
                 ckpt_dir=config.model_path,
                 tokenizer_path=config.tokenizer_folder,
-                local_rank=int(os.environ.get("LOCAL_RANK", -1)),
-                world_size=int(os.environ.get("WORLD_SIZE", -1)),
+                local_rank=local_rank,
+                world_size=world_size,
                 froze_embeddings=config.froze_embeddings,
                 use_fairscale=config.use_fairscale,
                 max_batch_size=config.batch_size,
