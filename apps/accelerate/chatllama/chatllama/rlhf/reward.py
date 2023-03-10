@@ -4,7 +4,7 @@ import os
 import deepspeed
 import torch
 from beartype import beartype
-from beartype.typing import Optional, Iterable
+from beartype.typing import Iterable
 from einops.layers.torch import Rearrange
 from torch.utils.data import Dataset, DataLoader
 from transformers import BartModel
@@ -18,9 +18,7 @@ from transformers import (
 from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.utils import TrainingStats
-from chatllama.rlhf.file_manager import ModelLoader
-
-# TODO: Remove distillation from here
+from chatllama.rlhf.model_loader import ModelLoader
 
 
 class RewardModel(torch.nn.Module):
@@ -43,7 +41,11 @@ class RewardModel(torch.nn.Module):
 
     def __init__(self, config: ConfigReward) -> None:
         super().__init__()
-        # load the model -- add here other models
+
+        # store config
+        self.config = config
+
+        # initialize the self.model
         head_hidden_size = config.model_head_hidden_size
         if config.model in hf_models:
             self.tokenizer = AutoTokenizer.from_pretrained(
@@ -101,18 +103,54 @@ class RewardModel(torch.nn.Module):
             )
         else:
             raise ValueError(f"model {config.model} not supported")
-        # store config
-        self.config = config
-        if os.path.exists(config.model_folder) is False:
-            os.mkdir(config.model_folder)
-        else:
-            self.load()
+
+        # load the model
+        self.load()
+
         # freeze model parameters (only train the head)
         for param in self.model.parameters():
             param.requires_grad = False
+
         # move model to device
         self.model.to(config.device)
         self.head.to(config.device)
+
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path
+
+        Args:
+            path (str): path to the model
+        """
+        path = ModelLoader().check_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict["model"])
+            self.head.load_state_dict(model_dict["head"])
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path
+
+        Args:
+            path (Optional[str], optional): Path to store the model.
+                Defaults to None.
+        """
+        path = ModelLoader().get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"model": self.model.state_dict(), "head": self.head.state_dict()},
+            path,
+        )
 
     @beartype
     def parameters(
@@ -167,41 +205,6 @@ class RewardModel(torch.nn.Module):
         rewards = self.forward(output_sequence, output_sequence_mask)
         print("rewards shape", rewards.shape)
         return rewards[:, -1]
-
-    @beartype
-    def load(self) -> None:
-        """Load the model from the path
-
-        Args:
-            path (str): path to the model
-        """
-        ml = ModelLoader()
-        path = ml.check_model_path(
-            self.config,
-            False,
-        )
-        if path is not None:
-            model_dict = torch.load(path)
-            self.model.load_state_dict(model_dict["model"])
-            self.head.load_state_dict(model_dict["head"])
-
-    @beartype
-    def save(self, path: Optional[str] = None) -> None:
-        """Save the model to the path
-
-        Args:
-            path (Optional[str], optional): Path to store the model.
-                Defaults to None.
-        """
-        ml = ModelLoader()
-        path = ml.get_model_path(
-            self.config,
-            False,
-        )
-        torch.save(
-            {"model": self.model.state_dict(), "head": self.head.state_dict()},
-            path,
-        )
 
 
 # just to keep namings consistent
@@ -317,9 +320,53 @@ class RewardTrainer:
                 config=self.config.deepspeed_config_path,
             )
 
+    @beartype
+    def save_checkpoint(
+        self,
+        current_epoch: int,
+    ) -> None:
+
+        print(f"Saving checkpoint for epoch {current_epoch+1}..")
+        model_folder, model_name, path = ModelLoader().get_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=current_epoch,
+        )
+        torch.save(
+            {
+                "state_dict": self.model.state_dict(),
+                "optim_state_dict": self.optimizer.state_dict(),
+                "training_stats": self.training_stats,
+                "epoch": current_epoch,
+            },
+            path,
+        )
+
+    @beartype
+    def load_checkpoint(
+        self,
+    ) -> int:
+
+        print("Looking for checkpoints...")
+        path = ModelLoader().check_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            epoch = checkpoint["epoch"]
+            self.model.load_state_dict(checkpoint["state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
+            self.trainign_stats = checkpoint["training_stats"]
+            return epoch + 1  # return the next episode to train
+        return 0
+
     def train(
         self,
     ) -> None:
+
         """Train the reward model"""
         print("Start Training the Reward Model")
         # get config parameters
@@ -331,8 +378,11 @@ class RewardTrainer:
         # compute the number of iterations
         n_iter = int(len(self.train_dataset) / batch_size)
 
+        # load checkpoint
+        start_epoch = self.load_checkpoint()
+
         # traing loop
-        for epoch in range(epochs):
+        for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
                 input_text = inputs[0]
@@ -422,5 +472,5 @@ class RewardTrainer:
                             f"Iteration: {i+1}/{n_iter}, "
                             f"Validation Loss: {loss.item()}"
                         )
-        print("Saving the model...")
+            self.save_checkpoint(current_epoch=epoch)
         self.model.save()

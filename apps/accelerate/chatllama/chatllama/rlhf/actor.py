@@ -20,7 +20,7 @@ from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
 )
 from chatllama.rlhf.utils import TrainingStats
-from chatllama.rlhf.file_manager import ModelLoader
+from chatllama.rlhf.model_loader import ModelLoader
 
 
 class ActorModel(torch.nn.Module):
@@ -41,8 +41,11 @@ class ActorModel(torch.nn.Module):
 
     def __init__(self, config: ConfigActor) -> None:
         super().__init__()
-        # load the model
 
+        # save config
+        self.config = config
+
+        # initialize the self.model
         if config.model in llama_models:
             # llama module might not be present when HF models are used
             from chatllama.llama_model import (
@@ -92,8 +95,45 @@ class ActorModel(torch.nn.Module):
             )
             self.model.to(config.device)
 
-        # save config
-        self.config = config
+        # load the model from model_folder
+        self.load()
+
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path
+
+        Args:
+            path (str): path to the model
+        """
+        path = ModelLoader().check_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict["model"])
+            self.head.load_state_dict(model_dict["head"])
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path
+
+        Args:
+            path (Optional[str], optional): Path to store the model.
+                Defaults to None.
+        """
+        path = ModelLoader().get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"model": self.model.state_dict(), "head": self.head.state_dict()},
+            path,
+        )
 
     def parameters(self, **kwargs):
         """Return the parameters of the model
@@ -184,37 +224,6 @@ class ActorModel(torch.nn.Module):
             print("actions", actions)
         return actions, sequences
 
-    @beartype
-    def load(self) -> None:
-        """Load the model from the path
-
-        Args:
-            path (str): Path to the model
-        """
-        ml = ModelLoader()
-        path = ml.check_model_path(
-            self.config,
-            False,
-        )
-        if path is not None:
-            model_dict = torch.load(path)
-            self.model.load_state_dict(model_dict["model"])
-
-    @beartype
-    def save(self) -> None:
-        """Save the model to the path
-
-        Args:
-            path (Optional[str], optional): Path to store the model.
-                Defaults to None.
-        """
-        ml = ModelLoader()
-        path = ml.get_model_path(
-            self.config,
-            False,
-        )
-        torch.save({"model": self.model.state_dict()}, path)
-
 
 class ActorDataset(Dataset):
     """Dataset for the pretraining of the actor model
@@ -276,8 +285,6 @@ class ActorTrainer:
         )
 
         # check checkpoint, datasets and other data
-        if not os.path.exists(config.model_path):
-            os.mkdir(config.model_path)
         self.validation_flag = False
         self.training_stats = TrainingStats()
         if config.validation_dataset_path is not None:
@@ -320,40 +327,53 @@ class ActorTrainer:
             )
 
     @beartype
-    def load_checkpoints(self) -> None:
-        """Load the model from the path
+    def save_checkpoint(
+        self,
+        current_epoch: int,
+    ) -> None:
 
-        Args:
-            path (str): Path to the model
-        """
-        ml = ModelLoader()
-        path = ml.check_model_path(
-            self.config,
-            False,
+        print(f"Saving checkpoint for epoch {current_epoch+1}..")
+        model_folder, model_name, path = ModelLoader().get_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=current_epoch,
         )
-        if path is not None:
-            model_dict = torch.load(path)
-            self.model.load_state_dict(model_dict["model"])
+        torch.save(
+            {
+                "state_dict": self.model.state_dict(),
+                "optim_state_dict": self.optimizer.state_dict(),
+                "training_stats": self.training_stats,
+                "epoch": current_epoch,
+            },
+            path,
+        )
 
     @beartype
-    def save_savecheckpoints(self) -> None:
-        """Save the model to the path
+    def load_checkpoint(
+        self,
+    ) -> int:
 
-        Args:
-            path (Optional[str], optional): Path to store the model.
-                Defaults to None.
-        """
-        ml = ModelLoader()
-        path = ml.get_model_path(
-            self.config,
-            False,
+        print("Looking for checkpoints...")
+        path = ModelLoader().check_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=None,
         )
-        torch.save({"model": self.model.state_dict()}, path)
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            epoch = checkpoint["epoch"]
+            self.model.load_state_dict(checkpoint["state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
+            self.trainign_stats = checkpoint["training_stats"]
+            return epoch + 1  # return the next episode to train
+        return 0
 
     def train(
         self,
     ) -> None:
         print("Start Actor Model Pretraining")
+
         # get config parameters
         batch_size = self.config.batch_size
         epochs = self.config.epochs
@@ -362,8 +382,11 @@ class ActorTrainer:
         # compute the number of iterations
         n_iter = int(len(self.train_dataset) / batch_size)
 
+        # load model_checkpoint
+        start_epoch = self.load_checkpoint()
+
         # traing loop
-        for epoch in range(epochs):
+        for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, input_output in enumerate(self.train_dataloader):
                 with torch.no_grad():
@@ -446,6 +469,6 @@ class ActorTrainer:
                             f"Iteration: {i+1}/{n_iter}, "
                             f"Validation Loss: {loss}"
                         )
-        print("Saving the model...")
+            self.save_checkpoint(current_epoch=epoch)
         self.model.save()
         print("Training Finished ")

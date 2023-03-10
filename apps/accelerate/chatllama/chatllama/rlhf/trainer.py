@@ -12,6 +12,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from chatllama.rlhf.actor import ActorModel
 from chatllama.rlhf.config import ConfigReward, ConfigActor, Config
+from chatllama.rlhf.model_loader import ModelLoader
 from chatllama.rlhf.reward import RewardModel, CriticModel
 from chatllama.rlhf.utils import TrainingStats, ConversationLog
 
@@ -272,10 +273,10 @@ class RLTrainer:
 
         # initialize agent-critic
         self.actorcritic = ActorCritic(config.actor, config.critic)
-        self.actor_optim = torch.optim.Adam(
+        self.actor_optimizer = torch.optim.Adam(
             self.actorcritic.actor.parameters(), lr=config.trainer.actor_lr
         )
-        self.critic_optim = torch.optim.Adam(
+        self.critic_optimizer = torch.optim.Adam(
             self.actorcritic.critic.parameters(), lr=config.trainer.critic_lr
         )
 
@@ -292,69 +293,100 @@ class RLTrainer:
         # eps
         self.eps = 1e-8
 
-        # make models directory
-        if not os.path.exists("./models"):
-            os.mkdir("./models")
-
-        if not os.path.exists(self.config.trainer.checkpoint_folder):
-            os.mkdir(self.config.trainer.checkpoint_folder)
-
+    @beartype
     def save_checkpoint(
         self,
         current_episode: int,
     ) -> None:
+
+        # Save checkpoint for the critic
         print(f"Saving checkpoint for episode {current_episode+1}..")
-        file_name = "rltraining_" + str(current_episode) + ".pt"
-        checkpoint_folder = self.config.trainer.checkpoint_folder
-        if os.path.exists(checkpoint_folder) is False:
-            os.mkdir(checkpoint_folder)
-        path = checkpoint_folder + "/" + file_name
+        model_folder, model_name, path = ModelLoader().get_model_path(
+            config=self.config.critic,
+            is_checkpoint=True,
+            current_epoch=current_episode,
+        )
+        torch.save(
+            {
+                "episode": current_episode,
+                "critic_state_dict": self.actorcritic.critic.state_dict(),
+                "critic_optim_state_dict": self.critic_optimizer.state_dict(),
+            },
+            path,
+        )
+
+        # Save checkpoint for the actor_rl - use config vs config.actor
+        # to distinguish between actor and actor_rl
+        model_folder, model_name, path = ModelLoader().get_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=current_episode,
+        )
         torch.save(
             {
                 "episode": current_episode,
                 "actor_state_dict": self.actorcritic.actor.state_dict(),
-                "critic_state_dict": self.actorcritic.critic.state_dict(),
-                "actor_optim_state_dict": self.actor_optim.state_dict(),
-                "critic_optim_state_dict": self.critic_optim.state_dict(),
+                "actor_optim_state_dict": self.actor_optimizer.state_dict(),
                 "training_stats": self.training_stats,
             },
             path,
         )
 
+    @beartype
     def load_checkpoint(
         self,
     ) -> int:
-        # get all the files name in the checkpoint folder and take the one
-        # with the highest epoch
-        checkpoint_folder = self.config.trainer.checkpoint_folder
-        if os.path.exists(checkpoint_folder) is False:
-            os.mkdir(checkpoint_folder)
-            print(
-                f"Checkpoint folder {checkpoint_folder} does not exist.\n"
-                f"No checkpoint will be loaded."
+
+        critic_episode = -1
+        actor_episode = -1
+
+        # load the critic checkpoint
+        print("Looking for checkpoints...")
+        path = ModelLoader().check_model_path(
+            config=self.config.critic,
+            is_checkpoint=True,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            critic_episode = checkpoint["episode"]
+            self.actorcritic.critic.load_state_dict(
+                checkpoint["critic_state_dict"]
             )
-            return
-        files = os.listdir(checkpoint_folder)
-        episodes = [int(f.split("_")[1].split(".")[0]) for f in files]
-        if len(episodes) == 0:
-            return 0
-        max_episode = max(episodes)
-        print(f"Loading checkpoint for episode {max_episode+1}..")
-        file_name = "rltraining_" + str(max_episode) + ".pt"
-        path = checkpoint_folder + "/" + file_name
-        checkpoint = torch.load(path)
-        self.actorcritic.actor.load_state_dict(checkpoint["actor_state_dict"])
-        self.actorcritic.critic.load_state_dict(
-            checkpoint["critic_state_dict"]
+            self.critic_optimizer.load_state_dict(
+                checkpoint["critic_optim_state_dict"]
+            )
+
+        # load the critic checkpoint
+        print("Looking for checkpoints...")
+        path = ModelLoader().check_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=None,
         )
-        self.actor_optim.load_state_dict(checkpoint["actor_optim_state_dict"])
-        self.critic_optim.load_state_dict(
-            checkpoint["critic_optim_state_dict"]
-        )
-        self.trainign_stats = checkpoint["training_stats"]
-        self.actorcritic.actor.to(self.config.trainer.device)
-        self.actorcritic.critic.to(self.config.trainer.device)
-        return max_episode + 1  # return the next episode to train
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            actor_episode = checkpoint["episode"]
+            self.actorcritic.actor.load_state_dict(
+                checkpoint["actor_state_dict"]
+            )
+            self.actor_optimizer.load_state_dict(
+                checkpoint["actor_optim_state_dict"]
+            )
+            self.training_stats = checkpoint["training_stats"]
+
+        if critic_episode == actor_episode:
+            # all ok start from next episode
+            return critic_episode + 1
+        else:
+            print(
+                f"There are some discrepancies between the checkpoints"
+                f"of actor and critic \nactor episode: {actor_episode}"
+                f"\n critic episode: {critic_episode}\n"
+            )
+            return min(critic_episode, actor_episode) + 1
 
     @beartype
     def learn(self, memories: Deque[Memory]) -> None:
@@ -534,9 +566,9 @@ class RLTrainer:
                     actor_model_engine.backward(loss)
                     actor_model_engine.step()
                 else:
-                    self.actor_optim.zero_grad()
+                    self.actor_optimizer.zero_grad()
                     loss.backward()
-                    self.actor_optim.step()
+                    self.actor_optimizer.step()
 
                 torch.cuda.synchronize(device)
 
@@ -556,9 +588,9 @@ class RLTrainer:
                     critic_model_engine.backward(value_loss)
                     critic_model_engine.step()
                 else:
-                    self.critic_optim.zero_grad()
+                    self.critic_optimizer.zero_grad()
                     value_loss.backward()
-                    self.critic_optim.step()
+                    self.critic_optimizer.step()
 
                 self.training_stats.training_loss.append(
                     loss.detach().cpu().item()
@@ -607,15 +639,15 @@ class RLTrainer:
         # loop over episodes and timesteps
         current_time = 0
         checkpoint_counter = 0
-        current_episode = self.load_checkpoint()
+        start_episode = self.load_checkpoint()
         current_learn_counter = 0
 
         self.actorcritic.eval()
-        for eps in range(current_episode, num_episodes):
+        for episode in range(start_episode, num_episodes):
             for timestep in range(max_timesteps):
 
                 print(
-                    f"Episode: {eps + 1} of {num_episodes}, "
+                    f"Episode: {episode + 1} of {num_episodes}, "
                     f"Timestep: {timestep + 1} of {max_timesteps}",
                 )
 
@@ -738,7 +770,7 @@ class RLTrainer:
                 if (checkpoint_counter % update_checkpoint == 0) and (
                     checkpoint_counter != 0
                 ):
-                    self.save_checkpoint(eps)
+                    self.save_checkpoint(current_episode=episode)
                     checkpoint_counter = 0
 
         self.actorcritic.critic.save()
