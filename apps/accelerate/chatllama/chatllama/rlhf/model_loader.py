@@ -51,6 +51,7 @@ class ModelLoader:
         config: ConfigType,
         is_checkpoint: bool = False,
         current_epoch: Optional[int] = None,
+        current_step: Optional[int] = None,
     ) -> Tuple[str, str, Optional[str]]:
         """Method to get the path to the right model file. Used when saving
         the model.
@@ -138,7 +139,14 @@ class ModelLoader:
             # equalt to n_char (i.e. 00000001) necessary for sorting
             string_epoch = str(current_epoch)
             string_epoch = "0" * (n_char - len(string_epoch)) + string_epoch
-            model_name = f"{model_name}_epoch_{string_epoch}.pt"
+            string_epoch = f"_epoch_{string_epoch}"
+            if current_step is not None:
+                string_step = str(current_step)
+                string_step = "0" * (n_char - len(string_step)) + string_step
+                string_step = f"_step_{string_step}"
+                model_name = f"{model_name}{string_epoch}{string_step}.pt"
+            else:
+                model_name = f"{model_name}{string_epoch}.pt"
         else:
             model_name = f"{model_name}.pt"
 
@@ -156,6 +164,7 @@ class ModelLoader:
         config: ConfigType,
         is_checkpoint: bool = False,
         current_epoch: Optional[int] = None,
+        current_step: Optional[int] = None,
     ) -> Optional[int]:
         """Method to check if the model path exists to load models
         or checkpoints.
@@ -206,9 +215,18 @@ class ModelLoader:
                 )
         else:
             if is_checkpoint:
-                # extract epoch from checkpoint name
-                epoch = int(last_checkpoint.split("_")[-1].split(".")[0])
-                print(f"Found checkpoint for epoch {epoch + 1} ...")
+                # the name is modelname_epoch_00000001_step_00000001.pt
+                # or modelname_epoch_00000001.pt
+                if "_step_" in path:
+                    epoch = int(path.split("_epoch_")[-1].split("_")[0])
+                    step = int(path.split("_step_")[-1].split(".")[0])
+                    print(
+                        f"Found checkpoint for epoch {epoch + 1},"
+                        f" step {step + 1}..."
+                    )
+                else:
+                    epoch = int(path.split("_epoch_")[-1].split(".")[0])
+                    print(f"Found checkpoint for epoch {epoch + 1} ...")
             else:
                 print(f"Found model at {path}")
         return path

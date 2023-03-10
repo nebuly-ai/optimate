@@ -330,6 +330,7 @@ class ActorTrainer:
     def save_checkpoint(
         self,
         current_epoch: int,
+        current_step: int,
     ) -> None:
 
         print(f"Saving checkpoint for epoch {current_epoch+1}..")
@@ -337,6 +338,7 @@ class ActorTrainer:
             config=self.config,
             is_checkpoint=True,
             current_epoch=current_epoch,
+            current_step=current_step,
         )
         torch.save(
             {
@@ -344,6 +346,7 @@ class ActorTrainer:
                 "optim_state_dict": self.optimizer.state_dict(),
                 "training_stats": self.training_stats,
                 "epoch": current_epoch,
+                "step": current_step,
             },
             path,
         )
@@ -351,7 +354,7 @@ class ActorTrainer:
     @beartype
     def load_checkpoint(
         self,
-    ) -> int:
+    ) -> Tuple[int, int]:
 
         print("Looking for checkpoints...")
         path = ModelLoader.check_model_path(
@@ -366,8 +369,9 @@ class ActorTrainer:
             self.model.load_state_dict(checkpoint["state_dict"])
             self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
             self.trainign_stats = checkpoint["training_stats"]
-            return epoch + 1  # return the next episode to train
-        return 0
+            step = checkpoint["step"]
+            return epoch, step + 1  # return the next episode to train
+        return 0, 0
 
     def train(
         self,
@@ -378,17 +382,23 @@ class ActorTrainer:
         batch_size = self.config.batch_size
         epochs = self.config.epochs
         device = self.config.device
+        checkpoint_steps = self.config.checkpoint_steps
 
         # compute the number of iterations
         n_iter = int(len(self.train_dataset) / batch_size)
 
         # load model_checkpoint
-        start_epoch = self.load_checkpoint()
+        start_epoch, start_step = self.load_checkpoint()
+
+        # counter for the checkpoint
+        cnt_checkpoint = 1
 
         # traing loop
         for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, input_output in enumerate(self.train_dataloader):
+                if i < start_step:
+                    continue
                 with torch.no_grad():
                     input_output_tokenized = self.model.tokenizer(
                         input_output,
@@ -436,6 +446,13 @@ class ActorTrainer:
                         f"Iteration: {i+1}/{n_iter}, "
                         f"Training Loss: {loss}"
                     )
+                # save checkpoint periodically
+                if cnt_checkpoint % checkpoint_steps == 0:
+                    self.save_checkpoint(epoch, i)
+                    cnt_checkpoint = 1
+                else:
+                    cnt_checkpoint += 1
+
             if self.validation_flag:
                 self.model.eval()
                 for i, input_output in enumerate(self.validation_dataloader):
@@ -469,6 +486,5 @@ class ActorTrainer:
                             f"Iteration: {i+1}/{n_iter}, "
                             f"Validation Loss: {loss}"
                         )
-            self.save_checkpoint(current_epoch=epoch)
         self.model.save()
         print("Training Finished ")

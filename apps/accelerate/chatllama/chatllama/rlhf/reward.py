@@ -4,7 +4,7 @@ import os
 import deepspeed
 import torch
 from beartype import beartype
-from beartype.typing import Iterable
+from beartype.typing import Iterable, Tuple
 from einops.layers.torch import Rearrange
 from torch.utils.data import Dataset, DataLoader
 from transformers import BartModel
@@ -323,6 +323,7 @@ class RewardTrainer:
     def save_checkpoint(
         self,
         current_epoch: int,
+        current_step: int,
     ) -> None:
 
         print(f"Saving checkpoint for epoch {current_epoch+1}..")
@@ -330,6 +331,7 @@ class RewardTrainer:
             config=self.config,
             is_checkpoint=True,
             current_epoch=current_epoch,
+            current_step=current_step,
         )
         torch.save(
             {
@@ -337,6 +339,7 @@ class RewardTrainer:
                 "optim_state_dict": self.optimizer.state_dict(),
                 "training_stats": self.training_stats,
                 "epoch": current_epoch,
+                "step": current_step,
             },
             path,
         )
@@ -344,7 +347,7 @@ class RewardTrainer:
     @beartype
     def load_checkpoint(
         self,
-    ) -> int:
+    ) -> Tuple[int, int]:
 
         print("Looking for checkpoints...")
         path = ModelLoader.check_model_path(
@@ -359,8 +362,9 @@ class RewardTrainer:
             self.model.load_state_dict(checkpoint["state_dict"])
             self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
             self.trainign_stats = checkpoint["training_stats"]
-            return epoch + 1  # return the next episode to train
-        return 0
+            step = checkpoint["step"]
+            return epoch, step + 1  # return the next episode to train
+        return 0, 0
 
     def train(
         self,
@@ -373,17 +377,23 @@ class RewardTrainer:
         epochs = self.config.epochs
         device = self.config.device
         iteration_per_print = self.config.iteration_per_print
+        checkpoint_steps = self.config.checkpoint_steps
 
         # compute the number of iterations
         n_iter = int(len(self.train_dataset) / batch_size)
 
         # load checkpoint
-        start_epoch = self.load_checkpoint()
+        start_epoch, start_step = self.load_checkpoint()
+
+        # counter for the checkpoint
+        cnt_checkpoints = 1
 
         # traing loop
         for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
+                if i < start_step:
+                    continue
                 input_text = inputs[0]
                 score = inputs[1]
 
@@ -444,6 +454,14 @@ class RewardTrainer:
                         "target",
                         score.cpu().numpy(),
                     )
+
+                # checkpoints saving
+                if cnt_checkpoints % checkpoint_steps == 0:
+                    self.save_checkpoint(epoch, i)
+                    cnt_checkpoints = 1
+                else:
+                    cnt_checkpoints += 1
+
             if self.validation_flag:
                 self.model.eval()
                 for i, (text, score) in enumerate(self.validation_dataloader):
@@ -471,5 +489,4 @@ class RewardTrainer:
                             f"Iteration: {i+1}/{n_iter}, "
                             f"Validation Loss: {loss.item()}"
                         )
-            self.save_checkpoint(current_epoch=epoch)
         self.model.save()

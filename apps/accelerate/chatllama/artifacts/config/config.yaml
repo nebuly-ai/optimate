@@ -46,6 +46,8 @@ actor_config:
   iteration_per_print: 1
   lr: 0.0001
   epochs: 32
+  # number of backpropagation after saving the checkpoints
+  checkpoint_steps: 3
   # deepspeed settings
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
@@ -62,6 +64,7 @@ reward_config:
   batch_size: 1
   epochs: 32
   iteration_per_print: 1
+  checkpoint_steps: 10
   lr: 0.0001
   # deepspeed settings
   deepspeed_enable: False

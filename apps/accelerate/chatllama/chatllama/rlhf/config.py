@@ -31,6 +31,9 @@ class ConfigReward:
         iteration_per_print (Optional[int]): Number of iterations to print
             the training loss. Default to None. To be specified only for the
             reward model trainig.
+        checkpoint_steps (Optional[int]): Number of steps (backProp) to
+            interleave checkpoints. Default to None. To be specified only for
+            the reward model trainig.
         lr (Optional[float]): Learning rate for the reward model. Default to
             None. To be specified only for the reward model distillation.
         llm_enable (bool): Enable reward model distillation. Default to True.
@@ -58,6 +61,7 @@ class ConfigReward:
     batch_size: Optional[int] = None
     epochs: Optional[int] = None
     iteration_per_print: Optional[int] = None
+    checkpoint_steps: Optional[int] = None
     lr: Optional[float] = None
     llm_enable: Optional[bool] = False
     llm_model: Optional[str] = "text-davinci-003"
@@ -98,6 +102,8 @@ class ConfigActor:
             training loss
         lr (float): Learning rate for the actor
         epochs (int): Number of epochs to train the actor
+        checkpoint_steps (int): Number of steps (backProp) to interleave
+            checkpoints.
         deepspeed_enable (bool): Enable deepspeed for the actor.
             Default to False.
         deepspeed_config_path (str): Path to the deepspeed config file.
@@ -120,6 +126,7 @@ class ConfigActor:
     iteration_per_print: int
     lr: float
     epochs: int
+    checkpoint_steps: int
 
     deepspeed_enable: bool
     deepspeed_config_path: Optional[str]
