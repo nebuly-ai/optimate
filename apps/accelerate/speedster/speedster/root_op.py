@@ -13,6 +13,7 @@ from typing import (
     Dict,
     Callable,
     List,
+    Tuple,
 )
 
 from loguru import logger
@@ -532,7 +533,7 @@ class SpeedsterRootOp(Operation):
         pipeline_idx: int,
         len_pipelines: int,
         is_diffusion: bool = False,
-    ) -> List[BaseInferenceLearner]:
+    ) -> List[Tuple[BaseInferenceLearner, float, float]]:
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
             if isinstance(model, torch.nn.Module):

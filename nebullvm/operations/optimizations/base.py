@@ -7,7 +7,10 @@ from nebullvm.config import (
     ACTIVATION_METRIC_DROP_THS,
 )
 from nebullvm.operations.base import Operation
-from nebullvm.operations.inference_learners.base import BuildInferenceLearner
+from nebullvm.operations.inference_learners.base import (
+    BuildInferenceLearner,
+    BaseInferenceLearner,
+)
 from nebullvm.operations.inference_learners.builders import (
     PytorchBuildInferenceLearner,
     DeepSparseBuildInferenceLearner,
@@ -85,7 +88,7 @@ class Optimizer(Operation, abc.ABC):
         model: Any,
         input_data: DataManager,
         optimization_time: OptimizationTime,
-        metric_drop_ths: str,
+        metric_drop_ths: float,
         metric: Callable,
         model_params: ModelParams,
         model_outputs: List[Tuple[Any, ...]],
@@ -332,7 +335,7 @@ class Optimizer(Operation, abc.ABC):
                 value=optimization_info,
             )
 
-    def get_result(self) -> List:
+    def get_result(self) -> List[Tuple[BaseInferenceLearner, float, float]]:
         return self.optimized_models
 
 
