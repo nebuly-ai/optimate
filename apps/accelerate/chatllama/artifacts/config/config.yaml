@@ -23,12 +23,10 @@ trainer_config:
   epochs: 1
   # number of learning steps (i.e. learn()) after which a checkpoint is saved
   update_checkpoint: 8
-  checkpoint_folder: "./models/checkpoints"
 
 actor_config:
   model: "facebook/opt-1.3b"
-  model_path: "path-to-model"
-  checkpoint_folder: "./models"
+  model_folder: "./models"
   tokenizer_folder: "path-to-tokenizer"
   train_dataset_path: "./datasets/actor_training_data.json"
   validation_dataset_path: null
@@ -56,9 +54,9 @@ reward_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
   # more can be simply added in the reward.py __init__()
   model: "gpt2-large"
+  model_folder: "./models"
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
-  model_folder: "./models"
   train_dataset_path: "./datasets/reward_training_data.json"
   validation_dataset_path: null
   batch_size: 1
