@@ -105,7 +105,7 @@ class ActorModel(torch.nn.Module):
         Args:
             path (str): path to the model
         """
-        path = ModelLoader().check_model_path(
+        path = ModelLoader.check_model_path(
             config=self.config,
             is_checkpoint=False,
             current_epoch=None,
@@ -124,7 +124,7 @@ class ActorModel(torch.nn.Module):
             path (Optional[str], optional): Path to store the model.
                 Defaults to None.
         """
-        path = ModelLoader().get_model_path(
+        model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=False,
             current_epoch=None,
@@ -333,7 +333,7 @@ class ActorTrainer:
     ) -> None:
 
         print(f"Saving checkpoint for epoch {current_epoch+1}..")
-        model_folder, model_name, path = ModelLoader().get_model_path(
+        model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=current_epoch,
@@ -354,7 +354,7 @@ class ActorTrainer:
     ) -> int:
 
         print("Looking for checkpoints...")
-        path = ModelLoader().check_model_path(
+        path = ModelLoader.check_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=None,

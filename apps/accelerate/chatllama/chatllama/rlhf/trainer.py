@@ -73,7 +73,11 @@ class ActorCritic(torch.nn.Module):
     ) -> None:
         super().__init__()
         self.actor = ActorModel(actor_config)
+
+        # check if critic must be initialized from reward model
+        ModelLoader.init_critic_from_reward(critic_config)
         self.critic = CriticModel(critic_config)
+
         self.debug = actor_config.debug
 
     @beartype
@@ -301,7 +305,7 @@ class RLTrainer:
 
         # Save checkpoint for the critic
         print(f"Saving checkpoint for episode {current_episode+1}..")
-        model_folder, model_name, path = ModelLoader().get_model_path(
+        model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config.critic,
             is_checkpoint=True,
             current_epoch=current_episode,
@@ -317,7 +321,7 @@ class RLTrainer:
 
         # Save checkpoint for the actor_rl - use config vs config.actor
         # to distinguish between actor and actor_rl
-        model_folder, model_name, path = ModelLoader().get_model_path(
+        model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=current_episode,
@@ -342,7 +346,7 @@ class RLTrainer:
 
         # load the critic checkpoint
         print("Looking for checkpoints...")
-        path = ModelLoader().check_model_path(
+        path = ModelLoader.check_model_path(
             config=self.config.critic,
             is_checkpoint=True,
             current_epoch=None,
@@ -360,7 +364,7 @@ class RLTrainer:
 
         # load the critic checkpoint
         print("Looking for checkpoints...")
-        path = ModelLoader().check_model_path(
+        path = ModelLoader.check_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=None,

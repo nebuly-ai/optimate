@@ -65,6 +65,8 @@ class ConfigReward:
     llm_max_tokens: Optional[int] = 64
     deepspeed_enable: bool = False
     deepspeed_config_path: Optional[str] = None
+
+    # critic specific parameters
     is_reward: bool = True
 
     debug: bool = False

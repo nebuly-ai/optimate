@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from beartype.typing import Union, Optional, Tuple
 
@@ -131,7 +132,13 @@ class ModelLoader:
         # extend the model name with the epoch, if none epoch is provided
         # just return the simple model name
         if is_checkpoint and current_epoch is not None:
-            model_name = f"{model_name}_epoch_{current_epoch}.pt"
+            # number of characters to store the checkpoints
+            n_char = 8
+            # create the string epoch such that it is always the same length
+            # equalt to n_char (i.e. 00000001) necessary for sorting
+            string_epoch = str(current_epoch)
+            string_epoch = "0" * (n_char - len(string_epoch)) + string_epoch
+            model_name = f"{model_name}_epoch_{string_epoch}.pt"
         else:
             model_name = f"{model_name}.pt"
 
@@ -205,3 +212,29 @@ class ModelLoader:
             else:
                 print(f"Found model at {path}")
         return path
+
+    def init_critic_from_reward(config: ConfigCritic) -> None:
+        """Method to initialize the critic from the reward model.
+        If the critic folder is empty
+        """
+
+        if config.is_reward is True:
+            raise ValueError(
+                "The config should work for the Critic model,"
+                "but the config seems to be for the Reward model"
+            )
+
+        # check that the critic folder is empty
+        path = ModelLoader.check_model_path(config)
+        _, _, critic_path = ModelLoader.get_model_path(config)
+        if path is None:
+            print("Initializing Critic from Reward model...")
+            config.is_reward = True
+            path = ModelLoader.check_model_path(config)
+            if path is not None:
+                _, _, reward_path = ModelLoader.get_model_path(config)
+                # copy the file in reward_path to critic_path
+                shutil.copy(reward_path, critic_path)
+            else:
+                print("Critic Model remains uninitialized")
+        config.is_reward = False

@@ -122,7 +122,7 @@ class RewardModel(torch.nn.Module):
         Args:
             path (str): path to the model
         """
-        path = ModelLoader().check_model_path(
+        path = ModelLoader.check_model_path(
             config=self.config,
             is_checkpoint=False,
             current_epoch=None,
@@ -141,7 +141,7 @@ class RewardModel(torch.nn.Module):
             path (Optional[str], optional): Path to store the model.
                 Defaults to None.
         """
-        path = ModelLoader().get_model_path(
+        model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=False,
             current_epoch=None,
@@ -203,7 +203,6 @@ class RewardModel(torch.nn.Module):
             output_sequence_mask (torch.Tensor): Mask for the attention
         """
         rewards = self.forward(output_sequence, output_sequence_mask)
-        print("rewards shape", rewards.shape)
         return rewards[:, -1]
 
 
@@ -327,7 +326,7 @@ class RewardTrainer:
     ) -> None:
 
         print(f"Saving checkpoint for epoch {current_epoch+1}..")
-        model_folder, model_name, path = ModelLoader().get_model_path(
+        model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=current_epoch,
@@ -348,7 +347,7 @@ class RewardTrainer:
     ) -> int:
 
         print("Looking for checkpoints...")
-        path = ModelLoader().check_model_path(
+        path = ModelLoader.check_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=None,
