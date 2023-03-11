@@ -289,7 +289,12 @@ class RLTrainer:
 
         # initialize class to store training stats
         self.training_stats = TrainingStats()
-        self.conversation_log = ConversationLog()
+        model_folder, _, _ = ModelLoader.get_model_path(
+            config,
+            is_checkpoint=True,
+        )
+        path = os.path.join(model_folder, "conversations_log.json")
+        self.conversation_log = ConversationLog(path)
 
         # initialize examples sampler
         self.example_sampler = ExamplesSampler(config.trainer.examples_path)
@@ -642,6 +647,9 @@ class RLTrainer:
 
         # load checkpoint
         start_episode = self.load_checkpoint()
+        # if it is a new training from the start clear the conversation log
+        if start_episode == 0:
+            self.conversation_log.clear()
 
         # initialize counters
         cnt_timesteps = 0
@@ -752,7 +760,7 @@ class RLTrainer:
 
                 # log the memories in the conversation log
                 for i in range(states.shape[0]):
-                    self.conversation_log.add_conversation(
+                    self.conversation_log.append(
                         inputs[i],
                         completions[i],
                         rewards[i].detach().cpu().item(),
@@ -775,6 +783,7 @@ class RLTrainer:
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
                 self.save_checkpoint(current_episode=episode)
+                self.conversation_log.save()
 
         self.actorcritic.critic.save()
         self.actorcritic.actor.save()
