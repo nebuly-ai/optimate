@@ -490,7 +490,7 @@ class RLTrainer:
                 actions_log_prob = torch.log(actions_prob + self.eps)
 
                 # compute entropy
-                entropies = (actions_prob * actions_log_prob).sum(dim=-1)
+                entropies = -(actions_prob * actions_log_prob).sum(dim=-1)
 
                 # compute KL divergence
                 kl_div_loss = (
