@@ -86,7 +86,7 @@ class HFLikeTokenizer:
     def __call__(self, texts: Union[List[str], str], *args, **kwargs):
         if isinstance(texts, str):
             text = self.tokenizer.encode(texts, bos=True, eos=True)
-            tokens = torch.tensor(text).cuda().long()
+            tokens = torch.tensor(text).long()
         else:
             texts = [
                 self.tokenizer.encode(text, bos=True, eos=True)
@@ -95,12 +95,11 @@ class HFLikeTokenizer:
             max_len = max(len(text) for text in texts)
             tokens = (
                 torch.full((len(texts), max_len), self.tokenizer.pad_id)
-                .cuda()
                 .long()
             )
             for i, text in enumerate(texts):
                 tokens[i, -len(text) :] = (  # noqa E203
-                    torch.tensor(text).cuda().long()
+                    torch.tensor(text).long()
                 )
             # TODO: decide how eos and bos should be handled - i need to mask
             # them? or not?
@@ -110,8 +109,12 @@ class HFLikeTokenizer:
                 tokens[
                     i, -len(current_tokens) - 1 : -1  # noqa E203
                 ] = current_tokens
-            mask = self.create_sequence_mask(tokens).cuda()
+            mask = self.create_sequence_mask(tokens)
 
+        # convert `pad_id` from -1 to 0, otherwise embedding will cause out of bounds.
+        tokens = torch.where(
+            tokens == self.tokenizer.pad_id, torch.zeros_like(tokens), tokens
+        )
         output = {
             "input_ids": tokens,
             "attention_mask": mask,
