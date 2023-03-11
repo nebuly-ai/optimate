@@ -615,7 +615,7 @@ class RLTrainer:
         num_examples = self.config.trainer.num_examples
         update_timesteps = self.config.trainer.update_timesteps
         batch_size = self.config.trainer.batch_size
-        update_checkpoint = self.config.trainer.update_checkpoint
+        checkpoint_steps = self.config.trainer.checkpoint_steps
         device = self.config.trainer.device
 
         print("Start RL Training")
@@ -640,12 +640,14 @@ class RLTrainer:
         # initialize memories
         memories = deque([])
 
-        # loop over episodes and timesteps
-        current_time = 0
-        checkpoint_counter = 0
+        # load checkpoint
         start_episode = self.load_checkpoint()
-        current_learn_counter = 0
 
+        # initialize counters
+        cnt_timesteps = 0
+        cnt_learn_iter = 0
+
+        # loop over episodes and timesteps
         self.actorcritic.eval()
         for episode in range(start_episode, num_episodes):
             for timestep in range(max_timesteps):
@@ -656,7 +658,7 @@ class RLTrainer:
                 )
 
                 # counter used to count timesteps into memory
-                current_time += 1
+                cnt_timesteps += 1
 
                 # sample num_examples examples from  example dataset
                 inputs = self.example_sampler.sample(num_examples)
@@ -754,28 +756,25 @@ class RLTrainer:
                         inputs[i],
                         completions[i],
                         rewards[i].detach().cpu().item(),
-                        current_learn_counter,
+                        cnt_learn_iter,
                     )
 
                 # learn from memories
                 print(
-                    f"Learning counter: {current_time} of {update_timesteps}"
+                    f"Learning counter: {cnt_timesteps} of {update_timesteps}"
                 )
-                if (current_time % update_timesteps == 0) and (
-                    current_time != 0
+                if (cnt_timesteps % update_timesteps == 0) and (
+                    cnt_timesteps != 0
                 ):
-                    checkpoint_counter += 1
-                    self.conversation_log.show(current_learn_counter)
+                    # self.conversation_log.show(cnt_learn_iter)
                     self.learn(memories)
                     memories.clear()
-                    current_time = 0
-                    current_learn_counter += 1
+                    cnt_timesteps = 0
+                    cnt_learn_iter += 1
 
-                if (checkpoint_counter % update_checkpoint == 0) and (
-                    checkpoint_counter != 0
-                ):
-                    self.save_checkpoint(current_episode=episode)
-                    checkpoint_counter = 0
+            # save checkpoints
+            if (episode % checkpoint_steps == 0) and (episode != 0):
+                self.save_checkpoint(current_episode=episode)
 
         self.actorcritic.critic.save()
         self.actorcritic.actor.save()

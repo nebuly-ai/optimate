@@ -165,7 +165,7 @@ class ConfigTrainer:
             This batch is used to aggregate the memory from the memory buffer
             for the actual training of the actor and critic models.
         epochs (int): Number of epochs to train the actor and critic.
-        update_checkpoint (int): Number of timesteps to update the checkpoint
+        checkpoint_steps (int): Number of episodes to interleave checkpoints.
     """
 
     actor_lr: int
@@ -180,7 +180,7 @@ class ConfigTrainer:
     num_examples: int
     batch_size: int
     epochs: int
-    update_checkpoint: int
+    checkpoint_steps: int
 
     device: torch.device
     debug: bool = False
