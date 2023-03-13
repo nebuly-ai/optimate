@@ -8,12 +8,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -y update && apt-get -y upgrade
 
-# # Install python and pip
-# RUN apt-get install -y python3-opencv python3-pip && \
-#     python3 -m pip install --upgrade pip && \
-#     apt-get -y install git && \
-#     apt-get -y install python-is-python3
-
 RUN apt-get install ffmpeg libsm6 libxext6  -y
 
 # Install other libraries

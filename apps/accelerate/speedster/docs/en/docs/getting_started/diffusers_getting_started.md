@@ -14,7 +14,7 @@ In this section, we will learn about the 4 main steps needed to optimize Stable 
 
 For Stable Diffusion models Speedster expects the input data to be a list of sentences: ```List[str]```
 
-``` python
+```python
 import torch
 from speedster import optimize_model
 from diffusers import StableDiffusionPipeline

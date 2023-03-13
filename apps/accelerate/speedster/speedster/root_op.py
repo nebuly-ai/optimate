@@ -57,8 +57,8 @@ from nebullvm.tools.data import DataManager
 from nebullvm.tools.diffusers import (
     DiffusionUNetWrapper,
     is_diffusion_model_pipe,
-    preprocess_diffusers_for_speedster,
-    postprocess_diffusers_for_speedster,
+    preprocess_diffusers,
+    postprocess_diffusers,
     get_unet_inputs,
 )
 from nebullvm.tools.feedback_collector import FeedbackCollector
@@ -225,7 +225,7 @@ class SpeedsterRootOp(Operation):
                     for prompt in self.data
                 ]
 
-                self.model = preprocess_diffusers_for_speedster(self.model)
+                self.model = preprocess_diffusers(self.model)
                 needs_conversion_to_diffusers = True
                 is_diffusion = True
             elif isinstance(
@@ -513,7 +513,7 @@ class SpeedsterRootOp(Operation):
                             self.pipe.enable_xformers_memory_efficient_attention()  # noqa: E501
                         except Exception:
                             pass
-                    self.optimal_model = postprocess_diffusers_for_speedster(
+                    self.optimal_model = postprocess_diffusers(
                         optimized_models[0][0], self.pipe, self.device
                     )
 

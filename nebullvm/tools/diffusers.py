@@ -191,16 +191,20 @@ def get_default_dynamic_info(input_shape: List[Tuple[int, ...]]):
     }
 
 
-def preprocess_diffusers_for_speedster(pipe: DiffusionPipeline):
+def preprocess_diffusers(pipe: DiffusionPipeline) -> torch.nn.Module:
+    # Function that wraps the Diffusion UNet model to
+    # be compatible with the optimizations performed by nebullvm
     model = DiffusionUNetWrapper(pipe.unet)
     return model
 
 
-def postprocess_diffusers_for_speedster(
+def postprocess_diffusers(
     optimized_model: Any,
     pipe: DiffusionPipeline,
     device: Device,
-):
+) -> DiffusionPipeline:
+    # Function that puts the optimized Diffusion UNet model back
+    # into the Diffusion Pipeline
     final_model = OptimizedDiffusionWrapper(optimized_model)
     final_model.sample_size = pipe.unet.sample_size
     final_model.in_channels = pipe.unet.in_channels

@@ -3,7 +3,7 @@ from typing import Union, Any
 
 from nebullvm.operations.inference_learners.base import LearnerMetadata
 from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
-from nebullvm.tools.diffusers import postprocess_diffusers_for_speedster
+from nebullvm.tools.diffusers import postprocess_diffusers
 
 
 def load_model(path: Union[Path, str], pipe: StableDiffusionPipeline = None):
@@ -16,13 +16,12 @@ def load_model(path: Union[Path, str], pipe: StableDiffusionPipeline = None):
             loading the model. This parameter is only needed if the model
             to be loaded is a diffusion model. Default: None.
 
-
     Returns:
         InferenceLearner: Model optimized by Speedster.
     """
     optimized_model = LearnerMetadata.read(path).load_model(path)
     if pipe is not None:
-        optimized_model = postprocess_diffusers_for_speedster(
+        optimized_model = postprocess_diffusers(
             optimized_model, pipe, optimized_model.device
         )
     return optimized_model

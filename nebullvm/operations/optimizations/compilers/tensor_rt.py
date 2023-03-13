@@ -293,6 +293,8 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used. Default: None.
             input_data (DataManager): User defined data. Default: None
+            is_diffusion (bool): Whether the model is a diffusion model.
+                Default: False.
         """
 
         if quantization_type not in self.supported_ops[self.device.type.value]:
@@ -338,7 +340,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                     "TensorRT engine"
                 )
                 self.onnx_model_path = str(model)
-                self.simplify_model = False
+            self.simplify_model = False
         elif self.onnx_model_path is None:
             self.onnx_model_path = str(model)
 
@@ -380,7 +382,8 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             # The method set_memory_pool_limit is not available
             # until TensorRT Release 8.4.1
             self.logger.warning(
-                "Cannot call method set_memory_pool_limit for TensorRT."
+                "Cannot call method set_memory_pool_limit for TensorRT. "
+                "because your version is lower than 8.4.1. "
                 "Please update TensorRT version."
             )
 
@@ -407,12 +410,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
 
     def _check_tensorrt_plugins(self):
         ld_preload_env_var = os.environ.get("LD_PRELOAD", "")
-        # ld_library_path_env_var = os.environ.get("LD_LIBRARY_PATH", "")
-        if (
-            "libnvinfer_plugin.so"
-            in ld_preload_env_var
-            # and "TensorRT" in ld_library_path_env_var
-        ):
+        if "libnvinfer_plugin.so" in ld_preload_env_var:
             return True
 
         self.logger.warning(
