@@ -13,6 +13,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from chatllama.rlhf.actor import ActorModel
 from chatllama.rlhf.config import ConfigReward, ConfigActor, Config
+from chatllama.rlhf.model_loader import ModelLoader
 from chatllama.rlhf.reward import RewardModel, CriticModel
 from chatllama.rlhf.utils import TrainingStats, ConversationLog
 
@@ -73,7 +74,11 @@ class ActorCritic(torch.nn.Module):
     ) -> None:
         super().__init__()
         self.actor = ActorModel(actor_config)
+
+        # check if critic must be initialized from reward model
+        ModelLoader.init_critic_from_reward(critic_config)
         self.critic = CriticModel(critic_config)
+
         self.debug = actor_config.debug
 
     @beartype
@@ -344,7 +349,12 @@ class RLTrainer:
 
         # initialize class to store training stats
         self.training_stats = TrainingStats()
-        self.conversation_log = ConversationLog()
+        model_folder, _, _ = ModelLoader.get_model_path(
+            config,
+            is_checkpoint=True,
+        )
+        path = os.path.join(model_folder, "conversations_log.json")
+        self.conversation_log = ConversationLog(path)
 
         # initialize examples sampler
         self.example_sampler = ExamplesSampler(config.trainer.examples_path)
@@ -352,84 +362,109 @@ class RLTrainer:
         # eps
         self.eps = 1e-8
 
-        # make models directory
-        if not os.path.exists("./models"):
-            os.mkdir("./models")
-
-        if not os.path.exists(self.config.trainer.checkpoint_folder):
-            os.mkdir(self.config.trainer.checkpoint_folder)
-
-        # consistency check
-        if config.actor.accelerate_enable and config.actor.deepspeed_enable:
-            raise ValueError(
-                "Both DeepSpeed and Accelerate are enabled for the Actor."
-                "Please choose one of them."
-            )
-        # consistency check
-        if config.critic.accelerate_enable and config.critic.deepspeed_enable:
-            raise ValueError(
-                "Both DeepSpeed and Accelerate are enabled for the Critic."
-                "Please choose one of them."
-            )
-
+    @beartype
     def save_checkpoint(
         self,
         current_episode: int,
+        max_episode: int,
     ) -> None:
+
+        # Save checkpoint for the critic
         print(f"Saving checkpoint for episode {current_episode+1}..")
-        file_name = "rltraining_" + str(current_episode) + ".pt"
-        checkpoint_folder = self.config.trainer.checkpoint_folder
-        if os.path.exists(checkpoint_folder) is False:
-            os.mkdir(checkpoint_folder)
-        path = checkpoint_folder + "/" + file_name
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config.critic,
+            is_checkpoint=True,
+            current_epoch=current_episode,
+            max_epochs=max_episode,
+            max_steps=0,
+        )
+        if os.path.exists(path):
+            os.remove(path)
+        torch.save(
+            {
+                "episode": current_episode,
+                "critic_state_dict": self.actorcritic.critic.state_dict(),
+                "critic_optim_state_dict": self.critic_optimizer.state_dict(),
+            },
+            path,
+        )
+
+        # Save checkpoint for the actor_rl - use config vs config.actor
+        # to distinguish between actor and actor_rl
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=current_episode,
+            max_epochs=max_episode,
+            max_steps=0,
+        )
+        if os.path.exists(path):
+            os.remove(path)
         torch.save(
             {
                 "episode": current_episode,
                 "actor_state_dict": self.actorcritic.actor.state_dict(),
-                "critic_state_dict": self.actorcritic.critic.state_dict(),
                 "actor_optim_state_dict": self.actor_optimizer.state_dict(),
-                "critic_optim_state_dict": self.critic_optimizer.state_dict(),
                 "training_stats": self.training_stats,
             },
             path,
         )
 
+    @beartype
     def load_checkpoint(
         self,
     ) -> int:
-        # get all the files name in the checkpoint folder and take the one
-        # with the highest epoch
-        checkpoint_folder = self.config.trainer.checkpoint_folder
-        if os.path.exists(checkpoint_folder) is False:
-            os.mkdir(checkpoint_folder)
-            print(
-                f"Checkpoint folder {checkpoint_folder} does not exist.\n"
-                f"No checkpoint will be loaded."
+
+        critic_episode = -1
+        actor_episode = -1
+
+        # load the critic checkpoint
+        print("Looking for checkpoints...")
+        path = ModelLoader.check_model_path(
+            config=self.config.critic,
+            is_checkpoint=True,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            critic_episode = checkpoint["episode"]
+            self.actorcritic.critic.load_state_dict(
+                checkpoint["critic_state_dict"]
             )
-            return
-        files = os.listdir(checkpoint_folder)
-        episodes = [int(f.split("_")[1].split(".")[0]) for f in files]
-        if len(episodes) == 0:
-            return 0
-        max_episode = max(episodes)
-        print(f"Loading checkpoint for episode {max_episode+1}..")
-        file_name = "rltraining_" + str(max_episode) + ".pt"
-        path = checkpoint_folder + "/" + file_name
-        checkpoint = torch.load(path)
-        self.actorcritic.actor.load_state_dict(checkpoint["actor_state_dict"])
-        self.actorcritic.critic.load_state_dict(
-            checkpoint["critic_state_dict"]
+            self.critic_optimizer.load_state_dict(
+                checkpoint["critic_optim_state_dict"]
+            )
+
+        # load the actor checkpoint
+        print("Looking for checkpoints...")
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=None,
         )
-        self.actor_optimizer.load_state_dict(
-            checkpoint["actor_optim_state_dict"]
-        )
-        self.critic_optimizer.load_state_dict(
-            checkpoint["critic_optim_state_dict"]
-        )
-        self.trainign_stats = checkpoint["training_stats"]
-        self.actorcritic.actor.to(self.config.trainer.device)
-        self.actorcritic.critic.to(self.config.trainer.device)
-        return max_episode + 1  # return the next episode to train
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            actor_episode = checkpoint["episode"]
+            self.actorcritic.actor.load_state_dict(
+                checkpoint["actor_state_dict"]
+            )
+            self.actor_optimizer.load_state_dict(
+                checkpoint["actor_optim_state_dict"]
+            )
+            self.training_stats = checkpoint["training_stats"]
+
+        if critic_episode == actor_episode:
+            # all ok start from next episode
+            return critic_episode + 1
+        else:
+            print(
+                f"There are some discrepancies between the checkpoints"
+                f"of actor and critic \nactor episode: {actor_episode}"
+                f"\n critic episode: {critic_episode}\n"
+            )
+            return min(critic_episode, actor_episode) + 1
 
     @beartype
     def learn(self, memories: Deque[Memory]) -> None:
@@ -684,7 +719,7 @@ class RLTrainer:
         num_examples = self.config.trainer.num_examples
         update_timesteps = self.config.trainer.update_timesteps
         batch_size = self.config.trainer.batch_size
-        update_checkpoint = self.config.trainer.update_checkpoint
+        checkpoint_steps = self.config.trainer.checkpoint_steps
         device = self.config.trainer.device
 
         print("Start RL Training")
@@ -709,23 +744,28 @@ class RLTrainer:
         # initialize memories
         memories = deque([])
 
-        # loop over episodes and timesteps
-        current_time = 0
-        checkpoint_counter = 0
-        current_episode = self.load_checkpoint()
-        current_learn_counter = 0
+        # load checkpoint
+        start_episode = self.load_checkpoint()
+        # if it is a new training from the start clear the conversation log
+        if start_episode == 0:
+            self.conversation_log.clear()
 
+        # initialize counters
+        cnt_timesteps = 0
+        cnt_learn_iter = 0
+
+        # loop over episodes and timesteps
         self.actorcritic.eval()
-        for eps in range(current_episode, num_episodes):
+        for episode in range(start_episode, num_episodes):
             for timestep in range(max_timesteps):
 
                 print(
-                    f"Episode: {eps + 1} of {num_episodes}, "
+                    f"Episode: {episode + 1} of {num_episodes}, "
                     f"Timestep: {timestep + 1} of {max_timesteps}",
                 )
 
                 # counter used to count timesteps into memory
-                current_time += 1
+                cnt_timesteps += 1
 
                 # sample num_examples examples from  example dataset
                 inputs = self.example_sampler.sample(num_examples)
@@ -845,28 +885,26 @@ class RLTrainer:
                         inputs[i],
                         completions[i],
                         rewards[i].detach().cpu().item(),
-                        current_learn_counter,
+                        cnt_learn_iter,
                     )
 
                 # learn from memories
                 print(
-                    f"Learning counter: {current_time} of {update_timesteps}"
+                    f"Learning counter: {cnt_timesteps} of {update_timesteps}"
                 )
-                if (current_time % update_timesteps == 0) and (
-                    current_time != 0
+                if (cnt_timesteps % update_timesteps == 0) and (
+                    cnt_timesteps != 0
                 ):
-                    checkpoint_counter += 1
-                    self.conversation_log.show(current_learn_counter)
+                    # self.conversation_log.show(cnt_learn_iter)
                     self.learn(memories)
                     memories.clear()
-                    current_time = 0
-                    current_learn_counter += 1
+                    cnt_timesteps = 0
+                    cnt_learn_iter += 1
 
-                if (checkpoint_counter % update_checkpoint == 0) and (
-                    checkpoint_counter != 0
-                ):
-                    self.save_checkpoint(eps)
-                    checkpoint_counter = 0
+            # save checkpoints
+            if (episode % checkpoint_steps == 0) and (episode != 0):
+                self.save_checkpoint(current_episode=episode)
+                self.conversation_log.save()
 
         self.actorcritic.critic.save()
         self.actorcritic.actor.save()

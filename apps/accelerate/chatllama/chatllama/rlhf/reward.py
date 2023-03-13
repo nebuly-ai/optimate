@@ -5,7 +5,7 @@ import deepspeed
 import torch
 from accelerate import Accelerator
 from beartype import beartype
-from beartype.typing import Optional, Iterable
+from beartype.typing import Iterable, Tuple
 from einops.layers.torch import Rearrange
 from torch.utils.data import Dataset, DataLoader
 from transformers import BartModel
@@ -19,6 +19,7 @@ from transformers import (
 from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.utils import TrainingStats
+from chatllama.rlhf.model_loader import ModelLoader
 
 
 class RewardModel(torch.nn.Module):
@@ -41,7 +42,11 @@ class RewardModel(torch.nn.Module):
 
     def __init__(self, config: ConfigReward) -> None:
         super().__init__()
-        # load the model -- add here other models
+
+        # store config
+        self.config = config
+
+        # initialize the self.model
         head_hidden_size = config.model_head_hidden_size
         if config.model in hf_models:
             self.tokenizer = self.load_tokenizer(config)
@@ -89,35 +94,54 @@ class RewardModel(torch.nn.Module):
             )
         else:
             raise ValueError(f"model {config.model} not supported")
-        # store config
-        self.config = config
-        if os.path.exists(config.model_folder) is False:
-            os.mkdir(config.model_folder)
-        else:
-            self.load()
+
+        # load the model
+        self.load()
+
         # freeze model parameters (only train the head)
         for param in self.model.parameters():
             param.requires_grad = False
+
         # move model to device
         self.model.to(config.device)
         self.head.to(config.device)
 
-    @staticmethod
-    def load_tokenizer(config: ConfigReward):
-        tokenizer = AutoTokenizer.from_pretrained(
-            config.model,
-            padding_side="left",
-            truncation_side="left",
-            truncation=True,
-            return_tensors="pt",
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path
+
+        Args:
+            path (str): path to the model
+        """
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
         )
-        # galactica tokenizer eos_token is None
-        if tokenizer.eos_token is None:
-            tokenizer.eos_token = "</s>"
-            tokenizer.eos_token_id = 0
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-        return tokenizer
+        if path is not None:
+            print("Loading ...")
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict["model"])
+            self.head.load_state_dict(model_dict["head"])
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path
+
+        Args:
+            path (Optional[str], optional): Path to store the model.
+                Defaults to None.
+        """
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"model": self.model.state_dict(), "head": self.head.state_dict()},
+            path,
+        )
 
     @beartype
     def parameters(
@@ -172,58 +196,6 @@ class RewardModel(torch.nn.Module):
         """
         rewards = self.forward(output_sequence, output_sequence_mask)
         return rewards[:, -1]
-
-    @beartype
-    def load(self, path: Optional[str] = None) -> None:
-        """Load the model from the path
-
-        Args:
-            path (str): path to the model
-        """
-        if path is None:
-            if self.config.model in hf_models:
-                model_name = os.path.split(self.config.model)[-1]
-            else:
-                model_name = self.config.model
-            path = os.path.join(self.config.model_folder, f"{model_name}.pt")
-            if os.path.exists(self.config.model_folder) is False:
-                os.makedirs(self.config.model_folder)
-                print(
-                    f"Model folder does not exist. Creating it,"
-                    f"and returning without loading the model:\n{path}"
-                )
-                return
-        # load the model
-        if os.path.exists(path) is False:
-            print(
-                f"Warning, Impossible to load the model:\n{path}\n"
-                f"No previous checkpoint found."
-            )
-            return
-        model_dict = torch.load(path)
-        self.model.load_state_dict(model_dict["model"])
-        self.head.load_state_dict(model_dict["head"])
-
-    @beartype
-    def save(self, path: Optional[str] = None) -> None:
-        """Save the model to the path
-
-        Args:
-            path (Optional[str], optional): Path to store the model.
-                Defaults to None.
-        """
-        if path is None:
-            if self.config.model in hf_models:
-                model_name = os.path.split(self.config.model)[-1]
-            else:
-                model_name = self.config.model
-            path = os.path.join(self.config.model_folder, f"{model_name}.pt")
-            if os.path.exists(self.config.model_folder) is False:
-                os.makedirs(self.config.model_folder)
-        torch.save(
-            {"model": self.model.state_dict(), "head": self.head.state_dict()},
-            path,
-        )
 
 
 # just to keep namings consistent
@@ -358,9 +330,67 @@ class RewardTrainer:
                 self.train_dataloader,
             )
 
+    @beartype
+    def save_checkpoint(
+        self,
+        current_epoch: int,
+        current_step: int,
+        max_epochs: int,
+        max_steps: int,
+    ) -> None:
+
+        print(
+            f"Saving checkpoint for epoch {current_epoch + 1}, "
+            f" step {current_step} ..."
+        )
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=current_epoch,
+            current_step=current_step,
+            max_epochs=max_epochs,
+            max_steps=max_steps,
+        )
+        # remove a checkpoint if it already exists
+        if os.path.exists(path):
+            os.remove(path)
+        torch.save(
+            {
+                "state_dict": self.model.state_dict(),
+                "optim_state_dict": self.optimizer.state_dict(),
+                "training_stats": self.training_stats,
+                "epoch": current_epoch,
+                "step": current_step,
+            },
+            path,
+        )
+
+    @beartype
+    def load_checkpoint(
+        self,
+    ) -> Tuple[int, int]:
+
+        print("Looking for checkpoints...")
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            epoch = checkpoint["epoch"]
+            self.model.load_state_dict(checkpoint["state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
+            self.trainign_stats = checkpoint["training_stats"]
+            step = checkpoint["step"]
+            return epoch, step + 1  # return the next episode to train
+        return 0, 0
+
     def train(
         self,
     ) -> None:
+
         """Train the reward model"""
         print("Start Training the Reward Model")
         # get config parameters
@@ -368,14 +398,23 @@ class RewardTrainer:
         epochs = self.config.epochs
         device = self.config.device
         iteration_per_print = self.config.iteration_per_print
+        checkpoint_steps = self.config.checkpoint_steps
 
         # compute the number of iterations
         n_iter = int(len(self.train_dataset) / batch_size)
 
+        # load checkpoint
+        start_epoch, start_step = self.load_checkpoint()
+
+        # counter for the checkpoint
+        cnt_checkpoints = 1
+
         # traing loop
-        for epoch in range(epochs):
+        for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
+                if i < start_step:
+                    continue
                 input_text = inputs[0]
                 score = inputs[1]
 
@@ -431,6 +470,14 @@ class RewardTrainer:
                         "target",
                         score.cpu().numpy(),
                     )
+
+                # checkpoints saving
+                if cnt_checkpoints % checkpoint_steps == 0:
+                    self.save_checkpoint(epoch, i, epochs, n_iter)
+                    cnt_checkpoints = 1
+                else:
+                    cnt_checkpoints += 1
+
             if self.validation_flag:
                 self.model.eval()
                 for i, (text, score) in enumerate(self.validation_dataloader):
@@ -458,5 +505,4 @@ class RewardTrainer:
                             f"Iteration: {i+1}/{n_iter}, "
                             f"Validation Loss: {loss.item()}"
                         )
-        print("Saving the model...")
         self.model.save()
