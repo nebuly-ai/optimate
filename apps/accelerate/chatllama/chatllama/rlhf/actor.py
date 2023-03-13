@@ -62,31 +62,13 @@ class ActorModel(torch.nn.Module):
                 max_batch_size=config.batch_size,
             )
         elif config.model in hf_models_seq_2_seq:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                config.model,
-                padding_side="left",
-            )
-            if self.tokenizer.eos_token is None:
-                self.tokenizer.eos_token = "</s>"
-                self.tokenizer.eos_token_id = 0
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer = self.load_tokenizer(config)
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 config.model,
             )
             self.model.to(config.device)
         elif config.model in hf_models_causal_lm:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                config.model,
-                padding_side="left",
-            )
-            # galactica tokenizer eos_token is None
-            if self.tokenizer.eos_token is None:
-                self.tokenizer.eos_token = "</s>"
-                self.tokenizer.eos_token_id = 0
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+            self.tokenizer = self.load_tokenizer(config)
             self.model = AutoModelForCausalLM.from_pretrained(
                 config.model,
             )
@@ -94,6 +76,23 @@ class ActorModel(torch.nn.Module):
 
         # save config
         self.config = config
+
+    @staticmethod
+    def load_tokenizer(config: ConfigActor):
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.model,
+            padding_side="left",
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+        )
+        if tokenizer.eos_token is None:
+            tokenizer.eos_token = "</s>"
+            tokenizer.eos_token_id = 0
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+        tokenizer.pad_token = tokenizer.eos_token
+        return tokenizer
 
     def parameters(self, **kwargs):
         """Return the parameters of the model
@@ -375,22 +374,15 @@ class ActorTrainer:
         # traing loop
         for epoch in range(epochs):
             self.model.train()
-            for i, input_output in enumerate(self.train_dataloader):
+            for i, input_text in enumerate(self.train_dataloader):
                 with torch.no_grad():
-                    input_output_tokenized = self.model.tokenizer(
-                        input_output,
+                    input_tokenized = self.model.tokenizer(
+                        input_text,
                         return_tensors="pt",
-                        padding=True,
                     )
-                    training_output = input_output_tokenized["input_ids"][
-                        :, 1:
-                    ]
-                    training_input = input_output_tokenized["input_ids"][
-                        :, :-1
-                    ]
-                    attention_mask = input_output_tokenized["attention_mask"][
-                        :, :-1
-                    ]
+                    training_output = input_tokenized["input_ids"][:, 1:]
+                    training_input = input_tokenized["input_ids"][:, :-1]
+                    attention_mask = input_tokenized["attention_mask"][:, :-1]
                     training_output = training_output.to(device)
                     training_input = training_input.to(device)
                     attention_mask = attention_mask.to(device)
@@ -429,19 +421,13 @@ class ActorTrainer:
                     )
             if self.validation_flag:
                 self.model.eval()
-                for i, input_output in enumerate(self.validation_dataloader):
-                    input_output_tokenized = self.model.tokenizer(
-                        input_output, return_tensors="pt", padding=True
+                for i, input_text in enumerate(self.validation_dataloader):
+                    input_tokenized = self.model.tokenizer(
+                        input_text, return_tensors="pt", padding=True
                     )
-                    validation_output = input_output_tokenized["input_ids"][
-                        :, 1:
-                    ]
-                    validation_input = input_output_tokenized["input_ids"][
-                        :, :-1
-                    ]
-                    attention_mask = input_output_tokenized["attention_mask"][
-                        :, :-1
-                    ]
+                    validation_output = input_tokenized["input_ids"][:, 1:]
+                    validation_input = input_tokenized["input_ids"][:, :-1]
+                    attention_mask = input_tokenized["attention_mask"][:, :-1]
 
                     # forward pass
                     est_output = self.model.forward(

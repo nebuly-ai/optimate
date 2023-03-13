@@ -44,18 +44,8 @@ class RewardModel(torch.nn.Module):
         # load the model -- add here other models
         head_hidden_size = config.model_head_hidden_size
         if config.model in hf_models:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                config.model,
-                padding_side="left",
-                truncation_side="left",
-            )
+            self.tokenizer = self.load_tokenizer(config)
             self.model = AutoModel.from_pretrained(config.model)
-            # galactica tokenizer eos_token is None
-            if self.tokenizer.eos_token is None:
-                self.tokenizer.eos_token = "</s>"
-                self.tokenizer.eos_token_id = 0
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
             head_dim = self.model.config.hidden_size
             if config.model.startswith("gpt2"):
                 head_dim = self.model.config.n_embd
@@ -111,6 +101,23 @@ class RewardModel(torch.nn.Module):
         # move model to device
         self.model.to(config.device)
         self.head.to(config.device)
+
+    @staticmethod
+    def load_tokenizer(config: ConfigReward):
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.model,
+            padding_side="left",
+            truncation_side="left",
+            truncation=True,
+            return_tensors="pt",
+        )
+        # galactica tokenizer eos_token is None
+        if tokenizer.eos_token is None:
+            tokenizer.eos_token = "</s>"
+            tokenizer.eos_token_id = 0
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+        return tokenizer
 
     @beartype
     def parameters(
@@ -374,7 +381,7 @@ class RewardTrainer:
 
                 # tokenizer (placed here instead of dataset class)
                 input_tokens = self.model.tokenizer(
-                    input_text, padding=True, truncation=True
+                    input_text, return_tensors="pt"
                 )
 
                 # TODO: check on the length of the input tokens if they are
@@ -386,22 +393,13 @@ class RewardTrainer:
                 # forward pass
                 if self.config.deepspeed_enable:
                     est_output = self.model_engine(
-                        torch.as_tensor(
-                            input_tokens["input_ids"], device=device
-                        ),
-                        torch.as_tensor(
-                            input_tokens["attention_mask"], device=device
-                        ),
+                        input_tokens["input_ids"].to(device),
+                        input_tokens["attention_mask"].to(device),
                     )[:, -1]
                 else:
                     est_output = self.model.get_reward(
-                        torch.as_tensor(
-                            input_tokens["input_ids"], device=device
-                        ),
-                        torch.as_tensor(
-                            input_tokens["attention_mask"],
-                            device=device,
-                        ),
+                        input_tokens["input_ids"].to(device),
+                        input_tokens["attention_mask"].to(device),
                     )
 
                 loss = self.loss_function(est_output, output)

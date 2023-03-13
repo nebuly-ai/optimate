@@ -179,12 +179,17 @@ class ActorCritic(torch.nn.Module):
 
         # generate sequences for the critic from actor sequences
         decoded_actions = self.actor.tokenizer.decode(actions)
-        sequences_critic = self.critic.tokenizer.encode(decoded_actions)
-        sequences_mask_critic = (
-            sequences_critic != self.critic.tokenizer.pad_token_id
+        decoded_critic = self.critic.tokenizer.encode(
+            decoded_actions, return_tensors="pt"
+        )
+        sequences_critic = decoded_critic["input_ids"].to(
+            sequences_actor.device,
         )
         sequences_mask_critic = (
-            sequences_mask_critic.to(sequences_actor.device).long().detach()
+            decoded_critic["attention_mask"]
+            .to(sequences_actor.device)
+            .long()
+            .detach()
         )
 
         # compute len of actions for the critic tokenizer
