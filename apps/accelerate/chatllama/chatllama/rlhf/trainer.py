@@ -79,18 +79,30 @@ class ActorCritic(torch.nn.Module):
     @beartype
     def forward(
         self,
-        sequences: torch.Tensor,
-        sequences_mask: torch.Tensor,
-        action_len: int,
+        sequences_actor: torch.Tensor,
+        sequences_mask_actor: torch.Tensor,
+        sequences_critic: torch.Tensor,
+        sequences_mask_critic: torch.Tensor,
+        action_len_actor: int,
+        action_len_critic: int,
     ) -> Tuple:
         """Given the whole sequences, use the actor forward to get the logits
             for each token in the sequence and the critic forward to get the
             values for each generation step.
 
         Args:
-            sequences (torch.Tensor): Sequences composed of [states, actions]
-            sequence_mask (torch.Tensor): Mask for the sequences
-            action_length (int): Length of the actions in the sequences
+            sequences_actor (torch.Tensor): Sequences composed of
+                [states, actions] for the actor
+            sequence_mask_actor (torch.Tensor): Mask for the sequences
+                of the actor
+            sequences_critic (torch.Tensor): Sequences composed of
+                [states, actions] for the critic
+            sequences_mask_critic (torch.Tensor): Mask for the sequences
+                of the critic
+            action_len_actor (int): Length of the actions in the sequences
+                for the actor
+            action_len_critic (int): Length of the actions in the sequences
+                for the critic
 
         Returns:
             action_logits (torch.Tensor): Logits for the actions in the
@@ -99,18 +111,24 @@ class ActorCritic(torch.nn.Module):
         """
         # use a single forward on the whole sequence
         # to get pi(y | x) and ignore predicted output
-        actions_logits = self.actor.forward(sequences, sequences_mask)
-        values = self.critic.forward(sequences, sequences_mask)
+        actions_logits = self.actor.forward(
+            sequences_actor, sequences_mask_actor
+        )
+
+        values = self.critic.forward(sequences_critic, sequences_mask_critic)
 
         # return only logits and values for the actions taken
-        real_actions_logits = actions_logits[:, -action_len:, :]
-        real_values = values[:, -action_len:]
+        real_actions_logits = actions_logits[:, -action_len_actor:, :]
+        real_values = values[:, -action_len_critic:]
 
         if self.debug:
             print("ActorCritic.forward")
-            print("action_len", action_len)
-            print("sequences.shape", sequences.shape)
-            print("sequences", sequences)
+            print("action_len_actor", action_len_actor)
+            print("action_len_critic", action_len_critic)
+            print("sequences_actor.shape", sequences_actor.shape)
+            print("sequences_actor", sequences_actor)
+            print("sequences_critic.shape", sequences_critic.shape)
+            print("sequences_critic", sequences_critic)
             print("real_action_logits.shape", actions_logits.shape)
             print("real_action_logits", actions_logits)
             print("real_values.shape", values.shape)
@@ -124,13 +142,18 @@ class ActorCritic(torch.nn.Module):
     @torch.no_grad()
     @beartype
     def generate(
-        self, states: torch.Tensor, state_mask: torch.Tensor
+        self,
+        states_actor: torch.Tensor,
+        states_mask_actor: torch.Tensor,
+        states_critic: torch.Tensor,
     ) -> Tuple:
         """Generate actions, actions_logits, values and sequences from states
 
         Args:
-            states (torch.Tensor): user inputs
-            state_mask (torch.Tensor): Mask for the states of the environment
+            states_actor (torch.Tensor): States for the actor
+            states_mask_actor (torch.Tensor): Mask for the states for the
+                actor
+            states_critic (torch.Tensor): States for the critic
 
         Returns:
             actions (torch.Tensor): Actions generated from the states
@@ -141,28 +164,59 @@ class ActorCritic(torch.nn.Module):
             sequences (torch.Tensor): Sequences generated from the states
                 as [states, actions]
         """
-        # generate action sequence
-        actions, sequence = self.actor.generate(states, state_mask)
-        sequences_mask = sequence != self.actor.tokenizer.pad_token_id
-        sequences_mask = sequences_mask.to(sequence.device).long().detach()
-        action_len = actions.shape[1]
+
+        # generate action sequence from the actor
+        actions, sequences_actor = self.actor.generate(
+            states_actor, states_mask_actor
+        )
+        sequences_mask_actor = (
+            sequences_actor != self.actor.tokenizer.pad_token_id
+        )
+        sequences_mask_actor = (
+            sequences_mask_actor.to(sequences_actor.device).long().detach()
+        )
+        action_len_actor = actions.shape[1]
+
+        # generate sequences for the critic from actor sequences
+        decoded_actions = self.actor.tokenizer.decode(actions)
+        sequences_critic = self.critic.tokenizer.encode(decoded_actions)
+        sequences_mask_critic = (
+            sequences_critic != self.critic.tokenizer.pad_token_id
+        )
+        sequences_mask_critic = (
+            sequences_mask_critic.to(sequences_actor.device).long().detach()
+        )
+
+        # compute len of actions for the critic tokenizer
+        action_len_critic = states_critic.shape[1]
 
         # generate actions_logits and values
         actions_logits, values = self.forward(
-            sequence, sequences_mask, action_len
+            sequences_actor,
+            sequences_mask_actor,
+            sequences_critic,
+            sequences_mask_critic,
+            action_len_actor,
+            action_len_critic,
         )
         if self.debug:
             print("ActorCritic.generate")
             print("actions shape", actions.shape)
             print("actions", actions)
-            print("sequence shape", sequence.shape)
-            print("sequence", sequence)
+            print("sequence shape", sequences_actor.shape)
+            print("sequence", sequences_actor)
             print("actions_logits shape", actions_logits.shape)
             print("actions_logits", actions_logits)
             print("values shape", values.shape)
             print("values", values)
 
-        return actions, actions_logits, values, sequence, sequences_mask
+        return (
+            actions,
+            actions_logits,
+            values,
+            sequences_actor,
+            sequences_mask_actor,
+        )
 
 
 # structure to store the data for each experience
@@ -477,33 +531,31 @@ class RLTrainer:
         self.actorcritic.train()
         for epoch in range(epochs):
             for i, (
-                states,
+                states_actor,
                 old_actions,
-                sequences,
                 old_values,
                 rewards,
                 old_actions_log_probs,
-                sequences_mask,
+                sequences_actor,
+                sequences_mask_actor,
+                sequences_critic,
+                sequences_mask_critic,
+                action_len_actor,
+                action_len_critic,
             ) in enumerate(dataloader):
 
                 # print
                 print(
-                    "Epoch",
-                    epoch + 1,
-                    "of",
-                    epochs,
-                    "Data",
-                    i + 1,
-                    "of",
-                    int(len(dataloader) / batch_size),
+                    f"Epoch {epoch+1} of {epochs}",
+                    f"Step {i+1} of {int(len(dataloader) / batch_size)}",
                 )
 
                 if self.debug:
                     print("RLTrainer.learn()")
                     print("memory states shapes are: ")
-                    print("states shape", states.shape)
+                    print("states shape", states_actor.shape)
                     print("old_actions shape", old_actions.shape)
-                    print("sequences shape", sequences.shape)
+                    print("sequences shape", sequences_actor.shape)
                     print("old_values shape", old_values.shape)
                     print("rewards shape", rewards.shape)
                     print(
@@ -513,12 +565,14 @@ class RLTrainer:
                 # reshaping rewards to match [b, s] shape
                 rewards = rearrange(rewards, "b -> b 1")
 
-                # get actions len
-                actions_len = old_actions.shape[-1]
-
-                # get actor critic forward
+                # get actor critic new probabilities and values
                 actions_logits, values = self.actorcritic.forward(
-                    sequences, sequences_mask, actions_len
+                    sequences_actor,
+                    sequences_mask_actor,
+                    sequences_critic,
+                    sequences_mask_critic,
+                    action_len_actor,
+                    action_len_critic,
                 )
 
                 # get action log prob
@@ -671,16 +725,28 @@ class RLTrainer:
                 # sample num_examples examples from  example dataset
                 inputs = self.example_sampler.sample(num_examples)
 
-                # tokenize examples
-                tokenized_inputs = self.actorcritic.actor.tokenizer(
+                # tokenize examples for the actor
+                tok_inputs_act = self.actorcritic.actor.tokenizer(
                     inputs, padding=True, return_tensors="pt"
                 )
                 if self.debug:
                     print("RLTrainer.train()")
-                    print("tokenized inputs", tokenized_inputs)
+                    print("tokenized inputs actor", tok_inputs_act)
+
                 # states are [batch_size, seq_len_of_states]
-                states = tokenized_inputs["input_ids"].to(device)
-                states_mask = tokenized_inputs["attention_mask"].to(device)
+                states_actor = tok_inputs_act["input_ids"].to(device)
+                states_mask_actor = tok_inputs_act["attention_mask"].to(device)
+
+                # tokenize examples for the critic
+                tok_inputs_crt = self.actorcritic.critic.tokenizer(
+                    inputs, padding=True, return_tensors="pt"
+                )
+                if self.debug:
+                    print("RLTrainer.train()")
+                    print("tokenized inputs critic", tok_inputs_crt)
+
+                # states are [batch_size, seq_len_of_states]
+                states_critic = tok_inputs_crt["input_ids"].to(device)
 
                 # generate prompts
                 # actions --> output produced by the actor head in response
@@ -696,9 +762,15 @@ class RLTrainer:
                     actions,
                     actions_logits,
                     values,
-                    sequences,
-                    sequences_mask,
-                ) = self.actorcritic.generate(states, states_mask)
+                    sequences_actor,
+                    sequences_mask_actor,
+                    sequences_critic,
+                    sequences_mask_critic,
+                    action_len_actor,
+                    action_len_critic,
+                ) = self.actorcritic.generate(
+                    states_actor, states_mask_actor, states_critic
+                )
 
                 # from action logits to action log probs
                 action_prob = (
@@ -740,26 +812,30 @@ class RLTrainer:
                 )
 
                 # store memories of the episode / timestep
-                for i in range(states.shape[0]):
+                for i in range(states_actor.shape[0]):
                     memories.append(
                         Memory(
                             *map(
                                 lambda x: x.detach().cpu(),
                                 (
-                                    states[i, :],
+                                    states_actor[i, :],
                                     actions[i, :],
-                                    sequences[i, :],
                                     values[i, :],
                                     rewards[i],
                                     actions_log_probs[i, :],
-                                    sequences_mask[i, :],
+                                    sequences_actor[i, :],
+                                    sequences_mask_actor[i, :],
+                                    sequences_critic[i, :],
+                                    sequences_mask_critic[i, :],
+                                    action_len_actor[i],
+                                    action_len_critic[i],
                                 ),
                             )
                         )
                     )
 
                 # log the memories in the conversation log
-                for i in range(states.shape[0]):
+                for i in range(states_actor.shape[0]):
                     self.conversation_log.add_conversation(
                         inputs[i],
                         completions[i],
