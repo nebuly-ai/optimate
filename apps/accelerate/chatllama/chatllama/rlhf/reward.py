@@ -324,15 +324,25 @@ class RewardTrainer:
         self,
         current_epoch: int,
         current_step: int,
+        max_epochs: int,
+        max_steps: int,
     ) -> None:
 
-        print(f"Saving checkpoint for epoch {current_epoch+1}..")
+        print(
+            f"Saving checkpoint for epoch {current_epoch + 1}, "
+            f" step {current_step} ..."
+        )
         model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=current_epoch,
             current_step=current_step,
+            max_epochs=max_epochs,
+            max_steps=max_steps,
         )
+        # remove a checkpoint if it already exists
+        if os.path.exists(path):
+            os.remove(path)
         torch.save(
             {
                 "state_dict": self.model.state_dict(),
@@ -457,7 +467,7 @@ class RewardTrainer:
 
                 # checkpoints saving
                 if cnt_checkpoints % checkpoint_steps == 0:
-                    self.save_checkpoint(epoch, i)
+                    self.save_checkpoint(epoch, i, epochs, n_iter)
                     cnt_checkpoints = 1
                 else:
                     cnt_checkpoints += 1

@@ -6,21 +6,21 @@ import torch
 from beartype import beartype
 from beartype.typing import Tuple
 from einops import rearrange
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 from transformers import (
-    AutoTokenizer,
-    AutoModelForSeq2SeqLM,
     AutoModelForCausalLM,
+    AutoModelForSeq2SeqLM,
+    AutoTokenizer,
 )
 
 from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
-    llama_models,
-    hf_models_seq_2_seq,
     hf_models_causal_lm,
+    hf_models_seq_2_seq,
+    llama_models,
 )
-from chatllama.rlhf.utils import TrainingStats
 from chatllama.rlhf.model_loader import ModelLoader
+from chatllama.rlhf.utils import TrainingStats
 
 
 class ActorModel(torch.nn.Module):
@@ -331,15 +331,24 @@ class ActorTrainer:
         self,
         current_epoch: int,
         current_step: int,
+        max_epochs: int,
+        max_steps: int,
     ) -> None:
 
-        print(f"Saving checkpoint for epoch {current_epoch+1}..")
+        print(
+            f"Saving checkpoint for epoch {current_epoch + 1}, "
+            f"step {current_step + 1} ..."
+        )
         model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=current_epoch,
             current_step=current_step,
+            max_epochs=max_epochs,
+            max_steps=max_steps,
         )
+        if os.path.exists(path):
+            os.remove(path)
         torch.save(
             {
                 "state_dict": self.model.state_dict(),
@@ -355,6 +364,7 @@ class ActorTrainer:
     def load_checkpoint(
         self,
     ) -> Tuple[int, int]:
+        """Load a checkpoint from the model folder"""
 
         print("Looking for checkpoints...")
         path = ModelLoader.check_model_path(
@@ -448,7 +458,7 @@ class ActorTrainer:
                     )
                 # save checkpoint periodically
                 if cnt_checkpoint % checkpoint_steps == 0:
-                    self.save_checkpoint(epoch, i)
+                    self.save_checkpoint(epoch, i, epochs, n_iter)
                     cnt_checkpoint = 1
                 else:
                     cnt_checkpoint += 1

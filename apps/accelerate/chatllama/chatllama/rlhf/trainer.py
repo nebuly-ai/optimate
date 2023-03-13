@@ -306,6 +306,7 @@ class RLTrainer:
     def save_checkpoint(
         self,
         current_episode: int,
+        max_episode: int,
     ) -> None:
 
         # Save checkpoint for the critic
@@ -314,7 +315,11 @@ class RLTrainer:
             config=self.config.critic,
             is_checkpoint=True,
             current_epoch=current_episode,
+            max_epochs=max_episode,
+            max_steps=0,
         )
+        if os.path.exists(path):
+            os.remove(path)
         torch.save(
             {
                 "episode": current_episode,
@@ -330,7 +335,11 @@ class RLTrainer:
             config=self.config,
             is_checkpoint=True,
             current_epoch=current_episode,
+            max_epochs=max_episode,
+            max_steps=0,
         )
+        if os.path.exists(path):
+            os.remove(path)
         torch.save(
             {
                 "episode": current_episode,
@@ -367,7 +376,7 @@ class RLTrainer:
                 checkpoint["critic_optim_state_dict"]
             )
 
-        # load the critic checkpoint
+        # load the actor checkpoint
         print("Looking for checkpoints...")
         path = ModelLoader.check_model_path(
             config=self.config,

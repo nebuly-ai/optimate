@@ -47,11 +47,80 @@ class ModelLoader:
             return last_checkpoint
 
     @staticmethod
+    def look_for_checkpoint_by_name(
+        model_folder: str,
+        checkpoint_name: str,
+    ) -> Optional[str]:
+        """Method to look for a particular checkpoint in the model folder
+        checkpoint are saved as
+        {model_name}_epoch_{current_epoch}_steps_{current_steps}.pt
+
+        Args:
+            model_folder (str): the folder where the checkpoints are saved
+            checkpoint_name (str): the name of the checkpoint
+        """
+        # look for a file named checkpoint_name in the model folder
+        path = os.path.join(model_folder, checkpoint_name)
+        if os.path.exists(path):
+            return checkpoint_name
+        else:
+            return None
+
+    @staticmethod
+    def get_checkpoint_name(config: ConfigType) -> str:
+        if isinstance(config, Config):
+            return config.trainer.checkpoint_name
+        else:
+            return config.checkpoint_name
+
+    @staticmethod
+    def get_base_model_folder_from_config(config: ConfigType) -> str:
+        if isinstance(config, ConfigActor) or isinstance(config, ConfigReward):
+            return config.model_folder
+        elif isinstance(config, Config):
+            return config.actor.model_folder
+        else:
+            raise ValueError(
+                "Config type not recognized during saving or loading"
+            )
+
+    @staticmethod
+    def get_model_type_from_config(config: ConfigType) -> str:
+        if isinstance(config, ConfigReward):
+            # here use ad-hoc flag from config to distinguish between
+            #  reward and critic
+            if config.is_reward:
+                return "reward"
+            else:
+                return "critic"
+        elif isinstance(config, ConfigActor):
+            return "actor"
+        elif isinstance(config, Config):
+            return "actor_rl"
+
+    @staticmethod
+    def get_model_name_from_config(config: ConfigType) -> str:
+        model_name = None
+        if isinstance(config, Config):
+            model_name = config.actor.model
+        elif isinstance(config, ConfigReward) or isinstance(
+            config, ConfigActor
+        ):
+            model_name = config.model
+        if model_name in hf_models:
+            return os.path.split(model_name)[-1]
+        if model_name is None:
+            raise ValueError("Model name not found")
+        return model_name
+
+    @staticmethod
     def get_model_path(
         config: ConfigType,
         is_checkpoint: bool = False,
         current_epoch: Optional[int] = None,
         current_step: Optional[int] = None,
+        max_epochs: int = 1_000_000_000,
+        max_steps: int = 1_000_000_000,
     ) -> Tuple[str, str, Optional[str]]:
         """Method to get the path to the right model file. Used when saving
         the model.
@@ -76,6 +145,12 @@ class ModelLoader:
                 the checkpoint name. If is_checkpoint is True, and
                 current_epoch is None, return just the folder and the simple
                 model name for the possible checkpoint.
+            current_step (Optional[int]): the current step, used to create
+                the checkpoint name.
+            max_epochs (Optional[int]): the maximum number of epochs, used to
+                create the checkpoint name.
+            max_steps (Optional[int]): the maximum number of steps, used to
+                create the checkpoint name.
 
         Returns:
             model_folder (str): the folder where the model is saved
@@ -83,15 +158,7 @@ class ModelLoader:
             path (Optional[str]): the path to the model. If is_checkpoint is
                 True, and current_epoch is None, return None
         """
-        # Get model folder from settings (i.e.  base path for all the models)
-        if isinstance(config, ConfigActor) or isinstance(config, ConfigReward):
-            model_folder = config.model_folder
-        elif isinstance(config, Config):
-            model_folder = config.actor.model_folder
-        else:
-            raise ValueError(
-                "Config type not recognized during saving or loading"
-            )
+        model_folder = ModelLoader.get_base_model_folder_from_config(config)
 
         # Add the checkpoint path if necessary
         if is_checkpoint:
@@ -99,17 +166,8 @@ class ModelLoader:
 
         # Create the folder for the model type
         #  (Actor, Critic, Reward, Actor_RL)
-        if isinstance(config, ConfigReward):
-            # here use ad-hoc flag from config to distinguish between
-            #  reward and critic
-            if config.is_reward:
-                model_folder = os.path.join(model_folder, "reward")
-            else:
-                model_folder = os.path.join(model_folder, "critic")
-        elif isinstance(config, ConfigActor):
-            model_folder = os.path.join(model_folder, "actor")
-        elif isinstance(config, Config):
-            model_folder = os.path.join(model_folder, "actor_rl")
+        model_type = ModelLoader.get_model_type_from_config(config)
+        model_folder = os.path.join(model_folder, model_type)
 
         # Make the path if not exists
         if os.path.exists(model_folder) is False:
@@ -117,24 +175,14 @@ class ModelLoader:
             print(f"Model folder does not exist. Creating it: {model_folder}")
 
         # Create the model name
-        model_name = None
-        if isinstance(config, Config):
-            model_name = config.actor.model
-        elif isinstance(config, ConfigReward) or isinstance(
-            config, ConfigActor
-        ):
-            model_name = config.model
-        if model_name in hf_models:
-            model_name = os.path.split(model_name)[-1]
-        if model_name is None:
-            raise ValueError("Model name not found")
+        model_name = ModelLoader.get_model_name_from_config(config)
 
         # If is a checkpoint and current epoch are available
         # extend the model name with the epoch, if none epoch is provided
         # just return the simple model name
         if is_checkpoint and current_epoch is not None:
             # number of characters to store the checkpoints
-            n_char = 8
+            n_char = max(len(str(max_epochs)), len(str(max_steps)))
             # create the string epoch such that it is always the same length
             # equalt to n_char (i.e. 00000001) necessary for sorting
             string_epoch = str(current_epoch)
@@ -191,11 +239,18 @@ class ModelLoader:
 
         # If i am looking for a checkpoint.
         if is_checkpoint and current_epoch is None:
-            last_checkpoint = ModelLoader.look_for_last_checkpoint(
-                model_folder, model_name
-            )
-            if last_checkpoint is not None:
-                path = os.path.join(model_folder, last_checkpoint)
+            # If the checkpoint is specified by name use it
+            checkpoint_name = ModelLoader.get_checkpoint_name(config)
+            if checkpoint_name is not None:
+                checkpoint = ModelLoader.look_for_checkpoint_by_name(
+                    model_folder, checkpoint_name
+                )
+            else:
+                checkpoint = ModelLoader.look_for_last_checkpoint(
+                    model_folder, model_name
+                )
+            if checkpoint is not None:
+                path = os.path.join(model_folder, checkpoint)
                 # Get the epoch number from the checkpoint name
 
         if path is not None:
@@ -204,10 +259,17 @@ class ModelLoader:
 
         if path is None:
             if is_checkpoint:
-                print(
-                    f"No previous checkpoint found at "
-                    f"{model_folder} for {model_name}"
-                )
+                checkpoint_name = ModelLoader.get_checkpoint_name(config)
+                if checkpoint_name is not None:
+                    print(
+                        f"No checkpoint found at {model_folder} "
+                        f"with name {config.checkpoint_name}"
+                    )
+                else:
+                    print(
+                        f"No previous checkpoint found at "
+                        f"{model_folder} for {model_name}"
+                    )
             else:
                 print(
                     f"No previous model found at "

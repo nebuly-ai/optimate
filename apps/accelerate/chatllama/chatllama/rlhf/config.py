@@ -34,6 +34,8 @@ class ConfigReward:
         checkpoint_steps (Optional[int]): Number of steps (backProp) to
             interleave checkpoints. Default to None. To be specified only for
             the reward model trainig.
+        checkpoint_name (Optional[str]): Name of the checkpoint. Default to
+            None.
         lr (Optional[float]): Learning rate for the reward model. Default to
             None. To be specified only for the reward model distillation.
         llm_enable (bool): Enable reward model distillation. Default to True.
@@ -62,6 +64,7 @@ class ConfigReward:
     epochs: Optional[int] = None
     iteration_per_print: Optional[int] = None
     checkpoint_steps: Optional[int] = None
+    checkpoint_name: Optional[str] = None
     lr: Optional[float] = None
     llm_enable: Optional[bool] = False
     llm_model: Optional[str] = "text-davinci-003"
@@ -109,6 +112,8 @@ class ConfigActor:
         deepspeed_config_path (str): Path to the deepspeed config file.
             Default to None.
         device (torch.device): Device to be used for the actor
+        checkpoint_name (Optional[str]): Name of the checkpoint. Default to
+            None.
         debug (bool): Enable prints for debugging
     """
 
@@ -132,6 +137,7 @@ class ConfigActor:
     deepspeed_config_path: Optional[str]
 
     device: torch.device
+    checkpoint_name: Optional[str] = None
     debug: bool = False
 
 
@@ -166,6 +172,9 @@ class ConfigTrainer:
             for the actual training of the actor and critic models.
         epochs (int): Number of epochs to train the actor and critic.
         checkpoint_steps (int): Number of episodes to interleave checkpoints.
+        device (torch.device): Device to be used for the actor and critic
+        checkpoint_name (Optional[str]): Name of the checkpoint. Default to
+            None.
     """
 
     actor_lr: int
@@ -181,8 +190,8 @@ class ConfigTrainer:
     batch_size: int
     epochs: int
     checkpoint_steps: int
-
     device: torch.device
+    checkpoint_name: Optional[str] = None
     debug: bool = False
 
 
