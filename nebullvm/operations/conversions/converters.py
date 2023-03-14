@@ -5,11 +5,13 @@ from typing import Optional, List, Union
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
 from nebullvm.operations.conversions.tensorflow import convert_tf_to_onnx
+from nebullvm.operations.conversions.onnx import convert_onnx_to_torch
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import DeepLearningFramework, ModelParams
 from nebullvm.tools.data import DataManager
+from onnx import ModelProto
 
 
 class Converter(Operation, abc.ABC):
@@ -27,7 +29,7 @@ class Converter(Operation, abc.ABC):
         self.model_name = model_name or "temp"
 
     def set_state(
-        self, model: Union[torch.nn.Module, tf.Module, str], data: DataManager
+        self, model: Union[torch.nn.Module, tf.Module, onnx.ModelProto, str], data: DataManager
     ):
         self.model = model
         self.data = data
@@ -104,26 +106,32 @@ class TensorflowConverter(Converter):
 
 
 class ONNXConverter(Converter):
-    DEST_FRAMEWORKS = []
+    DEST_FRAMEWORKS = [DeepLearningFramework.NUMPY]
 
-    def execute(self, save_path, model_params):
-        onnx_path = save_path / f"{self.model_name}{self.ONNX_EXTENSION}"
-        try:
-            model_onnx = onnx.load(str(self.model))
-            onnx.save(model_onnx, str(onnx_path))
-        except Exception:
-            self.logger.error(
-                "The provided onnx model path is invalid. Please provide"
-                " a valid path to a model in order to use Nebullvm."
-            )
-            self.converted_models = []
-
-        self.converted_models = [str(onnx_path)]
+    def execute(
+        self,
+        save_path: Path,
+        model_params: ModelProto,
+    ):
+        self.converted_models = [self.model]
+        for framework in self.DEST_FRAMEWORKS:
+            if framework is DeepLearningFramework.NUMPY:
+                self.pytorch_conversion(save_path, model_params)
+            else:
+                raise NotImplementedError()
 
     def tensorflow_conversion(self):
         # TODO: Implement conversion from ONNX to Tensorflow
         raise NotImplementedError()
 
-    def pytorch_conversion(self):
-        # TODO: Implement conversion from ONNX to Pytorch
-        raise NotImplementedError()
+    def pytorch_conversion(self, save_path, model_params):
+        self.model_onnx = self.model
+        #torch_path = save_path / f"{self.model_name}{self.TORCH_EXTENSION}"
+        torch_model = convert_onnx_to_torch(
+            onnx_model=self.model_onnx
+        )
+        if self.converted_models is None:
+            self.converted_models = [torch_model]
+        else:
+            self.converted_models.append(torch_model)
+        
