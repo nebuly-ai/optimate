@@ -212,7 +212,11 @@ def install_openvino(with_optimization: bool = True):
         )
 
     openvino_version = "openvino-dev" if with_optimization else "openvino"
-    cmd = ["pip3", "install", "--user", f"{openvino_version}>=2022.1.0"]
+    # If on windows
+    if _get_os() == "Windows":
+        cmd = ["pip3", "install", "--user", f"{openvino_version}>=2022.1.0"]
+    else:
+        cmd = ["pip3", "install", f"{openvino_version}>=2022.1.0"]
     subprocess.run(cmd)
 
     cmd = ["pip3", "install", "scipy>=1.7.3"]
