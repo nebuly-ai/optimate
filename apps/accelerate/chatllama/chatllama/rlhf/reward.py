@@ -183,6 +183,11 @@ class RewardModel(torch.nn.Module):
                 and actor output as tokens
             output_sequence_mask (torch.Tensor): Mask for the attention
         """
+        if output_sequence.shape[1] > self.config.max_sequence_length:
+            raise ValueError(
+                f"Output sequence is too long: {output_sequence.shape[1]}"
+                f" > {self.config.max_sequence_length}"
+            )
         rewards = self.forward(output_sequence, output_sequence_mask)
         return rewards[:, -1]
 

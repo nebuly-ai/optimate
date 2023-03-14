@@ -17,7 +17,7 @@ trainer_config:
   # (to update the weights)
   update_timesteps: 32
   # number of example sampled at each timestep
-  num_examples: 32
+  num_examples: 2
   # batch and epochs for the training
   batch_size: 1
   epochs: 1
@@ -66,7 +66,7 @@ actor_config:
 reward_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
   # more can be simply added in the reward.py __init__()
-  model: "gpt2-large"
+  model: "facebook/opt-125m"
   model_folder: "./models"
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048

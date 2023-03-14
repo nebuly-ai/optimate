@@ -183,15 +183,15 @@ class ActorCritic(torch.nn.Module):
         action_len_actor = actions.shape[1]
 
         # generate sequences for the critic from actor sequences
-        decoded_actions = self.actor.tokenizer.decode(actions)
-        decoded_critic = self.critic.tokenizer.encode(
-            decoded_actions, return_tensors="pt"
+        decoded_actions = self.actor.tokenizer.batch_decode(actions)
+        encoded_critic = self.critic.tokenizer(
+            decoded_actions, return_tensors="pt", padding=True, truncation=True
         )
-        sequences_critic = decoded_critic["input_ids"].to(
+        sequences_critic = encoded_critic["input_ids"].to(
             sequences_actor.device,
         )
         sequences_mask_critic = (
-            decoded_critic["attention_mask"]
+            encoded_critic["attention_mask"]
             .to(sequences_actor.device)
             .long()
             .detach()
@@ -226,6 +226,10 @@ class ActorCritic(torch.nn.Module):
             values,
             sequences_actor,
             sequences_mask_actor,
+            sequences_critic,
+            sequences_mask_critic,
+            action_len_actor,
+            action_len_critic,
         )
 
 
@@ -235,11 +239,15 @@ Memory = namedtuple(
     [
         "states",
         "actions",
-        "sequences",
         "values",
         "rewards",
         "actions_log_probs",
-        "sequences_mask",
+        "sequences_actor",
+        "sequences_mask_actor",
+        "sequences_critic",
+        "sequences_mask_critic",
+        "action_len_actor",
+        "action_len_critic",
     ],
 )
 
@@ -264,13 +272,17 @@ class ExperienceDataset(Dataset):
     def __getitem__(self, idx) -> Tuple:
         # return the idx-th memory element as a tuple of tensors on the device
         item = (
-            self.data[idx].states.to(self.device),
+            self.data[idx].states_actor.to(self.device),
             self.data[idx].actions.to(self.device),
-            self.data[idx].sequences.to(self.device),
             self.data[idx].values.to(self.device),
             self.data[idx].rewards.to(self.device),
             self.data[idx].actions_log_probs.to(self.device),
-            self.data[idx].sequences_mask.to(self.device),
+            self.data[idx].sequences_actor.to(self.device),
+            self.data[idx].sequences_mask_actor.to(self.device),
+            self.data[idx].sequences_critic.to(self.device),
+            self.data[idx].sequences_mask_critic.to(self.device),
+            self.data[idx].action_len_actor,
+            self.data[idx].action_len_critic,
         )
         return item
 
@@ -823,33 +835,26 @@ class RLTrainer:
                 )
                 actions_log_probs = torch.log(action_prob + self.eps)
 
+                sequences = [
+                    self.actorcritic.actor.tokenizer.decode(sequence_actor)
+                    for i, sequence_actor in enumerate(sequences_actor)
+                ]
+
                 completions = [
                     self.actorcritic.actor.tokenizer.decode(action)
                     for i, action in enumerate(actions)
                 ]
-                if self.debug:
-                    print("RLTrainer.train()")
-                    print("completions:")
-                    for i, completion in enumerate(completions):
-                        print(i, completion)
-                        print("")
 
                 # compute reward for the completion
                 # the reward must take into account the answer quality wrt to
                 # the initial request given
                 # and must be tokenized again
-                task_responses = []
-                for input, completion in zip(inputs, completions):
-                    task_response = input + "\n" + completion
-                    task_responses.append(task_response)
-                if self.debug:
-                    print("RLTrainer.train()")
-                    print("task_responses:")
-                    for i, task_response in enumerate(task_responses):
-                        print(i, task_response)
-                        print("")
                 tokenized_responses = self.reward.tokenizer(
-                    task_responses, padding=True, return_tensors="pt"
+                    sequences, padding=True, return_tensors="pt"
+                )
+                print(
+                    "sequence length",
+                    tokenized_responses["input_ids"].shape[1],
                 )
                 rewards = self.reward.get_reward(
                     tokenized_responses["input_ids"].to(device),
@@ -860,28 +865,23 @@ class RLTrainer:
                 for i in range(states_actor.shape[0]):
                     memories.append(
                         Memory(
-                            *map(
-                                lambda x: x.detach().cpu(),
-                                (
-                                    states_actor[i, :],
-                                    actions[i, :],
-                                    values[i, :],
-                                    rewards[i],
-                                    actions_log_probs[i, :],
-                                    sequences_actor[i, :],
-                                    sequences_mask_actor[i, :],
-                                    sequences_critic[i, :],
-                                    sequences_mask_critic[i, :],
-                                    action_len_actor[i],
-                                    action_len_critic[i],
-                                ),
-                            )
+                            states_actor[i, :].detach().cpu(),
+                            actions[i, :].detach().cpu(),
+                            values[i, :].detach().cpu(),
+                            rewards[i].detach().cpu(),
+                            actions_log_probs[i, :].detach().cpu(),
+                            sequences_actor[i, :].detach().cpu(),
+                            sequences_mask_actor[i, :].detach().cpu(),
+                            sequences_critic[i, :].detach().cpu(),
+                            sequences_mask_critic[i, :].detach().cpu(),
+                            action_len_actor,
+                            action_len_critic,
                         )
                     )
 
                 # log the memories in the conversation log
                 for i in range(states_actor.shape[0]):
-                    self.conversation_log.add_conversation(
+                    self.conversation_log.append(
                         inputs[i],
                         completions[i],
                         rewards[i].detach().cpu().item(),

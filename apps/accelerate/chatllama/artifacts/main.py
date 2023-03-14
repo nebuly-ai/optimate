@@ -46,6 +46,10 @@ if args.reward is not None:
 
 # perform the desired training
 if args.type == "RL":
+    max_seq = config.actor.max_sequence_length
+    max_seq = min(max_seq, config.reward.max_sequence_length)
+    max_seq = min(max_seq, config.critic.max_sequence_length)
+    config.actor.max_sequence_length = max_seq
     BaseDataset.clean_dataset(config)
     rlhf_trainer = RLTrainer(config)
     rlhf_trainer.train()
