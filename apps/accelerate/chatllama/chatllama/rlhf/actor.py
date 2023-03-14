@@ -200,13 +200,13 @@ class ActorModel(torch.nn.Module):
                 + "long w.r.t the model sequence length"
             )
         # the max_length is then the input length + the completion length
-        max_length = states.shape[1] + max_completion
         # generate
         sequences = self.model.generate(
             input_ids=states,
             attention_mask=state_mask,
             temperature=temperature,
-            max_length=max_length,
+            max_new_tokens=max_completion,
+            no_repeat_ngram_size=3,
         )
         actions = sequences[:, states.shape[1] :]  # noqa E203
         if self.config.debug:
@@ -311,12 +311,13 @@ class ActorTrainer:
                 self.eval_dataset, batch_size=config.batch_size
             )
 
-        # define scheduler
+        # define scheduler for the learning rate
+        # learning rate is decreased until 10% of the initial value
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
             self.optimizer,
-            T_0=len(self.train_dataset),
-            T_mult=2,
-            eta_min=1e-6,
+            T_0=len(self.train_dataset) // config.batch_size,
+            T_mult=1,
+            eta_min=config.lr * 0.1,
         )
 
         # define training statistics
@@ -467,18 +468,18 @@ class ActorTrainer:
         with torch.no_grad():
             model = AutoModelForCausalLM.from_pretrained(self.config.model)
             model.to("cpu")
-            text = "who are you?"
+            text = "If i am feeling bad what i should do?"
             tokens = self.model.tokenizer(
                 text, return_tensors="pt", truncation=True
             )
             tokens = tokens.to("cpu")
-            sequence = model.generate(tokens["input_ids"])
-            sequence = self.model.tokenizer.decode(
-                sequence[0, :], skip_special_tokens=True
-            )
-            print("\nInput text: \n", text)
-            print("\nTest Vanilla model\n")
-            print(sequence)
+            # sequence = model.generate(tokens["input_ids"])
+            # sequence = self.model.tokenizer.decode(
+            #     sequence[0, :], skip_special_tokens=True
+            # )
+            # print("\nInput text: \n", text)
+            # print("\nTest Vanilla model\n")
+            # print(sequence)
             _, sequence = self.model.generate(
                 tokens["input_ids"].to("cuda"),
                 tokens["attention_mask"].to("cuda"),
@@ -487,6 +488,29 @@ class ActorTrainer:
             print("\nTest Trained model\n")
             print(sequence)
         self.model.train()
+
+    def add_eos_token(
+        self, tokens: torch.Tensor, mask: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        # given tokens and mask, add eos token to the end of each sequence
+        # and update the mask
+        batch_size, seq_len = tokens.shape
+        eos_token = self.model.tokenizer.eos_token_id
+        tokens = torch.cat(
+            [
+                tokens,
+                torch.ones(batch_size, 1).long().to(tokens.device) * eos_token,
+            ],
+            dim=1,
+        )
+        mask = torch.cat(
+            [
+                mask,
+                torch.ones(batch_size, 1).long().to(mask.device),
+            ],
+            dim=1,
+        )
+        return tokens, mask
 
     def train(
         self,
@@ -509,6 +533,8 @@ class ActorTrainer:
         # counter for the checkpoint
         cnt_checkpoint = 1
 
+        self.test_generation()
+
         # traing loop
         for epoch in range(start_epoch, epochs):
             self.model.train()
@@ -525,9 +551,25 @@ class ActorTrainer:
                         truncation=True,
                         padding=True,
                     )
-                    training_output = input_tokenized["input_ids"][:, 1:]
-                    training_input = input_tokenized["input_ids"][:, :-1]
-                    attention_mask = input_tokenized["attention_mask"][:, :-1]
+                    # split tokens and mask
+                    input_tokenized_id = input_tokenized["input_ids"]
+                    input_tokenized_mask = input_tokenized["attention_mask"]
+
+                    # add eos token
+                    (
+                        input_tokenized_id,
+                        input_tokenized_mask,
+                    ) = self.add_eos_token(
+                        input_tokenized_id,
+                        input_tokenized_mask,
+                    )
+
+                    # split into input and output
+                    training_output = input_tokenized_id[:, 1:]
+                    training_input = input_tokenized_id[:, :-1]
+                    attention_mask = input_tokenized_mask[:, :-1]
+
+                    # move to device
                     training_output = training_output.to(device)
                     training_input = training_input.to(device)
                     attention_mask = attention_mask.to(device)

@@ -103,6 +103,7 @@ class ConfigActor:
             pytorch native modules.
         max_sequence_length (int): Max sequence length for the actor
         max_tokens (int): Max tokens for actor generation
+        min_tokens (int): Min tokens for actor generation
         temperature (float): Temperature for the actor
         batch_size (int): Batch size to train the actor
         iteration_per_print (int): Number of iterations to print the
@@ -131,6 +132,7 @@ class ConfigActor:
     use_fairscale: bool
     max_sequence_length: int
     max_tokens: int
+    min_tokens: int
     temperature: float
     batch_size: int
     iteration_per_print: int

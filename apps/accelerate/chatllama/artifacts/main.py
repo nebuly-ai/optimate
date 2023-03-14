@@ -5,6 +5,8 @@ from chatllama.rlhf.config import Config
 from chatllama.rlhf.reward import RewardTrainer
 from chatllama.rlhf.trainer import RLTrainer
 
+from chatllama.rlhf.dataset import BaseDataset
+
 # Setup argument parser
 parser = argparse.ArgumentParser(
     prog="main.py", description="RLHF Training of ChatBots"
@@ -44,12 +46,15 @@ if args.reward is not None:
 
 # perform the desired training
 if args.type == "RL":
+    BaseDataset.clean_dataset(config)
     rlhf_trainer = RLTrainer(config)
     rlhf_trainer.train()
 elif args.type == "ACTOR":
+    BaseDataset.clean_dataset(config.actor)
     actor_trainer = ActorTrainer(config.actor)
     actor_trainer.train()
 elif args.type == "REWARD":
+    BaseDataset.clean_dataset(config.reward)
     reward_trainer = RewardTrainer(config.reward)
     reward_trainer.train()
 elif args.type == "ALL":
