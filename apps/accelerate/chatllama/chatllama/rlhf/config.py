@@ -17,6 +17,7 @@ class ConfigReward:
         model_folder (str): Path to the folder where model are stored (used
             to load / store finetuned model or checkpoints)
         model_head_hidden_size (int): Hidden size of the reward model head
+        max_sequence_length (int): Max sequence length of the reward model
         train_dataset_path (Optional[str]): Path to the training dataset.
             Default to None. To be specified only for the reward model trainig.
         validation_dataset_path (Optional[str]): Path to the validation
@@ -59,6 +60,7 @@ class ConfigReward:
     model: str
     model_folder: str
     model_head_hidden_size: int
+    max_sequence_length: int
     train_dataset_path: Optional[str] = None
     validation_dataset_path: Optional[str] = None
     batch_size: Optional[int] = None

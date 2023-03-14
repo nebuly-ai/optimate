@@ -47,10 +47,10 @@ actor_config:
   batch_size: 1
   # number iteration after print
   iteration_per_print: 1
-  lr: 0.0001
-  epochs: 32
+  lr: 0.00001
+  epochs: 1 
   # number of backpropagation after saving the checkpoints
-  checkpoint_steps: 3
+  checkpoint_steps: 50
   # here specify the name of the actor checkpoint from which resume 
   # during actor training. If null load the last one.
   checkpoint_name: null
@@ -58,7 +58,7 @@ actor_config:
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
   # accelerate settings
-  accelerate_enable: False
+  accelerate_enable: True
 
 reward_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
@@ -67,22 +67,23 @@ reward_config:
   model_folder: "./models"
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
+  max_sequence_length: 1024
   train_dataset_path: "./datasets/reward_training_data.json"
   validation_dataset_path: null
   batch_size: 1
-  epochs: 32
+  epochs: 1
   iteration_per_print: 1
   # steps after which the checkpoint are saved
-  checkpoint_steps: 10
+  checkpoint_steps: 100
   # here specify the name of the reward checkpoint from which resume 
   # during reward training. If null load the last one.
   checkpoint_name: null
-  lr: 0.0001
+  lr: 0.000009
   # deepspeed settings
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
   # accelerate settings
-  accelerate_enable: False
+  accelerate_enable: True
 
 critic_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
@@ -90,6 +91,7 @@ critic_config:
   model: "gpt2-large"
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
+  max_sequence_length: 1024
   model_folder: "./models"
   # deepspeed settings
   deepspeed_enable: False

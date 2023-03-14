@@ -53,6 +53,13 @@ class StanfordNLPSHPDataset:
             }
             conversations.append(conv)
 
+        # sort conversations by length of user_input + completion
+        conversations = sorted(
+            conversations,
+            key=lambda x: len(x["user_input"]) + len(x["completion"]),
+            reverse=True,
+        )
+
         with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
             json.dump(conversations, f)
 
@@ -60,7 +67,13 @@ class StanfordNLPSHPDataset:
         indexes = np.random.choice(
             len(conversations), size=number_of_samples, replace=False
         )
+        # sort conversations by length of user_input + completion
         conversations = [conversations[i] for i in indexes]
+        conversations = sorted(
+            conversations,
+            key=lambda x: len(x["user_input"]) + len(x["completion"]),
+            reverse=True,
+        )
         with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
             json.dump(conversations, f)
 
@@ -71,6 +84,10 @@ class StanfordNLPSHPDataset:
                 "user_input": data["history"],
             }
             conversations.append(conv)
+        # sort conversations by length of user_input + completion
+        conversations = sorted(
+            conversations, key=lambda x: len(x["user_input"]), reverse=True
+        )
 
         with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
             json.dump(conversations, f)
@@ -130,6 +147,13 @@ class AnthropicRLHF:
             }
             conversations.append(conv)
 
+        # sort conversations by length of user_input + completion
+        conversations = sorted(
+            conversations,
+            key=lambda x: len(x["user_input"]) + len(x["completion"]),
+            reverse=True,
+        )
+
         with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
             json.dump(conversations, f)
 
@@ -138,6 +162,12 @@ class AnthropicRLHF:
             len(conversations), size=number_of_samples, replace=False
         )
         conversations = [conversations[i] for i in indexes]
+        # sort conversations by length of user_input + completion
+        conversations = sorted(
+            conversations,
+            key=lambda x: len(x["user_input"]) + len(x["completion"]),
+            reverse=True,
+        )
         with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
             json.dump(conversations, f)
 
@@ -181,6 +211,11 @@ class AnthropicRLHF:
                     "completion": completion,
                 }
                 conversations.append(conv)
+
+        # sort conversations by length of user_input + completion
+        conversations = sorted(
+            conversations, key=lambda x: len(x["user_input"]), reverse=True
+        )
 
         with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
             json.dump(conversations, f)

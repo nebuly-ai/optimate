@@ -8,36 +8,36 @@ from beartype import beartype
 from beartype.typing import Iterable, Tuple
 from einops.layers.torch import Rearrange
 from torch.utils.data import Dataset, DataLoader
-from transformers import BartModel
 from transformers import (
-    BartTokenizer,
-    BartConfig,
     AutoModel,
     AutoTokenizer,
 )
 
 from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.model_list import hf_models
-from chatllama.rlhf.utils import TrainingStats
 from chatllama.rlhf.model_loader import ModelLoader
+from chatllama.rlhf.utils import TrainingStats
 
 
 class RewardModel(torch.nn.Module):
     """Model to be trained to predict the reward for RL.
-    or to be used as Critic in RL.
+    or to be used as Critic in RL. It is a Language Model with a head
+    that predicts the reward (a scalar) for a given sequence of tokens.
 
     Attributes:
         model (torch.nn.Module): Model to be used for the reward model
         tokenizer (torch.nn.Module): Tokenizer to be used for the reward model
         head (torch.nn.Module): Head to be used for the reward model
         config (ConfigReward): Config parameters for the reward model
-        max_model_tokens (int): Maximum sequence length for the reward model
 
     Methods:
+        load_tokenizer: Load the tokenizer for the reward model
         forward: Forward pass of the model (used by the critic)
         save: Save the model
         load: Load the model
         get_reward: Get the reward for a given input (used by the reward model)
+        parameters: Return the parameters of the reward model
+
     """
 
     def __init__(self, config: ConfigReward) -> None:
@@ -60,40 +60,8 @@ class RewardModel(torch.nn.Module):
                 torch.nn.Linear(head_hidden_size, 1),
                 Rearrange("... 1 -> ..."),
             )
-        elif config.model == "bart-base":
-            bart_config = BartConfig.from_pretrained("facebook/bart-base")
-            bart_config.max_position_embeddings = 2048 + 1024
-            self.model = BartModel(bart_config)
-            self.tokenizer = BartTokenizer.from_pretrained(
-                "facebook/bart-large",
-                padding_side="left",
-                truncation_side="left",
-            )
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.head = torch.nn.Sequential(
-                torch.nn.Linear(768, head_hidden_size),
-                torch.nn.ReLU(),
-                torch.nn.Linear(head_hidden_size, 1),
-                Rearrange("... 1 -> ..."),
-            )
-        elif config.model == "longformer-base-4096":
-            self.model = AutoModel.from_pretrained(
-                "allenai/longformer-base-4096"
-            )
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                "allenai/longformer-base-4096",
-                padding_side="left",
-                truncation_side="left",
-            )
-            self.tokenizer.eos_token = self.tokenizer.pad_token
-            self.head = torch.nn.Sequential(
-                torch.nn.Linear(768, head_hidden_size),
-                torch.nn.ReLU(),
-                torch.nn.Linear(head_hidden_size, 1),
-                Rearrange("... 1 -> ..."),
-            )
         else:
-            raise ValueError(f"model {config.model} not supported")
+            raise ValueError(f"Model {config.model} not supported")
 
         # load the model
         self.load()
@@ -106,19 +74,42 @@ class RewardModel(torch.nn.Module):
         self.model.to(config.device)
         self.head.to(config.device)
 
+    @staticmethod
+    def load_tokenizer(config: ConfigReward):
+        # load tokenizer from HF
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.model,
+            padding_side="left",
+            padding=True,
+            truncation=True,
+            model_max_length=config.max_sequence_length,
+        )
+
+        # add eos token if not present
+        if tokenizer.eos_token is None:
+            tokenizer.eos_token = "</s>"
+            tokenizer.eos_token_id = 0
+
+        # add pad token if not present
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+        tokenizer.pad_token = tokenizer.eos_token
+        return tokenizer
+
     @beartype
     def load(self) -> None:
-        """Load the model from the path
-
-        Args:
-            path (str): path to the model
-        """
+        """Load the model from the path"""
+        # look for a pretrained model
         path = ModelLoader.check_model_path(
             config=self.config,
             is_checkpoint=False,
             current_epoch=None,
         )
+
+        # check if the model exists
         if path is not None:
+
+            # load the model from the path
             print("Loading ...")
             model_dict = torch.load(path)
             self.model.load_state_dict(model_dict["model"])
@@ -126,17 +117,15 @@ class RewardModel(torch.nn.Module):
 
     @beartype
     def save(self) -> None:
-        """Save the model to the path
-
-        Args:
-            path (Optional[str], optional): Path to store the model.
-                Defaults to None.
-        """
+        """Save the model to the path"""
+        # get the path to save the model
         model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=False,
             current_epoch=None,
         )
+
+        # save the model
         print(f"Saving model to {path} ...")
         torch.save(
             {"model": self.model.state_dict(), "head": self.head.state_dict()},
@@ -239,7 +228,7 @@ class RewardDataset(Dataset):
 
 
 class RewardTrainer:
-    """Reward class to train the reward model
+    """Class to train the reward model
 
     Args:
         config (ConfigModel): Config parameters for the model
@@ -248,33 +237,50 @@ class RewardTrainer:
         model (RewardModel): Reward model
         config (ConfigModel): Config parameters for the model
         optimizer (torch.optim): Optimizer for the model
-        loss (torch.nn): Loss function for the model
+        loss_function (torch.nn): Loss function for the model
+        validation_flag (bool): Flag to indicate if the validation dataset
+            is available
+        train_dataset (RewardDataset): Dataset for training
+        validation_dataset (RewardDataset): Dataset for validation
+        train_dataloader (DataLoader): Dataloader for training
+        validation_dataloader (DataLoader): Dataloader for validation
+        scheduler (torch.optim.lr_scheduler): Scheduler for the optimizer
+        training_stats (List[Dict]): List of dictionaries with the training
+            statistics
+        model_engine (ModelEngine): Model engine to train the model
+            using deepspeed
+        accelerator (Accelerator): Accelerator to train the model using
+            accelerate by HF.
+
 
     Methods:
         train: Train the reward model
-        generate_user_input: Generate the user input for the LLM to evaluate a
-            couple, (user_input, completion) and assing a score
-        distill: Parse the dataset and assign scores using LLMs
+        save_checkpoints: Save the checkpoints of the model
+        load_checkpoints: Load the checkpoints of the model
     """
 
     def __init__(self, config: ConfigReward) -> None:
-        # load the model, optimizer, loss function and config
-        self.model = RewardModel(config)
+
+        # save the config
         self.config = config
-        self.optimizer = torch.optim.Adam(
+
+        # load the model
+        self.model = RewardModel(config)
+
+        # optimizer
+        self.optimizer = torch.optim.AdamW(
             self.model.parameters(), lr=config.lr
         )
+
+        # loss function
         self.loss_function = torch.nn.MSELoss()
 
-        # check checkpoint, datasets and other data
-        if not os.path.exists("./models"):
-            os.mkdir("./models")
-        self.training_stats = TrainingStats()
+        # check validation dataset
         self.validation_flag = False
         if config.validation_dataset_path is not None:
             self.validation_flag = True
 
-        # create dataloaders
+        # create dataset and dataloaders
         self.train_dataset = RewardDataset(config.train_dataset_path)
         self.train_dataloader = DataLoader(
             self.train_dataset, batch_size=config.batch_size
@@ -285,7 +291,20 @@ class RewardTrainer:
                 self.eval_dataset, batch_size=config.batch_size
             )
 
-        # consistency check
+        # intilize scheduler - learning rate will drop to 10% of the initial
+        # value
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer,
+            T_0=len(self.train_dataset) // config.batch_size,
+            T_mult=1,
+            eta_min=config.lr * 0.1,
+            last_epoch=-1,
+        )
+
+        # initialize training stats
+        self.training_stats = TrainingStats()
+
+        # consistency check between accelerate and deepspeed
         if config.accelerate_enable and config.deepspeed_enable:
             raise ValueError(
                 "Both DeepSpeed and Accelerate are enabled for the Reward."
@@ -316,19 +335,24 @@ class RewardTrainer:
                 training_data=self.train_dataloader,
                 config=self.config.deepspeed_config_path,
             )
+            print("Training with DeepSpeed")
 
         # initialize accelerate
+        self.accelerator = None
         if config.accelerate_enable is True:
             self.accelerator = Accelerator()
             (
                 self.model,
                 self.optimizer,
                 self.train_dataloader,
+                self.scheduler,
             ) = self.accelerator.prepare(
                 self.model,
                 self.optimizer,
                 self.train_dataloader,
+                self.scheduler,
             )
+            print("Training with Accelerate")
 
     @beartype
     def save_checkpoint(
@@ -338,11 +362,21 @@ class RewardTrainer:
         max_epochs: int,
         max_steps: int,
     ) -> None:
+        """Save the checkpoints of the model
+
+        Args:
+            current_epoch (int): Current epoch
+            current_step (int): Current step
+            max_epochs (int): Maximum number of epochs
+            max_steps (int): Maximum number of steps
+        """
 
         print(
             f"Saving checkpoint for epoch {current_epoch + 1}, "
             f" step {current_step} ..."
         )
+
+        # get the path to save the checkpoint
         model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=True,
@@ -351,13 +385,17 @@ class RewardTrainer:
             max_epochs=max_epochs,
             max_steps=max_steps,
         )
-        # remove a checkpoint if it already exists
+
+        # remove the checkpoint if it already exists
         if os.path.exists(path):
             os.remove(path)
+
+        # save the checkpoint
         torch.save(
             {
                 "state_dict": self.model.state_dict(),
                 "optim_state_dict": self.optimizer.state_dict(),
+                "scheduler_state_dict": self.scheduler.state_dict(),
                 "training_stats": self.training_stats,
                 "epoch": current_epoch,
                 "step": current_step,
@@ -369,20 +407,43 @@ class RewardTrainer:
     def load_checkpoint(
         self,
     ) -> Tuple[int, int]:
+        """Load the checkpoints of the model
+
+        Returns:
+            Tuple[int, int]: The current epoch and step
+                from which you should resume the training
+        """
 
         print("Looking for checkpoints...")
+        # look for the checkpoints
         path = ModelLoader.check_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=None,
         )
+
+        # check if a checkpoint exists
         if path is not None:
             print("Loading ...")
-            checkpoint = torch.load(path)
+
+            # try to load the checkpoint
+            try:
+                checkpoint = torch.load(path)
+            except Exception:
+                print(
+                    "Checkpoint corrupted!"
+                    "Try to remove the last checkpoint."
+                    "Now Starting from epoch 0, step 0"
+                )
+                return 0, 0
+
+            # load the model parameters and optimizer parameters
+            # from the checkpoint
             epoch = checkpoint["epoch"]
             self.model.load_state_dict(checkpoint["state_dict"])
             self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
-            self.trainign_stats = checkpoint["training_stats"]
+            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+            self.training_stats = checkpoint["training_stats"]
             step = checkpoint["step"]
             return epoch, step + 1  # return the next episode to train
         return 0, 0
@@ -390,9 +451,9 @@ class RewardTrainer:
     def train(
         self,
     ) -> None:
-
         """Train the reward model"""
         print("Start Training the Reward Model")
+
         # get config parameters
         batch_size = self.config.batch_size
         epochs = self.config.epochs
@@ -413,21 +474,26 @@ class RewardTrainer:
         for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
+
+                # skip the steps if resuming from a checkpoint
                 if i < start_step:
                     continue
+
+                # get the inputs
                 input_text = inputs[0]
                 score = inputs[1]
 
-                # tokenizer (placed here instead of dataset class)
-                input_tokens = self.model.tokenizer(
-                    input_text, return_tensors="pt"
-                )
-
-                # TODO: check on the length of the input tokens if they are
-                # too many it can create problems
-                output = torch.as_tensor(
-                    score, dtype=torch.float32, device=device
-                )
+                # tokenize the input
+                with torch.no_grad():
+                    input_tokens = self.model.tokenizer(
+                        input_text,
+                        return_tensors="pt",
+                        truncation=True,
+                        padding=True,
+                    )
+                    output = torch.as_tensor(
+                        score, dtype=torch.float32, device=device
+                    )
 
                 # forward pass
                 if self.config.deepspeed_enable:
@@ -441,6 +507,7 @@ class RewardTrainer:
                         input_tokens["attention_mask"].to(device),
                     )
 
+                # compute the loss
                 loss = self.loss_function(est_output, output)
                 self.training_stats.training_loss.append(loss.item())
 
@@ -452,10 +519,12 @@ class RewardTrainer:
                     self.optimizer.zero_grad()
                     self.accelerator.backward(loss)
                     self.optimizer.step()
+                    self.scheduler.step()
                 else:
                     self.optimizer.zero_grad()
                     loss.backward()
                     self.optimizer.step()
+                    self.scheduler.step()
 
                 # print progress
                 if i % iteration_per_print == 0:
@@ -478,31 +547,42 @@ class RewardTrainer:
                 else:
                     cnt_checkpoints += 1
 
+            # Validation
             if self.validation_flag:
                 self.model.eval()
-                for i, (text, score) in enumerate(self.validation_dataloader):
-                    # forward pass
-                    input_tokens = self.model.tokenizer(
-                        text, return_tensors="pt", padding=True
-                    )
-                    input_tokens = input_tokens.to(device)
-                    # TODO: check on the length of the input tokens if they are
-                    # too many it can create problems
-                    output = torch.tensor(score, dtype=torch.float32).to(
-                        device
-                    )
-                    est_output = self.model.get_reward(
-                        input_tokens["input_ids"],
-                        input_tokens["attention_mask"],
-                    )
-                    loss = self.loss_function(est_output, output)
-                    self.training_stats.validation_loss.append(loss.item())
+                with torch.no_grad():
+                    for i, (text, score) in enumerate(
+                        self.validation_dataloader
+                    ):
 
-                    # print progress
-                    if i % iteration_per_print == 0:
-                        print(
-                            f"Epoch: {epoch+1}/{epochs}, "
-                            f"Iteration: {i+1}/{n_iter}, "
-                            f"Validation Loss: {loss.item()}"
+                        # tokenize inputs
+                        input_tokens = self.model.tokenizer(
+                            text, return_tensors="pt", padding=True
                         )
+                        input_tokens = input_tokens.to(device)
+                        # TODO: check on the length of the input tokens if
+                        # they are too many it can create problems
+                        output = torch.tensor(score, dtype=torch.float32).to(
+                            device
+                        )
+
+                        # forward pass
+                        est_output = self.model.get_reward(
+                            input_tokens["input_ids"],
+                            input_tokens["attention_mask"],
+                        )
+
+                        # compute loss
+                        loss = self.loss_function(est_output, output)
+                        self.training_stats.validation_loss.append(loss.item())
+
+                        # print progress
+                        if i % iteration_per_print == 0:
+                            print(
+                                f"Epoch: {epoch+1}/{epochs}, "
+                                f"Iteration: {i+1}/{n_iter}, "
+                                f"Validation Loss: {loss.item()}"
+                            )
+
+        # save the model at the end of the training
         self.model.save()
