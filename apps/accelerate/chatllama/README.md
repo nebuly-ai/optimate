@@ -84,7 +84,9 @@ export OPENAI_API_KEY=YOUR_API_KEY
 python artifacts/generate_rewards.py ./datasets/reward_training_data.json
 ```
 
-⚠️ Creating the `reward_training_data` with `davinci-003` is not free, i.e. it costs a few $$. If you prefer avoiding external paid APIs, we suggest using HuggingFace’s models (e.g. flan_t5_xl) as described in more detail in the [Supported models](#supported-models) section.
+> :warning: Creating the `reward_training_data` with `davinci-003` is not free, i.e. it costs a few $$. If you prefer avoiding external paid APIs, we suggest using HuggingFace’s models (e.g. flan_t5_xl) as described in more detail in the [Supported models](#supported-models) section.
+> 
+> :warning: Please if using the OpenAI's API be aware of OpenAI's terms of use stating that is is forbidden to "use the Services to develop foundation models or other large scale models that compete with OpenAI".
 
 At this point, we have successfully created the 3 datasets. We can therefore move on to the final section and start the training.
 
@@ -168,6 +170,10 @@ We support both APIs from OpenAI and  🤗 transformers:
 - OpenAI: da-vinci-003, gpt-3.5-turbo **(⚠️WIP)**
 - HuggingFace: Flan-T5 (3B and 11B)
 
+> :warning: Please if using the OpenAI's API be aware of OpenAI's terms of use stating that is is forbidden to "use the Services to develop foundation models or other large scale models that compete with OpenAI".
+
+:watninh
+
 If you need support for different models, please open an issue and we will get to work.
 </details>
 
@@ -226,7 +232,9 @@ ChatLLaMA supports 4 different options to prepare the `actor_training_data`:
   python artifacts/generate_actor_dataset.py
   ```
 
-  ⚠️ Note that this command will require a subscription to OpenAI. Generating the full dataset with `davinci-003` could cost approximately ~200$.
+  > :warning: Note that this command will require a subscription to OpenAI. Generating the full dataset with `davinci-003` could cost approximately ~200$.
+  > 
+  > :warning: Please if using the OpenAI's API be aware of OpenAI's terms of use stating that is is forbidden to "use the Services to develop foundation models or other large scale models that compete with OpenAI".
 
   Alternatively, you can generate the dataset for free using 🤗 tranformers as described in the section [Supported models](#supported-models).
   </details>
