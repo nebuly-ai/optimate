@@ -7,12 +7,18 @@ import deepspeed
 import torch
 from accelerate import Accelerator
 from beartype import beartype
-from beartype.typing import Deque, Tuple, List
+from beartype.typing import Deque, List, Tuple, Union
 from einops import rearrange
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from chatllama.rlhf.actor import ActorModel
-from chatllama.rlhf.config import ConfigReward, ConfigActor, Config
+from chatllama.rlhf.config import (
+    Config,
+    ConfigActor,
+    ConfigCritic,
+    ConfigReward,
+)
+from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.model_loader import ModelLoader
 from chatllama.rlhf.reward import RewardModel, CriticModel
 from chatllama.rlhf.utils import TrainingStats, ConversationLog
@@ -51,6 +57,9 @@ train()
 """  # noqa W291
 
 
+ConfigType = Union[ConfigActor, ConfigReward, ConfigCritic]
+
+
 class ActorCritic(torch.nn.Module):
     """Actor Critic class stores both the actor and the critic models
     and it generates values and action for given sequences during the training
@@ -70,7 +79,7 @@ class ActorCritic(torch.nn.Module):
     """
 
     def __init__(
-        self, actor_config: ConfigActor, critic_config: ConfigReward
+        self, actor_config: ConfigActor, critic_config: ConfigCritic
     ) -> None:
         super().__init__()
         self.actor = ActorModel(actor_config)
@@ -79,6 +88,7 @@ class ActorCritic(torch.nn.Module):
         ModelLoader.init_critic_from_reward(critic_config)
         self.critic = CriticModel(critic_config)
 
+        self.use_same_tokenizer = False
         self.debug = actor_config.debug
 
     @beartype
@@ -114,12 +124,14 @@ class ActorCritic(torch.nn.Module):
                 sequences
             values (torch.Tensor): Values for the actions in the sequences
         """
+
         # use a single forward on the whole sequence
         # to get pi(y | x) and ignore predicted output
         actions_logits = self.actor.forward(
             sequences_actor, sequences_mask_actor
         )
 
+        # use the critic forward to get the values for the actions
         values = self.critic.forward(sequences_critic, sequences_mask_critic)
 
         # return only logits and values for the actions taken
@@ -174,31 +186,60 @@ class ActorCritic(torch.nn.Module):
         actions, sequences_actor = self.actor.generate(
             states_actor, states_mask_actor
         )
+
+        # create mask for the actor sequences
         sequences_mask_actor = (
             sequences_actor != self.actor.tokenizer.pad_token_id
         )
         sequences_mask_actor = (
             sequences_mask_actor.to(sequences_actor.device).long().detach()
         )
+
+        # get the length of the actions
         action_len_actor = actions.shape[1]
 
-        # generate sequences for the critic from actor sequences
-        decoded_actions = self.actor.tokenizer.batch_decode(actions)
-        encoded_critic = self.critic.tokenizer(
-            decoded_actions, return_tensors="pt", padding=True, truncation=True
-        )
-        sequences_critic = encoded_critic["input_ids"].to(
-            sequences_actor.device,
-        )
-        sequences_mask_critic = (
-            encoded_critic["attention_mask"]
-            .to(sequences_actor.device)
-            .long()
-            .detach()
-        )
+        # check if different encoding is needed for the critic
+        if self.use_same_tokenizer:
+            sequences_critic = sequences_actor
+            sequences_mask_critic = sequences_mask_actor
+            action_len_critic = action_len_actor
+        else:
+            # generate sequences for the critic from actor sequences
+            decoded_actions = self.actor.tokenizer.batch_decode(actions)
 
-        # compute len of actions for the critic tokenizer
-        action_len_critic = states_critic.shape[1]
+            # remove all the pad tokens from decoded_actions
+            decoded_actions = [
+                action.replace(self.actor.tokenizer.pad_token, "")
+                for action in decoded_actions
+            ]
+
+            # remove all the eos tokens from decoded_actions
+            decoded_actions = [
+                action.replace(self.actor.tokenizer.eos_token, "")
+                for action in decoded_actions
+            ]
+
+            # encode the actions with critic tokenizer
+            encoded_critic = self.critic.tokenizer(
+                decoded_actions,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+            )
+
+            # split the encoded_critic in tokens and maks
+            sequences_critic = encoded_critic["input_ids"].to(
+                sequences_actor.device,
+            )
+            sequences_mask_critic = (
+                encoded_critic["attention_mask"]
+                .to(sequences_actor.device)
+                .long()
+                .detach()
+            )
+
+            # compute len of actions for the critic tokenizer
+            action_len_critic = states_critic.shape[1]
 
         # generate actions_logits and values
         actions_logits, values = self.forward(
@@ -237,7 +278,7 @@ class ActorCritic(torch.nn.Module):
 Memory = namedtuple(
     "Memory",
     [
-        "states",
+        "states_actor",
         "actions",
         "values",
         "rewards",
@@ -281,8 +322,8 @@ class ExperienceDataset(Dataset):
             self.data[idx].sequences_mask_actor.to(self.device),
             self.data[idx].sequences_critic.to(self.device),
             self.data[idx].sequences_mask_critic.to(self.device),
-            self.data[idx].action_len_actor,
-            self.data[idx].action_len_critic,
+            int(self.data[idx].action_len_actor),
+            int(self.data[idx].action_len_critic),
         )
         return item
 
@@ -371,8 +412,57 @@ class RLTrainer:
         # initialize examples sampler
         self.example_sampler = ExamplesSampler(config.trainer.examples_path)
 
+        # check if actor and critic use the same tokenizer
+        self.actorcritic.use_same_tokenizer = self.check_model_family(
+            config.actor, config.critic
+        )
+
+        # check if actor and reward use the same tokenizer
+        self.use_same_tokenizer = self.check_model_family(
+            config.actor, config.reward
+        )
+
         # eps
         self.eps = 1e-8
+
+    @beartype
+    def check_model_family(
+        self, config1: ConfigType, config2: ConfigType
+    ) -> bool:
+        """Check if the model family is the same for the two configs
+        the model family is specified in the config.model
+
+        Args:
+            config1 (ConfigType): First config
+            config2 (ConfigType): Second config
+
+        Returns:
+            bool: True if the model family is the same, False otherwise
+        """
+
+        # check if both are an hugging face models
+        if (config1.model in hf_models) and (config2.model in hf_models):
+
+            # if there is a "/" remove it from the name
+            model_name1 = config1.model
+            model_name2 = config2.model
+            if "/" in model_name1:
+                model_name1 = model_name1.split("/")[1]
+            if "/" in model_name2:
+                model_name2 = model_name2.split("/")[1]
+
+            # check if the model family is the same
+            return model_name1.split("-")[0] == model_name2.split("-")[0]
+
+        # check if both are not an hugging face models
+        elif (config1.model not in hf_models) and (
+            config2.model not in hf_models
+        ):
+
+            # for now they could be only LLaMA models
+            return True
+        else:
+            return False
 
     @beartype
     def save_checkpoint(
@@ -412,6 +502,7 @@ class RLTrainer:
         )
         if os.path.exists(path):
             os.remove(path)
+
         torch.save(
             {
                 "episode": current_episode,
@@ -528,6 +619,7 @@ class RLTrainer:
                 config=self.config.actor.deepspeed_config_path,
             )
             self.actorcritic.actor = actor_model_engine
+
         # initialize deepspeed for critic
         if self.config.critic.deepspeed_enable:
             if self.config.critic.deepspeed_config_path is None:
@@ -567,6 +659,7 @@ class RLTrainer:
                 self.actorcritic.actor, self.actor_optimizer, dataloader
             )
             self.actorcritic.actor = actor_model
+
         # initialize critic accelerate
         if self.config.critic.accelerate_enable is True:
             self.critic_accelerator = Accelerator()
@@ -596,24 +689,28 @@ class RLTrainer:
                 action_len_critic,
             ) in enumerate(dataloader):
 
-                # print
-                print(
-                    f"Epoch {epoch+1} of {epochs}",
-                    f"Step {i+1} of {int(len(dataloader) / batch_size)}",
-                )
-
                 if self.debug:
-                    print("RLTrainer.learn()")
-                    print("memory states shapes are: ")
-                    print("states shape", states_actor.shape)
-                    print("old_actions shape", old_actions.shape)
-                    print("sequences shape", sequences_actor.shape)
-                    print("old_values shape", old_values.shape)
-                    print("rewards shape", rewards.shape)
                     print(
-                        "old_actions_log_probs shape",
-                        old_actions_log_probs.shape,
+                        f"#########################################"
+                        f" batch from memories {i} \n "
+                        f"#########################################"
+                        f"states_actor {states_actor.shape} \n"
+                        f"old_actions {old_actions.shape} \n"
+                        f"old_values {old_values.shape} \n"
+                        f"rewards {rewards.shape} \n"
+                        f"old_actions_log_probs "
+                        f"{old_actions_log_probs.shape}\n"
+                        f"sequences_actor {sequences_actor.shape} \n"
+                        f"sequences_mask_actor "
+                        f"{sequences_mask_actor.shape} \n"
+                        f"sequences_critic {sequences_critic.shape} \n"
+                        f"sequences_mask_critic "
+                        f"{sequences_mask_critic.shape} \n"
+                        f"action_len_actor {action_len_actor} \n"
+                        f"action_len_critic {action_len_critic} \n"
+                        f"#########################################"
                     )
+
                 # reshaping rewards to match [b, s] shape
                 rewards = rearrange(rewards, "b -> b 1")
 
@@ -623,8 +720,8 @@ class RLTrainer:
                     sequences_mask_actor,
                     sequences_critic,
                     sequences_mask_critic,
-                    action_len_actor,
-                    action_len_critic,
+                    action_len_actor.item(),
+                    action_len_critic.item(),
                 )
 
                 # get action log prob
@@ -643,15 +740,16 @@ class RLTrainer:
                     .mean()
                 )
 
-                # compute PPO Loss -- Whan dimensions are different
-                # (especially the values and the probs are
-                #  multiplied directly with the reward)
+                # compute ratios
                 ratios = (actions_log_prob - old_actions_log_probs).exp()
+
+                # compute advantages and normalize them
                 advantages = rewards - old_values
-                # normalize advantages
                 advantages = (advantages - advantages.mean(dim=-1)) / (
                     advantages.std() + self.eps
                 )
+
+                # compute PPO loss
                 surr1 = advantages * ratios
                 surr2 = (
                     torch.clamp(ratios, 1 - actor_eps_clip, 1 + actor_eps_clip)
@@ -660,18 +758,10 @@ class RLTrainer:
                 policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
                 policy_loss = policy_loss.mean()
                 loss = policy_loss + kl_div_loss
-                # check if loss item is nan
+
+                # check if loss item is NaN
                 if torch.isnan(loss):
                     raise ValueError("Loss is nan")
-                print("loss", loss.item())
-
-                if self.debug:
-                    print("values", values)
-                    print("old_values", old_values)
-                    print("rewards", rewards)
-                    print("ratios", ratios)
-                    print("advantages", advantages)
-                    print("entropies", entropies)
 
                 # update actor with loss
                 if self.config.actor.deepspeed_enable:
@@ -686,7 +776,8 @@ class RLTrainer:
                     loss.backward()
                     self.actor_optimizer.step()
 
-                torch.cuda.synchronize(device)
+                # here one can synchronize between the two backprop...
+                # torch.cuda.synchronize(device)
 
                 # compute value loss
                 value_loss_clipped = old_values + (values - old_values).clamp(
@@ -697,9 +788,8 @@ class RLTrainer:
                 value_loss = torch.max(value_loss1, value_loss2).mean()
                 if torch.isnan(value_loss):
                     raise ValueError("Value loss is nan")
-                print("value_loss", value_loss.item())
 
-                # upate critic with loss
+                # upate critic
                 if self.config.critic.deepspeed_enable:
                     critic_model_engine.backward(value_loss)
                     critic_model_engine.step()
@@ -712,11 +802,20 @@ class RLTrainer:
                     value_loss.backward()
                     self.critic_optimizer.step()
 
+                # append the losses to the training stats
                 self.training_stats.training_loss.append(
                     loss.detach().cpu().item()
                 )
                 self.training_stats.value_loss.append(
                     value_loss.detach().cpu().item()
+                )
+
+                # print iteration info
+                print(
+                    f"Epoch {epoch+1}/{epochs}",
+                    f"Step {i+1}/{int(len(dataloader) / batch_size)}",
+                    f"Loss {loss.detach().cpu().item():.4f}",
+                    f"Value Loss {value_loss.detach().cpu().item():.4f}",
                 )
 
         self.actorcritic.eval()
@@ -725,6 +824,9 @@ class RLTrainer:
     def train(
         self,
     ) -> None:
+
+        print("Start RL Training")
+
         # initialize settings
         num_episodes = self.config.trainer.num_episodes
         max_timesteps = self.config.trainer.max_timesteps
@@ -734,20 +836,20 @@ class RLTrainer:
         checkpoint_steps = self.config.trainer.checkpoint_steps
         device = self.config.trainer.device
 
-        print("Start RL Training")
-        # check dimensions consistency
-        # at each time step num_examples memories are generated
+        # number of elements that the memories should contain when learning
         number_of_memories_per_learn_iteration = (
             num_examples * update_timesteps
         )
+
         # the number of memories must be a multiple of the batch size
         assert (
             number_of_memories_per_learn_iteration % batch_size == 0
         ), "The number of memories must be a multiple of the batch size"
-        # the total number of timesteps is
+
+        # the total number of timesteps done in the train() are
         total_number_of_timesteps = num_episodes * max_timesteps
-        # the update_timesteps must be a multiple
-        #  of the total number of timesteps
+
+        # the total timesteps done should be a multiple of the update timesteps
         assert total_number_of_timesteps % update_timesteps == 0, (
             "The number of timesteps (num_episodes*max_timesteps)"
             "must be a multiple of the update_timesteps"
@@ -758,6 +860,7 @@ class RLTrainer:
 
         # load checkpoint
         start_episode = self.load_checkpoint()
+
         # if it is a new training from the start clear the conversation log
         if start_episode == 0:
             self.conversation_log.clear()
@@ -771,9 +874,11 @@ class RLTrainer:
         for episode in range(start_episode, num_episodes):
             for timestep in range(max_timesteps):
 
+                # print the iteration info
                 print(
-                    f"Episode: {episode + 1} of {num_episodes}, "
-                    f"Timestep: {timestep + 1} of {max_timesteps}",
+                    f"Episode: {episode + 1}/{num_episodes}, "
+                    f"Timestep: {timestep + 1}/{max_timesteps}",
+                    f"Learning Cnt: {cnt_timesteps}/{update_timesteps}",
                 )
 
                 # counter used to count timesteps into memory
@@ -784,11 +889,8 @@ class RLTrainer:
 
                 # tokenize examples for the actor
                 tok_inputs_act = self.actorcritic.actor.tokenizer(
-                    inputs, padding=True, return_tensors="pt"
+                    inputs, padding=True, return_tensors="pt", truncation=True
                 )
-                if self.debug:
-                    print("RLTrainer.train()")
-                    print("tokenized inputs actor", tok_inputs_act)
 
                 # states are [batch_size, seq_len_of_states]
                 states_actor = tok_inputs_act["input_ids"].to(device)
@@ -796,25 +898,13 @@ class RLTrainer:
 
                 # tokenize examples for the critic
                 tok_inputs_crt = self.actorcritic.critic.tokenizer(
-                    inputs, padding=True, return_tensors="pt"
+                    inputs, padding=True, return_tensors="pt", truncation=True
                 )
-                if self.debug:
-                    print("RLTrainer.train()")
-                    print("tokenized inputs critic", tok_inputs_crt)
 
                 # states are [batch_size, seq_len_of_states]
                 states_critic = tok_inputs_crt["input_ids"].to(device)
 
-                # generate prompts
-                # actions --> output produced by the actor head in response
-                #  of the state(input) [batch_size, len_of_actions]
-                # actions_logits --> logits of the actions
-                # [batch_size, len_of_actions, vocab_size]
-                # values --> output produced by the critic for each action
-                # [batch_size, len_of_actions]
-                # sequence --> (state, actions)
-                # [batch_size, len_of_actions + seq_len_of_states] =
-                # [batch_size, seq_len]
+                # generate sequences of actions and values
                 (
                     actions,
                     actions_logits,
@@ -829,36 +919,57 @@ class RLTrainer:
                     states_actor, states_mask_actor, states_critic
                 )
 
-                # from action logits to action log probs
+                # compute action log probs
                 action_prob = (
                     torch.softmax(actions_logits, dim=-1).max(dim=-1).values
                 )
                 actions_log_probs = torch.log(action_prob + self.eps)
 
-                sequences = [
-                    self.actorcritic.actor.tokenizer.decode(sequence_actor)
-                    for i, sequence_actor in enumerate(sequences_actor)
-                ]
+                # get tokenized sequence for the reward models
+                if self.use_same_tokenizer:
+                    reward_sequence = sequences_actor
+                    reward_mask = sequences_mask_actor
+                else:
+                    # decode sequences
+                    sequences = [
+                        self.actorcritic.actor.tokenizer.decode(sequence_actor)
+                        for i, sequence_actor in enumerate(sequences_actor)
+                    ]
+                    # remove all the pad tokens from sequences
+                    sequences = [
+                        sequence.replace(
+                            self.actorcritic.actor.tokenizer.pad_token, ""
+                        )
+                        for sequence in sequences
+                    ]
+                    # remove all the eos tokens from sequences
+                    sequences = [
+                        sequence.replace(
+                            self.actorcritic.actor.tokenizer.eos_token, ""
+                        )
+                        for sequence in sequences
+                    ]
 
-                completions = [
-                    self.actorcritic.actor.tokenizer.decode(action)
-                    for i, action in enumerate(actions)
-                ]
+                    # encode with reward tokenizer
+                    tokenized_responses = self.reward.tokenizer(
+                        sequences,
+                        padding=True,
+                        return_tensors="pt",
+                        truncation=True,
+                    )
 
-                # compute reward for the completion
-                # the reward must take into account the answer quality wrt to
-                # the initial request given
-                # and must be tokenized again
-                tokenized_responses = self.reward.tokenizer(
-                    sequences, padding=True, return_tensors="pt"
-                )
-                print(
-                    "sequence length",
-                    tokenized_responses["input_ids"].shape[1],
-                )
+                    # get tokens and mask
+                    reward_sequence = tokenized_responses["input_ids"].to(
+                        device
+                    )
+                    reward_mask = tokenized_responses["attention_mask"].to(
+                        device
+                    )
+
+                # compute rewards
                 rewards = self.reward.get_reward(
-                    tokenized_responses["input_ids"].to(device),
-                    tokenized_responses["attention_mask"].to(device),
+                    reward_sequence,
+                    reward_mask,
                 )
 
                 # store memories of the episode / timestep
@@ -874,10 +985,16 @@ class RLTrainer:
                             sequences_mask_actor[i, :].detach().cpu(),
                             sequences_critic[i, :].detach().cpu(),
                             sequences_mask_critic[i, :].detach().cpu(),
-                            action_len_actor,
-                            action_len_critic,
+                            int(action_len_actor),
+                            int(action_len_critic),
                         )
                     )
+
+                # decode completions to be logged in the conversation log
+                completions = [
+                    self.actorcritic.actor.tokenizer.decode(action)
+                    for i, action in enumerate(actions)
+                ]
 
                 # log the memories in the conversation log
                 for i in range(states_actor.shape[0]):
@@ -889,9 +1006,6 @@ class RLTrainer:
                     )
 
                 # learn from memories
-                print(
-                    f"Learning counter: {cnt_timesteps} of {update_timesteps}"
-                )
                 if (cnt_timesteps % update_timesteps == 0) and (
                     cnt_timesteps != 0
                 ):
@@ -906,6 +1020,7 @@ class RLTrainer:
                 self.save_checkpoint(current_episode=episode)
                 self.conversation_log.save()
 
+        # save the models
         self.actorcritic.critic.save()
         self.actorcritic.actor.save()
         print("End RL Training")

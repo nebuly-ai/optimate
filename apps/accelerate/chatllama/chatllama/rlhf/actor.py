@@ -207,14 +207,14 @@ class ActorModel(torch.nn.Module):
             max_new_tokens=max_completion,
             no_repeat_ngram_size=3,
         )
-        print(
-            f"input length {states.shape[1]} \n"
-            f"max sequence length {max_sequence_length} \n"
-            f"max completion {max_completion} \n"
-            f"generated sequence {sequences.shape[1]} \n"
-        )
         actions = sequences[:, states.shape[1] :]  # noqa E203
         if self.config.debug:
+            print(
+                f"input length {states.shape[1]} \n"
+                f"max sequence length {max_sequence_length} \n"
+                f"max completion {max_completion} \n"
+                f"generated sequence {sequences.shape[1]} \n"
+            )
             print("ActorModel.generate")
             print("state", states)
             print("state shape", states.shape)
@@ -240,12 +240,23 @@ class ActorDataset(Dataset):
         completion: the output of the user
     """
 
-    def __init__(self, path: str) -> None:
+    def __init__(
+        self,
+        path: str,
+    ) -> None:
         self.path = path
+        separator = "\n\n##\n\n"
         with open(path, "r") as f:
             data = json.load(f)
-            self.data = [d["user_input"] + " " + d["completion"] for d in data]
-        self.len = len(self.data)
+        self.data = [
+            "Question: "
+            + d["user_input"]
+            + separator
+            + "Answer: "
+            + d["completion"]
+            for d in data
+        ]
+        self.separator = separator
 
     def __getitem__(self, idx):
         return self.data[idx]
@@ -253,7 +264,7 @@ class ActorDataset(Dataset):
     def __len__(
         self,
     ):
-        return self.len
+        return len(self.data)
 
 
 class ActorTrainer:
@@ -473,7 +484,11 @@ class ActorTrainer:
         with torch.no_grad():
             model = AutoModelForCausalLM.from_pretrained(self.config.model)
             model.to("cpu")
-            text = "If i am feeling bad what i should do?"
+            text = (
+                "Question: If i am feeling bad what i should do?"
+                "\n\n##\n\n"
+                "Answer: "
+            )
             tokens = self.model.tokenizer(
                 text, return_tensors="pt", truncation=True
             )
