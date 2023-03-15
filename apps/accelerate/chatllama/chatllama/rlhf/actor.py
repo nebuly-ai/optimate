@@ -184,19 +184,23 @@ class ActorModel(torch.nn.Module):
         """
         # temperature for the actor
         temperature = self.config.temperature
+
         # max sequence length for the actor (i.e. prompt + completion)
         max_sequence_length = self.config.max_sequence_length
+
         # max and min number of tokens to generate
         max_tokens = self.config.max_tokens
         min_tokens = self.config.min_tokens
+
         # max generation possible given the state and the max sequence length
-        max_generation_possible = max_sequence_length - states.shape[1] - 10
+        max_generation_possible = max_sequence_length - states.shape[1] - 20
         if max_generation_possible < min_tokens:
             raise ValueError(
                 f"The maximum completion available is "
                 f"{max_generation_possible} the prompt is too long w.r.t the "
                 f"model sequence length"
             )
+
         # take the minimum the max_tokens and the max_generation_possible
         max_completion = min(max_tokens, max_generation_possible)
 
@@ -559,6 +563,7 @@ class ActorTrainer:
         for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, input_text in enumerate(self.train_dataloader):
+
                 # skip the first steps if we are resuming training
                 if i < start_step:
                     continue
@@ -571,6 +576,7 @@ class ActorTrainer:
                         truncation=True,
                         padding=True,
                     )
+
                     # split tokens and mask
                     input_tokenized_id = input_tokenized["input_ids"]
                     input_tokenized_mask = input_tokenized["attention_mask"]

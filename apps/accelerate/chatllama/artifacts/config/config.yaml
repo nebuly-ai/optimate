@@ -1,12 +1,12 @@
 ---
 trainer_config:
   # learning rates
-  actor_lr: 0.00001
-  critic_lr: 0.00001
+  actor_lr: 0.000005
+  critic_lr: 0.000009
   # PPO Hyperparameters
   actor_eps_clip: 0.2
   critic_eps_clip: 0.2
-  beta_s: 0.1
+  beta_s: 0.02
   # path to examples to be sampled (training dataset) see rlhf_dataset.json
   examples_path: "./datasets/rlhf_training_data.json"
   # number of episodes and generation performed for each episode
@@ -15,7 +15,7 @@ trainer_config:
   max_timesteps: 32
   # number of timesteps after which the learn() method is called 
   # (to update the weights)
-  update_timesteps: 32
+  update_timesteps: 2
   # number of example sampled at each timestep
   num_examples: 2
   # batch and epochs for the training
@@ -61,12 +61,12 @@ actor_config:
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
   # accelerate settings
-  accelerate_enable: True
+  accelerate_enable: False
 
 reward_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
   # more can be simply added in the reward.py __init__()
-  model: "facebook/opt-125m"
+  model: "gpt2-large"
   model_folder: "./models"
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
@@ -86,12 +86,12 @@ reward_config:
   deepspeed_enable: False
   deepspeed_config_path: "path-to-deepspeed-conf"
   # accelerate settings
-  accelerate_enable: True
+  accelerate_enable: False
 
 critic_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
   # more can be simply added in the reward.py __init__()
-  model: "gpt2-large"
+  model: "facebook/opt-125m"
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
   max_sequence_length: 1024

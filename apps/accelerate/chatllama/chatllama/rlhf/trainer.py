@@ -10,6 +10,7 @@ from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
 from einops import rearrange
 from torch.utils.data import DataLoader, Dataset
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 from chatllama.rlhf.actor import ActorModel
 from chatllama.rlhf.config import (
@@ -57,7 +58,83 @@ train()
 """  # noqa W291
 
 
+def change_tokenizer(tokens, tokenizer1, tokenizer2):
+    """Change the tokenizer of the tokens
+
+    Args:
+        tokens (torch.Tensor): Tokens to be changed
+        tokenizer1 (transformers.PreTrainedTokenizer): Tokenizer to be changed
+        tokenizer2 (transformers.PreTrainedTokenizer): Tokenizer to be
+            changed to
+
+    Returns:
+        encoded_tokens: Encoded tokens
+    """
+
+    # decode tokens
+    with torch.no_grad():
+        decoded_tokens = [
+            tokenizer1.decode(token) for i, token in enumerate(tokens)
+        ]
+
+        # remove all the pad tokens
+        decoded_tokens = [
+            token.replace(tokenizer1.pad_token, "") for token in decoded_tokens
+        ]
+
+        # remove all the eos tokens
+        decoded_tokens = [
+            token.replace(tokenizer1.eos_token, "") for token in decoded_tokens
+        ]
+
+        # encode the actions with critic tokenizer
+        encoded_tokens = tokenizer2(
+            decoded_tokens,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+        )
+
+    return encoded_tokens
+
+
 ConfigType = Union[ConfigActor, ConfigReward, ConfigCritic]
+
+
+@beartype
+def check_model_family(config1: ConfigType, config2: ConfigType) -> bool:
+    """Check if the model family is the same for the two configs
+    the model family is specified in the config.model
+
+    Args:
+        config1 (ConfigType): First config
+        config2 (ConfigType): Second config
+
+    Returns:
+        bool: True if the model family is the same, False otherwise
+    """
+
+    # check if both are an hugging face models
+    if (config1.model in hf_models) and (config2.model in hf_models):
+
+        # if there is a "/" remove it from the name
+        model_name1 = config1.model
+        model_name2 = config2.model
+        if "/" in model_name1:
+            model_name1 = model_name1.split("/")[1]
+        if "/" in model_name2:
+            model_name2 = model_name2.split("/")[1]
+
+        # check if the model family is the same
+        return model_name1.split("-")[0] == model_name2.split("-")[0]
+
+    # check if both are not an hugging face models
+    elif (config1.model not in hf_models) and (config2.model not in hf_models):
+
+        # for now they could be only LLaMA models
+        return True
+    else:
+        return False
 
 
 class ActorCritic(torch.nn.Module):
@@ -69,6 +146,8 @@ class ActorCritic(torch.nn.Module):
         actor (ActorModel): Actor model
         critic (CriticModel): Critic model
         debug (bool): enable prints for Debugging
+        use_same_tokenizer (bool): if True the actor and critic use the same
+            tokenizer
 
     Methods:
         forward: given a sequence returns action logits and values (used
@@ -204,29 +283,11 @@ class ActorCritic(torch.nn.Module):
             sequences_mask_critic = sequences_mask_actor
             action_len_critic = action_len_actor
         else:
-            # generate sequences for the critic from actor sequences
-            decoded_actions = self.actor.tokenizer.batch_decode(actions)
-
-            # remove all the pad tokens from decoded_actions
-            decoded_actions = [
-                action.replace(self.actor.tokenizer.pad_token, "")
-                for action in decoded_actions
-            ]
-
-            # remove all the eos tokens from decoded_actions
-            decoded_actions = [
-                action.replace(self.actor.tokenizer.eos_token, "")
-                for action in decoded_actions
-            ]
-
-            # encode the actions with critic tokenizer
-            encoded_critic = self.critic.tokenizer(
-                decoded_actions,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
+            encoded_critic = change_tokenizer(
+                sequences_actor,
+                self.actor.tokenizer,
+                self.critic.tokenizer,
             )
-
             # split the encoded_critic in tokens and maks
             sequences_critic = encoded_critic["input_ids"].to(
                 sequences_actor.device,
@@ -369,8 +430,14 @@ class RLTrainer:
         actorcritic (ActorCritic): Actor-critic model
         actor_optim (torch.optim): Optimizer for the actor
         critic_optim (torch.optim): Optimizer for the critic
+        actor_scheduler (torch.optim.lr_scheduler): Scheduler for the actor
+        critic_scheduler (torch.optim.lr_scheduler): Scheduler for the critic
         reward (RewardModel): Reward model
         training_stats (TrainingStats): Class to store training stats
+        conversation_log (ConversationLog): Class to store the conversation
+        examples_sampler (ExamplesSampler): Class to sample examples
+        eps (float): small epsilon to avoid division by zero
+
     Methods:
         train: the training loop that calls the learn function after generating
             the experiences.
@@ -378,24 +445,35 @@ class RLTrainer:
             critic model.
         load_checkpoint: Load the checkpoint of the actor-critic model
         save_checkpoint: Save the checkpoint of the actor-critic model
-        generate_user_input: Generate the user input from the inputs
     """
 
     def __init__(
         self,
         config: Config,
     ) -> None:
+
+        # save config
         self.config = config
+
+        # set debug mode
         self.debug = config.trainer.debug
 
         # initialize agent-critic
         self.actorcritic = ActorCritic(config.actor, config.critic)
+
+        # initialize actor optimizer
         self.actor_optimizer = torch.optim.Adam(
             self.actorcritic.actor.parameters(), lr=config.trainer.actor_lr
         )
+
+        # initialize critic optimizer
         self.critic_optimizer = torch.optim.Adam(
             self.actorcritic.critic.parameters(), lr=config.trainer.critic_lr
         )
+
+        # scheduler (defined in the learn() method (i need dataset size))
+        self.actor_scheduler = None
+        self.critic_scheduler = None
 
         # initialize reward model
         self.reward = RewardModel(config.reward)
@@ -413,56 +491,17 @@ class RLTrainer:
         self.example_sampler = ExamplesSampler(config.trainer.examples_path)
 
         # check if actor and critic use the same tokenizer
-        self.actorcritic.use_same_tokenizer = self.check_model_family(
+        self.actorcritic.use_same_tokenizer = check_model_family(
             config.actor, config.critic
         )
 
         # check if actor and reward use the same tokenizer
-        self.use_same_tokenizer = self.check_model_family(
+        self.use_same_tokenizer = check_model_family(
             config.actor, config.reward
         )
 
         # eps
         self.eps = 1e-8
-
-    @beartype
-    def check_model_family(
-        self, config1: ConfigType, config2: ConfigType
-    ) -> bool:
-        """Check if the model family is the same for the two configs
-        the model family is specified in the config.model
-
-        Args:
-            config1 (ConfigType): First config
-            config2 (ConfigType): Second config
-
-        Returns:
-            bool: True if the model family is the same, False otherwise
-        """
-
-        # check if both are an hugging face models
-        if (config1.model in hf_models) and (config2.model in hf_models):
-
-            # if there is a "/" remove it from the name
-            model_name1 = config1.model
-            model_name2 = config2.model
-            if "/" in model_name1:
-                model_name1 = model_name1.split("/")[1]
-            if "/" in model_name2:
-                model_name2 = model_name2.split("/")[1]
-
-            # check if the model family is the same
-            return model_name1.split("-")[0] == model_name2.split("-")[0]
-
-        # check if both are not an hugging face models
-        elif (config1.model not in hf_models) and (
-            config2.model not in hf_models
-        ):
-
-            # for now they could be only LLaMA models
-            return True
-        else:
-            return False
 
     @beartype
     def save_checkpoint(
@@ -471,8 +510,9 @@ class RLTrainer:
         max_episode: int,
     ) -> None:
 
-        # Save checkpoint for the critic
         print(f"Saving checkpoint for episode {current_episode+1}..")
+
+        # get the path to save the checkpoint for the critic
         model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config.critic,
             is_checkpoint=True,
@@ -480,8 +520,12 @@ class RLTrainer:
             max_epochs=max_episode,
             max_steps=0,
         )
+
+        # if the checkpoint already exists remove it
         if os.path.exists(path):
             os.remove(path)
+
+        # save the checkpoint
         torch.save(
             {
                 "episode": current_episode,
@@ -491,8 +535,7 @@ class RLTrainer:
             path,
         )
 
-        # Save checkpoint for the actor_rl - use config vs config.actor
-        # to distinguish between actor and actor_rl
+        # get the path to save the checkpoint for the actor
         model_folder, model_name, path = ModelLoader.get_model_path(
             config=self.config,
             is_checkpoint=True,
@@ -500,9 +543,12 @@ class RLTrainer:
             max_epochs=max_episode,
             max_steps=0,
         )
+
+        # if the checkpoint already exists remove it
         if os.path.exists(path):
             os.remove(path)
 
+        # save the checkpoint
         torch.save(
             {
                 "episode": current_episode,
@@ -521,16 +567,30 @@ class RLTrainer:
         critic_episode = -1
         actor_episode = -1
 
-        # load the critic checkpoint
+        # check if there are some checkpoint for the critic
         print("Looking for checkpoints...")
         path = ModelLoader.check_model_path(
             config=self.config.critic,
             is_checkpoint=True,
             current_epoch=None,
         )
+
+        # if there are checkpoint
         if path is not None:
+
+            # load the critic checkpoint
             print("Loading ...")
-            checkpoint = torch.load(path)
+            try:
+                checkpoint = torch.load(path)
+            except Exception:
+                print(
+                    "Checkpoint of critic corrupted!"
+                    "Try to remove the last checkpoint."
+                    "Now Starting from episode 0"
+                )
+                return 0
+
+            # load checkpoint into model
             critic_episode = checkpoint["episode"]
             self.actorcritic.critic.load_state_dict(
                 checkpoint["critic_state_dict"]
@@ -539,16 +599,30 @@ class RLTrainer:
                 checkpoint["critic_optim_state_dict"]
             )
 
-        # load the actor checkpoint
+        # check if there are checkpoints for the actor
         print("Looking for checkpoints...")
         path = ModelLoader.check_model_path(
             config=self.config,
             is_checkpoint=True,
             current_epoch=None,
         )
+
+        # if there are some checkpoints
         if path is not None:
+
+            # load the actor checkpoint
             print("Loading ...")
-            checkpoint = torch.load(path)
+            try:
+                checkpoint = torch.load(path)
+            except Exception:
+                print(
+                    "Checkpoint of actor corrupted!"
+                    "Try to remove the last checkpoint."
+                    "Now Starting from episode 0"
+                )
+                return 0
+
+            # load checkpoint into the model
             actor_episode = checkpoint["episode"]
             self.actorcritic.actor.load_state_dict(
                 checkpoint["actor_state_dict"]
@@ -558,6 +632,7 @@ class RLTrainer:
             )
             self.training_stats = checkpoint["training_stats"]
 
+        # check if there are some discrepancies between the checkpoints
         if critic_episode == actor_episode:
             # all ok start from next episode
             return critic_episode + 1
@@ -587,8 +662,19 @@ class RLTrainer:
         device = self.config.trainer.device
 
         # create dataset from memories
-        dataloader = DataLoader(
-            ExperienceDataset(memories, device), batch_size=batch_size
+        dataset = ExperienceDataset(memories, device)
+        dataloader = DataLoader(dataset, batch_size=batch_size)
+
+        # initialize scheduler for actor
+        actor_lr = self.config.trainer.actor_lr
+        self.actor_scheduler = CosineAnnealingWarmRestarts(
+            self.actor_optimizer, T_0=len(dataset), eta_min=actor_lr * 0.1
+        )
+
+        # initialize scheduler for critic
+        critic_lr = self.config.trainer.critic_lr
+        self.critic_scheduler = CosineAnnealingWarmRestarts(
+            self.critic_optimizer, T_0=len(dataset), eta_min=critic_lr * 0.1
         )
 
         # initialize deepspeed for actor
@@ -608,8 +694,8 @@ class RLTrainer:
                 )
             (
                 actor_model_engine,
-                actor_optimizer,
-                dataloader,
+                self.actor_optimizer,
+                self.dataloader,
                 _,
             ) = deepspeed.initialize(
                 args=None,
@@ -650,25 +736,31 @@ class RLTrainer:
 
         # initialize actor accelerate
         if self.config.actor.accelerate_enable is True:
-            self.actor_accelerator = Accelerator()
+            actor_accelerator = Accelerator()
             (
                 actor_model,
                 self.actor_optimizer,
-                dataloader,
-            ) = self.actor_accelerator.prepare(
-                self.actorcritic.actor, self.actor_optimizer, dataloader
+                self.train_dataloader,
+                self.actor_scheduler,
+            ) = actor_accelerator.prepare(
+                self.actorcritic.actor,
+                self.actor_optimizer,
+                self.train_dataloader,
+                self.actor_scheduler,
             )
             self.actorcritic.actor = actor_model
 
         # initialize critic accelerate
         if self.config.critic.accelerate_enable is True:
-            self.critic_accelerator = Accelerator()
+            critic_accelerator = Accelerator()
             (
                 critic_model,
                 self.critic_optimizer,
-            ) = self.critic_accelerator.prepare(
+                self.critic_scheduler,
+            ) = critic_accelerator.prepare(
                 self.actorcritic.critic,
                 self.critic_optimizer,
+                self.critic_scheduler,
             )
             self.actorcritic.critic = critic_model
 
@@ -769,12 +861,14 @@ class RLTrainer:
                     actor_model_engine.step()
                 elif self.config.actor.accelerate_enable:
                     self.actor_optimizer.zero_grad()
-                    self.actor_accelerator.backward(loss)
+                    actor_accelerator.backward(loss)
                     self.actor_optimizer.step()
+                    self.actor_scheduler.step()
                 else:
                     self.actor_optimizer.zero_grad()
                     loss.backward()
                     self.actor_optimizer.step()
+                    self.actor_scheduler.step()
 
                 # here one can synchronize between the two backprop...
                 # torch.cuda.synchronize(device)
@@ -795,12 +889,14 @@ class RLTrainer:
                     critic_model_engine.step()
                 elif self.config.critic.accelerate_enable:
                     self.critic_optimizer.zero_grad()
-                    self.critic_accelerator.backward(loss)
+                    critic_accelerator.backward(loss)
                     self.critic_optimizer.step()
+                    self.critic_scheduler.step()
                 else:
                     self.critic_optimizer.zero_grad()
                     value_loss.backward()
                     self.critic_optimizer.step()
+                    self.critic_scheduler.step()
 
                 # append the losses to the training stats
                 self.training_stats.training_loss.append(
@@ -878,7 +974,7 @@ class RLTrainer:
                 print(
                     f"Episode: {episode + 1}/{num_episodes}, "
                     f"Timestep: {timestep + 1}/{max_timesteps}",
-                    f"Learning Cnt: {cnt_timesteps}/{update_timesteps}",
+                    f"Learning Cnt: {cnt_timesteps + 1}/{update_timesteps}",
                 )
 
                 # counter used to count timesteps into memory
@@ -930,32 +1026,10 @@ class RLTrainer:
                     reward_sequence = sequences_actor
                     reward_mask = sequences_mask_actor
                 else:
-                    # decode sequences
-                    sequences = [
-                        self.actorcritic.actor.tokenizer.decode(sequence_actor)
-                        for i, sequence_actor in enumerate(sequences_actor)
-                    ]
-                    # remove all the pad tokens from sequences
-                    sequences = [
-                        sequence.replace(
-                            self.actorcritic.actor.tokenizer.pad_token, ""
-                        )
-                        for sequence in sequences
-                    ]
-                    # remove all the eos tokens from sequences
-                    sequences = [
-                        sequence.replace(
-                            self.actorcritic.actor.tokenizer.eos_token, ""
-                        )
-                        for sequence in sequences
-                    ]
-
-                    # encode with reward tokenizer
-                    tokenized_responses = self.reward.tokenizer(
-                        sequences,
-                        padding=True,
-                        return_tensors="pt",
-                        truncation=True,
+                    tokenized_responses = change_tokenizer(
+                        sequences_actor,
+                        self.actorcritic.actor.tokenizer,
+                        self.reward.tokenizer,
                     )
 
                     # get tokens and mask
