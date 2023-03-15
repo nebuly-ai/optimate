@@ -36,7 +36,7 @@ For more details on how to install Speedster, please visit our [Installation](h
 
 # Quick start
 
-Only one line of code - that’s what you need to accelerate your model! Find below your getting started guide for 4 different input model frameworks:
+Only one line of code - that’s what you need to accelerate your model! Find below your getting started guide for 5 different input model frameworks:
 
 <details>
 <summary>🔥 PyTorch </summary>
@@ -83,7 +83,7 @@ For more details, please visit [Getting Started with PyTorch optimization](https
     
 </details>
 <details>
-<summary>🤗 Huggingface Transformers </summary>
+<summary>🤗 HuggingFace Transformers </summary>
     
 In this section, we will learn about the 4 main steps needed to optimize 🤗 Huggingface Transformer models:
 
@@ -180,8 +180,70 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
     </details>
     
 </details>
+
 <details>
+<summary>🧨 HuggingFace Diffusers </summary>
     
+In this section, we will learn about the 4 main steps needed to optimize Stable Diffusion models from the Diffusers library:
+
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
+
+```python
+import torch
+from diffusers import StableDiffusionPipeline
+from speedster import optimize_model, save_model
+
+#1 Provide input model and data
+model_id = "CompVis/stable-diffusion-v1-4"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+if device == "cuda":
+    # On GPU we load by default the model in half precision, because it's faster and lighter.
+    pipe = StableDiffusionPipeline.from_pretrained(model_id, revision='fp16', torch_dtype=torch.float16)
+else:
+    pipe = StableDiffusionPipeline.from_pretrained(model_id)
+
+# Create some example input data
+input_data = [
+    "a photo of an astronaut riding a horse on mars",
+    "a monkey eating a banana in a forest",
+    "white car on a road surrounded by palm trees",
+    "a fridge full of bottles of beer",
+    "madara uchiha throwing asteroids against people"
+]
+
+#2 Run Speedster optimization
+optimized_model = optimize_model(
+    model=pipe,
+    input_data=input_data,
+    optimization_time="unconstrained",
+    ignore_compilers=["torch_tensor_rt", "tvm"],
+    metric_drop_ths=0.1,
+)
+
+#3 Save the optimized model
+save_model(optimized_model, "model_save_path")
+```
+
+Once the optimization is completed, start using the accelerated model (on steroids 🚀).
+
+```python
+#4 Load and run your PyTorch accelerated model in production
+from speedster import load_model
+
+optimized_model = load_model("model_save_path", pipe=pipe)
+
+test_prompt = "futuristic llama with a cyberpunk city on the background"
+output = optimized_model(test_prompt).images[0]
+```
+For more details, please visit [Getting Started with StableDiffusion optimization](https://docs.nebuly.com/Speedster/getting_started/diffusers_getting_started/).
+    
+</details>
+
+<details>
 <summary>🌊 TensorFlow/Keras </summary>
     
 In this section, we will learn about the 4 main steps needed to optimize TensorFlow/Keras models:
@@ -277,6 +339,7 @@ For more details, please visit [Getting Started with ONNX optimization](https://
 - [Installation](https://docs.nebuly.com/Speedster/installation/)
 - [Getting started with PyTorch optimization](https://docs.nebuly.com/Speedster/getting_started/pytorch_getting_started/)
 - [Getting started with HuggingFace optimization](https://docs.nebuly.com/Speedster/getting_started/hf_getting_started/)
+- [Getting started with StableDiffusion optimization](https://docs.nebuly.com/Speedster/getting_started/diffusers_getting_started/)
 - [Getting started with TensorFlow optimization](https://docs.nebuly.com/Speedster/getting_started/tf_getting_started/)
 - [Getting started with ONNX optimization](https://docs.nebuly.com/Speedster/getting_started/onnx_getting_started/)
 - [Key concepts](https://docs.nebuly.com/Speedster/key_concepts/)

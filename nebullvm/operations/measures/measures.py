@@ -66,7 +66,7 @@ class MetricDropMeasure(Measure):
         self.valid = relative_difference <= perf_loss_ths
         self.measure_result = relative_difference
 
-    def get_result(self) -> Tuple:
+    def get_result(self) -> Tuple[bool, float]:
         return self.valid, self.measure_result
 
 

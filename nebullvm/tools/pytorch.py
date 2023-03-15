@@ -6,6 +6,7 @@ from loguru import logger
 from nebullvm.optional_modules.torch import torch, Module, DataLoader
 from nebullvm.tools.base import DataType, InputInfo, Device, DeviceType
 from nebullvm.tools.data import DataManager
+from nebullvm.tools.diffusers import get_default_dynamic_info
 
 FX_MODULE_NAME = "NebullvmFxModule"
 
@@ -27,20 +28,31 @@ def load_with_torch_fx(
     return model
 
 
-def get_outputs_sizes_torch(
+def get_output_info_torch(
     torch_model: Module,
     input_tensors: List[torch.Tensor],
     device: Device,
-) -> List[Tuple[int, ...]]:
+) -> List[Tuple[Tuple[int, ...], DataType]]:
     if device.type is DeviceType.GPU:
         input_tensors = [x.to(device.to_torch_format()) for x in input_tensors]
         torch_model.to(device.to_torch_format())
     with torch.no_grad():
         outputs = torch_model(*input_tensors)
         if isinstance(outputs, torch.Tensor):
-            return [tuple(outputs.size())]
+            return [
+                (
+                    tuple(outputs.size()),
+                    DataType.from_framework_format(outputs.dtype),
+                )
+            ]
         else:
-            return [tuple(output.size()) for output in outputs]
+            return [
+                (
+                    tuple(output.size()),
+                    DataType.from_framework_format(output.dtype),
+                )
+                for output in outputs
+            ]
 
 
 def create_model_inputs_torch(
@@ -123,6 +135,7 @@ def extract_info_from_torch_data(
     dataloader: Union[DataLoader, Sequence],
     dynamic_axis: Dict,
     device: Device,
+    is_diffusion: bool = False,
 ):
     from nebullvm.tools.utils import ifnone
 
@@ -142,9 +155,17 @@ def extract_info_from_torch_data(
         if isinstance(x.cpu(), torch.LongTensor)
         else "int32"
         if isinstance(x.cpu(), torch.IntTensor)
+        else "float16"
+        if isinstance(x.cpu(), torch.HalfTensor)
         else "float32"
         for x in input_row
     ]
+
+    # For the Stable Diffusion UNet we must provide dynamic axis
+    # even when using static shapes, because otherwise the converted
+    # onnx model will have size issues.
+    if dynamic_axis is None and device.type is DeviceType.GPU and is_diffusion:
+        dynamic_axis = get_default_dynamic_info(input_sizes)
 
     if dynamic_axis is not None:
         dynamic_axis["inputs"] = [

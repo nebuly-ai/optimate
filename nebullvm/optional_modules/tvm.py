@@ -1,3 +1,5 @@
+from nebullvm.optional_modules.dummy import DummyClass
+
 try:
     import tvm
     from tvm import IRModule
@@ -18,4 +20,4 @@ except ImportError:
         XGBTuner
     ) = (
         ExecutorFactoryModule
-    ) = autotvm = relay = ToMixedPrecision = GraphModule = Module = object
+    ) = autotvm = relay = ToMixedPrecision = GraphModule = Module = DummyClass

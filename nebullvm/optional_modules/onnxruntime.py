@@ -1,6 +1,4 @@
-class Onnxruntime:
-    pass
-
+from nebullvm.optional_modules.dummy import DummyClass
 
 try:
     import onnxruntime  # noqa F401
@@ -11,19 +9,19 @@ try:
         CalibrationDataReader,
     )
 except ImportError:
-    onnxruntime = Onnxruntime
+    onnxruntime = DummyClass
     setattr(onnxruntime, "SessionOptions", None)
     QuantType = quantize_static = quantize_dynamic = None
-    CalibrationDataReader = object
+    CalibrationDataReader = DummyClass
 except FileNotFoundError:
     # Solves a colab issue
     QuantType = quantize_static = quantize_dynamic = None
-    CalibrationDataReader = object
+    CalibrationDataReader = DummyClass
 
 try:
     # They require torch
     from onnxruntime.transformers import optimizer
     from onnxruntime.transformers.optimizer import MODEL_TYPES
 except ImportError:
-    MODEL_TYPES = object
-    optimizer = object
+    MODEL_TYPES = DummyClass
+    optimizer = DummyClass

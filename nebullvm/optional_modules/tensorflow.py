@@ -1,3 +1,5 @@
+from nebullvm.optional_modules.dummy import DummyClass
+
 try:
     import absl.logging
 
@@ -6,35 +8,25 @@ except Exception:
     pass
 
 
-class Model:
-    pass
-
-
-class Dataset:
-    pass
-
-
 class Keras:
-    Model = Model
-
-
-class Module:
-    pass
-
-
-class Tensor:
-    pass
+    Model = DummyClass
 
 
 class data:
-    Dataset = Dataset
+    Dataset = DummyClass
+
+
+class dtypes:
+    DType = DummyClass
 
 
 class Tensorflow:
-    Module = Module
-    Tensor = Tensor
+    Module = DummyClass
+    Tensor = DummyClass
     keras = Keras()
     data = data
+    dtypes = dtypes
+    float16 = float32 = int32 = int64 = DummyClass
 
     @staticmethod
     def function(**kwargs):
