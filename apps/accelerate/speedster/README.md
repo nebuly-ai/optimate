@@ -4,7 +4,7 @@
 
 `Speedster` makes it easy to combine optimization techniques across the whole software-to-hardware stack, delivering best-in-class speed-ups. If you like the idea, give us a star to support the project ⭐
 
-![speedster_benchmarks](https://user-images.githubusercontent.com/42771598/212486740-431328f3-f1e5-47bf-b6c9-b6629399ad09.png)
+![speedster](https://user-images.githubusercontent.com/53374883/225599469-f1a626f0-c001-42bd-bc8b-ec0e966ddad6.png)
 
 The core `Speedster` workflow consists of 3 steps:
 
