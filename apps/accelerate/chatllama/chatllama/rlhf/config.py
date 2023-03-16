@@ -104,6 +104,9 @@ class ConfigActor:
         max_sequence_length (int): Max sequence length for the actor
         max_tokens (int): Max tokens for actor generation
         min_tokens (int): Min tokens for actor generation
+        additonal_prompt_tokens (int): Number of tokens to be used as safety
+            to avoid too large sequences and to add a template to the
+            dataset
         temperature (float): Temperature for the actor
         batch_size (int): Batch size to train the actor
         iteration_per_print (int): Number of iterations to print the
@@ -133,6 +136,7 @@ class ConfigActor:
     max_sequence_length: int
     max_tokens: int
     min_tokens: int
+    additonal_prompt_tokens: int
     temperature: float
     batch_size: int
     iteration_per_print: int

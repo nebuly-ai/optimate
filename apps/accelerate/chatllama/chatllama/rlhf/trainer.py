@@ -410,7 +410,10 @@ class ExamplesSampler:
         self.path = path
         with open(path, "r") as f:
             data = json.load(f)
-        self.data = [d["user_input"] for d in data]
+        self.data = [
+            "Question: " + d["user_input"] + "\n\n##\n\n +" "Answer: "
+            for d in data
+        ]
 
     def sample(self, n: int) -> List:
         """Sample n examples from the data
@@ -835,18 +838,24 @@ class RLTrainer:
                 # compute ratios
                 ratios = (actions_log_prob - old_actions_log_probs).exp()
 
-                # compute advantages and normalize them
-                advantages = rewards - old_values
-                advantages = (advantages - advantages.mean(dim=-1)) / (
-                    advantages.std() + self.eps
-                )
-
                 # compute PPO loss
-                surr1 = advantages * ratios
+                if check_model_family(self.config.actor, self.config.critic):
+                    # compute advantages and normalize them
+                    advantages = rewards - old_values
+                    advantages = (advantages - advantages.mean(dim=-1)) / (
+                        advantages.std() + self.eps
+                    )
+
+                    surr1 = advantages * ratios
+                else:
+                    advantages = rewards - old_values[:, -1]
+                    surr1 = advantages * ratios
+
                 surr2 = (
                     torch.clamp(ratios, 1 - actor_eps_clip, 1 + actor_eps_clip)
                     * advantages
                 )
+
                 policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
                 policy_loss = policy_loss.mean()
                 loss = policy_loss + kl_div_loss
@@ -1088,10 +1097,13 @@ class RLTrainer:
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
+                    self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
-                self.save_checkpoint(current_episode=episode)
+                self.save_checkpoint(
+                    current_episode=episode, max_episode=num_episodes
+                )
                 self.conversation_log.save()
 
         # save the models

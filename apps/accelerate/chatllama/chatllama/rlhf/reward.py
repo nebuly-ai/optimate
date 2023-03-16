@@ -270,11 +270,11 @@ class RewardTrainer:
         self.config = config
 
         # load the model
-        self.model = RewardModel(config)
+        self.reward = RewardModel(config)
 
         # optimizer
         self.optimizer = torch.optim.AdamW(
-            self.model.parameters(), lr=config.lr
+            self.reward.parameters(), lr=config.lr
         )
 
         # loss function
@@ -335,8 +335,8 @@ class RewardTrainer:
                 _,
             ) = deepspeed.initialize(
                 args=None,
-                model=self.model,
-                model_parameters=self.model.parameters(),
+                model=self.reward,
+                model_parameters=self.reward.parameters(),
                 training_data=self.train_dataloader,
                 config=self.config.deepspeed_config_path,
             )
@@ -347,12 +347,12 @@ class RewardTrainer:
         if config.accelerate_enable is True:
             self.accelerator = Accelerator()
             (
-                self.model,
+                self.reward,
                 self.optimizer,
                 self.train_dataloader,
                 self.scheduler,
             ) = self.accelerator.prepare(
-                self.model,
+                self.reward,
                 self.optimizer,
                 self.train_dataloader,
                 self.scheduler,
@@ -398,7 +398,7 @@ class RewardTrainer:
         # save the checkpoint
         torch.save(
             {
-                "state_dict": self.model.state_dict(),
+                "state_dict": self.reward.model.state_dict(),
                 "optim_state_dict": self.optimizer.state_dict(),
                 "scheduler_state_dict": self.scheduler.state_dict(),
                 "training_stats": self.training_stats,
@@ -445,7 +445,7 @@ class RewardTrainer:
             # load the model parameters and optimizer parameters
             # from the checkpoint
             epoch = checkpoint["epoch"]
-            self.model.load_state_dict(checkpoint["state_dict"])
+            self.reward.model.load_state_dict(checkpoint["state_dict"])
             self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
             self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
             self.training_stats = checkpoint["training_stats"]
@@ -477,7 +477,7 @@ class RewardTrainer:
 
         # traing loop
         for epoch in range(start_epoch, epochs):
-            self.model.train()
+            self.reward.train()
             for i, inputs in enumerate(self.train_dataloader):
 
                 # skip the steps if resuming from a checkpoint
@@ -490,7 +490,7 @@ class RewardTrainer:
 
                 # tokenize the input
                 with torch.no_grad():
-                    input_tokens = self.model.tokenizer(
+                    input_tokens = self.reward.tokenizer(
                         input_text,
                         return_tensors="pt",
                         truncation=True,
@@ -507,7 +507,7 @@ class RewardTrainer:
                         input_tokens["attention_mask"].to(device),
                     )[:, -1]
                 else:
-                    est_output = self.model.get_reward(
+                    est_output = self.reward.get_reward(
                         input_tokens["input_ids"].to(device),
                         input_tokens["attention_mask"].to(device),
                     )
@@ -554,14 +554,14 @@ class RewardTrainer:
 
             # Validation
             if self.validation_flag:
-                self.model.eval()
+                self.reward.eval()
                 with torch.no_grad():
                     for i, (text, score) in enumerate(
                         self.validation_dataloader
                     ):
 
                         # tokenize inputs
-                        input_tokens = self.model.tokenizer(
+                        input_tokens = self.reward.tokenizer(
                             text, return_tensors="pt", padding=True
                         )
                         input_tokens = input_tokens.to(device)
@@ -572,7 +572,7 @@ class RewardTrainer:
                         )
 
                         # forward pass
-                        est_output = self.model.get_reward(
+                        est_output = self.reward.get_reward(
                             input_tokens["input_ids"],
                             input_tokens["attention_mask"],
                         )
@@ -590,4 +590,4 @@ class RewardTrainer:
                             )
 
         # save the model at the end of the training
-        self.model.save()
+        self.reward.save()

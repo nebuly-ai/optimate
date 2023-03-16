@@ -105,11 +105,13 @@ class BaseDataset:
             c_model_max_seq_len = config.critic.max_sequence_length
             min_completion = config.actor.min_tokens
             # dataset
-            dataset_path = config.actor.train_dataset_path
+            dataset_path = config.trainer.examples_path
             # tokenizers
             r_tokenizer = RewardModel.load_tokenizer(config.reward)
             a_tokenizer = ActorModel.load_tokenizer(config.actor)
             c_tokenizer = CriticModel.load_tokenizer(config.critic)
+            # safety tokens
+            safety_tokens = config.actor.additonal_prompt_tokens
 
         elif isinstance(config, ConfigActor):
             print("Start cleaning the dataset for Actor")
@@ -119,6 +121,8 @@ class BaseDataset:
             dataset_path = config.train_dataset_path
             # tokenizer
             a_tokenizer = ActorModel.load_tokenizer(config)
+            # safety tokens
+            safety_tokens = config.additonal_prompt_tokens
 
         elif isinstance(config, ConfigReward):
             print("Start cleaning the dataset for Reward")
@@ -171,11 +175,20 @@ class BaseDataset:
                     a_tokens = a_tokenizer.encode(text, truncation=False)
                     r_tokens = r_tokenizer.encode(text, truncation=False)
                     c_tokens = c_tokenizer.encode(text, truncation=False)
-                    if len(a_tokens) + min_completion > a_model_max_seq_len:
+                    if (
+                        len(a_tokens) + min_completion + safety_tokens
+                        > a_model_max_seq_len
+                    ):
                         conversations.pop(0)
-                    elif len(r_tokens) + min_completion > r_model_max_seq_len:
+                    elif (
+                        len(r_tokens) + min_completion + safety_tokens
+                        > r_model_max_seq_len
+                    ):
                         conversations.pop(0)
-                    elif len(c_tokens) + min_completion > c_model_max_seq_len:
+                    elif (
+                        len(c_tokens) + min_completion + safety_tokens
+                        > c_model_max_seq_len
+                    ):
                         conversations.pop(0)
                     else:
                         break
@@ -183,7 +196,7 @@ class BaseDataset:
                 # remove elements from Actor dataset
                 elif isinstance(config, ConfigActor):
                     tokens = a_tokenizer.encode(text, truncation=False)
-                    if len(tokens) > a_model_max_seq_len:
+                    if len(tokens) + safety_tokens > a_model_max_seq_len:
                         conversations.pop(0)
                     else:
                         break

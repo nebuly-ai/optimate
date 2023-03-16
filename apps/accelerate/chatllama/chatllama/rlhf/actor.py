@@ -92,8 +92,7 @@ class ActorModel(torch.nn.Module):
             # load the model
             print("Loading ...")
             model_dict = torch.load(path)
-            self.model.load_state_dict(model_dict["model"])
-            self.head.load_state_dict(model_dict["head"])
+            self.model.load_state_dict(model_dict["state_dict"])
 
     @beartype
     def save(self) -> None:
@@ -108,7 +107,7 @@ class ActorModel(torch.nn.Module):
         # save the model
         print(f"Saving model to {path} ...")
         torch.save(
-            {"model": self.model.state_dict(), "head": self.head.state_dict()},
+            {"state_dict": self.model.state_dict()},
             path,
         )
 
@@ -193,12 +192,16 @@ class ActorModel(torch.nn.Module):
         min_tokens = self.config.min_tokens
 
         # max generation possible given the state and the max sequence length
-        max_generation_possible = max_sequence_length - states.shape[1] - 20
+        max_generation_possible = max_sequence_length - states.shape[1]
         if max_generation_possible < min_tokens:
             raise ValueError(
-                f"The maximum completion available is "
-                f"{max_generation_possible} the prompt is too long w.r.t the "
-                f"model sequence length"
+                f"The prompt is too long w.r.t the "
+                f"model sequence length \n"
+                f"max_sequence_length={max_sequence_length}\n"
+                f"state_length={states.shape[1]}\n"
+                f"min_tokens={min_tokens}\n"
+                f"max_tokens={max_tokens}\n"
+                f"max_generation_possible={max_generation_possible}\n"
             )
 
         # take the minimum the max_tokens and the max_generation_possible
@@ -305,14 +308,14 @@ class ActorTrainer:
         self.config = config
 
         # load the model
-        self.model = ActorModel(config)
+        self.actor = ActorModel(config)
 
         # define loss function
         self.loss_function = torch.nn.CrossEntropyLoss()
 
         # define optimizer
         self.optimizer = torch.optim.AdamW(
-            self.model.parameters(), lr=config.lr, weight_decay=1e-5
+            self.actor.parameters(), lr=config.lr, weight_decay=1e-5
         )
 
         # check if validation dataset is provided
@@ -369,8 +372,8 @@ class ActorTrainer:
                 _,
             ) = deepspeed.initialize(
                 args=None,
-                model=self.model,
-                model_parameters=self.model.parameters(),
+                model=self.actor,
+                model_parameters=self.actor.parameters(),
                 training_data=self.train_dataloader,
                 config=self.config.deepspeed_config_path,
             )
@@ -381,12 +384,12 @@ class ActorTrainer:
         if config.accelerate_enable is True:
             self.accelerator = Accelerator()
             (
-                self.model,
+                self.actor,
                 self.optimizer,
                 self.train_dataloader,
                 self.scheduler,
             ) = self.accelerator.prepare(
-                self.model,
+                self.actor,
                 self.optimizer,
                 self.train_dataloader,
                 self.scheduler,
@@ -431,7 +434,7 @@ class ActorTrainer:
         # save the checkpoint
         torch.save(
             {
-                "state_dict": self.model.state_dict(),
+                "state_dict": self.actor.model.state_dict(),
                 "optim_state_dict": self.optimizer.state_dict(),
                 "training_stats": self.training_stats,
                 "epoch": current_epoch,
@@ -476,7 +479,7 @@ class ActorTrainer:
 
             # assing the checkpoint to the model
             epoch = checkpoint["epoch"]
-            self.model.load_state_dict(checkpoint["state_dict"])
+            self.actor.model.load_state_dict(checkpoint["state_dict"])
             self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
             self.trainign_stats = checkpoint["training_stats"]
             step = checkpoint["step"]
@@ -484,7 +487,7 @@ class ActorTrainer:
         return 0, 0
 
     def test_generation(self):
-        self.model.eval()
+        self.actor.eval()
         with torch.no_grad():
             model = AutoModelForCausalLM.from_pretrained(self.config.model)
             model.to("cpu")
@@ -493,7 +496,7 @@ class ActorTrainer:
                 "\n\n##\n\n"
                 "Answer: "
             )
-            tokens = self.model.tokenizer(
+            tokens = self.actor.tokenizer(
                 text, return_tensors="pt", truncation=True
             )
             tokens = tokens.to("cpu")
@@ -504,14 +507,14 @@ class ActorTrainer:
             # print("\nInput text: \n", text)
             # print("\nTest Vanilla model\n")
             # print(sequence)
-            _, sequence = self.model.generate(
+            _, sequence = self.actor.generate(
                 tokens["input_ids"].to("cuda"),
                 tokens["attention_mask"].to("cuda"),
             )
-            sequence = self.model.tokenizer.decode(sequence[0, :])
+            sequence = self.actor.tokenizer.decode(sequence[0, :])
             print("\nTest Trained model\n")
             print(sequence)
-        self.model.train()
+        self.actor.train()
 
     def add_eos_token(
         self, tokens: torch.Tensor, mask: torch.Tensor
@@ -519,7 +522,7 @@ class ActorTrainer:
         # given tokens and mask, add eos token to the end of each sequence
         # and update the mask
         batch_size, seq_len = tokens.shape
-        eos_token = self.model.tokenizer.eos_token_id
+        eos_token = self.actor.tokenizer.eos_token_id
         tokens = torch.cat(
             [
                 tokens,
@@ -561,7 +564,7 @@ class ActorTrainer:
 
         # traing loop
         for epoch in range(start_epoch, epochs):
-            self.model.train()
+            self.actor.train()
             for i, input_text in enumerate(self.train_dataloader):
 
                 # skip the first steps if we are resuming training
@@ -570,7 +573,7 @@ class ActorTrainer:
 
                 # tokenize input
                 with torch.no_grad():
-                    input_tokenized = self.model.tokenizer(
+                    input_tokenized = self.actor.tokenizer(
                         input_text,
                         return_tensors="pt",
                         truncation=True,
@@ -606,7 +609,7 @@ class ActorTrainer:
                         training_input, attention_mask
                     )
                 else:
-                    est_output = self.model(training_input, attention_mask)
+                    est_output = self.actor(training_input, attention_mask)
 
                 # compute loss
                 est_output = rearrange(est_output, "b s v -> (b s) v")
@@ -647,12 +650,12 @@ class ActorTrainer:
 
             # Validation
             if self.validation_flag:
-                self.model.eval()
+                self.actor.eval()
                 with torch.no_grad():
                     for i, input_text in enumerate(self.validation_dataloader):
 
                         # tokenize input
-                        input_tokenized = self.model.tokenizer(
+                        input_tokenized = self.actor.tokenizer(
                             input_text, return_tensors="pt", padding=True
                         )
                         validation_output = input_tokenized["input_ids"][:, 1:]
@@ -662,7 +665,7 @@ class ActorTrainer:
                         ]
 
                         # forward pass
-                        est_output = self.model.forward(
+                        est_output = self.actor.forward(
                             validation_input, attention_mask
                         )
                         validation_output = rearrange(
@@ -684,5 +687,5 @@ class ActorTrainer:
                                 f"Validation Loss: {loss}"
                             )
         # save the model
-        self.model.save()
+        self.actor.save()
         print("Training Finished ")

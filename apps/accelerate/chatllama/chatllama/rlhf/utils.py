@@ -91,10 +91,14 @@ class ConversationLog:
         )
 
     def save(self):
+        print("Saving conversations log")
         if os.path.exists(self.path):
             with open(self.path, "r") as f:
                 conversation = json.load(f)
             self.conversation.extend(conversation)
+        self.conversation = sorted(
+            self.conversation, key=lambda x: float(x["learn_counter"])
+        )
         with open(self.path, "w") as f:
             json.dump(self.conversation, f)
 
