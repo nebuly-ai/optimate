@@ -247,23 +247,20 @@ class ActorDataset(Dataset):
         completion: the output of the user
     """
 
+    # "Question: "
+    #         + d["user_input"]
+    #         + separator
+    #         + "Answer: "
+    #         + d["completion"]
+
     def __init__(
         self,
         path: str,
     ) -> None:
         self.path = path
-        separator = "\n\n##\n\n"
         with open(path, "r") as f:
             data = json.load(f)
-        self.data = [
-            "Question: "
-            + d["user_input"]
-            + separator
-            + "Answer: "
-            + d["completion"]
-            for d in data
-        ]
-        self.separator = separator
+        self.data = [d["user_input"] + d["completion"] for d in data]
 
     def __getitem__(self, idx):
         return self.data[idx]
@@ -344,7 +341,13 @@ class ActorTrainer:
         )
 
         # define training statistics
-        self.training_stats = TrainingStats()
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            self.config, is_checkpoint=True
+        )
+        stat_path = os.path.join(
+            model_folder, model_name.split(".")[0] + "_stats.json"
+        )
+        self.training_stats = TrainingStats(stat_path)
 
         # consistency check between accelerate and deepspeed
         if config.accelerate_enable and config.deepspeed_enable:
@@ -492,10 +495,11 @@ class ActorTrainer:
             model = AutoModelForCausalLM.from_pretrained(self.config.model)
             model.to("cpu")
             text = (
-                "Question: If i am feeling bad what i should do?"
+                "Human: If i am feeling bad what i should do?"
                 "\n\n##\n\n"
-                "Answer: "
+                "Assistant: "
             )
+            # text = "If i am feeling bad what i should do?"
             tokens = self.actor.tokenizer(
                 text, return_tensors="pt", truncation=True
             )
@@ -556,6 +560,9 @@ class ActorTrainer:
 
         # load model_checkpoint
         start_epoch, start_step = self.load_checkpoint()
+
+        if start_epoch == 0 and start_step == 0:
+            self.training_stats.clear()
 
         # counter for the checkpoint
         cnt_checkpoint = 1

@@ -1,6 +1,5 @@
 import json
 import os
-import re
 
 import numpy as np
 
@@ -342,34 +341,24 @@ class AnthropicRLHF(BaseDataset):
         conversations = []
         for _, d in enumerate(data):
             current_conv = d["chosen"]
-            sections = re.split("Assistant:|User:", current_conv)
-            if len(sections) == 2:
-                user_input = sections[0]
-                completion = sections[1]
-            elif len(sections) == 4:
-                user_input = (
-                    f"Human:{sections[0]}\n"
-                    f"Assistant: {sections[1]}"
-                    f"Human:{sections[2]}\n"
-                )
-                completion = sections[3]
-            elif len(sections) == 6:
-                user_input = (
-                    f"Human:{sections[0]}\n"
-                    f"Assistant: {sections[1]}"
-                    f"Human:{sections[2]}\n"
-                    f"Assistant: {sections[3]}\n"
-                    f"Human:{sections[4]}\n"
-                )
-                completion = sections[5]
-            else:
-                continue
+            split_answer = current_conv.split("Assistant:")
+            # take all the list element in split_answer except the last one
+            # and joing them with "Assistant:" in a unique string
+            previous_convers = split_answer[0]
+            for i, s in enumerate(split_answer[1:-1]):
+                previous_convers += "Assistant:" + s
+            # remove the last characters if they are "\n" from the previous
+            # conversation
+            previous_convers = previous_convers.rstrip("\n")
+            user_input = previous_convers + "\n\n##\n\n" + "Assistant: "
+            completion = split_answer[-1]
 
             conv = {
                 "user_input": user_input,
                 "completion": completion,
                 "score": None,
             }
+
             conversations.append(conv)
         return conversations
 
@@ -395,7 +384,7 @@ class AnthropicRLHF(BaseDataset):
 
         # save actor training data
         with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
-            json.dump(conversations, f, intend=4)
+            json.dump(conversations, f, indent=4)
 
         # sample N number of index from 0 to len(conversations)
         conversations = self.take_n_samples(conversations, number_of_samples)
@@ -406,7 +395,7 @@ class AnthropicRLHF(BaseDataset):
             json.dump(conversations, f, indent=4)
 
         # rlhf dataset
-        conversations = self.reformat_dataset(self.dataset["validation"])
+        conversations = self.reformat_dataset(self.dataset["test"])
 
         # sort conversations by length of user_input
         conversations = self.sort_conversation(

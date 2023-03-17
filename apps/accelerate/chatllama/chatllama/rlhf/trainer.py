@@ -455,10 +455,7 @@ class ExamplesSampler:
         self.path = path
         with open(path, "r") as f:
             data = json.load(f)
-        self.data = [
-            "Question: " + d["user_input"] + "\n\n##\n\n " + "Answer: "
-            for d in data
-        ]
+        self.data = [d["user_input"] for d in data]
 
     def sample(self, n: int) -> List:
         """Sample n examples from the data
@@ -883,7 +880,7 @@ class RLTrainer:
                 # compute PPO loss
                 if check_model_family(self.config.actor, self.config.critic):
                     # compute discounted rewards as in TRL
-                    gamma = 0.2
+                    gamma = 0.5
                     discounted_rewards = torch.zeros_like(old_values)
                     for i in range(discounted_rewards.shape[0]):
                         for j in range(i, discounted_rewards.shape[0]):
@@ -898,6 +895,21 @@ class RLTrainer:
                         advantages.std() + self.eps
                     )
 
+                    # ########## DEBUG #############
+                    # temp_file = "./temp.json"
+                    # temp = []
+                    # if os.path.exists(temp_file):
+                    #     with open(temp_file, "r") as f:
+                    #         temp = json.load(f)
+
+                    # temp.append({
+                    #         "reward": rewards[:, -10:].tolist(),
+                    #         "advantages": advantages[:, -10:].tolist(),
+                    #     })
+                    # with open(temp_file, "w") as f:
+                    #     json.dump(temp, f, indent=4)
+                    # #############
+
                     surr1 = advantages * ratios
                 else:
                     advantages = rewards - old_values[:, -1]
@@ -908,7 +920,7 @@ class RLTrainer:
                     * advantages
                 )
 
-                policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
+                policy_loss = -torch.min(surr1, surr2) + beta_s * entropies
                 # policy_loss = -torch.min(surr1, surr2)
                 policy_loss = policy_loss.mean()
                 loss = policy_loss + kl_div_loss
@@ -1170,6 +1182,10 @@ class RLTrainer:
                 ):
                     # self.conversation_log.show(cnt_learn_iter)
                     self.learn(memories)
+                    mean_reward = sum([m.rewards[-1] for m in memories]) / len(
+                        memories
+                    )
+                    print(f"Mean Reward: {mean_reward}")
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
