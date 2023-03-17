@@ -165,7 +165,8 @@ def test_onnxruntime(
             res = optimized_model(*inputs_example)
             assert res is not None
 
-            res_orig = tuple(model(*inputs_example))
+            with torch.inference_mode():
+                res_orig = tuple(model(*inputs_example))
             assert all(
                 [
                     torch.allclose(res_tensor, res_orig_tensor, rtol=2e-01)
@@ -323,7 +324,8 @@ def test_onnxruntime_quantization(
             res = optimized_model(*inputs_example)
             assert res is not None
 
-            res_orig = tuple(model(*inputs_example))
+            with torch.inference_mode():
+                res_orig = tuple(model(*inputs_example))
             assert all(
                 [
                     torch.allclose(res_tensor, res_orig_tensor, rtol=2e-01)
@@ -485,7 +487,8 @@ def test_onnxruntime_half(
             res = optimized_model(*inputs_example)
             assert res is not None
 
-            res_orig = tuple(model(*inputs_example))
+            with torch.inference_mode():
+                res_orig = tuple(model(*inputs_example))
             assert all(
                 [
                     torch.allclose(

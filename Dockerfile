@@ -1,25 +1,42 @@
-ARG STARTING_IMAGE=nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
+ARG STARTING_IMAGE=nvcr.io/nvidia/tensorrt:22.12-py3
 FROM ${STARTING_IMAGE}
+
+WORKDIR /
 
 # Set frontend as non-interactive
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -y update && apt-get -y upgrade
 
-# Install python and pip
-RUN apt-get install -y python3-opencv python3-pip && \
-    python3 -m pip install --upgrade pip && \
-    apt-get -y install git && \
-    apt-get -y install python-is-python3
+RUN apt-get install ffmpeg libsm6 libxext6  -y
 
 # Install other libraries
 RUN apt-get install -y sudo wget
 
-# Install dl frameworks
-RUN pip3 install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
-RUN pip3 install --no-cache-dir tensorflow
-RUN pip3 install --no-cache-dir onnx
-RUN pip3 install --no-cache-dir transformers
+# Install libraries
+RUN pip3 install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117  \
+    && python3 -m pip install --upgrade pip \
+    && pip install --no-cache-dir xformers \
+    && pip install --no-cache-dir -U diffusers \
+    && pip install --no-cache-dir cuda-python \
+    && pip install --no-cache-dir accelerate \
+    && pip install --no-cache-dir onnx-graphsurgeon --extra-index-url https://pypi.ngc.nvidia.com \
+    && python3 -m pip install --no-cache-dir --upgrade tensorrt
+
+RUN git clone https://github.com/NVIDIA/TensorRT.git \
+    && cd TensorRT \
+    && git submodule update --init --recursive
+
+ENV TRT_OSSPATH=/TensorRT
+
+RUN cd $TRT_OSSPATH \
+    && mkdir -p build && cd build \
+    && cmake .. -DTRT_OUT_DIR=$PWD/out \
+    && cd plugin \
+    && make -j$(nproc)
+
+ENV PLUGIN_LIBS=/TensorRT/build/out/libnvinfer_plugin.so
+ENV LD_PRELOAD=/TensorRT/build/out/libnvinfer_plugin.so
 
 # Copy the working dir to the container
 COPY . /nebullvm
@@ -61,3 +78,4 @@ RUN if [ "$COMPILER" = "all" ] || [ "$COMPILER" = "tvm" ] ; then \
 
 ENV SIGOPT_PROJECT="tmp"
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/python3.8/dist-packages/tensorrt
+ENV CUDA_MODULE_LOADING="LAZY"

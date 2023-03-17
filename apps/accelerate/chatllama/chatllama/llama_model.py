@@ -86,7 +86,7 @@ class HFLikeTokenizer:
     def __call__(self, texts: Union[List[str], str], *args, **kwargs):
         if isinstance(texts, str):
             text = self.tokenizer.encode(texts, bos=True, eos=True)
-            tokens = torch.tensor(text).cuda().long()
+            tokens = torch.tensor(text).long()
         else:
             texts = [
                 self.tokenizer.encode(text, bos=True, eos=True)
@@ -95,12 +95,11 @@ class HFLikeTokenizer:
             max_len = max(len(text) for text in texts)
             tokens = (
                 torch.full((len(texts), max_len), self.tokenizer.pad_id)
-                .cuda()
                 .long()
             )
             for i, text in enumerate(texts):
                 tokens[i, -len(text) :] = (  # noqa E203
-                    torch.tensor(text).cuda().long()
+                    torch.tensor(text).long()
                 )
             # TODO: decide how eos and bos should be handled - i need to mask
             # them? or not?
@@ -110,8 +109,12 @@ class HFLikeTokenizer:
                 tokens[
                     i, -len(current_tokens) - 1 : -1  # noqa E203
                 ] = current_tokens
-            mask = self.create_sequence_mask(tokens).cuda()
+            mask = self.create_sequence_mask(tokens)
 
+        # convert `pad_id` from -1 to 0, otherwise embedding will cause out of bounds.
+        tokens = torch.where(
+            tokens == self.tokenizer.pad_id, torch.zeros_like(tokens), tokens
+        )
         output = {
             "input_ids": tokens,
             "attention_mask": mask,
@@ -387,6 +390,7 @@ class TransformerBlock(nn.Module):
         self.layer_id = layer_id
         self.attention_norm = RMSNorm(args.dim, eps=args.norm_eps)
         self.ffn_norm = RMSNorm(args.dim, eps=args.norm_eps)
+        self.use_fairscale = args.use_fairscale
 
     def forward(
         self,
@@ -398,7 +402,10 @@ class TransformerBlock(nn.Module):
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         # modified from orignal code to enable external cache
         attention_mask = attention_mask[:, None, :, :]
-        attention_mask = attention_mask.expand(-1, self.n_heads, -1, -1)
+        if self.use_fairscale:
+            attention_mask = attention_mask.expand(-1, self.n_heads // fs_init.get_model_parallel_world_size(), -1, -1)
+        else:
+            attention_mask = attention_mask.expand(-1, self.n_heads, -1, -1)
         attn, cache_k, cache_v = self.attention.forward(
             self.attention_norm(x), attention_mask, freqs_cis, cache_k, cache_v
         )

@@ -187,6 +187,10 @@ class ONNXTensorRTInferenceLearner(BaseInferenceLearner, ABC):
         ):
             buffers[input_idx] = input_ptr
             if input_shape is not None:
+                # If the input shape is empty, we set it to (1,) because
+                # TensorRT doesn't accept empty shapes.
+                if input_shape == torch.Size([]):
+                    input_shape = torch.Size((1,))
                 self.context.set_binding_shape(input_idx, input_shape)
         for output_idx, output_ptr in zip(output_idxs, output_ptrs):
             buffers[output_idx] = output_ptr
@@ -352,7 +356,7 @@ class PytorchONNXTensorRTInferenceLearner(
     def stream_ptr(self):
         return self.cuda_stream.cuda_stream
 
-    def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor]:
+    def run(self, *input_tensors: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         """Predict on the input tensors.
 
         Note that the input tensors must be on the same batch. If a sequence
@@ -377,10 +381,13 @@ class PytorchONNXTensorRTInferenceLearner(
         if self.network_parameters.dynamic_info is None:
             if self.output_tensors is None:
                 self.output_tensors = [
-                    torch.Tensor(*output_size).to(
-                        self.device.to_torch_format()
+                    torch.Tensor(*output_size)
+                    .to(self.device.to_torch_format())
+                    .to(output_type.to_torch_format())
+                    for output_size, output_type in zip(
+                        self.network_parameters.output_sizes,
+                        self.network_parameters.output_types,
                     )
-                    for output_size in self.network_parameters.output_sizes
                 ]
             input_sizes = None
         else:
@@ -398,14 +405,18 @@ class PytorchONNXTensorRTInferenceLearner(
                         )
                         for i, x in enumerate(output_size)
                     ),
-                ).to(self.device.to_torch_format())
-                for j, (output_size, dynamic_axis) in enumerate(
+                )
+                .to(self.device.to_torch_format())
+                .to(output_type.to_torch_format())
+                for j, (output_size, output_type, dynamic_axis) in enumerate(
                     zip(
                         self.network_parameters.output_sizes,
+                        self.network_parameters.output_types,
                         dynamic_info.outputs,
                     )
                 )
             ]
+
         input_ptrs = (
             input_tensor.data_ptr() for input_tensor in input_tensors
         )
@@ -446,18 +457,20 @@ class BaseArrayONNXTensorRTInferenceLearner(ONNXTensorRTInferenceLearner, ABC):
         cuda_input_arrays: List,
         input_shapes: Optional[List[Tuple[int, ...]]],
     ) -> Generator[np.ndarray, None, None]:
+
         if self.network_parameters.dynamic_info is None:
             cuda_output_arrays = [
-                polygraphy.cuda.DeviceArray(shape=output_size)
-                for output_size in self.network_parameters.output_sizes
+                polygraphy.cuda.DeviceArray(
+                    shape=output_size,
+                    dtype=output_type.to_numpy_format(),
+                )
+                for output_size, output_type in zip(
+                    self.network_parameters.output_sizes,
+                    self.network_parameters.output_types,
+                )
             ]
         else:
             dynamic_info = self.network_parameters.dynamic_info
-            output_sizes = (
-                output_size
-                for output_size in self.network_parameters.output_sizes
-            )
-
             cuda_output_arrays = [
                 polygraphy.cuda.DeviceArray(
                     shape=tuple(
@@ -467,10 +480,15 @@ class BaseArrayONNXTensorRTInferenceLearner(ONNXTensorRTInferenceLearner, ABC):
                             input_shapes, j, i, x
                         )
                         for i, x in enumerate(output_size)
-                    )
+                    ),
+                    dtype=output_type.to_numpy_format(),
                 )
-                for j, (output_size, dyn_out_axis) in enumerate(
-                    zip(output_sizes, dynamic_info.outputs)
+                for j, (output_size, output_type, dyn_out_axis) in enumerate(
+                    zip(
+                        self.network_parameters.output_sizes,
+                        self.network_parameters.output_types,
+                        dynamic_info.outputs,
+                    )
                 )
             ]
         input_ptrs = (cuda_array.ptr for cuda_array in cuda_input_arrays)

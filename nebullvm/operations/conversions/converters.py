@@ -34,7 +34,7 @@ class Converter(Operation, abc.ABC):
         return self
 
     def get_result(self) -> List:
-        return self.converted_models
+        return [model for model in self.converted_models if model is not None]
 
 
 class PytorchConverter(Converter):
