@@ -390,6 +390,7 @@ class TransformerBlock(nn.Module):
         self.layer_id = layer_id
         self.attention_norm = RMSNorm(args.dim, eps=args.norm_eps)
         self.ffn_norm = RMSNorm(args.dim, eps=args.norm_eps)
+        self.use_fairscale = args.use_fairscale
 
     def forward(
         self,
@@ -401,7 +402,10 @@ class TransformerBlock(nn.Module):
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         # modified from orignal code to enable external cache
         attention_mask = attention_mask[:, None, :, :]
-        attention_mask = attention_mask.expand(-1, self.n_heads, -1, -1)
+        if self.use_fairscale:
+            attention_mask = attention_mask.expand(-1, self.n_heads // fs_init.get_model_parallel_world_size(), -1, -1)
+        else:
+            attention_mask = attention_mask.expand(-1, self.n_heads, -1, -1)
         attn, cache_k, cache_v = self.attention.forward(
             self.attention_norm(x), attention_mask, freqs_cis, cache_k, cache_v
         )
