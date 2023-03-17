@@ -156,18 +156,64 @@ class ActorCritic(torch.nn.Module):
             during acting phase)
     """
 
-    def __init__(
-        self, actor_config: ConfigActor, critic_config: ConfigCritic
-    ) -> None:
+    def __init__(self, config: Config) -> None:
         super().__init__()
-        self.actor = ActorModel(actor_config)
+        self.config = config
+
+        self.actor = ActorModel(config.actor)
 
         # check if critic must be initialized from reward model
-        ModelLoader.init_critic_from_reward(critic_config)
-        self.critic = CriticModel(critic_config)
+        ModelLoader.init_critic_from_reward(config.critic)
+        self.critic = CriticModel(config.critic)
 
+        # if the actor and critic use the same tokenizer is set to True
         self.use_same_tokenizer = False
-        self.debug = actor_config.debug
+
+        # debug flag
+        self.debug = config.actor.debug
+
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path.
+        This method is not implemented since it relies on actor and critic
+        __init__ methods to perform the loading from their respective paths
+        then loaded.
+
+        """
+        pass
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path
+        This method is implemented to save the actor model as result of RLHF
+        in the folder actor_rl instead of actor.save() method that saves it
+        in the actor folder.
+        """
+        # get the path to save the actor
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+        )
+
+        # save the model
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"state_dict": self.actor.model.state_dict()},
+            path,
+        )
+
+        # get the path to save the critic model
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config.critic,
+            is_checkpoint=False,
+        )
+
+        # save the model
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"state_dict": self.critic.model.state_dict()},
+            path,
+        )
 
     @beartype
     def forward(
@@ -461,7 +507,7 @@ class RLTrainer:
         self.debug = config.trainer.debug
 
         # initialize agent-critic
-        self.actorcritic = ActorCritic(config.actor, config.critic)
+        self.actorcritic = ActorCritic(config)
 
         # initialize actor optimizer
         self.actor_optimizer = torch.optim.Adam(
@@ -1137,6 +1183,5 @@ class RLTrainer:
                 self.conversation_log.save()
 
         # save the models
-        self.actorcritic.critic.save()
-        self.actorcritic.actor.save()
+        self.actorcritic.save()
         print("End RL Training")
