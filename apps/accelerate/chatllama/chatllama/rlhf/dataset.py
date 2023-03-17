@@ -221,7 +221,7 @@ class BaseDataset:
 
                 # save the new dataset
                 with open(dataset_path, "w") as f:
-                    json.dump(conversations, f)
+                    json.dump(conversations, f, indent=4)
             else:
                 print("Dataset is already clean")
 
@@ -295,7 +295,7 @@ class StanfordNLPSHPDataset(BaseDataset):
 
         # save actor training data
         with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
-            json.dump(conversations, f)
+            json.dump(conversations, f, indent=4)
 
         # take N samples and sort them
         conversations = self.take_n_samples(conversations, number_of_samples)
@@ -303,7 +303,7 @@ class StanfordNLPSHPDataset(BaseDataset):
 
         # save reward training data
         with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
-            json.dump(conversations, f)
+            json.dump(conversations, f, indent=4)
 
         # take the validation dataset for rlhf
         conversations = self.reformat_dataset(self.dataset["validation"])
@@ -315,7 +315,7 @@ class StanfordNLPSHPDataset(BaseDataset):
         )
         # save rlhf training data
         with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
-            json.dump(conversations, f)
+            json.dump(conversations, f, indent=4)
 
         print("Generation Completed")
 
@@ -395,7 +395,7 @@ class AnthropicRLHF(BaseDataset):
 
         # save actor training data
         with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
-            json.dump(conversations, f)
+            json.dump(conversations, f, intend=4)
 
         # sample N number of index from 0 to len(conversations)
         conversations = self.take_n_samples(conversations, number_of_samples)
@@ -403,7 +403,7 @@ class AnthropicRLHF(BaseDataset):
 
         # save reward training data
         with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
-            json.dump(conversations, f)
+            json.dump(conversations, f, indent=4)
 
         # rlhf dataset
         conversations = self.reformat_dataset(self.dataset["validation"])
@@ -415,6 +415,6 @@ class AnthropicRLHF(BaseDataset):
 
         # save rlhf training data
         with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
-            json.dump(conversations, f)
+            json.dump(conversations, f, indent=4)
 
         print("Generation Completed")

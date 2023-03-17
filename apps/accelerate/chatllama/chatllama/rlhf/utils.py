@@ -100,7 +100,7 @@ class ConversationLog:
             self.conversation, key=lambda x: float(x["learn_counter"])
         )
         with open(self.path, "w") as f:
-            json.dump(self.conversation, f)
+            json.dump(self.conversation, f, indent=4)
 
     def load(self):
         with open(self.path, "r") as f:
