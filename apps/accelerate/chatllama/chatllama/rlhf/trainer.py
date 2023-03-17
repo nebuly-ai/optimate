@@ -8,7 +8,6 @@ import torch
 from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
-from einops import rearrange
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
@@ -411,7 +410,7 @@ class ExamplesSampler:
         with open(path, "r") as f:
             data = json.load(f)
         self.data = [
-            "Question: " + d["user_input"] + "\n\n##\n\n +" "Answer: "
+            "Question: " + d["user_input"] + "\n\n##\n\n " + "Answer: "
             for d in data
         ]
 
@@ -806,9 +805,6 @@ class RLTrainer:
                         f"#########################################"
                     )
 
-                # reshaping rewards to match [b, s] shape
-                rewards = rearrange(rewards, "b -> b 1")
-
                 # get actor critic new probabilities and values
                 actions_logits, values = self.actorcritic.forward(
                     sequences_actor,
@@ -840,8 +836,18 @@ class RLTrainer:
 
                 # compute PPO loss
                 if check_model_family(self.config.actor, self.config.critic):
-                    # compute advantages and normalize them
-                    advantages = rewards - old_values
+                    # compute discounted rewards as in TRL
+                    gamma = 0.2
+                    discounted_rewards = torch.zeros_like(old_values)
+                    for i in range(discounted_rewards.shape[0]):
+                        for j in range(i, discounted_rewards.shape[0]):
+                            discounted_rewards[:, i] += (
+                                gamma ** (j - i) * rewards[:, j]
+                            )
+
+                    advantages = (
+                        discounted_rewards - old_values
+                    )  # TRL has opposite sign for old values
                     advantages = (advantages - advantages.mean(dim=-1)) / (
                         advantages.std() + self.eps
                     )
@@ -857,8 +863,10 @@ class RLTrainer:
                 )
 
                 policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
+                # policy_loss = -torch.min(surr1, surr2)
                 policy_loss = policy_loss.mean()
                 loss = policy_loss + kl_div_loss
+                # loss = policy_loss
 
                 # check if loss item is NaN
                 if torch.isnan(loss):
@@ -879,16 +887,19 @@ class RLTrainer:
                     self.actor_optimizer.step()
                     self.actor_scheduler.step()
 
-                # here one can synchronize between the two backprop...
-                # torch.cuda.synchronize(device)
-
                 # compute value loss
+                # the loss is the distance between the rewards and the values
+                # I want this distance to be small so that values are
+                # representative of the rewards, for this reason i took the
+                # maximum between the two.
+                # The clip is limiting the slew-rate of values_loss_clipped
                 value_loss_clipped = old_values + (values - old_values).clamp(
                     -critic_eps_clip, critic_eps_clip
                 )
                 value_loss1 = (value_loss_clipped - rewards) ** 2
                 value_loss2 = (values - rewards) ** 2
                 value_loss = torch.max(value_loss1, value_loss2).mean()
+
                 if torch.isnan(value_loss):
                     raise ValueError("Value loss is nan")
 
@@ -1034,13 +1045,17 @@ class RLTrainer:
                 if self.use_same_tokenizer:
                     reward_sequence = sequences_actor
                     reward_mask = sequences_mask_actor
+                elif check_model_family(
+                    self.config.critic, self.config.reward
+                ):
+                    reward_sequence = sequences_critic
+                    reward_mask = sequences_mask_critic
                 else:
                     tokenized_responses = change_tokenizer(
                         sequences_actor,
                         self.actorcritic.actor.tokenizer,
                         self.reward.tokenizer,
                     )
-
                     # get tokens and mask
                     reward_sequence = tokenized_responses["input_ids"].to(
                         device
@@ -1050,10 +1065,13 @@ class RLTrainer:
                     )
 
                 # compute rewards
-                rewards = self.reward.get_reward(
+                rewards = self.reward.forward(
                     reward_sequence,
                     reward_mask,
                 )
+
+                rewards = rewards[:, -action_len_critic:]
+                reward = rewards[:, -1]
 
                 # store memories of the episode / timestep
                 for i in range(states_actor.shape[0]):
@@ -1062,7 +1080,7 @@ class RLTrainer:
                             states_actor[i, :].detach().cpu(),
                             actions[i, :].detach().cpu(),
                             values[i, :].detach().cpu(),
-                            rewards[i].detach().cpu(),
+                            rewards[i, :].detach().cpu(),
                             actions_log_probs[i, :].detach().cpu(),
                             sequences_actor[i, :].detach().cpu(),
                             sequences_mask_actor[i, :].detach().cpu(),
@@ -1076,15 +1094,27 @@ class RLTrainer:
                 # decode completions to be logged in the conversation log
                 completions = [
                     self.actorcritic.actor.tokenizer.decode(action)
-                    for i, action in enumerate(actions)
+                    for action in actions
                 ]
+                # remove pad tokens from completions
+                completions = [
+                    c.replace(self.actorcritic.actor.tokenizer.pad_token, "")
+                    for c in completions
+                ]
+                # remove eos tokens from completions
+                completions = [
+                    c.replace(self.actorcritic.actor.tokenizer.eos_token, "")
+                    for c in completions
+                ]
+                # strange i need to force this?
+                completions = [c.replace("<pad>", "") for c in completions]
 
                 # log the memories in the conversation log
                 for i in range(states_actor.shape[0]):
                     self.conversation_log.append(
                         inputs[i],
                         completions[i],
-                        rewards[i].detach().cpu().item(),
+                        reward[i].detach().cpu().item(),
                         cnt_learn_iter,
                     )
 
