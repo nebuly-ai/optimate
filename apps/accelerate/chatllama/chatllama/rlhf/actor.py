@@ -650,6 +650,7 @@ class ActorTrainer:
                 # save checkpoint periodically
                 if cnt_checkpoint % checkpoint_steps == 0:
                     self.save_checkpoint(epoch, i, epochs, n_iter)
+                    self.training_stats.save()
                     self.test_generation()
                     cnt_checkpoint = 1
                 else:
