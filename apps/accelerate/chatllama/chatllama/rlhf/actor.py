@@ -344,9 +344,7 @@ class ActorTrainer:
         model_folder, model_name, path = ModelLoader.get_model_path(
             self.config, is_checkpoint=True
         )
-        stat_path = os.path.join(
-            model_folder, model_name.split(".")[0] + "_stats.json"
-        )
+        stat_path = os.path.join(model_folder, "training_stats.json")
         self.training_stats = TrainingStats(stat_path)
 
         # consistency check between accelerate and deepspeed
@@ -445,6 +443,7 @@ class ActorTrainer:
             },
             path,
         )
+        ModelLoader.remove_checkpoints(model_folder, model_name)
 
     @beartype
     def load_checkpoint(

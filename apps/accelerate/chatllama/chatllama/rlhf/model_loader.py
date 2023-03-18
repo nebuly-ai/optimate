@@ -43,6 +43,7 @@ class ModelLoader:
             return None
         else:
             checkpoints = sorted(checkpoints)
+            # get last checkpoint
             last_checkpoint = checkpoints[-1]
             return last_checkpoint
 
@@ -112,6 +113,25 @@ class ModelLoader:
         if model_name is None:
             raise ValueError("Model name not found")
         return model_name
+
+    @staticmethod
+    def remove_checkpoints(model_folder: str, model_name: str):
+
+        # remove .pt to model name
+        model_name = model_name.split(".")[0]
+        checkpoints = [
+            f for f in os.listdir(model_folder) if f.startswith(model_name)
+        ]
+        if len(checkpoints) == 0:
+            return
+        else:
+            checkpoints = sorted(checkpoints)
+            # check if the number of checkpoint is greater than 5
+            n_checkpoint = 2
+            if len(checkpoints) > n_checkpoint:
+                for c in checkpoints[:-n_checkpoint]:
+                    checkpoint_path = os.path.join(model_folder, c)
+                    os.remove(checkpoint_path)
 
     @staticmethod
     def get_model_path(
