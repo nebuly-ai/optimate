@@ -88,8 +88,8 @@ reward_config:
   checkpoint_name: null
   lr: 0.000009
   # deepspeed settings
-  deepspeed_enable: False
-  deepspeed_config_path: "path-to-deepspeed-conf"
+  deepspeed_enable: True
+  deepspeed_config_path: "./artifacts/config/ds_config.json"
   # accelerate settings
   accelerate_enable: False
 

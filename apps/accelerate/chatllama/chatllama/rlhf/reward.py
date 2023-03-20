@@ -1,4 +1,5 @@
 import json
+import shutil
 import os
 
 import deepspeed
@@ -320,6 +321,7 @@ class RewardTrainer:
         # initialize deepspeed
         self.model_engine = None
         if config.deepspeed_enable is True:
+
             if config.deepspeed_config_path is None:
                 raise ValueError(
                     "DeepSpeed config path is None, but deepspeed is enabled"
@@ -394,20 +396,30 @@ class RewardTrainer:
 
         # remove the checkpoint if it already exists
         if os.path.exists(path):
-            os.remove(path)
+            if self.config.deepspeed_enable:
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
         # save the checkpoint
-        torch.save(
-            {
-                "state_dict": self.reward.model.state_dict(),
-                "optim_state_dict": self.optimizer.state_dict(),
-                "scheduler_state_dict": self.scheduler.state_dict(),
-                "training_stats": self.training_stats,
+        if self.config.deepspeed_enable:
+            client_state = {
                 "epoch": current_epoch,
                 "step": current_step,
-            },
-            path,
-        )
+            }
+            self.model_engine.save_checkpoint(path, client_state=client_state)
+        else:
+            torch.save(
+                {
+                    "state_dict": self.reward.model.state_dict(),
+                    "optim_state_dict": self.optimizer.state_dict(),
+                    "scheduler_state_dict": self.scheduler.state_dict(),
+                    "training_stats": self.training_stats,
+                    "epoch": current_epoch,
+                    "step": current_step,
+                },
+                path,
+            )
 
     @beartype
     def load_checkpoint(
@@ -432,25 +444,42 @@ class RewardTrainer:
         if path is not None:
             print("Loading ...")
 
-            # try to load the checkpoint
-            try:
-                checkpoint = torch.load(path)
-            except Exception:
-                print(
-                    "Checkpoint corrupted!"
-                    "Try to remove the last checkpoint."
-                    "Now Starting from epoch 0, step 0"
-                )
-                return 0, 0
+            if self.config.deepspeed_enable:
+                # try to load the checkpoint
+                try:
+                    _, client_state = self.model_engine.load_checkpoint(path)
+                except Exception:
+                    print(
+                        "Checkpoint corrupted!"
+                        "Try to remove the last checkpoint."
+                        "Now Starting from epoch 0, step 0"
+                    )
+                    return 0, 0
+                # load epoch and step to resume loops
+                epoch = client_state["epoch"]
+                step = client_state["step"]
+            else:
+                # try to load the checkpoint
+                try:
+                    checkpoint = torch.load(path)
+                except Exception:
+                    print(
+                        "Checkpoint corrupted!"
+                        "Try to remove the last checkpoint."
+                        "Now Starting from epoch 0, step 0"
+                    )
+                    return 0, 0
 
-            # load the model parameters and optimizer parameters
-            # from the checkpoint
-            epoch = checkpoint["epoch"]
-            self.reward.model.load_state_dict(checkpoint["state_dict"])
-            self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
-            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-            self.training_stats = checkpoint["training_stats"]
-            step = checkpoint["step"]
+                # load the model parameters and optimizer parameters
+                # from the checkpoint
+                epoch = checkpoint["epoch"]
+                self.reward.model.load_state_dict(checkpoint["state_dict"])
+                self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
+                self.scheduler.load_state_dict(
+                    checkpoint["scheduler_state_dict"]
+                )
+                self.training_stats = checkpoint["training_stats"]
+                step = checkpoint["step"]
             return epoch, step + 1  # return the next episode to train
         return 0, 0
 
@@ -461,7 +490,10 @@ class RewardTrainer:
         print("Start Training the Reward Model")
 
         # get config parameters
-        batch_size = self.config.batch_size
+        if self.config.deepspeed_enable:
+            batch_size = self.train_dataloader.batch_size
+        else:
+            batch_size = self.config.batch_size
         epochs = self.config.epochs
         device = self.config.device
         iteration_per_print = self.config.iteration_per_print
@@ -539,11 +571,14 @@ class RewardTrainer:
                         f"Iteration: {i+1}/{n_iter}, "
                         f"Training Loss: {loss.item()}"
                     )
+                    printed_est_output = [
+                        round(float(x), 1) for x in est_output.cpu().tolist()
+                    ]
                     print(
                         "prediction",
-                        est_output.cpu().detach().numpy(),
+                        printed_est_output,
                         "target",
-                        score.cpu().numpy(),
+                        score.cpu().tolist(),
                     )
 
                 # checkpoints saving

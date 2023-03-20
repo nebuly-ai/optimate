@@ -1,4 +1,5 @@
 import json
+import shutil
 import os
 
 import deepspeed
@@ -421,19 +422,29 @@ class ActorTrainer:
 
         # remove the checkpoint if it already exists
         if os.path.exists(path):
-            os.remove(path)
+            if self.config.deepspeed_enable:
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
-        # save the checkpoint
-        torch.save(
-            {
-                "state_dict": self.actor.model.state_dict(),
-                "optim_state_dict": self.optimizer.state_dict(),
-                "training_stats": self.training_stats,
+        if self.config.deepspeed_enable:
+            client_state = {
                 "epoch": current_epoch,
                 "step": current_step,
-            },
-            path,
-        )
+            }
+            self.model_engine.save_checkpoint(path, client_state=client_state)
+        else:
+            # save the checkpoint
+            torch.save(
+                {
+                    "state_dict": self.actor.model.state_dict(),
+                    "optim_state_dict": self.optimizer.state_dict(),
+                    "training_stats": self.training_stats,
+                    "epoch": current_epoch,
+                    "step": current_step,
+                },
+                path,
+            )
 
         # remove old checkpoints
         n_checkpoints_to_keep = self.config.n_checkpoints_to_keep
@@ -464,24 +475,39 @@ class ActorTrainer:
         if path is not None:
             print("Loading ...")
 
-            # try to load the checkpoint
-            try:
-                checkpoint = torch.load(path)
-            except Exception:
-                print(
-                    "Checkpoint corrupted!"
-                    "Try to remove the last checkpoint."
-                    "Now Starting from epoch 0, step 0"
-                )
-                return 0, 0
+            if self.config.deepspeed_enable:
+                # try to load the checkpoint
+                try:
+                    _, client_state = self.model_engine.load_checkpoint(path)
+                except Exception:
+                    print(
+                        "Checkpoint corrupted!"
+                        "Try to remove the last checkpoint."
+                        "Now Starting from epoch 0, step 0"
+                    )
+                    return 0, 0
+                # load epoch and step to resume loops
+                epoch = client_state["epoch"]
+                step = client_state["step"]
+            else:
+                # try to load the checkpoint
+                try:
+                    checkpoint = torch.load(path)
+                except Exception:
+                    print(
+                        "Checkpoint corrupted!"
+                        "Try to remove the last checkpoint."
+                        "Now Starting from epoch 0, step 0"
+                    )
+                    return 0, 0
 
-            # assing the checkpoint to the model
-            epoch = checkpoint["epoch"]
-            self.actor.model.load_state_dict(checkpoint["state_dict"])
-            self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
-            self.trainign_stats = checkpoint["training_stats"]
-            step = checkpoint["step"]
-            return epoch, step + 1  # return the next episode to train
+                # assing the checkpoint to the model
+                epoch = checkpoint["epoch"]
+                self.actor.model.load_state_dict(checkpoint["state_dict"])
+                self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
+                self.trainign_stats = checkpoint["training_stats"]
+                step = checkpoint["step"]
+                return epoch, step + 1  # return the next episode to train
         return 0, 0
 
     def test_generation(self):
@@ -545,7 +571,10 @@ class ActorTrainer:
         print("Start Actor Model Pretraining")
 
         # get config parameters
-        batch_size = self.config.batch_size
+        if self.config.deepspeed_enable:
+            batch_size = self.train_dataloader.batch_size
+        else:
+            batch_size = self.config.batch_size
         epochs = self.config.epochs
         device = self.config.device
         checkpoint_steps = self.config.checkpoint_steps
