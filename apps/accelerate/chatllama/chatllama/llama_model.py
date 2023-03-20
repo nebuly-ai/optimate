@@ -34,18 +34,21 @@ class MyTokenizer:
 
     def __init__(self, model_path: Optional[str] = None):
 
-        if model_path is None:
-            self.sp_model = AutoTokenizer.from_pretrained("gpt2")
-        else:
-            self.sp_model = AutoTokenizer.from_pretrained(model_path)
+        self.sp_model = AutoTokenizer.from_pretrained("gpt2")
 
         self.n_words = self.sp_model.vocab_size
         self.bos_id = self.sp_model.bos_token_id
         self.eos_id = self.sp_model.eos_token_id
         self.pad_id = self.sp_model.eos_token_id
 
-    def encode(self, s: str, bos: bool, eos: bool) -> List[int]:
-        output = self.sp_model.encode(s)
+    def encode(
+        self,
+        s: str,
+        bos: bool = True,
+        eos: bool = True,
+        truncation: bool = True,
+    ) -> List[int]:
+        output = self.sp_model.encode(s, truncation=truncation)
         t = list(output)
         if bos:
             t = [self.bos_id] + t
@@ -62,9 +65,15 @@ class MyTokenizer:
 class HFLikeTokenizer:
     def __init__(self, tokenizer: Tokenizer):
         self.tokenizer = tokenizer
+
+        # assign attributes from real tokenizer to masked one
         self.pad_id = self.tokenizer.pad_id
         self.eos_id = self.tokenizer.eos_id
         self.bos_id = self.tokenizer.bos_id
+
+        # mask attribute to be similar to hugging face
+        self.eos_token_id = self.tokenizer.eos_id
+        self.pad_token_id = self.tokenizer.pad_id
 
         # to match hugging face attribute
         self.pad_token_id = self.pad_id
@@ -87,6 +96,7 @@ class HFLikeTokenizer:
         if isinstance(texts, str):
             text = self.tokenizer.encode(texts, bos=True, eos=True)
             tokens = torch.tensor(text).long()
+            mask = torch.ones_like(tokens)
         else:
             texts = [
                 self.tokenizer.encode(text, bos=True, eos=True)
@@ -111,11 +121,13 @@ class HFLikeTokenizer:
                 ] = current_tokens
             mask = self.create_sequence_mask(tokens)
 
-        # convert `pad_id` from -1 to 0, otherwise embedding will cause out
-        # of bounds.
-        tokens = torch.where(
-            tokens == self.tokenizer.pad_id, torch.zeros_like(tokens), tokens
-        )
+            # convert `pad_id` from -1 to 0, otherwise embedding will cause out
+            # of bounds.
+            tokens = torch.where(
+                tokens == self.tokenizer.pad_id,
+                torch.zeros_like(tokens),
+                tokens,
+            )
         output = {
             "input_ids": tokens,
             "attention_mask": mask,
@@ -625,6 +637,16 @@ def load_model(
     tokenizer = HFLikeTokenizer(tokenizer)
 
     return model, tokenizer
+
+
+def load_tokenizer(tokenizer_path: str):
+    tokenizer = Tokenizer(model_path=tokenizer_path)
+    return tokenizer
+
+
+def load_tokenizer_test(tokenizer_path: Optional[str] = None):
+    tokenizer = MyTokenizer(model_path=tokenizer_path)
+    return tokenizer
 
 
 def load_model_test(

@@ -95,7 +95,7 @@ class ConfigActor:
         model (str): Model to be used for the actor
         model_folder (str): Path to the folder where model are stored (used
             to load / store finetuned model or checkpoints)
-        tokenizer_folder (str): Path to the folder where tokenizer are stored
+        tokenizer_path (str): Path to the folder where tokenizer are stored
         train_dataset_path (str): Path to the training dataset
         validation_dataset_path (Optional[str]): Path to the validation dataset
         froze_embeddings (bool): Froze embeddings for the actor
@@ -130,7 +130,7 @@ class ConfigActor:
 
     model: str
     model_folder: str
-    tokenizer_folder: str
+    tokenizer_path: str
     train_dataset_path: str
     validation_dataset_path: Optional[str]
     froze_embeddings: bool

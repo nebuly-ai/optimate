@@ -18,7 +18,9 @@ from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
     llama_models,
+    hf_models,
 )
+
 from chatllama.rlhf.model_loader import ModelLoader
 from chatllama.rlhf.utils import TrainingStats
 
@@ -57,8 +59,8 @@ class ActorModel(torch.nn.Module):
 
             # use load_model_test for testing
             self.model, self.tokenizer = load_model(
-                ckpt_dir=config.model_path,
-                tokenizer_path=config.tokenizer_folder,
+                ckpt_dir=config.model_folder,
+                tokenizer_path=config.tokenizer_path,
                 local_rank=local_rank,
                 world_size=world_size,
                 froze_embeddings=config.froze_embeddings,
@@ -115,23 +117,32 @@ class ActorModel(torch.nn.Module):
     @staticmethod
     def load_tokenizer(config: ConfigActor):
         """Load the tokenizer from the model name"""
-        # load the tokenizer from HF
-        tokenizer = AutoTokenizer.from_pretrained(
-            config.model,
-            padding_side="left",
-            padding=True,
-            truncation=True,
-            model_max_length=config.max_sequence_length,
-        )
+        if config.model in hf_models:
+            # load the tokenizer from HF
+            tokenizer = AutoTokenizer.from_pretrained(
+                config.model,
+                padding_side="left",
+                padding=True,
+                truncation=True,
+                model_max_length=config.max_sequence_length,
+            )
 
-        # add eos token if not present
-        if tokenizer.eos_token is None:
-            tokenizer.eos_token = "</s>"
-            tokenizer.eos_token_id = 0
+            # add eos token if not present
+            if tokenizer.eos_token is None:
+                tokenizer.eos_token = "</s>"
+                tokenizer.eos_token_id = 0
 
-        # add pad token if not present
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.pad_token_id = tokenizer.eos_token_id
+            # add pad token if not present
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+        elif config.model in llama_models:
+
+            # llama module might not be present when HF models are used
+            from chatllama.llama_model import (
+                load_tokenizer,
+            )  # noqa
+
+            tokenizer = load_tokenizer()
         return tokenizer
 
     def parameters(self):
@@ -367,7 +378,7 @@ class ActorTrainer:
                 args=None,
                 model=self.actor,
                 model_parameters=self.actor.parameters(),
-                training_data=self.train_dataloader,
+                training_data=self.train_dataset,
                 config=self.config.deepspeed_config_path,
             )
             print("Training with DeepSpeed")
@@ -511,35 +522,34 @@ class ActorTrainer:
         return 0, 0
 
     def test_generation(self):
-        self.actor.eval()
-        with torch.no_grad():
-            model = AutoModelForCausalLM.from_pretrained(self.config.model)
-            model.to("cpu")
-            text = (
-                "Human: If i am feeling bad what i should do?"
-                "\n\n##\n\n"
-                "Assistant: "
-            )
-            # text = "If i am feeling bad what i should do?"
-            tokens = self.actor.tokenizer(
-                text, return_tensors="pt", truncation=True
-            )
-            tokens = tokens.to("cpu")
-            # sequence = model.generate(tokens["input_ids"])
-            # sequence = self.model.tokenizer.decode(
-            #     sequence[0, :], skip_special_tokens=True
-            # )
-            # print("\nInput text: \n", text)
-            # print("\nTest Vanilla model\n")
-            # print(sequence)
-            _, sequence = self.actor.generate(
-                tokens["input_ids"].to("cuda"),
-                tokens["attention_mask"].to("cuda"),
-            )
-            sequence = self.actor.tokenizer.decode(sequence[0, :])
-            print("\nTest Trained model\n")
-            print(sequence)
-        self.actor.train()
+        # self.actor.eval()
+        # with torch.no_grad():
+        #     text = (
+        #         "Human: If i am feeling bad what i should do?"
+        #         "\n\n##\n\n"
+        #         "Assistant: "
+        #     )
+        #     # text = "If i am feeling bad what i should do?"
+        #     tokens = self.actor.tokenizer(
+        #         text, return_tensors="pt", truncation=True
+        #     )
+        #     tokens = tokens.to("cpu")
+        #     # sequence = model.generate(tokens["input_ids"])
+        #     # sequence = self.model.tokenizer.decode(
+        #     #     sequence[0, :], skip_special_tokens=True
+        #     # )
+        #     # print("\nInput text: \n", text)
+        #     # print("\nTest Vanilla model\n")
+        #     # print(sequence)
+        #     _, sequence = self.actor.generate(
+        #         tokens["input_ids"].to("cuda"),
+        #         tokens["attention_mask"].to("cuda"),
+        #     )
+        #     sequence = self.actor.tokenizer.decode(sequence[0, :])
+        #     print("\nTest Trained model\n")
+        #     print(sequence)
+        # self.actor.train()
+        pass
 
     def add_eos_token(
         self, tokens: torch.Tensor, mask: torch.Tensor

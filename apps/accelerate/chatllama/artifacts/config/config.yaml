@@ -28,9 +28,9 @@ trainer_config:
   checkpoint_name: null
 
 actor_config:
-  model: "facebook/opt-1.3b"
+  model: "llama-7B"
   model_folder: "./models"
-  tokenizer_folder: "path-to-tokenizer"
+  tokenizer_path: "path-to-tokenizer"
   train_dataset_path: "./datasets/actor_training_data.json"
   validation_dataset_path: null
   # froze model embedding during training
@@ -64,7 +64,7 @@ actor_config:
   checkpoint_name: null
   # deepspeed settings
   deepspeed_enable: False
-  deepspeed_config_path: "path-to-deepspeed-conf"
+  deepspeed_config_path: "./artifacts/config/ds_config.json"
   # accelerate settings
   accelerate_enable: False
 
@@ -88,7 +88,7 @@ reward_config:
   checkpoint_name: null
   lr: 0.000009
   # deepspeed settings
-  deepspeed_enable: True
+  deepspeed_enable: False
   deepspeed_config_path: "./artifacts/config/ds_config.json"
   # accelerate settings
   accelerate_enable: False
