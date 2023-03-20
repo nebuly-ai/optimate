@@ -689,6 +689,9 @@ class ActorTrainer:
                                 f"Iteration: {i+1}/{n_iter}, "
                                 f"Validation Loss: {loss}"
                             )
+            # reset start_step after training is resumed
+            start_step = 0
+
         # save the model
         self.actor.save()
         print("Training Finished ")
