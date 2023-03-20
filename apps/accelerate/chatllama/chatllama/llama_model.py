@@ -100,6 +100,7 @@ class HFLikeTokenizer:
                 tokens[i, -len(text) :] = torch.tensor(  # noqa E203
                     text
                 ).long()
+
             # TODO: decide how eos and bos should be handled - i need to mask
             # them? or not?
             mask = self.create_sequence_mask(tokens)

@@ -307,7 +307,8 @@ class RewardTrainer:
         )
 
         # initialize training stats
-        self.training_stats = TrainingStats()
+        stats_path = ModelLoader.get_training_stats_path(config)
+        self.training_stats = TrainingStats(stats_path)
 
         # consistency check between accelerate and deepspeed
         if config.accelerate_enable and config.deepspeed_enable:
@@ -332,12 +333,12 @@ class RewardTrainer:
                 self.model_engine,
                 self.optimizer,
                 self.train_dataloader,
-                _,
+                self.scheduler,
             ) = deepspeed.initialize(
                 args=None,
                 model=self.reward,
                 model_parameters=self.reward.parameters(),
-                training_data=self.train_dataloader,
+                training_data=self.train_dataset,
                 config=self.config.deepspeed_config_path,
             )
             print("Training with DeepSpeed")
