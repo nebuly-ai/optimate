@@ -93,14 +93,13 @@ class HFLikeTokenizer:
                 for text in texts
             ]
             max_len = max(len(text) for text in texts)
-            tokens = (
-                torch.full((len(texts), max_len), self.tokenizer.pad_id)
-                .long()
-            )
+            tokens = torch.full(
+                (len(texts), max_len), self.tokenizer.pad_id
+            ).long()
             for i, text in enumerate(texts):
-                tokens[i, -len(text) :] = (  # noqa E203
-                    torch.tensor(text).long()
-                )
+                tokens[i, -len(text) :] = torch.tensor(  # noqa E203
+                    text
+                ).long()
             # TODO: decide how eos and bos should be handled - i need to mask
             # them? or not?
             mask = self.create_sequence_mask(tokens)
@@ -111,7 +110,8 @@ class HFLikeTokenizer:
                 ] = current_tokens
             mask = self.create_sequence_mask(tokens)
 
-        # convert `pad_id` from -1 to 0, otherwise embedding will cause out of bounds.
+        # convert `pad_id` from -1 to 0, otherwise embedding will cause out
+        # of bounds.
         tokens = torch.where(
             tokens == self.tokenizer.pad_id, torch.zeros_like(tokens), tokens
         )
@@ -403,7 +403,12 @@ class TransformerBlock(nn.Module):
         # modified from orignal code to enable external cache
         attention_mask = attention_mask[:, None, :, :]
         if self.use_fairscale:
-            attention_mask = attention_mask.expand(-1, self.n_heads // fs_init.get_model_parallel_world_size(), -1, -1)
+            attention_mask = attention_mask.expand(
+                -1,
+                self.n_heads // fs_init.get_model_parallel_world_size(),
+                -1,
+                -1,
+            )
         else:
             attention_mask = attention_mask.expand(-1, self.n_heads, -1, -1)
         attn, cache_k, cache_v = self.attention.forward(
@@ -526,14 +531,13 @@ class Transformer(nn.Module):
         self,
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
-        max_length: int,
+        max_new_tokens: int,
         temperature: float,
         top_p: float = 1.0,
+        no_repeat_ngram_size=None,
     ):
-        prompt_size = input_ids.shape[1]
-        start_pos = prompt_size  # We assume left padding
         generated_tokens = []
-        for cur_pos in range(start_pos, max_length):
+        for cur_pos in range(max_new_tokens):
             logits = self._forward(input_ids, attention_mask)[:, -1, :]
             if temperature > 0:
                 probs = torch.softmax(logits / temperature, dim=-1)
@@ -547,7 +551,10 @@ class Transformer(nn.Module):
                 dim=1,
             )
             generated_tokens.append(next_token)
-        return torch.stack(generated_tokens, dim=1)
+        sequences = torch.concat(
+            (input_ids, torch.stack(generated_tokens, dim=1)), dim=1
+        )
+        return sequences
 
 
 def setup_model_parallel() -> Tuple[int, int]:

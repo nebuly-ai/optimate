@@ -24,6 +24,7 @@ class BaseDataset:
         conversations: List[Dict],
         only_input: bool = False,
         reverse: bool = True,
+        shuffle: bool = True,
     ) -> List[Dict]:
         """Sort the conversations by length of user_input + completion
         or by length of user_input only
@@ -34,6 +35,8 @@ class BaseDataset:
                 Defaults to False.
             reverse (bool, optional): sort in descending order.
                 Defaults to True.
+            shuffle (bool, optional): shuffle the dataset leaving only the
+                first 100 samples sorted. Defaults to True.
 
         Returns:
             List[Dict]: sorted list of conversations
@@ -56,6 +59,17 @@ class BaseDataset:
             key=sort_fun,
             reverse=reverse,
         )
+
+        # shuffle
+        if shuffle is True:
+            conversations = (
+                conversations[:100]
+                + np.random.choice(
+                    conversations[100:],
+                    size=len(conversations[100:]),
+                    replace=False,
+                ).tolist()
+            )
 
         return conversations
 
@@ -260,9 +274,16 @@ class StanfordNLPSHPDataset(BaseDataset):
                 response = d["human_ref_A"]
             else:
                 response = d["human_ref_B"]
+
+            # compose user_input template
+            user_input = d["history"].rstrip("\n")
+            user_input = "Human: " + d["history"] + "\n\n##\n\n"
+
+            # compose completion template
+            completion = "Assistant: " + response
             conv = {
-                "user_input": d["history"],
-                "completion": response,
+                "user_input": user_input,
+                "completion": completion,
                 "score": None,
             }
             conversations.append(conv)
@@ -342,16 +363,18 @@ class AnthropicRLHF(BaseDataset):
         for _, d in enumerate(data):
             current_conv = d["chosen"]
             split_answer = current_conv.split("Assistant:")
+
             # take all the list element in split_answer except the last one
             # and joing them with "Assistant:" in a unique string
             previous_convers = split_answer[0]
             for i, s in enumerate(split_answer[1:-1]):
                 previous_convers += "Assistant:" + s
+
             # remove the last characters if they are "\n" from the previous
             # conversation
             previous_convers = previous_convers.rstrip("\n")
-            user_input = previous_convers + "\n\n##\n\n" + "Assistant: "
-            completion = split_answer[-1]
+            user_input = previous_convers + "\n\n##\n\n"
+            completion = "Assistant: " + split_answer[-1]
 
             conv = {
                 "user_input": user_input,

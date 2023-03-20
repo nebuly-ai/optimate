@@ -247,12 +247,6 @@ class ActorDataset(Dataset):
         completion: the output of the user
     """
 
-    # "Question: "
-    #         + d["user_input"]
-    #         + separator
-    #         + "Answer: "
-    #         + d["completion"]
-
     def __init__(
         self,
         path: str,
@@ -341,10 +335,7 @@ class ActorTrainer:
         )
 
         # define training statistics
-        model_folder, model_name, path = ModelLoader.get_model_path(
-            self.config, is_checkpoint=True
-        )
-        stat_path = os.path.join(model_folder, "training_stats.json")
+        stat_path = ModelLoader.get_training_stats_path(config)
         self.training_stats = TrainingStats(stat_path)
 
         # consistency check between accelerate and deepspeed
@@ -443,7 +434,12 @@ class ActorTrainer:
             },
             path,
         )
-        ModelLoader.remove_checkpoints(model_folder, model_name)
+
+        # remove old checkpoints
+        n_checkpoints_to_keep = self.config.n_checkpoints_to_keep
+        ModelLoader.discard_old_checkpoints(
+            model_folder, model_name, n_checkpoints_to_keep
+        )
 
     @beartype
     def load_checkpoint(

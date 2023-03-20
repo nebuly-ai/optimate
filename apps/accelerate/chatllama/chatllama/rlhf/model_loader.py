@@ -23,6 +23,19 @@ class ModelLoader:
         pass
 
     @staticmethod
+    def get_training_stats_path(config: ConfigType) -> str:
+        """Method to get the path to the training stats file. Used when saving
+
+        Args:
+            config (ConfigType): the config object
+        """
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config, is_checkpoint=True
+        )
+        stat_path = os.path.join(model_folder, "training_stats.json")
+        return stat_path
+
+    @staticmethod
     def look_for_last_checkpoint(
         model_folder: str,
         model_name: str,
@@ -115,7 +128,17 @@ class ModelLoader:
         return model_name
 
     @staticmethod
-    def remove_checkpoints(model_folder: str, model_name: str):
+    def discard_old_checkpoints(
+        model_folder: str, model_name: str, n_ckp_to_keep: int = 5
+    ):
+        """Method to discard old checkpoints, keeping only the last
+        n_ckp_to_keep
+
+        Args:
+            model_folder (str): the folder where the checkpoints are saved
+            model_name (str): the name of the model
+            n_ckp_to_keep (int): the number of checkpoints to keep
+        """
 
         # remove .pt to model name
         model_name = model_name.split(".")[0]
@@ -127,9 +150,8 @@ class ModelLoader:
         else:
             checkpoints = sorted(checkpoints)
             # check if the number of checkpoint is greater than 5
-            n_checkpoint = 2
-            if len(checkpoints) > n_checkpoint:
-                for c in checkpoints[:-n_checkpoint]:
+            if len(checkpoints) > n_ckp_to_keep:
+                for c in checkpoints[:-n_ckp_to_keep]:
                     checkpoint_path = os.path.join(model_folder, c)
                     os.remove(checkpoint_path)
 

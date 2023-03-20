@@ -55,7 +55,10 @@ actor_config:
   lr: 0.000009
   epochs: 1 
   # number of backpropagation after saving the checkpoints
-  checkpoint_steps: 200
+  checkpoint_steps: 10
+  # number of checkpoints to keep while removing the older 
+  # (keep memory consumption of checkpoints reasonable)
+  n_checkpoints_to_keep: 5
   # here specify the name of the actor checkpoint from which resume 
   # during actor training. If null load the last one.
   checkpoint_name: null

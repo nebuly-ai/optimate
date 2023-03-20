@@ -115,6 +115,8 @@ class ConfigActor:
         epochs (int): Number of epochs to train the actor
         checkpoint_steps (int): Number of steps (backProp) to interleave
             checkpoints.
+        n_checkpoints_to_keep (int): Number of checkpoints to keep
+            for the actor.
         deepspeed_enable (bool): Enable deepspeed for the actor.
             Default to False.
         deepspeed_config_path (str): Path to the deepspeed config file.
@@ -143,6 +145,7 @@ class ConfigActor:
     lr: float
     epochs: int
     checkpoint_steps: int
+    n_checkpoints_to_keep: int
 
     deepspeed_enable: bool
     deepspeed_config_path: Optional[str]
