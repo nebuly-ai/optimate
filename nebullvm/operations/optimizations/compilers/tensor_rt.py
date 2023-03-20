@@ -357,11 +357,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                 )
                 return
 
-        if (
-            self.simplify_model
-            and is_diffusion
-            # and get_gpu_compute_capability(self.device.idx) >= 7.5
-        ):
+        if self.simplify_model and is_diffusion:
             optimized_model = str(Path(model).parent / "model_opt.onnx")
             unet = UNet(hf_token=None)
             opt_graph = unet.optimize(onnx.load(str(model)))
