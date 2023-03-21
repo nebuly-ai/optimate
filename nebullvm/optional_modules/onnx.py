@@ -1,7 +1,9 @@
+from nebullvm.optional_modules.dummy import DummyClass
+
 try:
     import onnx  # noqa F401
 except ImportError:
-    onnx = None
+    onnx = DummyClass
 
 try:
     import onnxmltools  # noqa F401
@@ -10,4 +12,4 @@ try:
     )
 
 except ImportError:
-    convert_float_to_float16_model_path = object
+    convert_float_to_float16_model_path = DummyClass

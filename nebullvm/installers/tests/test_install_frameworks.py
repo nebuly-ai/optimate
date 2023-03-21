@@ -12,7 +12,13 @@ def test_install_default_option():
         include_frameworks, include_backends
     )
 
-    assert include_backends == ["huggingface", "onnx", "tensorflow", "torch"]
+    assert include_backends == [
+        "diffusers",
+        "huggingface",
+        "onnx",
+        "tensorflow",
+        "torch",
+    ]
 
 
 def test_install_torch_full():
@@ -79,6 +85,17 @@ def test_install_onnx_base():
     )
 
     assert include_backends == ["onnx"]
+
+
+def test_install_diffusers_full():
+    include_frameworks = ["diffusers"]
+    include_backends = "all"
+
+    include_backends = select_frameworks_to_install(
+        include_frameworks, include_backends
+    )
+
+    assert include_backends == ["diffusers", "onnx", "torch"]
 
 
 def test_install_huggingface_full():

@@ -1,5 +1,7 @@
 import logging
 
+from nebullvm.optional_modules.dummy import DummyClass
+
 try:
     from openvino.runtime import Core, Model, CompiledModel, InferRequest
     from openvino.tools.pot import DataLoader
@@ -8,8 +10,8 @@ try:
     from openvino.tools.pot import compress_model_weights
     from openvino.tools.pot import create_pipeline
 except ImportError:
-    Model = CompiledModel = InferRequest = Core = object
-    DataLoader = IEEngine = object
+    Model = CompiledModel = InferRequest = Core = DummyClass
+    DataLoader = IEEngine = DummyClass
     load_model = save_model = compress_model_weights = create_pipeline = None
 
 # Fix openvino issue with logging

@@ -168,7 +168,8 @@ def test_tensorrt_onnx(
             res = optimized_model(*inputs_example)
             assert res is not None
 
-            res_orig = tuple(model(*inputs_example))
+            with torch.inference_mode():
+                res_orig = tuple(model(*inputs_example))
             assert all(
                 [
                     torch.allclose(

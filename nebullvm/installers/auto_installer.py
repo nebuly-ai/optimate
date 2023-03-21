@@ -8,12 +8,14 @@ from nebullvm.config import (
     TENSORFLOW_MODULES,
     TORCH_MODULES,
     HUGGING_FACE_MODULES,
+    DIFFUSERS_MODULES,
 )
 from nebullvm.installers.installers import (
     ONNXInstaller,
     PytorchInstaller,
     TensorflowInstaller,
     HuggingFaceInstaller,
+    DiffusersInstaller,
 )
 
 
@@ -21,6 +23,7 @@ SUPPORTED_BACKENDS_DICT = {
     "torch": ["onnx"],
     "tensorflow": ["onnx"],
     "huggingface": ["torch", "tensorflow", "onnx"],
+    "diffusers": ["torch", "onnx"],
     "onnx": [],
 }
 
@@ -29,6 +32,7 @@ INSTALLERS = {
     "torch": PytorchInstaller,
     "tensorflow": TensorflowInstaller,
     "huggingface": HuggingFaceInstaller,
+    "diffusers": DiffusersInstaller,
 }
 
 MODULES = {
@@ -36,6 +40,7 @@ MODULES = {
     "torch": TORCH_MODULES,
     "tensorflow": TENSORFLOW_MODULES,
     "huggingface": HUGGING_FACE_MODULES,
+    "diffusers": DIFFUSERS_MODULES,
 }
 
 

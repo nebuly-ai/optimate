@@ -2,6 +2,12 @@
 
 This section contains all the available notebooks that show how to leverage Speedster to optimize Tensorflow models.
 
+## Notebooks:
+| Notebook                                                                                                                                                        | Description                                                             |                                                                                                                                                                                                                                        |
+|:----------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Accelerate Keras Resnet50](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/tensorflow/Accelerate_Tensorflow_ResNet50_with_Speedster.ipynb) | Show how to optimize with Speedster a Resnet50 model loaded from keras. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/tensorflow/Accelerate_Tensorflow_ResNet50_with_Speedster.ipynb) |
+
+
 ## Tensorflow API quick view:
 
 ``` python
@@ -32,8 +38,3 @@ res_original = model.predict(x)
 
 res_optimized = optimized_model.predict(x)[0]
 ```
-
-## Notebooks:
-| Notebook                                                                                                                                       | Description                                                            |                                                                                                                                                                                                                                                                                                             |
-|:-----------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Accelerate Keras Resnet50](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/tensorflow/Accelerate_Tensorflow_ResNet50_with_Speedster.ipynb) | Show how to optimize with Speedster a Resnet50 model loaded from keras. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/tensorflow/Accelerate_Tensorflow_ResNet50_with_Speedster.ipynb) |

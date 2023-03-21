@@ -24,6 +24,7 @@ Great, now you are now ready to accelerate your model 🚀 Please visit the foll
 
 - [Getting started with PyTorch optimization](./getting_started/pytorch_getting_started.md)
 - [Getting started with 🤗 HuggingFace optimization](./getting_started/hf_getting_started.md)
+- [Getting started with Stable Diffusion optimization](./getting_started/diffusers_getting_started.md)
 - [Getting started with TensorFlow/Keras optimization](./getting_started/tf_getting_started.md)
 - [Getting started with ONNX optimization](./getting_started/onnx_getting_started.md)
 
@@ -51,7 +52,7 @@ python -m nebullvm.installers.auto_installer
 
     === "--frameworks"
 
-        `frameworks` is used to specify the deep learning framework of your input model. The supported frameworks are `torch`, `tensorflow`, `onnx` and `huggingface`.
+        `frameworks` is used to specify the deep learning framework of your input model. The supported frameworks are `torch`, `tensorflow`, `onnx`, `huggingface` and `diffusers`.
 
         - if you want to optimize a model with a single DL framework, the code is as follows (example below for HuggingFace):
             
@@ -133,6 +134,8 @@ The following table shows the supported combinations of frameworks, backends and
 | TensorFlow  | ONNX                      | TensorRT, OpenVINO                                                      |
 | ONNX        | /                         | TensorRT, OpenVINO                                                      |
 | HuggingFace | PyTorch, TensorFlow, ONNX | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
+| Diffusers   | PyTorch, ONNX             | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
+
 
 !!! info
     Hugginface models can be of two types, PyTorch-based or TensorFlow-based. For PyTorch-based models, it is necessary to include `torch` as an extra-backend. For TensorFlow-based models, you must include `tensorflow` as an extra-backend.
@@ -146,6 +149,7 @@ If you want to manually install the requirements, this section collects links to
 - TensorFlow: https://www.tensorflow.org/install
 - ONNX: https://github.com/onnx/onnx#installation
 - HuggingFace: https://huggingface.co/transformers/installation.html
+- Diffusers: https://github.com/huggingface/diffusers#installation
 
 #### Deep Learning compilers
 - DeepSparse: https://github.com/neuralmagic/deepsparse#installation
@@ -158,7 +162,9 @@ If you want to manually install the requirements, this section collects links to
 
 #### Other requirements
 - tf2onnx: https://github.com/onnx/tensorflow-onnx#installation (Install it if you want to convert TensorFlow models to ONNX)
+- polygraphy: https://github.com/NVIDIA/TensorRT/tree/main/tools/Polygraphy#installation (Install it if you want to use TensorRT)
 - onnx-simplifier: https://github.com/daquexian/onnx-simplifier#python-version (Install it if you want to use TensorRT)
+- onnx_graphsurgeon: https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon#installation (Install it if you want to use TensorRT plugins with Stable Diffusion)
 - onnxmltools: https://github.com/onnx/onnxmltools#install (Install it if you want to convert models to ONNX)
 
 ## (Optional) Download Docker images with frameworks and optimizers

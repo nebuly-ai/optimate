@@ -8,7 +8,7 @@ from nebullvm.tools.utils import gpu_is_available
 
 
 def torch_to_onnx(model, input_data, output_path):
-    model_params = ModelParams(1, [], [])
+    model_params = ModelParams(1, [], [], [])
     output_path = os.path.join(output_path, "model.onnx")
     device = Device(DeviceType.GPU if gpu_is_available() else DeviceType.CPU)
     convert_torch_to_onnx(

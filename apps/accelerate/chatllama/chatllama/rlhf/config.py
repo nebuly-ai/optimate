@@ -14,10 +14,9 @@ class ConfigReward:
     Attributes:
         device (torch.device): Device to be used for the reward model
         model (str): Model to be used for the reward model
-        model_head_hidden_size (int): Hidden size of the reward model head
         model_folder (str): Path to the folder where model are stored (used
-            to load / store finetuned model)
-
+            to load / store finetuned model or checkpoints)
+        model_head_hidden_size (int): Hidden size of the reward model head
         train_dataset_path (Optional[str]): Path to the training dataset.
             Default to None. To be specified only for the reward model trainig.
         validation_dataset_path (Optional[str]): Path to the validation
@@ -32,6 +31,11 @@ class ConfigReward:
         iteration_per_print (Optional[int]): Number of iterations to print
             the training loss. Default to None. To be specified only for the
             reward model trainig.
+        checkpoint_steps (Optional[int]): Number of steps (backProp) to
+            interleave checkpoints. Default to None. To be specified only for
+            the reward model trainig.
+        checkpoint_name (Optional[str]): Name of the checkpoint. Default to
+            None.
         lr (Optional[float]): Learning rate for the reward model. Default to
             None. To be specified only for the reward model distillation.
         llm_enable (bool): Enable reward model distillation. Default to True.
@@ -46,18 +50,21 @@ class ConfigReward:
             training. Default to False.
         deepspeed_config_path (str): Path to the deepspeed config file.
             Default to None.
+        is_reward (bool): True if the model is a reward model. Default to True.
         debug (bool): enable prints for Debugging
     """
 
     device: torch.device
     model: str
-    model_head_hidden_size: int
     model_folder: str
+    model_head_hidden_size: int
     train_dataset_path: Optional[str] = None
     validation_dataset_path: Optional[str] = None
     batch_size: Optional[int] = None
     epochs: Optional[int] = None
     iteration_per_print: Optional[int] = None
+    checkpoint_steps: Optional[int] = None
+    checkpoint_name: Optional[str] = None
     lr: Optional[float] = None
     llm_enable: Optional[bool] = False
     llm_model: Optional[str] = "text-davinci-003"
@@ -66,7 +73,14 @@ class ConfigReward:
     deepspeed_enable: bool = False
     deepspeed_config_path: Optional[str] = None
 
+    # critic specific parameters
+    is_reward: bool = True
+
     debug: bool = False
+
+
+# just for naming consistency
+ConfigCritic = ConfigReward
 
 
 @dataclass
@@ -75,9 +89,8 @@ class ConfigActor:
 
     Attributes:
         model (str): Model to be used for the actor
-        model_path (str): Path to the model (used to load and store the model)
-        checkpoint_folder (str): Path to the folder where checkpoints are
-            stored.
+        model_folder (str): Path to the folder where model are stored (used
+            to load / store finetuned model or checkpoints)
         tokenizer_folder (str): Path to the folder where tokenizer are stored
         train_dataset_path (str): Path to the training dataset
         validation_dataset_path (Optional[str]): Path to the validation dataset
@@ -92,17 +105,20 @@ class ConfigActor:
             training loss
         lr (float): Learning rate for the actor
         epochs (int): Number of epochs to train the actor
+        checkpoint_steps (int): Number of steps (backProp) to interleave
+            checkpoints.
         deepspeed_enable (bool): Enable deepspeed for the actor.
             Default to False.
         deepspeed_config_path (str): Path to the deepspeed config file.
             Default to None.
         device (torch.device): Device to be used for the actor
+        checkpoint_name (Optional[str]): Name of the checkpoint. Default to
+            None.
         debug (bool): Enable prints for debugging
     """
 
     model: str
-    model_path: str
-    checkpoint_folder: str
+    model_folder: str
     tokenizer_folder: str
     train_dataset_path: str
     validation_dataset_path: Optional[str]
@@ -115,11 +131,13 @@ class ConfigActor:
     iteration_per_print: int
     lr: float
     epochs: int
+    checkpoint_steps: int
 
     deepspeed_enable: bool
     deepspeed_config_path: Optional[str]
 
     device: torch.device
+    checkpoint_name: Optional[str] = None
     debug: bool = False
 
 
@@ -153,8 +171,10 @@ class ConfigTrainer:
             This batch is used to aggregate the memory from the memory buffer
             for the actual training of the actor and critic models.
         epochs (int): Number of epochs to train the actor and critic.
-        update_checkpoint (int): Number of timesteps to update the checkpoint
-        checkpoint_folder (str): Folder to store the checkpoints
+        checkpoint_steps (int): Number of episodes to interleave checkpoints.
+        device (torch.device): Device to be used for the actor and critic
+        checkpoint_name (Optional[str]): Name of the checkpoint. Default to
+            None.
     """
 
     actor_lr: int
@@ -169,10 +189,9 @@ class ConfigTrainer:
     num_examples: int
     batch_size: int
     epochs: int
-    update_checkpoint: int
-    checkpoint_folder: str
-
+    checkpoint_steps: int
     device: torch.device
+    checkpoint_name: Optional[str] = None
     debug: bool = False
 
 
@@ -243,7 +262,8 @@ class Config:
         # Critic Config
         critic_dict["device"] = device
         critic_dict["debug"] = debug
-        self.critic = ConfigReward(**critic_dict)
+        self.critic = ConfigCritic(**critic_dict)
+        self.critic.is_reward = False
         # Reward Config
         reward_dict["device"] = device
         reward_dict["debug"] = debug

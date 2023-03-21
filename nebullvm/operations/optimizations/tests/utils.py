@@ -22,6 +22,7 @@ from nebullvm.tools.base import (
     Device,
     QuantizationType,
     DeviceType,
+    DataType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
@@ -78,6 +79,7 @@ def _build_static_model(
         "output_sizes": [
             (STATIC_BATCH_SIZE, *OUTPUT_SHAPE),
         ],
+        "output_types": [DataType.FLOAT32],
     }
     model_params = ModelParams(**model_params)
     if framework == DeepLearningFramework.PYTORCH:
@@ -101,6 +103,7 @@ def _build_dynamic_model(
         "output_sizes": [
             (DYNAMIC_BATCH_SIZE, *OUTPUT_SHAPE),
         ],
+        "output_types": [DataType.FLOAT32],
         "dynamic_info": {
             "inputs": [
                 {

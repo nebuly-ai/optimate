@@ -33,6 +33,7 @@ The **compiler stage** leverages the following open-source projects:
 `Speedster` supports deep learning models in the following input frameworks:
 
 - Hugging Face
+- Diffusers
 - ONNX
 - PyTorch
 - TensorFlow

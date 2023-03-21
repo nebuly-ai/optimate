@@ -3,6 +3,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple, List, Union, Dict
 
+import numpy as np
+
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
+
 
 class QuantizationType(Enum):
     DYNAMIC = "DYNAMIC"
@@ -27,9 +32,44 @@ class DeviceType(Enum):
 
 
 class DataType(str, Enum):
+    FLOAT16 = "float16"
     FLOAT32 = "float32"
     INT32 = "int32"
     INT64 = "int64"
+
+    @classmethod
+    def from_framework_format(
+        cls, dtype: Union[torch.dtype, tf.dtypes.DType, np.dtype]
+    ):
+        if isinstance(dtype, torch.dtype):
+            framework = "torch"
+        elif isinstance(dtype, tf.dtypes.DType):
+            framework = "tensorflow"
+        else:
+            framework = "numpy"
+            dtype = dtype.type
+        return FRAMEWORK_TO_DATA_TYPE_CONVERSION_DICT[framework][dtype]
+
+    def to_torch_format(self):
+        for key, value in FRAMEWORK_TO_DATA_TYPE_CONVERSION_DICT[
+            "torch"
+        ].items():
+            if value == self:
+                return key
+
+    def to_tf_format(self):
+        for key, value in FRAMEWORK_TO_DATA_TYPE_CONVERSION_DICT[
+            "tensorflow"
+        ].items():
+            if value == self:
+                return key
+
+    def to_numpy_format(self):
+        for key, value in FRAMEWORK_TO_DATA_TYPE_CONVERSION_DICT[
+            "numpy"
+        ].items():
+            if value == self:
+                return key
 
 
 class ModelCompiler(Enum):
@@ -118,6 +158,7 @@ class ModelParams:
     batch_size: int
     input_infos: List[InputInfo]
     output_sizes: List[Tuple[int, ...]]
+    output_types: List[DataType]
     dynamic_info: Union[DynamicAxisInfo, Dict] = None
 
     def __post_init__(self):
@@ -127,6 +168,7 @@ class ModelParams:
             InputInfo(**x) if isinstance(x, dict) else x
             for x in self.input_infos
         ]
+        self.output_types = [DataType(x) for x in self.output_types]
 
     def dict(self):
         def recursively_dictionarize(element):
@@ -218,3 +260,25 @@ class Device:
                     "Unable to get free memory of device. "
                     "Please make sure nvidia-smi is available."
                 )
+
+
+FRAMEWORK_TO_DATA_TYPE_CONVERSION_DICT = {
+    "torch": {
+        torch.float16: DataType.FLOAT16,
+        torch.float32: DataType.FLOAT32,
+        torch.int32: DataType.INT32,
+        torch.int64: DataType.INT64,
+    },
+    "tensorflow": {
+        tf.float16: DataType.FLOAT16,
+        tf.float32: DataType.FLOAT32,
+        tf.int32: DataType.INT32,
+        tf.int64: DataType.INT64,
+    },
+    "numpy": {
+        np.float16: DataType.FLOAT16,
+        np.float32: DataType.FLOAT32,
+        np.int32: DataType.INT32,
+        np.int64: DataType.INT64,
+    },
+}
