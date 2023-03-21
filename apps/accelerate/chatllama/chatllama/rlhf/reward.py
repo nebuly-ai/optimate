@@ -4,16 +4,21 @@ import os
 import deepspeed
 import torch
 from beartype import beartype
-from beartype.typing import Optional, Iterable
+from beartype.typing import Iterable, Tuple
 from einops.layers.torch import Rearrange
-from langchain import OpenAI, LLMChain, PromptTemplate
 from torch.utils.data import Dataset, DataLoader
-from transformers import GPT2Tokenizer, GPT2Model, BartModel
-from transformers import BartTokenizer, BartConfig, AutoModel, AutoTokenizer
+from transformers import BartModel
+from transformers import (
+    BartTokenizer,
+    BartConfig,
+    AutoModel,
+    AutoTokenizer,
+)
 
-from chatllama.langchain_modules.prompt_templates import REWARD_TEMPLATE
-from config import ConfigReward
-from utils import TrainingStats
+from chatllama.rlhf.config import ConfigReward
+from chatllama.rlhf.model_list import hf_models
+from chatllama.rlhf.utils import TrainingStats
+from chatllama.rlhf.model_loader import ModelLoader
 
 
 class RewardModel(torch.nn.Module):
@@ -36,26 +41,35 @@ class RewardModel(torch.nn.Module):
 
     def __init__(self, config: ConfigReward) -> None:
         super().__init__()
-        # load the model -- add here other models
+
+        # store config
+        self.config = config
+
+        # initialize the self.model
         head_hidden_size = config.model_head_hidden_size
-        if config.model == "gpt2-large":
-            self.max_model_tokens = 1024
-            self.model = GPT2Model.from_pretrained("gpt2-large")
-            self.tokenizer = GPT2Tokenizer.from_pretrained(
-                "gpt2-large",
+        if config.model in hf_models:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                config.model,
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
+            self.model = AutoModel.from_pretrained(config.model)
+            # galactica tokenizer eos_token is None
+            if self.tokenizer.eos_token is None:
+                self.tokenizer.eos_token = "</s>"
+                self.tokenizer.eos_token_id = 0
             self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+            head_dim = self.model.config.hidden_size
+            if config.model.startswith("gpt2"):
+                head_dim = self.model.config.n_embd
             self.head = torch.nn.Sequential(
-                torch.nn.Linear(self.model.config.n_embd, head_hidden_size),
+                torch.nn.Linear(head_dim, head_hidden_size),
                 torch.nn.ReLU(),
                 torch.nn.Linear(head_hidden_size, 1),
                 Rearrange("... 1 -> ..."),
             )
         elif config.model == "bart-base":
-            self.max_model_tokens = 1024
             bart_config = BartConfig.from_pretrained("facebook/bart-base")
             bart_config.max_position_embeddings = 2048 + 1024
             self.model = BartModel(bart_config)
@@ -63,7 +77,6 @@ class RewardModel(torch.nn.Module):
                 "facebook/bart-large",
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.head = torch.nn.Sequential(
@@ -73,7 +86,6 @@ class RewardModel(torch.nn.Module):
                 Rearrange("... 1 -> ..."),
             )
         elif config.model == "longformer-base-4096":
-            self.max_model_tokens = 4096
             self.model = AutoModel.from_pretrained(
                 "allenai/longformer-base-4096"
             )
@@ -81,7 +93,6 @@ class RewardModel(torch.nn.Module):
                 "allenai/longformer-base-4096",
                 padding_side="left",
                 truncation_side="left",
-                model_max_length=self.max_model_tokens,
             )
             self.tokenizer.eos_token = self.tokenizer.pad_token
             self.head = torch.nn.Sequential(
@@ -92,18 +103,54 @@ class RewardModel(torch.nn.Module):
             )
         else:
             raise ValueError(f"model {config.model} not supported")
-        # store config
-        self.config = config
-        if os.path.exists(config.model_folder) is False:
-            os.mkdir(config.model_folder)
-        else:
-            self.load()
+
+        # load the model
+        self.load()
+
         # freeze model parameters (only train the head)
         for param in self.model.parameters():
             param.requires_grad = False
+
         # move model to device
         self.model.to(config.device)
         self.head.to(config.device)
+
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path
+
+        Args:
+            path (str): path to the model
+        """
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict["model"])
+            self.head.load_state_dict(model_dict["head"])
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path
+
+        Args:
+            path (Optional[str], optional): Path to store the model.
+                Defaults to None.
+        """
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"model": self.model.state_dict(), "head": self.head.state_dict()},
+            path,
+        )
 
     @beartype
     def parameters(
@@ -158,50 +205,6 @@ class RewardModel(torch.nn.Module):
         rewards = self.forward(output_sequence, output_sequence_mask)
         return rewards[:, -1]
 
-    @beartype
-    def load(self, path: Optional[str] = None) -> None:
-        """Load the model from the path
-
-        Args:
-            path (str): path to the model
-        """
-        if path is None:
-            path = self.config.model_folder + "/" + self.config.model + ".pt"
-            if os.path.exists(self.config.model_folder) is False:
-                os.makedirs(self.config.model_folder)
-                print(
-                    f"Model folder does not exist. Creating it,"
-                    f"and returning without loading the model:\n{path}"
-                )
-                return
-        # load the model and the tokenizer
-        if os.path.exists(path) is False:
-            print(
-                f"Impossible to load the model:\n{path}\n"
-                f"The path doesn't exist."
-            )
-            return
-        model_dict = torch.load(path)
-        self.model.load_state_dict(model_dict["model"])
-        self.head.load_state_dict(model_dict["head"])
-
-    @beartype
-    def save(self, path: Optional[str] = None) -> None:
-        """Save the model to the path
-
-        Args:
-            path (Optional[str], optional): Path to store the model.
-                Defaults to None.
-        """
-        if path is None:
-            path = self.config.model_folder + "/" + self.config.model + ".pt"
-            if os.path.exists(self.config.model_folder) is False:
-                os.makedirs(self.config.model_folder)
-        torch.save(
-            {"model": self.model.state_dict(), "head": self.head.state_dict()},
-            path,
-        )
-
 
 # just to keep namings consistent
 CriticModel = RewardModel
@@ -233,7 +236,8 @@ class RewardDataset(Dataset):
     def __getitem__(self, idx: int):
         user_input = self.data[idx]["user_input"]
         completion = self.data[idx]["completion"]
-        item = tuple([user_input, completion])
+        score = float(self.data[idx]["score"])
+        item = (user_input + " " + completion, score)
         return item
 
     def __len__(
@@ -289,15 +293,6 @@ class RewardTrainer:
                 self.eval_dataset, batch_size=config.batch_size
             )
 
-        # initialize LLM and LangChain
-        openai_llm = OpenAI(
-            model_name=self.config.llm_model,
-            temperature=self.config.llm_temperature,
-            max_tokens=self.config.llm_max_tokens,
-        )
-        prompt_template = PromptTemplate(**REWARD_TEMPLATE)
-        self.llm = LLMChain(llm=openai_llm, prompt=prompt_template)
-
         # initialize deepspeed
         self.model_engine = None
         if config.deepspeed_enable is True:
@@ -314,7 +309,7 @@ class RewardTrainer:
             (
                 self.model_engine,
                 self.optimizer,
-                train_dataloader,
+                self.train_dataloader,
                 _,
             ) = deepspeed.initialize(
                 args=None,
@@ -324,54 +319,67 @@ class RewardTrainer:
                 config=self.config.deepspeed_config_path,
             )
 
-    def distill(
+    @beartype
+    def save_checkpoint(
         self,
-    ):
-        """Parse the dataset and assign scores using LLMs
-        then save back the dataset with the uploaded scores
-        """
-        # load the dataset
-        with open(self.config.train_dataset_path, "r") as f:
-            train_data = json.load(f)
-        # for each element of the dataset, assing a score.
-        for i, data in enumerate(train_data):
-            if data.get("score", None) is None:
-                prompt_tokens = (
-                    data["user_input"]
-                    + data["completion"]
-                    + self.llm.prompt.template
-                )
-                prompt_len = int(len(prompt_tokens.split(" ")) / 0.75)
-                # 80% of the max length as safety margin
-                if prompt_len > self.config.llm_max_tokens * 0.8:
-                    print(
-                        f"The prompt of the data {i} is too long\n"
-                        f"tokens: {prompt_len}\n"
-                        f"max_tokens: {self.config.llm_max_tokens * 0.8}"
-                    )
-                    continue
-                score = self.llm.run(
-                    user_input=data["user_input"],
-                    completion=data["completion"],
-                ).strip()
-                # TODO extract from score the float value with a regex
-                score = score.split(" ")[0]
-                try:
-                    score = float(score)
-                except Exception:
-                    print(
-                        f"The score returned by the LLM for the"
-                        f"data, {i}, is not a float float:\n{score}"
-                    )
-                    continue
-                data["score"] = score
-        # save the dataset back
-        with open(self.config.train_dataset_path, "w") as f:
-            json.dump(train_data, f)
+        current_epoch: int,
+        current_step: int,
+        max_epochs: int,
+        max_steps: int,
+    ) -> None:
+
+        print(
+            f"Saving checkpoint for epoch {current_epoch + 1}, "
+            f" step {current_step} ..."
+        )
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=current_epoch,
+            current_step=current_step,
+            max_epochs=max_epochs,
+            max_steps=max_steps,
+        )
+        # remove a checkpoint if it already exists
+        if os.path.exists(path):
+            os.remove(path)
+        torch.save(
+            {
+                "state_dict": self.model.state_dict(),
+                "optim_state_dict": self.optimizer.state_dict(),
+                "training_stats": self.training_stats,
+                "epoch": current_epoch,
+                "step": current_step,
+            },
+            path,
+        )
+
+    @beartype
+    def load_checkpoint(
+        self,
+    ) -> Tuple[int, int]:
+
+        print("Looking for checkpoints...")
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            epoch = checkpoint["epoch"]
+            self.model.load_state_dict(checkpoint["state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
+            self.trainign_stats = checkpoint["training_stats"]
+            step = checkpoint["step"]
+            return epoch, step + 1  # return the next episode to train
+        return 0, 0
 
     def train(
         self,
     ) -> None:
+
         """Train the reward model"""
         print("Start Training the Reward Model")
         # get config parameters
@@ -379,37 +387,56 @@ class RewardTrainer:
         epochs = self.config.epochs
         device = self.config.device
         iteration_per_print = self.config.iteration_per_print
+        checkpoint_steps = self.config.checkpoint_steps
 
         # compute the number of iterations
         n_iter = int(len(self.train_dataset) / batch_size)
 
+        # load checkpoint
+        start_epoch, start_step = self.load_checkpoint()
+
+        # counter for the checkpoint
+        cnt_checkpoints = 1
+
         # traing loop
-        for epoch in range(epochs):
+        for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
+                if i < start_step:
+                    continue
+                input_text = inputs[0]
+                score = inputs[1]
 
-                input_text = inputs["user_input"] + inputs["completion"]
                 # tokenizer (placed here instead of dataset class)
                 input_tokens = self.model.tokenizer(
                     input_text, padding=True, truncation=True
                 )
 
-                score = None  # TODO: load the score
-
                 # TODO: check on the length of the input tokens if they are
                 # too many it can create problems
-                output = torch.tensor(score, dtype=torch.float32).to(device)
+                output = torch.as_tensor(
+                    score, dtype=torch.float32, device=device
+                )
 
                 # forward pass
                 if self.config.deepspeed_enable:
                     est_output = self.model_engine(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
+                        torch.as_tensor(
+                            input_tokens["input_ids"], device=device
+                        ),
+                        torch.as_tensor(
+                            input_tokens["attention_mask"], device=device
+                        ),
                     )[:, -1]
                 else:
                     est_output = self.model.get_reward(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
+                        torch.as_tensor(
+                            input_tokens["input_ids"], device=device
+                        ),
+                        torch.as_tensor(
+                            input_tokens["attention_mask"],
+                            device=device,
+                        ),
                     )
 
                 loss = self.loss_function(est_output, output)
@@ -437,6 +464,14 @@ class RewardTrainer:
                         "target",
                         score.cpu().numpy(),
                     )
+
+                # checkpoints saving
+                if cnt_checkpoints % checkpoint_steps == 0:
+                    self.save_checkpoint(epoch, i, epochs, n_iter)
+                    cnt_checkpoints = 1
+                else:
+                    cnt_checkpoints += 1
+
             if self.validation_flag:
                 self.model.eval()
                 for i, (text, score) in enumerate(self.validation_dataloader):

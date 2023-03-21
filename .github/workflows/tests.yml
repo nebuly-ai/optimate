@@ -8,7 +8,7 @@ on:
       - ".github/**"
       - "*.md"
       - "docs/**"
-      - "nodebooks/**"
+      - "notebooks/**"
   pull_request:
     branches:
       - "main"
@@ -16,7 +16,7 @@ on:
       - ".github/**"
       - "*.md"
       - "docs/**"
-      - "nodebooks/**"
+      - "notebooks/**"
 
 jobs:
   test_on_ubuntu_cpu:

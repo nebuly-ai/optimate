@@ -1,6 +1,6 @@
 import json
+import os
 from beartype import beartype
-from beartype.typing import Optional
 from plotly import graph_objects as go
 
 
@@ -54,24 +54,22 @@ class TrainingStats:
 class ConversationLog:
     """Save the conversation:
     (user input, model output, rewards and learn_counter)
-    during the RL training loop. Additionally, in order to be able to compare
-    the initial dataset of answers to the prompts, we store also the original
-    performance of the generation:
-    (generation_input, generation_output, generation_reward)
+    during the RL training loop.
     """
 
-    def __init__(self):
+    def __init__(self, path: str):
         self.conversation = []
+        self.path = path
+        if self.path is None:
+            self.path = "./convesation_log.json"
 
     @beartype
-    def add_conversation(
+    def append(
         self,
         user_input: str,
         model_output: str,
         reward: float,
         learn_counter: int,
-        previous_reward: float,
-        previous_completion: str,
     ):
         """Add a conversation to the log
 
@@ -81,11 +79,7 @@ class ConversationLog:
             reward (float): Reward of the reward model assigned to the output
             learn_counter (int): Number of the learning iteration to
                 distinguish the conversations that happens at different
-                points of the training loop
-            previous_reward (float): Reward of the reward model assigned to
-                the output of original dataset
-            previous_completion (str): Completion of the LLM model of the
-                original dataset
+                points of the training loopt
         """
         self.conversation.append(
             {
@@ -93,21 +87,27 @@ class ConversationLog:
                 "model_output": model_output,
                 "reward": reward,
                 "learn_counter": learn_counter,
-                "previous_reward": previous_reward,
-                "previous_completion": previous_completion,
             }
         )
 
-    def save(self, path: Optional[str] = "./conversation.json"):
-        with open(path, "r") as f:
-            conversation = json.load(f)
-        conversation.extend(self.conversation)
-        with open(path, "w") as f:
-            json.dump(conversation, f)
+    def save(self):
+        if os.path.exists(self.path):
+            with open(self.path, "r") as f:
+                conversation = json.load(f)
+            self.conversation.extend(conversation)
+        with open(self.path, "w") as f:
+            json.dump(self.conversation, f)
 
-    def load(self, path: Optional[str] = "./conversation.json"):
-        with open(path, "r") as f:
+    def load(self):
+        with open(self.path, "r") as f:
             self.conversation = json.load(f)
+
+    def clear(self):
+        print("Clearing conversations log")
+        self.conversation = []
+        # remove the file in path exists
+        if os.path.exists(self.path):
+            os.remove(self.path)
 
     def show(self, current_iteration: int = None):
         """Show the conversation log
@@ -127,7 +127,6 @@ class ConversationLog:
                     f"## User Input:\n\n{c['user_input']}\n\n"
                     f"## Model Output:\n\n{c['model_output']}\n\n"
                     f"## Reward: {c['reward']}\n\n"
-                    f"## Previous Reward: {c['previous_reward']}\n\n"
                 )
             else:
                 if current_iteration == c["learn_counter"]:
@@ -139,5 +138,4 @@ class ConversationLog:
                         f"## User Input:\n\n{c['user_input']}\n\n"
                         f"## Model Output:\n\n{c['model_output']}\n\n"
                         f"## Reward: {c['reward']}\n\n"
-                        f"## Previous Reward: {c['previous_reward']}\n\n"
                     )

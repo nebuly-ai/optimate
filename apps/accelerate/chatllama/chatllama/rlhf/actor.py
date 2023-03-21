@@ -4,13 +4,23 @@ import os
 import deepspeed
 import torch
 from beartype import beartype
-from beartype.typing import Optional, Tuple
+from beartype.typing import Tuple
 from einops import rearrange
-from torch.utils.data import Dataset, DataLoader
-from config import ConfigActor
-from utils import TrainingStats
+from torch.utils.data import DataLoader, Dataset
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForSeq2SeqLM,
+    AutoTokenizer,
+)
 
-from chatllama.llama_model import load_model
+from chatllama.rlhf.config import ConfigActor
+from chatllama.rlhf.model_list import (
+    hf_models_causal_lm,
+    hf_models_seq_2_seq,
+    llama_models,
+)
+from chatllama.rlhf.model_loader import ModelLoader
+from chatllama.rlhf.utils import TrainingStats
 
 
 class ActorModel(torch.nn.Module):
@@ -20,8 +30,6 @@ class ActorModel(torch.nn.Module):
     Attributes:
         model: The model from LLaMA to be used
         tokenizer: The LLaMA tokenizer
-        max_model_tokens (int): Maximum number of tokens that the model can
-            handle
         config (ConfigActor): Configuration for the actor model
 
     Methods:
@@ -33,18 +41,99 @@ class ActorModel(torch.nn.Module):
 
     def __init__(self, config: ConfigActor) -> None:
         super().__init__()
-        # load the model
 
-        self.max_model_tokens = 1024
-        self.model, self.tokenizer = load_model(
-            ckpt_dir=config.model_folder,
-            tokenizer_path=config.tokenizer_folder,
-            local_rank=int(os.environ.get("LOCAL_RANK", -1)),
-            world_size=int(os.environ.get("WORLD_SIZE", -1)),
-            max_batch_size=config.batch_size,
-        )
         # save config
         self.config = config
+
+        # initialize the self.model
+        if config.model in llama_models:
+            # llama module might not be present when HF models are used
+            from chatllama.llama_model import (
+                load_model,
+                setup_model_parallel,
+            )  # noqa
+
+            local_rank, world_size = setup_model_parallel()
+            # use load_model_test for testing
+            self.model, self.tokenizer = load_model(
+                ckpt_dir=config.model_path,
+                tokenizer_path=config.tokenizer_folder,
+                local_rank=local_rank,
+                world_size=world_size,
+                froze_embeddings=config.froze_embeddings,
+                use_fairscale=config.use_fairscale,
+                max_batch_size=config.batch_size,
+            )
+        elif config.model in hf_models_seq_2_seq:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                config.model,
+                padding_side="left",
+            )
+            if self.tokenizer.eos_token is None:
+                self.tokenizer.eos_token = "</s>"
+                self.tokenizer.eos_token_id = 0
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(
+                config.model,
+            )
+            self.model.to(config.device)
+        elif config.model in hf_models_causal_lm:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                config.model,
+                padding_side="left",
+            )
+            # galactica tokenizer eos_token is None
+            if self.tokenizer.eos_token is None:
+                self.tokenizer.eos_token = "</s>"
+                self.tokenizer.eos_token_id = 0
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+            self.model = AutoModelForCausalLM.from_pretrained(
+                config.model,
+            )
+            self.model.to(config.device)
+
+        # load the model from model_folder
+        self.load()
+
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path
+
+        Args:
+            path (str): path to the model
+        """
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict["model"])
+            self.head.load_state_dict(model_dict["head"])
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path
+
+        Args:
+            path (Optional[str], optional): Path to store the model.
+                Defaults to None.
+        """
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"model": self.model.state_dict(), "head": self.head.state_dict()},
+            path,
+        )
 
     def parameters(self, **kwargs):
         """Return the parameters of the model
@@ -72,11 +161,14 @@ class ActorModel(torch.nn.Module):
         model_output = self.model.forward(
             sequences, attention_mask=sequences_mask
         )
+        # need to return logits for the actions
+        if self.config.model in hf_models_causal_lm:
+            model_output = model_output.logits
         if self.config.debug:
             print("ActorModel.forward")
-            print("model_output_logits shape", model_output.logits.shape)
-            print("model_output logits", model_output.logits)
-        return model_output.logits
+            print("model_output_logits shape", model_output.shape)
+            print("model_output logits", model_output)
+        return model_output
 
     @beartype
     @torch.no_grad()
@@ -95,16 +187,31 @@ class ActorModel(torch.nn.Module):
             sequences (torch.Tensor): Sequences generated from the
                 state as [states, actions]
         """
-        max_sequence = states.shape[1]
-        max_tokens = self.config.max_tokens + max_sequence
         temperature = self.config.temperature
-        # What if the states + completion are longer than the max context of
-        # the model?
+        # max sequence length for the actor (i.e. prompt + completion)
+        # from config file - it depends by the model used
+        max_sequence_length = self.config.max_sequence_length
+        # max tokens generated by the actor (completion only) from config file
+        max_tokens = self.config.max_tokens
+        # temperature for the actor
+        max_generation_possible = max_sequence_length - states.shape[1]
+        # take the minimum between the maximum token that you want to generate
+        # and the token that is possible to generate given the maximum sequence
+        # supported
+        max_completion = min(max_tokens, max_generation_possible)
+        if max_completion <= 0:
+            raise ValueError(
+                "The maximum completion available is <= 0 the prompt is too "
+                + "long w.r.t the model sequence length"
+            )
+        # the max_length is then the input length + the completion length
+        max_length = states.shape[1] + max_completion
+        # generate
         sequences = self.model.generate(
-            inputs=states,
+            input_ids=states,
             attention_mask=state_mask,
-            max_length=max_tokens,
             temperature=temperature,
+            max_length=max_length,
         )
         actions = sequences[:, states.shape[1] :]  # noqa E203
         if self.config.debug:
@@ -117,46 +224,6 @@ class ActorModel(torch.nn.Module):
             print("actions", actions)
         return actions, sequences
 
-    @beartype
-    def load(self, path: Optional[str] = None) -> None:
-        """Load the model from the path
-
-        Args:
-            path (str): Path to the model
-        """
-        if path is None:
-            path = self.config.model_folder + "/" + self.config.model + ".pt"
-            if os.path.exists(self.config.model_folder) is False:
-                os.mkdir(self.config.model_folder)
-                print(
-                    f"Impossible to load the model: {path}"
-                    f"The path doesn't exist."
-                )
-                return
-        # load the model
-        if os.path.exists(path) is False:
-            print(
-                f"Impossible to load the model: {path}"
-                f"The path doesn't exist."
-            )
-            return
-        model_dict = torch.load(path)
-        self.model.load_state_dict(model_dict["model"])
-
-    @beartype
-    def save(self, path: Optional[str] = None) -> None:
-        """Save the model to the path
-
-        Args:
-            path (Optional[str], optional): Path to store the model.
-                Defaults to None.
-        """
-        if path is None:
-            path = self.config.model_folder + "/" + self.config.model + ".pt"
-            if os.path.exists(self.config.model_folder) is False:
-                os.mkdir(self.config.model_folder)
-        torch.save({"model": self.model.state_dict()}, path)
-
 
 class ActorDataset(Dataset):
     """Dataset for the pretraining of the actor model
@@ -165,7 +232,7 @@ class ActorDataset(Dataset):
         {
             "user_input": "..."
             "completion": "..."
-        } ,
+        },
         ...
     ]
     Where:
@@ -173,14 +240,11 @@ class ActorDataset(Dataset):
         completion: the output of the user
     """
 
-    def __init__(self, path: str, device: torch.device) -> None:
-        self.device = device
+    def __init__(self, path: str) -> None:
         self.path = path
         with open(path, "r") as f:
             data = json.load(f)
-            self.data = [
-                d["user_input"] + "\n\n###\n\n" + d["completion"] for d in data
-            ]
+            self.data = [d["user_input"] + " " + d["completion"] for d in data]
         self.len = len(self.data)
 
     def __getitem__(self, idx):
@@ -221,8 +285,6 @@ class ActorTrainer:
         )
 
         # check checkpoint, datasets and other data
-        if not os.path.exists(config.model_folder):
-            os.mkdir(config.model_folder)
         self.validation_flag = False
         self.training_stats = TrainingStats()
         if config.validation_dataset_path is not None:
@@ -251,7 +313,6 @@ class ActorTrainer:
                     f"DeepSpeed config path {config.deepspeed_config_path}"
                     f"does not exist"
                 )
-        if self.config.deepspeed_enable:
             (
                 self.model_engine,
                 self.optimizer,
@@ -265,36 +326,107 @@ class ActorTrainer:
                 config=self.config.deepspeed_config_path,
             )
 
+    @beartype
+    def save_checkpoint(
+        self,
+        current_epoch: int,
+        current_step: int,
+        max_epochs: int,
+        max_steps: int,
+    ) -> None:
+
+        print(
+            f"Saving checkpoint for epoch {current_epoch + 1}, "
+            f"step {current_step + 1} ..."
+        )
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=current_epoch,
+            current_step=current_step,
+            max_epochs=max_epochs,
+            max_steps=max_steps,
+        )
+        if os.path.exists(path):
+            os.remove(path)
+        torch.save(
+            {
+                "state_dict": self.model.state_dict(),
+                "optim_state_dict": self.optimizer.state_dict(),
+                "training_stats": self.training_stats,
+                "epoch": current_epoch,
+                "step": current_step,
+            },
+            path,
+        )
+
+    @beartype
+    def load_checkpoint(
+        self,
+    ) -> Tuple[int, int]:
+        """Load a checkpoint from the model folder"""
+
+        print("Looking for checkpoints...")
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=None,
+        )
+        if path is not None:
+            print("Loading ...")
+            checkpoint = torch.load(path)
+            epoch = checkpoint["epoch"]
+            self.model.load_state_dict(checkpoint["state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
+            self.trainign_stats = checkpoint["training_stats"]
+            step = checkpoint["step"]
+            return epoch, step + 1  # return the next episode to train
+        return 0, 0
+
     def train(
         self,
     ) -> None:
         print("Start Actor Model Pretraining")
+
         # get config parameters
         batch_size = self.config.batch_size
         epochs = self.config.epochs
         device = self.config.device
+        checkpoint_steps = self.config.checkpoint_steps
 
         # compute the number of iterations
         n_iter = int(len(self.train_dataset) / batch_size)
 
+        # load model_checkpoint
+        start_epoch, start_step = self.load_checkpoint()
+
+        # counter for the checkpoint
+        cnt_checkpoint = 1
+
         # traing loop
-        for epoch in range(epochs):
+        for epoch in range(start_epoch, epochs):
             self.model.train()
             for i, input_output in enumerate(self.train_dataloader):
-                input_output_tokenized = self.model.tokenizer(
-                    input_output,
-                    return_tensors="pt",
-                    padding=True,
-                    truncation=True,
-                )
-                training_output = input_output_tokenized["input_ids"][:, 1:]
-                training_input = input_output_tokenized["input_ids"][:, :-1]
-                attention_mask = input_output_tokenized["attention_mask"][
-                    :, :-1
-                ]
-                training_output = training_output.to(device)
-                training_input = training_input.to(device)
-                attention_mask = attention_mask.to(device)
+                if i < start_step:
+                    continue
+                with torch.no_grad():
+                    input_output_tokenized = self.model.tokenizer(
+                        input_output,
+                        return_tensors="pt",
+                        padding=True,
+                    )
+                    training_output = input_output_tokenized["input_ids"][
+                        :, 1:
+                    ]
+                    training_input = input_output_tokenized["input_ids"][
+                        :, :-1
+                    ]
+                    attention_mask = input_output_tokenized["attention_mask"][
+                        :, :-1
+                    ]
+                    training_output = training_output.to(device)
+                    training_input = training_input.to(device)
+                    attention_mask = attention_mask.to(device)
 
                 # forward pass
                 if self.config.deepspeed_enable:
@@ -302,9 +434,7 @@ class ActorTrainer:
                         training_input, attention_mask
                     )
                 else:
-                    est_output = self.model.forward(
-                        training_input, attention_mask
-                    )
+                    est_output = self.model(training_input, attention_mask)
                 est_output = rearrange(est_output, "b s v -> (b s) v")
                 training_output = rearrange(training_output, "b s -> (b s)")
                 loss = self.loss_function(est_output, training_output)
@@ -326,6 +456,13 @@ class ActorTrainer:
                         f"Iteration: {i+1}/{n_iter}, "
                         f"Training Loss: {loss}"
                     )
+                # save checkpoint periodically
+                if cnt_checkpoint % checkpoint_steps == 0:
+                    self.save_checkpoint(epoch, i, epochs, n_iter)
+                    cnt_checkpoint = 1
+                else:
+                    cnt_checkpoint += 1
+
             if self.validation_flag:
                 self.model.eval()
                 for i, input_output in enumerate(self.validation_dataloader):

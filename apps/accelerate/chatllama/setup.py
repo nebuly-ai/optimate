@@ -7,11 +7,13 @@ REQUIREMENTS = [
     "deepspeed",
     "einops",
     "fairscale",
-    "langchain",
+    "langchain>=0.0.103",
     "torch",
     "tqdm",
     "transformers",
+    "datasets",
     "openai",
+    "plotly",
 ]
 
 this_directory = Path(__file__).parent
