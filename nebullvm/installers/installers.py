@@ -139,6 +139,15 @@ def install_torch_tensor_rt():
         "https://github.com/pytorch/TensorRT/releases/expanded_assets/v1.3.0",
     ]
     subprocess.run(cmd)
+    cuda_version = subprocess.check_output(["nvidia-smi"])
+    cuda_version = int(cuda_version.decode("utf-8").split("\n")[2].split("|")[-2].split(":")[-1].strip().split(".")[0])
+    if cuda_version >= 12:
+        cmd = [
+            "pip3",
+            "install",
+            "tensorrt==8.6.0",
+        ]
+        subprocess.run(cmd)
 
     try:
         import torch_tensorrt  # noqa F401

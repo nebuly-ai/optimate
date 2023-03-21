@@ -8,11 +8,9 @@ In this section, we will learn about the 4 main steps needed to optimize Stable 
 5. [Load and run your optimized model in production](#5-load-and-run-your-optimized-model-in-production)
 
 ## 1) Environment Setup (GPU only)
-In order to optimize a Stable Diffusion model, you have to ensure that your environment is correctly set up according to these requirements:
-- `CUDA>=12.0`
-- `tensorrt>=8.6.0`
+In order to optimize a Stable Diffusion model, you have to ensure that your environment is correctly set up according to these requirements: `CUDA>=12.0` and `tensorrt>=8.6.0`.
 
-From TensorRT 8.6, all the tensorrt pre-built wheels released by nvidia support only `CUDA>=12.0`. Speedster will install `tensorrt>=8.6.0` automatically in the auto-installer only if it detects CUDA>=12.0, otherwise it will install `tensorrt==8.5.3.1`. In that case, you will have to upgrade your CUDA version and then to upgarde tensorrt to 8.6.0 or above to execute this notebook.
+From TensorRT 8.6, all the tensorrt pre-built wheels released by nvidia support only `CUDA>=12.0`. Speedster will install `tensorrt>=8.6.0` automatically in the auto-installer only if it detects CUDA>=12.0, otherwise it will install `tensorrt==8.5.3.1`. In that case, you will have to upgrade your CUDA version and then to upgarde tensorrt to 8.6.0 or above.
 
 There should be a way to run TensorRT 8.6 also with CUDA 11, but it requires installing TensorRT in a different way, you can check this issue: https://github.com/NVIDIA/TensorRT/issues/2773. Otherwise, we highly suggest to just upgrade to CUDA 12.
 
@@ -99,7 +97,7 @@ Internally, `Speedster` tries to use all the compilers and optimization techniqu
 
 At the end of the optimization, you are going to see the results in a summary table like the following:
 
-![pt](../images/pt_table.png)
+![pt](../images/stable_diffusion.png)
 
 If the speedup you obtained is good enough for your application, you can move to the [Save your optimized model](#3-save-your-optimized-model) section to save your model and use it in production.
 
