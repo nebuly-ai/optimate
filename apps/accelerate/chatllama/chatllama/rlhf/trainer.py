@@ -883,8 +883,8 @@ class RLTrainer:
                     # compute discounted rewards as in TRL
                     gamma = 0.5
                     discounted_rewards = torch.zeros_like(old_values)
-                    for i in range(discounted_rewards.shape[0]):
-                        for j in range(i, discounted_rewards.shape[0]):
+                    for i in range(discounted_rewards.shape[1]):
+                        for j in range(i, discounted_rewards.shape[1]):
                             discounted_rewards[:, i] += (
                                 gamma ** (j - i) * rewards[:, j]
                             )
