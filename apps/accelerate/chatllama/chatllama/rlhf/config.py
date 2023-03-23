@@ -170,6 +170,7 @@ class ConfigTrainer:
         actor_eps_clip (float): Epsilon clip for the actor
         critic_eps_clip (float): Epsilon clip for the critic
         beta_s (float): Beta for the actor and critic
+        gamma (float): coefficient for the discounted rewards.
         examples_path (str): Path to the examples dataset
         num_episodes (int): Number of episodes, each episodes consist of
             a number of timesteps that are used to generate examples
@@ -198,6 +199,7 @@ class ConfigTrainer:
     actor_eps_clip: float
     critic_eps_clip: float
     beta_s: float
+    gamma_discounted: float
     examples_path: str
     num_episodes: int
     max_timesteps: int

@@ -881,7 +881,7 @@ class RLTrainer:
                 # compute PPO loss
                 if check_model_family(self.config.actor, self.config.critic):
                     # compute discounted rewards as in TRL
-                    gamma = 0.5
+                    gamma = self.config.trainer.gamma_discounted
                     discounted_rewards = torch.zeros_like(old_values)
                     for i in range(discounted_rewards.shape[1]):
                         for j in range(i, discounted_rewards.shape[1]):

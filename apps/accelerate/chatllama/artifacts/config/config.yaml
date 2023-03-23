@@ -7,6 +7,8 @@ trainer_config:
   actor_eps_clip: 0.2
   critic_eps_clip: 0.2
   beta_s: 0.02
+  # coefficient for the discounted rewards
+  gamma_discounted: 1 
   # path to examples to be sampled (training dataset) see rlhf_dataset.json
   examples_path: "./datasets/rlhf_training_data.json"
   # number of episodes and generation performed for each episode
