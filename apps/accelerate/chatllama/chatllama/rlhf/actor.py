@@ -121,7 +121,7 @@ class ActorModel(torch.nn.Module):
             # load the tokenizer from HF
             tokenizer = AutoTokenizer.from_pretrained(
                 config.model,
-                padding_side="right",
+                padding_side="left",
                 padding=True,
                 truncation=True,
                 model_max_length=config.max_sequence_length,
