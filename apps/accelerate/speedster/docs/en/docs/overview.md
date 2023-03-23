@@ -6,7 +6,7 @@ The library allows you to seamlessy modulate the inference performances of your 
 
 `Speedster` makes it easy to combine optimization techniques across the whole software to hardware stack, delivering best in class speed-ups. If you like the idea, give us a star to support the project ⭐
 
-![speedster_benchmarks](https://user-images.githubusercontent.com/42771598/212486740-431328f3-f1e5-47bf-b6c9-b6629399ad09.png)
+![speedster](https://user-images.githubusercontent.com/53374883/225600620-1cd84073-d9b3-43d1-84fa-c3e6c25eb915.png)
 
 The core `Speedster` workflow consists of 3 steps:
 

@@ -9,6 +9,9 @@ except ImportError:
 
 try:
     import polygraphy.cuda as polygraphy
+    from polygraphy.logger import G_LOGGER
+
+    G_LOGGER.module_severity = 40
     from polygraphy.backend.onnx.loader import fold_constants
 except ImportError:
     polygraphy = DummyClass

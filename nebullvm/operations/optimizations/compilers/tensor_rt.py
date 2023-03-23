@@ -34,7 +34,6 @@ from nebullvm.tools.transformations import (
     MultiStageTransformation,
     HalfPrecisionTransformation,
 )
-from nebullvm.tools.utils import get_gpu_compute_capability
 
 
 class TensorRTCompiler(Compiler, abc.ABC):
@@ -344,12 +343,21 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         elif self.onnx_model_path is None:
             self.onnx_model_path = str(model)
 
-        if (
-            self.simplify_model
-            and is_diffusion
-            and self._check_tensorrt_plugins()
-            and get_gpu_compute_capability(self.device.idx) >= 7.5
-        ):
+        if is_diffusion:
+            if quantization_type is None:
+                self.logger.warning(
+                    "Skipping float32 precision for Stable Diffusion, "
+                    "half precision will be used instead."
+                )
+                return
+            if quantization_type is QuantizationType.STATIC:
+                self.logger.warning(
+                    "Skipping static quantization for Stable Diffusion "
+                    "because for now it's not supported."
+                )
+                return
+
+        if self.simplify_model and is_diffusion:
             optimized_model = str(Path(model).parent / "model_opt.onnx")
             unet = UNet(hf_token=None)
             opt_graph = unet.optimize(onnx.load(str(model)))
@@ -407,19 +415,6 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             nvidia_logger=nvidia_logger,
         )
         self.model_orig = self.onnx_model_path
-
-    def _check_tensorrt_plugins(self):
-        ld_preload_env_var = os.environ.get("LD_PRELOAD", "")
-        if "libnvinfer_plugin.so" in ld_preload_env_var:
-            return True
-
-        self.logger.warning(
-            "TensorRT plugins are not available. "
-            "To get optimal results for stable diffusion, "
-            "Please install TensorRT plugins and set LD_PRELOAD "
-            "and LD_LIBRARY_PATH environment variables."
-        )
-        return False
 
     def _compile_model(
         self,

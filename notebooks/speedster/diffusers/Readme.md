@@ -1,5 +1,7 @@
 # **Diffusers Optimization**
 
+> :warning: In order to work properly, the diffusers optimization requires `CUDA>=12.0` and `tensorrt>=8.6.0`. For additional details, please look the docs [here](https://docs.nebuly.com/Speedster/getting_started/diffusers_getting_started/).
+
 This section contains all the available notebooks that show how to leverage Speedster to optimize Diffusers models.
 
 ## Notebooks:
@@ -47,50 +49,3 @@ optimized_model = optimize_model(
 test_prompt = "futuristic llama with a cyberpunk city on the background"
 res = optimized_model(test_prompt).images[0]
 ```
-
-## Setup TensorRT Plugins (Optional)
-Official Source: https://github.com/NVIDIA/TensorRT/tree/main/demo/Diffusion
-
-If you want to optimise Stable Diffusion on Nvidia GPUs, you need to install and use the TensorRT Plugins for getting the maximum speed-up. In our experiments, they improved the speed of the model compared to the basic version of TensorRT by more than 60%. 
-
-The easiest option to use the plugins is to use the nebullvm docker image, where everything is preinstalled and activated by default:
-
-```
-docker pull nebulydocker/nebullvm:latest
-```
-
-If you prefer instead to set up your environment manually, you can use the following guide (we also provide a [tutorial](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/diffusers/Build_TensorRT_Plugins_Tutorial.ipynb) to setup everything in colab):
-
-### Step 1: Download and extract TensorRT tar
-Reference: https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html#installing-tar
-- [Download](https://developer.nvidia.com/tensorrt) the TensorRT tar file that matches the CPU architecture and CUDA version you are using.
-- Extract in a folder <TRT_FOLDER> the tar file:
-```
-tar -xzvf TensorRT-8.5.3.1.Linux.x86_64-gnu.cuda-11.8.cudnn8.6.tar.gz
-```
-- Add the absolute path to the TensorRT lib directory to the environment variables PATH and LD_LIBRARY_PATH:
-```
-export PATH=$PATH:<TRT_FOLDER_ABSOLUTE_PATH>/TensorRT-8.5.3.1/lib
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<TRT_FOLDER_ABSOLUTE_PATH>/TensorRT-8.5.3.1/lib>
-```
-
-### Step 2: Clone the TensorRT repository
-```
-git clone https://github.com/NVIDIA/TensorRT.git
-cd TensorRT
-git submodule update --init --recursive
-```
-
-### Step 3: Build TensorRT plugins library
-
-```
-mkdir -p build && cd build
-cmake .. -DTRT_OUT_DIR=$PWD/out
-cd plugin
-make -j$(nproc)
-
-export PLUGIN_LIBS="$PWD/build/out/libnvinfer_plugin.so"
-export LD_PRELOAD=$PLUGIN_LIBS
-```
-
-You are now ready to use plugins to optimise stable diffusion!
