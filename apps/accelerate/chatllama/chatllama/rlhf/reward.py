@@ -224,7 +224,7 @@ class RewardDataset(Dataset):
         user_input = self.data[idx]["user_input"]
         completion = self.data[idx]["completion"]
         score = float(self.data[idx]["score"])
-        item = (user_input + " " + completion, score)
+        item = (user_input + completion, score)
         return item
 
     def __len__(

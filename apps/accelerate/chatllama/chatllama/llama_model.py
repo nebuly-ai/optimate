@@ -34,7 +34,10 @@ class MyTokenizer:
 
     def __init__(self, model_path: Optional[str] = None):
 
-        self.sp_model = AutoTokenizer.from_pretrained("gpt2")
+        if model_path is None:
+            self.sp_model = AutoTokenizer.from_pretrained("gpt2")
+        else:
+            self.sp_model = AutoTokenizer.from_pretrained(model_path)
 
         self.n_words = self.sp_model.vocab_size
         self.bos_id = self.sp_model.bos_token_id
@@ -519,7 +522,11 @@ class Transformer(nn.Module):
         kv_mask = torch.tril(kv_mask, diagonal=0)
         kv_mask = 1 - kv_mask
         kv_mask = (
-            torch.where(kv_mask == 1, float("-inf"), kv_mask).detach().long()
+            torch.where(
+                kv_mask == 1, kv_mask.new_tensor(-9223372036854775808), kv_mask
+            )
+            .detach()
+            .long()
         )
 
         for i, layer in enumerate(self.layers):
