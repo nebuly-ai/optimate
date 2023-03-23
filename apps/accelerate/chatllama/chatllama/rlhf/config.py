@@ -17,6 +17,7 @@ class ConfigReward:
         model_folder (str): Path to the folder where model are stored (used
             to load / store finetuned model or checkpoints)
         model_head_hidden_size (int): Hidden size of the reward model head
+        max_sequence_length (int): Max sequence length of the reward model
         train_dataset_path (Optional[str]): Path to the training dataset.
             Default to None. To be specified only for the reward model trainig.
         validation_dataset_path (Optional[str]): Path to the validation
@@ -51,6 +52,7 @@ class ConfigReward:
         deepspeed_config_path (str): Path to the deepspeed config file.
             Default to None.
         is_reward (bool): True if the model is a reward model. Default to True.
+        accelerate_enable (bool): Enable accelerate for the reward model
         debug (bool): enable prints for Debugging
     """
 
@@ -58,6 +60,7 @@ class ConfigReward:
     model: str
     model_folder: str
     model_head_hidden_size: int
+    max_sequence_length: int
     train_dataset_path: Optional[str] = None
     validation_dataset_path: Optional[str] = None
     batch_size: Optional[int] = None
@@ -75,6 +78,7 @@ class ConfigReward:
 
     # critic specific parameters
     is_reward: bool = True
+    accelerate_enable: bool = False
 
     debug: bool = False
 
@@ -91,7 +95,7 @@ class ConfigActor:
         model (str): Model to be used for the actor
         model_folder (str): Path to the folder where model are stored (used
             to load / store finetuned model or checkpoints)
-        tokenizer_folder (str): Path to the folder where tokenizer are stored
+        tokenizer_path (str): Path to the folder where tokenizer are stored
         train_dataset_path (str): Path to the training dataset
         validation_dataset_path (Optional[str]): Path to the validation dataset
         froze_embeddings (bool): Froze embeddings for the actor
@@ -99,6 +103,10 @@ class ConfigActor:
             pytorch native modules.
         max_sequence_length (int): Max sequence length for the actor
         max_tokens (int): Max tokens for actor generation
+        min_tokens (int): Min tokens for actor generation
+        additonal_prompt_tokens (int): Number of tokens to be used as safety
+            to avoid too large sequences and to add a template to the
+            dataset
         temperature (float): Temperature for the actor
         batch_size (int): Batch size to train the actor
         iteration_per_print (int): Number of iterations to print the
@@ -107,10 +115,13 @@ class ConfigActor:
         epochs (int): Number of epochs to train the actor
         checkpoint_steps (int): Number of steps (backProp) to interleave
             checkpoints.
+        n_checkpoints_to_keep (int): Number of checkpoints to keep
+            for the actor.
         deepspeed_enable (bool): Enable deepspeed for the actor.
             Default to False.
         deepspeed_config_path (str): Path to the deepspeed config file.
             Default to None.
+        accelerate_enable (bool): Enable accelerate for the actor
         device (torch.device): Device to be used for the actor
         checkpoint_name (Optional[str]): Name of the checkpoint. Default to
             None.
@@ -119,22 +130,27 @@ class ConfigActor:
 
     model: str
     model_folder: str
-    tokenizer_folder: str
+    tokenizer_path: str
     train_dataset_path: str
     validation_dataset_path: Optional[str]
     froze_embeddings: bool
     use_fairscale: bool
     max_sequence_length: int
     max_tokens: int
+    min_tokens: int
+    additonal_prompt_tokens: int
     temperature: float
     batch_size: int
     iteration_per_print: int
     lr: float
     epochs: int
     checkpoint_steps: int
+    n_checkpoints_to_keep: int
 
     deepspeed_enable: bool
     deepspeed_config_path: Optional[str]
+
+    accelerate_enable: bool
 
     device: torch.device
     checkpoint_name: Optional[str] = None
@@ -154,6 +170,7 @@ class ConfigTrainer:
         actor_eps_clip (float): Epsilon clip for the actor
         critic_eps_clip (float): Epsilon clip for the critic
         beta_s (float): Beta for the actor and critic
+        gamma (float): coefficient for the discounted rewards.
         examples_path (str): Path to the examples dataset
         num_episodes (int): Number of episodes, each episodes consist of
             a number of timesteps that are used to generate examples
@@ -182,6 +199,7 @@ class ConfigTrainer:
     actor_eps_clip: float
     critic_eps_clip: float
     beta_s: float
+    gamma_discounted: float
     examples_path: str
     num_episodes: int
     max_timesteps: int

@@ -74,7 +74,7 @@ In this example, we are using only publicly available dataset and synthetic gene
 First, let’s download the `actor_training_data` and the `rlhf_training_data`: 
 
 ```bash
-python artifacts/download_dataset.py SHP --path ./datasets --number_of_samples 200
+python artifacts/download_dataset.py ARLHF --path ./datasets --number_of_samples 200
 ```
 
 Finally, let’s create the `reward_training_data` using `davinci-003` for synthetic data generation.

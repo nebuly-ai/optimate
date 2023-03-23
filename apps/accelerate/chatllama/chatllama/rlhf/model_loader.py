@@ -23,6 +23,19 @@ class ModelLoader:
         pass
 
     @staticmethod
+    def get_training_stats_path(config: ConfigType) -> str:
+        """Method to get the path to the training stats file. Used when saving
+
+        Args:
+            config (ConfigType): the config object
+        """
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config, is_checkpoint=True
+        )
+        stat_path = os.path.join(model_folder, "training_stats.json")
+        return stat_path
+
+    @staticmethod
     def look_for_last_checkpoint(
         model_folder: str,
         model_name: str,
@@ -43,6 +56,7 @@ class ModelLoader:
             return None
         else:
             checkpoints = sorted(checkpoints)
+            # get last checkpoint
             last_checkpoint = checkpoints[-1]
             return last_checkpoint
 
@@ -112,6 +126,34 @@ class ModelLoader:
         if model_name is None:
             raise ValueError("Model name not found")
         return model_name
+
+    @staticmethod
+    def delete_old_checkpoints(
+        model_folder: str, model_name: str, n_ckp_to_keep: int = 5
+    ):
+        """Method to discard old checkpoints, keeping only the last
+        n_ckp_to_keep
+
+        Args:
+            model_folder (str): the folder where the checkpoints are saved
+            model_name (str): the name of the model
+            n_ckp_to_keep (int): the number of checkpoints to keep
+        """
+
+        # remove .pt to model name
+        model_name = model_name.split(".")[0]
+        checkpoints = [
+            f for f in os.listdir(model_folder) if f.startswith(model_name)
+        ]
+        if len(checkpoints) == 0:
+            return
+        else:
+            checkpoints = sorted(checkpoints)
+            # check if the number of checkpoint is greater than 5
+            if len(checkpoints) > n_ckp_to_keep:
+                for c in checkpoints[:-n_ckp_to_keep]:
+                    checkpoint_path = os.path.join(model_folder, c)
+                    os.remove(checkpoint_path)
 
     @staticmethod
     def get_model_path(
