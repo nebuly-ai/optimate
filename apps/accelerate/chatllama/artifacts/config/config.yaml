@@ -54,10 +54,10 @@ actor_config:
   batch_size: 1
   # number iteration after print
   iteration_per_print: 1
-  lr: 0.0000009
-  epochs: 2
+  lr: 0.000009
+  epochs: 1
   # number of backpropagation after saving the checkpoints
-  checkpoint_steps: 1000
+  checkpoint_steps: 5000
   # number of checkpoints to keep while removing the older 
   # (keep memory consumption of checkpoints reasonable)
   n_checkpoints_to_keep: 5
