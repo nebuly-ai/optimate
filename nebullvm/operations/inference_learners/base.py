@@ -47,8 +47,8 @@ class BaseInferenceLearner(ABC):
     device: Device = None
     quantization_type: QuantizationType = None
 
-    @abstractmethod
     @property
+    @abstractmethod
     def name(self) -> str:
         """The name of the InferenceLearner"""
 
