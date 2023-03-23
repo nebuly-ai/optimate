@@ -68,8 +68,8 @@ class RewardModel(torch.nn.Module):
         self.load()
 
         # freeze model parameters (only train the head)
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # move model to device
         self.model.to(config.device)
@@ -89,12 +89,12 @@ class RewardModel(torch.nn.Module):
         # add eos token if not present
         if tokenizer.eos_token is None:
             tokenizer.eos_token = "</s>"
-            tokenizer.eos_token_id = 0
+            tokenizer.eos_token_id = 2  # OPT  eos token id
 
         # add pad token if not present
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-        tokenizer.pad_token = tokenizer.eos_token
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
         return tokenizer
 
     @beartype

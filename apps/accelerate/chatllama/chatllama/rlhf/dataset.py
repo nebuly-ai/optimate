@@ -63,10 +63,10 @@ class BaseDataset:
         # shuffle
         if shuffle is True:
             conversations = (
-                conversations[:100]
+                conversations[:10]
                 + np.random.choice(
-                    conversations[100:],
-                    size=len(conversations[100:]),
+                    conversations[10:],
+                    size=len(conversations[10:]),
                     replace=False,
                 ).tolist()
             )

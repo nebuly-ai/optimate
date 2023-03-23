@@ -128,7 +128,7 @@ class ModelLoader:
         return model_name
 
     @staticmethod
-    def discard_old_checkpoints(
+    def delete_old_checkpoints(
         model_folder: str, model_name: str, n_ckp_to_keep: int = 5
     ):
         """Method to discard old checkpoints, keeping only the last

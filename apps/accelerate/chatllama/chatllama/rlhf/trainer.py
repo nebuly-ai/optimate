@@ -57,7 +57,7 @@ train()
 """  # noqa W291
 
 
-def change_tokenizer(tokens, tokenizer1, tokenizer2):
+def change_tokenization(tokens, tokenizer1, tokenizer2):
     """Change the tokenizer of the tokens
 
     Args:
@@ -313,10 +313,10 @@ class ActorCritic(torch.nn.Module):
 
         # create mask for the actor sequences
         sequences_mask_actor = (
-            sequences_actor != self.actor.tokenizer.pad_token_id
-        )
-        sequences_mask_actor = (
-            sequences_mask_actor.to(sequences_actor.device).long().detach()
+            (sequences_actor != self.actor.tokenizer.pad_token_id)
+            .to(sequences_actor.device)
+            .long()
+            .detach()
         )
 
         # get the length of the actions
@@ -328,7 +328,7 @@ class ActorCritic(torch.nn.Module):
             sequences_mask_critic = sequences_mask_actor
             action_len_critic = action_len_actor
         else:
-            encoded_critic = change_tokenizer(
+            encoded_critic = change_tokenization(
                 sequences_actor,
                 self.actor.tokenizer,
                 self.critic.tokenizer,
@@ -524,7 +524,8 @@ class RLTrainer:
         self.reward = RewardModel(config.reward)
 
         # initialize class to store training stats
-        self.training_stats = TrainingStats()
+        path = ModelLoader.get_training_stats_path(config)
+        self.training_stats = TrainingStats(path)
         model_folder, _, _ = ModelLoader.get_model_path(
             config,
             is_checkpoint=True,
@@ -812,7 +813,7 @@ class RLTrainer:
         # train agent-critic
         self.actorcritic.train()
         for epoch in range(epochs):
-            for i, (
+            for k, (
                 states_actor,
                 old_actions,
                 old_values,
@@ -829,7 +830,7 @@ class RLTrainer:
                 if self.debug:
                     print(
                         f"#########################################"
-                        f" batch from memories {i} \n "
+                        f" batch from memories {k} \n "
                         f"#########################################"
                         f"states_actor {states_actor.shape} \n"
                         f"old_actions {old_actions.shape} \n"
@@ -895,21 +896,6 @@ class RLTrainer:
                         advantages.std() + self.eps
                     )
 
-                    # ########## DEBUG #############
-                    # temp_file = "./temp.json"
-                    # temp = []
-                    # if os.path.exists(temp_file):
-                    #     with open(temp_file, "r") as f:
-                    #         temp = json.load(f)
-
-                    # temp.append({
-                    #         "reward": rewards[:, -10:].tolist(),
-                    #         "advantages": advantages[:, -10:].tolist(),
-                    #     })
-                    # with open(temp_file, "w") as f:
-                    #     json.dump(temp, f, indent=4)
-                    # #############
-
                     surr1 = advantages * ratios
                 else:
                     advantages = rewards - old_values[:, -1]
@@ -920,11 +906,9 @@ class RLTrainer:
                     * advantages
                 )
 
-                policy_loss = -torch.min(surr1, surr2) + beta_s * entropies
-                # policy_loss = -torch.min(surr1, surr2)
+                policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
                 policy_loss = policy_loss.mean()
                 loss = policy_loss + kl_div_loss
-                # loss = policy_loss
 
                 # check if loss item is NaN
                 if torch.isnan(loss):
@@ -987,7 +971,7 @@ class RLTrainer:
                 # print iteration info
                 print(
                     f"Epoch {epoch+1}/{epochs}",
-                    f"Step {i+1}/{int(len(dataloader) / batch_size)}",
+                    f"Step {k+1}/{int(len(dataloader) / batch_size)}",
                     f"Loss {loss.detach().cpu().item():.4f}",
                     f"Value Loss {value_loss.detach().cpu().item():.4f}",
                 )
@@ -1109,7 +1093,7 @@ class RLTrainer:
                     reward_sequence = sequences_critic
                     reward_mask = sequences_mask_critic
                 else:
-                    tokenized_responses = change_tokenizer(
+                    tokenized_responses = change_tokenization(
                         sequences_actor,
                         self.actorcritic.actor.tokenizer,
                         self.reward.tokenizer,
@@ -1180,6 +1164,7 @@ class RLTrainer:
                 if (cnt_timesteps % update_timesteps == 0) and (
                     cnt_timesteps != 0
                 ):
+                    print("len memories", len(memories))
                     # self.conversation_log.show(cnt_learn_iter)
                     self.learn(memories)
                     mean_reward = sum([m.rewards[-1] for m in memories]) / len(

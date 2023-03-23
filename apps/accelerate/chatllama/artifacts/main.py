@@ -2,10 +2,10 @@ import argparse
 
 from chatllama.rlhf.actor import ActorTrainer
 from chatllama.rlhf.config import Config
+from chatllama.rlhf.dataset import BaseDataset
 from chatllama.rlhf.reward import RewardTrainer
 from chatllama.rlhf.trainer import RLTrainer
 
-from chatllama.rlhf.dataset import BaseDataset
 
 # Setup argument parser
 parser = argparse.ArgumentParser(
@@ -46,9 +46,11 @@ if args.reward is not None:
 
 # perform the desired training
 if args.type == "RL":
-    max_seq = config.actor.max_sequence_length
-    max_seq = min(max_seq, config.reward.max_sequence_length)
-    max_seq = min(max_seq, config.critic.max_sequence_length)
+    max_seq = min(
+        config.actor.max_sequence_length,
+        config.reward.max_sequence_length,
+        config.critic.max_sequence_length,
+    )
     config.actor.max_sequence_length = max_seq
     BaseDataset.clean_dataset(config)
     rlhf_trainer = RLTrainer(config)

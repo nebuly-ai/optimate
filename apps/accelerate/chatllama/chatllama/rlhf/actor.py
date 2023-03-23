@@ -121,7 +121,7 @@ class ActorModel(torch.nn.Module):
             # load the tokenizer from HF
             tokenizer = AutoTokenizer.from_pretrained(
                 config.model,
-                padding_side="left",
+                padding_side="right",
                 padding=True,
                 truncation=True,
                 model_max_length=config.max_sequence_length,
@@ -130,11 +130,12 @@ class ActorModel(torch.nn.Module):
             # add eos token if not present
             if tokenizer.eos_token is None:
                 tokenizer.eos_token = "</s>"
-                tokenizer.eos_token_id = 0
+                tokenizer.eos_token_id = 2  # OPT eos-token-id
 
             # add pad token if not present
-            tokenizer.pad_token = tokenizer.eos_token
-            tokenizer.pad_token_id = tokenizer.eos_token_id
+            if tokenizer.pad_token is None:
+                tokenizer.pad_token = tokenizer.eos_token
+                tokenizer.pad_token_id = tokenizer.eos_token_id
         elif config.model in llama_models:
 
             # llama module might not be present when HF models are used
@@ -459,7 +460,7 @@ class ActorTrainer:
 
         # remove old checkpoints
         n_checkpoints_to_keep = self.config.n_checkpoints_to_keep
-        ModelLoader.discard_old_checkpoints(
+        ModelLoader.delete_old_checkpoints(
             model_folder, model_name, n_checkpoints_to_keep
         )
 
@@ -521,36 +522,6 @@ class ActorTrainer:
                 return epoch, step + 1  # return the next episode to train
         return 0, 0
 
-    def test_generation(self):
-        # self.actor.eval()
-        # with torch.no_grad():
-        #     text = (
-        #         "Human: If i am feeling bad what i should do?"
-        #         "\n\n##\n\n"
-        #         "Assistant: "
-        #     )
-        #     # text = "If i am feeling bad what i should do?"
-        #     tokens = self.actor.tokenizer(
-        #         text, return_tensors="pt", truncation=True
-        #     )
-        #     tokens = tokens.to("cpu")
-        #     # sequence = model.generate(tokens["input_ids"])
-        #     # sequence = self.model.tokenizer.decode(
-        #     #     sequence[0, :], skip_special_tokens=True
-        #     # )
-        #     # print("\nInput text: \n", text)
-        #     # print("\nTest Vanilla model\n")
-        #     # print(sequence)
-        #     _, sequence = self.actor.generate(
-        #         tokens["input_ids"].to("cuda"),
-        #         tokens["attention_mask"].to("cuda"),
-        #     )
-        #     sequence = self.actor.tokenizer.decode(sequence[0, :])
-        #     print("\nTest Trained model\n")
-        #     print(sequence)
-        # self.actor.train()
-        pass
-
     def add_eos_token(
         self, tokens: torch.Tensor, mask: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -558,20 +529,32 @@ class ActorTrainer:
         # and update the mask
         batch_size, seq_len = tokens.shape
         eos_token = self.actor.tokenizer.eos_token_id
-        tokens = torch.cat(
-            [
-                tokens,
-                torch.ones(batch_size, 1).long().to(tokens.device) * eos_token,
-            ],
-            dim=1,
-        )
-        mask = torch.cat(
-            [
-                mask,
-                torch.ones(batch_size, 1).long().to(mask.device),
-            ],
-            dim=1,
-        )
+
+        # see if i can append 1 token
+        n_tokens_to_append = min(self.config.max_sequence_length - seq_len, 1)
+        n_tokens_to_append = max(n_tokens_to_append, 0)
+
+        # concatenate eos to tokens and mask
+        if n_tokens_to_append > 0:
+            tokens = torch.cat(
+                [
+                    tokens,
+                    torch.ones(batch_size, n_tokens_to_append)
+                    .long()
+                    .to(tokens.device)
+                    * eos_token,
+                ],
+                dim=1,
+            )
+            mask = torch.cat(
+                [
+                    mask,
+                    torch.ones(batch_size, n_tokens_to_append)
+                    .long()
+                    .to(mask.device),
+                ],
+                dim=1,
+            )
         return tokens, mask
 
     def train(
@@ -600,8 +583,6 @@ class ActorTrainer:
 
         # counter for the checkpoint
         cnt_checkpoint = 1
-
-        self.test_generation()
 
         # traing loop
         for epoch in range(start_epoch, epochs):
@@ -685,7 +666,6 @@ class ActorTrainer:
                 if cnt_checkpoint % checkpoint_steps == 0:
                     self.save_checkpoint(epoch, i, epochs, n_iter)
                     self.training_stats.save()
-                    self.test_generation()
                     cnt_checkpoint = 1
                 else:
                     cnt_checkpoint += 1
