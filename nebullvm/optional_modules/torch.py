@@ -42,3 +42,5 @@ except ImportError:
     symbolic_trace = None
     QuantStub = DeQuantStub = DummyClass
     default_dynamic_qconfig = prepare_fx = convert_fx = None
+    Generator = DummyClass
+    FloatTensor = DummyClass
