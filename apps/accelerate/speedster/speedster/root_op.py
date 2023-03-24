@@ -233,7 +233,7 @@ class SpeedsterRootOp(Operation):
             ) or (
                 hasattr(model, "model")
                 and isinstance(
-                    model.model, diffusers.models.UNet2DConditionModel
+                    model.model, UNet2DConditionModel
                 )
             ):
                 is_diffusion = True
