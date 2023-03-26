@@ -143,7 +143,7 @@ class ActorModel(torch.nn.Module):
                 load_tokenizer,
             )  # noqa
 
-            tokenizer = load_tokenizer()
+            tokenizer = load_tokenizer(config.tokenizer_path)
         return tokenizer
 
     def parameters(self):
