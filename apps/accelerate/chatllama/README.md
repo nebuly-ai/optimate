@@ -38,7 +38,7 @@ In this Getting Started we will set up a local RLHF training that will allow you
 
 To quickly get you started, we will focus on 3 key steps:
 
-1. Download YAML files to customize your training process. Please note that all the parameters of the library can be managed in the `config.yaml`;
+1. Download YAML files to customize your training process. Please note that all the parameters of the library can be managed in the [`config.yaml`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/config.yaml);
 2. Prepare the 3 datasets needed to train the actor model, the reward model and perform RLHF;
 3. Train the models on your local infrastructure.
 
@@ -46,19 +46,19 @@ To quickly get you started, we will focus on 3 key steps:
 <summary>1 - YAML download </summary>
 First, let’s get the artifacts for running ChatLLaMA. The artifacts contain:
 
-- `config.yaml`: config file for model and data set. This allows you to 1) select the model you prefer (LLaMA, OPT, BLOOM, etc) 2) change all the hyperparameters of the training process;
-- `ds_config.json`: config file to define DeepSpeed training parameters;
-- `peft_config.yaml`: config file to define PEFT parameters; PEFT is used for efficient training with HuggingFace models. It can be used for setting the LoRA parameters as rank and precision.
+- [`config.yaml`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/config.yaml): config file for model and data set. This allows you to 1) select the model you prefer (LLaMA, OPT, BLOOM, etc) 2) change all the hyperparameters of the training process;
+- [`ds_config.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/ds_config.json): config file to define DeepSpeed training parameters;
+- [`peft_config.yaml`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/peft_config.yaml): config file to define PEFT parameters; PEFT is used for efficient training with HuggingFace models. It can be used for setting the LoRA parameters as rank and precision.
 
-- `templates.json`: synthetic data generation templates that can be used to personalize the creation of the dataset. The templates are used for feeding LLMs during the data generation. Note that the `templates.json` file contains a dictionary having as *keys* the training steps (`actor`, `reward`, `rlhf`) and as *values* a string containing the personalization requests of the user. For more details see the [dataset preparation](#dataset-preparation) section;
-- [`main.py`](http://main.py): file to train the model.
+- [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json): synthetic data generation templates that can be used to personalize the creation of the dataset. The templates are used for feeding LLMs during the data generation. Note that the [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json) file contains a dictionary having as *keys* the training steps (`actor`, `reward`, `rlhf`) and as *values* a string containing the personalization requests of the user. For more details see the [dataset preparation](#dataset-preparation) section;
+- [`main.py`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/main.py): file to train the model.
         
 ```bash
 wget -O artifacts.zip https://nbllabartifacts.blob.core.windows.net/chatllama/artifacts.zip\?sp\=r\&st\=2023-03-08T14:53:24Z\&se\=2100-03-08T22:53:24Z\&spr\=https\&sv\=2021-06-08\&sr\=b\&sig\=jqr%2B2ZkR0SW9RjV0pDOdQ%2BDulLXLjbZ36vmNd4XxxyQ%3D
 unzip artifacts.zip 
 ```
         
-Once you have run the command above, you will find the all artificats in the `artifacts/` directory. Now you can move on to the next section regarding the dataset preparation.
+Once you have run the command above, you will find the all artificats in the [`artifacts/`](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/chatllama/artifacts) directory. Now you can move on to the next section regarding the dataset preparation.
 
 </details>
 
@@ -114,7 +114,8 @@ You can train the 3 models in separate steps:
 - Training the Actor with reinforcement learning.
 
     ```bash
-    python artifacts/main.py artifacts/config/config.yaml --type RL
+    python artifacts/
+    artifacts/config/config.yaml --type RL
     ```
 
 
@@ -124,7 +125,7 @@ or, equivantly, the 3 trainings can also be pipelined using the flag ALL.
 python artifacts/main.py artifacts/config/config.yaml --type ALL
 ```
 
-Note that the path to the datasets and the training hyper-parameters of the training process are specified in the `config.yaml` file.
+Note that the path to the datasets and the training hyper-parameters of the training process are specified in the [`config.yaml`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/config.yaml) file.
 
 </details>
 
@@ -301,7 +302,7 @@ It can be provided in 2 different ways:
 
 * <details><summary> Few examples provided by the user and dataset synthetically expanded using LLM </summary>
 
-    You need to add the key `rlhf` to the `templates.json` file with the information about the task you want to perform and extra context needed by the LLM for the generation. Here is an example of template:
+    You need to add the key `rlhf` to the [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json) file with the information about the task you want to perform and extra context needed by the LLM for the generation. Here is an example of template:
 
     ```json
     {
@@ -309,7 +310,7 @@ It can be provided in 2 different ways:
     }
     ```
 
-     *Note that all templates must be saved in a single JSON file named `templates.json`*
+     *Note that all templates must be saved in a single JSON file named [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json)*
      </details>
 
 * <details><summary> The user provides the full dataset with possible interactions with the model </summary>
@@ -360,7 +361,7 @@ We support 3 different options to prepare the `reward_training_data`:
     
     A LLM model is used to assign the score to each entry. 
     
-    The LLM needs a prompt template containing all the instructions to evaluate the generated text. To do this, you should add the key `reward` to the `templates.json` file. Here is an example:
+    The LLM needs a prompt template containing all the instructions to evaluate the generated text. To do this, you should add the key `reward` to the [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json) file. Here is an example:
     
     ```json
     {
@@ -368,7 +369,7 @@ We support 3 different options to prepare the `reward_training_data`:
     }
     ```
     
-    If no template is provided the default one is used. You can find the default template in `artifacts/generate_rewards.py`. Note that all templates must be saved in a single JSON file named `templates.json`. 
+    If no template is provided the default one is used. You can find the default template in `artifacts/generate_rewards.py`. Note that all templates must be saved in a single JSON file named [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json). 
     
     Once you have the unlabelled dataset, you can generate the scores by running the following command:
     
@@ -382,7 +383,7 @@ We support 3 different options to prepare the `reward_training_data`:
     - `<model_to_use>` model to use for the reward. Default and suggested text-davinci-003 (More to come);
     - `<temperature>` temperature used to score the model; temperature=0.1;
     - `<max_tokens>` max_tokens of the generation;
-    - `<reward_template>` is the path to the `templates.json` file containing the template to be used for generating the reward. If no path is provided, the default template will be used.
+    - `<reward_template>` is the path to the [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json) file containing the template to be used for generating the reward. If no path is provided, the default template will be used.
 - The user provides their personalized full dataset
     
     Datasets must be JSON files in the following format:
