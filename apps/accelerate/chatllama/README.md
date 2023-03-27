@@ -48,7 +48,8 @@ First, let’s get the artifacts for running ChatLLaMA. The artifacts contain:
 
 - `config.yaml`: config file for model and data set. This allows you to 1) select the model you prefer (LLaMA, OPT, BLOOM, etc) 2) change all the hyperparameters of the training process;
 - `ds_config.json`: config file to define DeepSpeed training parameters;
-- `peft_config.yaml`: config file to define PEFT parameters;
+- `peft_config.yaml`: config file to define PEFT parameters; PEFT is used for efficient training with HuggingFace models. It can be used for setting the LoRA parameters as rank and precision.
+
 - `templates.json`: synthetic data generation templates that can be used to personalize the creation of the dataset. The templates are used for feeding LLMs during the data generation. Note that the `templates.json` file contains a dictionary having as *keys* the training steps (`actor`, `reward`, `rlhf`) and as *values* a string containing the personalization requests of the user. For more details see the [dataset preparation](#dataset-preparation) section;
 - [`main.py`](http://main.py): file to train the model.
         
