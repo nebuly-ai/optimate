@@ -51,7 +51,7 @@ actor_config:
   additonal_prompt_tokens: 20
   # temperature for the actor
   temperature: 0.1
-  batch_size: 1
+  batch_size: 2
   # number iteration after print
   iteration_per_print: 1
   lr: 0.000009
@@ -69,6 +69,9 @@ actor_config:
   deepspeed_config_path: "./artifacts/config/ds_config.json"
   # accelerate settings
   accelerate_enable: False
+  # use_peft
+  peft_enable: True
+  peft_config_path: "./artifacts/config/peft_config.yaml"
 
 reward_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
