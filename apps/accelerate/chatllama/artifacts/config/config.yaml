@@ -14,10 +14,10 @@ trainer_config:
   # number of episodes and generation performed for each episode
   # in the train() method
   num_episodes: 100
-  max_timesteps: 32
+  max_timesteps: 4
   # number of timesteps after which the learn() method is called 
   # (to update the weights)
-  update_timesteps: 32
+  update_timesteps: 4
   # number of example sampled at each timestep
   num_examples: 1
   # batch and epochs for the training
@@ -28,6 +28,9 @@ trainer_config:
   # here specify the name of the actor_rl checkpoint from which resume 
   # during actor RL training. If null load the last one.
   checkpoint_name: null
+  deepspeed_enable: False
+  deepspeed_config_path: "artifacts/config/ds_config.json"
+  accelerate_enable: False
 
 actor_config:
   model: "facebook/opt-1.3b"
@@ -69,7 +72,7 @@ actor_config:
   deepspeed_config_path: "./artifacts/config/ds_config.json"
   # accelerate settings
   accelerate_enable: False
-  # use_peft - the parameters of PEFT can be modified in the peft_config.yaml
+  # use_peft
   peft_enable: True
   peft_config_path: "./artifacts/config/peft_config.yaml"
 

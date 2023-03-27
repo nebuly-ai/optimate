@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
+    "peft",
     "accelerate",
     "beartype",
     "deepspeed",

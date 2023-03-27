@@ -194,7 +194,11 @@ class ConfigTrainer:
             for the actual training of the actor and critic models.
         epochs (int): Number of epochs to train the actor and critic.
         checkpoint_steps (int): Number of episodes to interleave checkpoints.
-        device (torch.device): Device to be used for the actor and critic
+        device (torch.device): Device to be used for the rl training
+        deepspeed_enable (bool): Enable deepspeed for rl training.
+            Default to False.
+        deepspeed_config_path (str): Path to the deepspeed config file.
+        accelerate_enable (bool): Enable accelerate for rl training
         checkpoint_name (Optional[str]): Name of the checkpoint. Default to
             None.
     """
@@ -214,6 +218,9 @@ class ConfigTrainer:
     epochs: int
     checkpoint_steps: int
     device: torch.device
+    deepspeed_enable: bool
+    deepspeed_config_path: Optional[str]
+    accelerate_enable: bool
     checkpoint_name: Optional[str] = None
     debug: bool = False
 

@@ -3,15 +3,13 @@ import os
 import random
 from collections import deque, namedtuple
 
-import deepspeed
 import torch
-from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
 from torch.utils.data import DataLoader, Dataset
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 from chatllama.rlhf.actor import ActorModel
+from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import (
     Config,
     ConfigActor,
@@ -21,7 +19,7 @@ from chatllama.rlhf.config import (
 from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.model_loader import ModelLoader
 from chatllama.rlhf.reward import RewardModel, CriticModel
-from chatllama.rlhf.utils import TrainingStats, ConversationLog
+from chatllama.rlhf.utils import ConversationLog
 
 
 """
@@ -136,7 +134,7 @@ def check_model_family(config1: ConfigType, config2: ConfigType) -> bool:
         return False
 
 
-class ActorCritic(torch.nn.Module):
+class ActorCritic(BaseModel):
     """Actor Critic class stores both the actor and the critic models
     and it generates values and action for given sequences during the training
     of the actor.
@@ -144,9 +142,6 @@ class ActorCritic(torch.nn.Module):
     Attributes:
         actor (ActorModel): Actor model
         critic (CriticModel): Critic model
-        debug (bool): enable prints for Debugging
-        use_same_tokenizer (bool): if True the actor and critic use the same
-            tokenizer
 
     Methods:
         forward: given a sequence returns action logits and values (used
@@ -157,63 +152,16 @@ class ActorCritic(torch.nn.Module):
     """
 
     def __init__(self, config: Config) -> None:
-        super().__init__()
-        self.config = config
+        super().__init__(config)
 
+        # load the actor
         self.actor = ActorModel(config.actor)
 
         # check if critic must be initialized from reward model
         ModelLoader.init_critic_from_reward(config.critic)
+
+        # now load the critic
         self.critic = CriticModel(config.critic)
-
-        # if the actor and critic use the same tokenizer is set to True
-        self.use_same_tokenizer = False
-
-        # debug flag
-        self.debug = config.actor.debug
-
-    @beartype
-    def load(self) -> None:
-        """Load the model from the path.
-        This method is not implemented since it relies on actor and critic
-        __init__ methods to perform the loading from their respective paths
-        then loaded.
-
-        """
-        pass
-
-    @beartype
-    def save(self) -> None:
-        """Save the model to the path
-        This method is implemented to save the actor model as result of RLHF
-        in the folder actor_rl instead of actor.save() method that saves it
-        in the actor folder.
-        """
-        # get the path to save the actor
-        model_folder, model_name, path = ModelLoader.get_model_path(
-            config=self.config,
-            is_checkpoint=False,
-        )
-
-        # save the model
-        print(f"Saving model to {path} ...")
-        torch.save(
-            {"state_dict": self.actor.model.state_dict()},
-            path,
-        )
-
-        # get the path to save the critic model
-        model_folder, model_name, path = ModelLoader.get_model_path(
-            config=self.config.critic,
-            is_checkpoint=False,
-        )
-
-        # save the model
-        print(f"Saving model to {path} ...")
-        torch.save(
-            {"state_dict": self.critic.model.state_dict()},
-            path,
-        )
 
     @beartype
     def forward(
@@ -466,7 +414,21 @@ class ExamplesSampler:
         return random.sample(self.data, n)
 
 
-class RLTrainer:
+class CustomOptimizer(torch.optim.Optimizer):
+    def __init__(self, params_actor, params_critic, lr_actor, lr_critic):
+        self.actor = torch.optim.AdamW(params_actor, lr=lr_actor)
+        self.critic = torch.optim.AdamW(params_critic, lr=lr_critic)
+
+    def step(self):
+        self.actor.step()
+        self.critic.step()
+
+    def zero_grad(self):
+        self.actor.zero_grad()
+        self.critic.zero_grad()
+
+
+class RLTrainer(BaseTrainer):
     """Train the actor-critic model using RL
 
     Attributes:
@@ -497,35 +459,29 @@ class RLTrainer:
         config: Config,
     ) -> None:
 
-        # save config
-        self.config = config
+        super().__init__(config)
 
         # set debug mode
         self.debug = config.trainer.debug
 
-        # initialize agent-critic
+        # initialize actor-critic
         self.actorcritic = ActorCritic(config)
 
         # initialize actor optimizer
-        self.actor_optimizer = torch.optim.Adam(
-            self.actorcritic.actor.parameters(), lr=config.trainer.actor_lr
-        )
-
-        # initialize critic optimizer
-        self.critic_optimizer = torch.optim.Adam(
-            self.actorcritic.critic.parameters(), lr=config.trainer.critic_lr
+        self.optimizer = CustomOptimizer(
+            self.actorcritic.actor.parameters(),
+            self.actorcritic.critic.parameters(),
+            config.trainer.actor_lr,
+            config.trainer.critic_lr,
         )
 
         # scheduler (defined in the learn() method (i need dataset size))
-        self.actor_scheduler = None
-        self.critic_scheduler = None
+        self.scheduler = None
 
         # initialize reward model
         self.reward = RewardModel(config.reward)
 
-        # initialize class to store training stats
-        path = ModelLoader.get_training_stats_path(config)
-        self.training_stats = TrainingStats(path)
+        # initialize class to store conversations logs
         model_folder, _, _ = ModelLoader.get_model_path(
             config,
             is_checkpoint=True,
@@ -546,150 +502,6 @@ class RLTrainer:
             config.actor, config.reward
         )
 
-        # eps
-        self.eps = 1e-8
-
-    @beartype
-    def save_checkpoint(
-        self,
-        current_episode: int,
-        max_episode: int,
-    ) -> None:
-
-        print(f"Saving checkpoint for episode {current_episode+1}..")
-
-        # get the path to save the checkpoint for the critic
-        model_folder, model_name, path = ModelLoader.get_model_path(
-            config=self.config.critic,
-            is_checkpoint=True,
-            current_epoch=current_episode,
-            max_epochs=max_episode,
-            max_steps=0,
-        )
-
-        # if the checkpoint already exists remove it
-        if os.path.exists(path):
-            os.remove(path)
-
-        # save the checkpoint
-        torch.save(
-            {
-                "episode": current_episode,
-                "critic_state_dict": self.actorcritic.critic.state_dict(),
-                "critic_optim_state_dict": self.critic_optimizer.state_dict(),
-            },
-            path,
-        )
-
-        # get the path to save the checkpoint for the actor
-        model_folder, model_name, path = ModelLoader.get_model_path(
-            config=self.config,
-            is_checkpoint=True,
-            current_epoch=current_episode,
-            max_epochs=max_episode,
-            max_steps=0,
-        )
-
-        # if the checkpoint already exists remove it
-        if os.path.exists(path):
-            os.remove(path)
-
-        # save the checkpoint
-        torch.save(
-            {
-                "episode": current_episode,
-                "actor_state_dict": self.actorcritic.actor.state_dict(),
-                "actor_optim_state_dict": self.actor_optimizer.state_dict(),
-                "training_stats": self.training_stats,
-            },
-            path,
-        )
-
-    @beartype
-    def load_checkpoint(
-        self,
-    ) -> int:
-
-        critic_episode = -1
-        actor_episode = -1
-
-        # check if there are some checkpoint for the critic
-        print("Looking for checkpoints...")
-        path = ModelLoader.check_model_path(
-            config=self.config.critic,
-            is_checkpoint=True,
-            current_epoch=None,
-        )
-
-        # if there are checkpoint
-        if path is not None:
-
-            # load the critic checkpoint
-            print("Loading ...")
-            try:
-                checkpoint = torch.load(path)
-            except Exception:
-                print(
-                    "Checkpoint of critic corrupted!"
-                    "Try to remove the last checkpoint."
-                    "Now Starting from episode 0"
-                )
-                return 0
-
-            # load checkpoint into model
-            critic_episode = checkpoint["episode"]
-            self.actorcritic.critic.load_state_dict(
-                checkpoint["critic_state_dict"]
-            )
-            self.critic_optimizer.load_state_dict(
-                checkpoint["critic_optim_state_dict"]
-            )
-
-        # check if there are checkpoints for the actor
-        print("Looking for checkpoints...")
-        path = ModelLoader.check_model_path(
-            config=self.config,
-            is_checkpoint=True,
-            current_epoch=None,
-        )
-
-        # if there are some checkpoints
-        if path is not None:
-
-            # load the actor checkpoint
-            print("Loading ...")
-            try:
-                checkpoint = torch.load(path)
-            except Exception:
-                print(
-                    "Checkpoint of actor corrupted!"
-                    "Try to remove the last checkpoint."
-                    "Now Starting from episode 0"
-                )
-                return 0
-
-            # load checkpoint into the model
-            actor_episode = checkpoint["episode"]
-            self.actorcritic.actor.load_state_dict(
-                checkpoint["actor_state_dict"]
-            )
-            self.actor_optimizer.load_state_dict(
-                checkpoint["actor_optim_state_dict"]
-            )
-            self.training_stats = checkpoint["training_stats"]
-
-        # check if there are some discrepancies between the checkpoints
-        if critic_episode == actor_episode:
-            # all ok start from next episode
-            return critic_episode + 1
-        else:
-            print(
-                f"There are some discrepancies between the checkpoints"
-                f"of actor and critic \nactor episode: {actor_episode}"
-                f"\n critic episode: {critic_episode}\n"
-            )
-            return min(critic_episode, actor_episode) + 1
-
     @beartype
     def learn(self, memories: Deque[Memory]) -> None:
         """Train the agent-critic model using RL:
@@ -708,107 +520,24 @@ class RLTrainer:
         device = self.config.trainer.device
 
         # create dataset from memories
-        dataset = ExperienceDataset(memories, device)
-        dataloader = DataLoader(dataset, batch_size=batch_size)
-
-        # initialize scheduler for actor
-        actor_lr = self.config.trainer.actor_lr
-        self.actor_scheduler = CosineAnnealingWarmRestarts(
-            self.actor_optimizer, T_0=len(dataset), eta_min=actor_lr * 0.1
+        self.train_dataset = ExperienceDataset(memories, device)
+        self.train_dataloader = DataLoader(
+            self.train_dataset, batch_size=batch_size
         )
 
-        # initialize scheduler for critic
-        critic_lr = self.config.trainer.critic_lr
-        self.critic_scheduler = CosineAnnealingWarmRestarts(
-            self.critic_optimizer, T_0=len(dataset), eta_min=critic_lr * 0.1
+        # initialize scheduler
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer.actor,
+            T_0=len(self.train_dataset) // batch_size,
+            T_mult=1,
+            eta_min=self.config.trainer.actor_lr * 0.1,
         )
 
-        # initialize deepspeed for actor
-        if self.config.actor.deepspeed_enable:
-            if self.config.actor.deepspeed_config_path is None:
-                raise ValueError(
-                    "DeepSpeed config path is None, but deepspeed is enabled"
-                )
-            if (
-                os.path.exists(self.config.actor.deepspeed_config_path)
-                is False
-            ):
-                raise ValueError(
-                    f"DeepSpeed config path"
-                    f"{self.config.actor.deepspeed_config_path}"
-                    f"does not exist"
-                )
-            (
-                actor_model_engine,
-                self.actor_optimizer,
-                self.dataloader,
-                _,
-            ) = deepspeed.initialize(
-                args=None,
-                model=self.actorcritic.actor,
-                model_parameters=self.actorcritic.actor.parameters(),
-                training_data=dataloader,
-                config=self.config.actor.deepspeed_config_path,
-            )
-            self.actorcritic.actor = actor_model_engine
+        # setup deepspeed
+        self.setup_deepspeed()
 
-        # initialize deepspeed for critic
-        if self.config.critic.deepspeed_enable:
-            if self.config.critic.deepspeed_config_path is None:
-                raise ValueError(
-                    "DeepSpeed config path is None, but deepspeed is enabled"
-                )
-            if (
-                os.path.exists(self.config.critic.deepspeed_config_path)
-                is False
-            ):
-                raise ValueError(
-                    f"DeepSpeed config path"
-                    f"{self.config.critic.deepspeed_config_path}"
-                    f"does not exist"
-                )
-            (
-                critic_model_engine,
-                self.critic_optimizer,
-                _,
-                _,
-            ) = deepspeed.initialize(
-                args=None,
-                model=self.actorcritic.critic,
-                model_parameters=self.actorcritic.critic.parameters(),
-                config=self.config.critic.deepspeed_config_path,
-            )
-            self.actorcritic.critic = critic_model_engine
-
-        # initialize actor accelerate
-        if self.config.actor.accelerate_enable is True:
-            actor_accelerator = Accelerator()
-            (
-                actor_model,
-                self.actor_optimizer,
-                self.train_dataloader,
-                self.actor_scheduler,
-            ) = actor_accelerator.prepare(
-                self.actorcritic.actor,
-                self.actor_optimizer,
-                self.train_dataloader,
-                self.actor_scheduler,
-            )
-            self.actorcritic.actor = actor_model
-
-        # initialize critic accelerate
-        if self.config.critic.accelerate_enable is True:
-            critic_accelerator = Accelerator()
-            (
-                critic_model,
-                self.critic_optimizer,
-                self.critic_scheduler,
-            ) = critic_accelerator.prepare(
-                self.actorcritic.critic,
-                self.critic_optimizer,
-                self.critic_scheduler,
-            )
-            self.actorcritic.critic = critic_model
+        # setup accelerate
+        self.setup_accelerate()
 
         # train agent-critic
         self.actorcritic.train()
@@ -825,7 +554,7 @@ class RLTrainer:
                 sequences_mask_critic,
                 action_len_actor,
                 action_len_critic,
-            ) in enumerate(dataloader):
+            ) in enumerate(self.train_dataloader):
 
                 if self.debug:
                     print(
@@ -908,26 +637,11 @@ class RLTrainer:
 
                 policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
                 policy_loss = policy_loss.mean()
-                loss = policy_loss + kl_div_loss
+                policy_loss = policy_loss + kl_div_loss
 
                 # check if loss item is NaN
-                if torch.isnan(loss):
-                    raise ValueError("Loss is nan")
-
-                # update actor with loss
-                if self.config.actor.deepspeed_enable:
-                    actor_model_engine.backward(loss)
-                    actor_model_engine.step()
-                elif self.config.actor.accelerate_enable:
-                    self.actor_optimizer.zero_grad()
-                    actor_accelerator.backward(loss)
-                    self.actor_optimizer.step()
-                    self.actor_scheduler.step()
-                else:
-                    self.actor_optimizer.zero_grad()
-                    loss.backward()
-                    self.actor_optimizer.step()
-                    self.actor_scheduler.step()
+                if torch.isnan(policy_loss):
+                    raise ValueError("Policy Loss is nan")
 
                 # compute value loss
                 # the loss is the distance between the rewards and the values
@@ -945,33 +659,39 @@ class RLTrainer:
                 if torch.isnan(value_loss):
                     raise ValueError("Value loss is nan")
 
-                # upate critic
-                if self.config.critic.deepspeed_enable:
-                    critic_model_engine.backward(value_loss)
-                    critic_model_engine.step()
-                elif self.config.critic.accelerate_enable:
-                    self.critic_optimizer.zero_grad()
-                    critic_accelerator.backward(loss)
-                    self.critic_optimizer.step()
-                    self.critic_scheduler.step()
+                # Sum the two losses
+                loss = policy_loss + value_loss
+
+                # backward pass
+                if self.deepspeed_enable:
+                    # DeepSpeed backward pass
+                    self.model_engine.backward(loss)
+                    self.model_engine.step()
+
+                elif self.accelerate_enable:
+                    # Accelerate backward pass
+                    self.optimizer.zero_grad()
+                    self.accelerator.backward(loss)
+                    self.optimizer.step()
+                    self.scheduler.step()
                 else:
-                    self.critic_optimizer.zero_grad()
+                    # PyTorch backward pass
+                    self.optimizer.zero_grad()
                     value_loss.backward()
-                    self.critic_optimizer.step()
-                    self.critic_scheduler.step()
+                    self.optimizer.step()
+                    self.scheduler.step()
 
                 # append the losses to the training stats
-                self.training_stats.training_loss.append(
-                    loss.detach().cpu().item()
-                )
-                self.training_stats.value_loss.append(
-                    value_loss.detach().cpu().item()
+                self.append_training_stats(
+                    training_loss=loss.detach().cpu().item(),
+                    value_loss=value_loss.detach().cpu().item(),
                 )
 
                 # print iteration info
                 print(
                     f"Epoch {epoch+1}/{epochs}",
-                    f"Step {k+1}/{int(len(dataloader) / batch_size)}",
+                    f"Step "
+                    f"{k+1}/{int(len(self.train_dataloader) / batch_size)}",
                     f"Loss {loss.detach().cpu().item():.4f}",
                     f"Value Loss {value_loss.detach().cpu().item():.4f}",
                 )
@@ -1017,7 +737,7 @@ class RLTrainer:
         memories = deque([])
 
         # load checkpoint
-        start_episode = self.load_checkpoint()
+        start_episode, _ = self.load_checkpoint()
 
         # if it is a new training from the start clear the conversation log
         if start_episode == 0:
