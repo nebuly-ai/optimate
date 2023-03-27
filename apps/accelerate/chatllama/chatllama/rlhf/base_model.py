@@ -94,6 +94,13 @@ class BaseModel(torch.nn.Module):
                 # load tokenizer
                 self.tokenizer = self.load_tokenizer(config)
 
+                # check load 8 bit condition
+                if not isinstance(config, ConfigActor):
+                    config.load_8bit = False
+                else:
+                    if not config.peft_enable:
+                        config.load_8bit = False
+
                 # load model
                 if isinstance(config, ConfigActor):
                     self.model = AutoModelForCausalLM.from_pretrained(
