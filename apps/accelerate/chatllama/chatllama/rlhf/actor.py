@@ -1,183 +1,29 @@
 import json
-import yaml
-import os
-import shutil
 
-import deepspeed
 import torch
-from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Tuple
 from einops import rearrange
-from peft import get_peft_model, LoraConfig, TaskType
 from torch.utils.data import DataLoader, Dataset
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-)
 
+from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
-    llama_models,
-    hf_models,
 )
 
-from chatllama.rlhf.model_loader import ModelLoader
-from chatllama.rlhf.utils import TrainingStats
 
-
-class ActorModel(torch.nn.Module):
+class ActorModel(BaseModel):
     """Actor model that generates the augmented prompt from the initial
     user_input. The aim is to train this model to generate better prompts.
 
-    Attributes:
-        model: The model from LLaMA to be used
-        tokenizer: The LLaMA tokenizer
-        config (ConfigActor): Configuration for the actor model
-
     Methods:
-        load: Load the model from a path
-        save: Save the model to a path
         forward: Compute the action logits for a given sequence.
         generate: Generate a sequence from a given prompt
     """
 
     def __init__(self, config: ConfigActor) -> None:
-        super().__init__()
-
-        # save config
-        self.config = config
-
-        # initialize the self.model
-        if config.model in llama_models:
-            # llama module might not be present when HF models are used
-            from chatllama.llama_model import (
-                load_model,
-                setup_model_parallel,
-            )  # noqa
-
-            local_rank, world_size = setup_model_parallel()
-
-            # use load_model_test for testing
-            self.model, self.tokenizer = load_model(
-                ckpt_dir=config.model_folder,
-                tokenizer_path=config.tokenizer_path,
-                local_rank=local_rank,
-                world_size=world_size,
-                froze_embeddings=config.froze_embeddings,
-                use_fairscale=config.use_fairscale,
-                max_batch_size=config.batch_size,
-            )
-        elif config.model in hf_models_causal_lm:
-            self.tokenizer = self.load_tokenizer(config)
-            self.model = AutoModelForCausalLM.from_pretrained(
-                config.model,
-            )
-
-            # Setup PEFT model
-            if config.peft_enable:
-
-                # check that the peft config exist
-                if os.path.exists(config.peft_config_path):
-                    # Read the peft config from yaml
-                    with open(config.peft_config_path, "r") as c:
-                        config_peft = yaml.safe_load(c)
-                else:
-                    raise ValueError(
-                        f"PEFT config {config.peft_config_path} not found"
-                    )
-
-                print(config_peft)
-                # define lora config for peft
-                peft_config = LoraConfig(
-                    task_type=TaskType.CAUSAL_LM, **config_peft
-                )
-
-                # create peft model
-                self.model = get_peft_model(
-                    model=self.model,
-                    peft_config=peft_config,
-                )
-
-            self.model.to(config.device)
-
-        else:
-            raise ValueError(f"Model {config.model} not supported")
-
-        # load the model from model_folder
-        self.load()
-
-    @beartype
-    def load(self) -> None:
-        """Load the model from the path"""
-        # check if there is a model to load
-        path = ModelLoader.check_model_path(
-            config=self.config,
-            is_checkpoint=False,
-            current_epoch=None,
-        )
-
-        # if there is a model to load
-        if path is not None:
-
-            # load the model
-            print("Loading ...")
-            model_dict = torch.load(path)
-            self.model.load_state_dict(model_dict["state_dict"])
-
-    @beartype
-    def save(self) -> None:
-        """Save the model to the path"""
-        # get the path to save the model
-        model_folder, model_name, path = ModelLoader.get_model_path(
-            config=self.config,
-            is_checkpoint=False,
-            current_epoch=None,
-        )
-
-        # save the model
-        print(f"Saving model to {path} ...")
-        torch.save(
-            {"state_dict": self.model.state_dict()},
-            path,
-        )
-
-    @staticmethod
-    def load_tokenizer(config: ConfigActor):
-        """Load the tokenizer from the model name"""
-        if config.model in hf_models:
-            # load the tokenizer from HF
-            tokenizer = AutoTokenizer.from_pretrained(
-                config.model,
-                padding_side="left",
-                padding=True,
-                truncation=True,
-                model_max_length=config.max_sequence_length,
-            )
-
-            # add eos token if not present
-            if tokenizer.eos_token is None:
-                tokenizer.eos_token = "</s>"
-                tokenizer.eos_token_id = 2  # OPT eos-token-id
-
-            # add pad token if not present
-            if tokenizer.pad_token is None:
-                tokenizer.pad_token = tokenizer.eos_token
-                tokenizer.pad_token_id = tokenizer.eos_token_id
-        elif config.model in llama_models:
-
-            # llama module might not be present when HF models are used
-            from chatllama.llama_model import (
-                load_tokenizer,
-            )  # noqa
-
-            tokenizer = load_tokenizer(config.tokenizer_path)
-        return tokenizer
-
-    def parameters(self):
-        """Return the parameters of the model"""
-        return self.model.parameters()
+        super().__init__(config)
 
     @beartype
     def forward(
@@ -307,7 +153,7 @@ class ActorDataset(Dataset):
         return len(self.data)
 
 
-class ActorTrainer:
+class ActorTrainer(BaseTrainer):
     """Used to pre-train the actor model to generate better prompts.
 
     Args:
@@ -331,24 +177,22 @@ class ActorTrainer:
 
     Methods:
         train: Train the actor model
-        load_checkpoint: Load a checkpoint
-        save_checkpoint: Save a checkpoint
     """
 
     def __init__(self, config: ConfigActor) -> None:
 
         # store config
-        self.config = config
+        super().__init__(config)
 
         # load the model
-        self.actor = ActorModel(config)
+        self.model = ActorModel(config)
 
         # define loss function
         self.loss_function = torch.nn.CrossEntropyLoss()
 
         # define optimizer
         self.optimizer = torch.optim.AdamW(
-            self.actor.parameters(), lr=config.lr, weight_decay=1e-5
+            self.model.parameters(), lr=config.lr, weight_decay=1e-5
         )
 
         # check if validation dataset is provided
@@ -376,180 +220,11 @@ class ActorTrainer:
             eta_min=config.lr * 0.1,
         )
 
-        # define training statistics
-        stat_path = ModelLoader.get_training_stats_path(config)
-        self.training_stats = TrainingStats(stat_path)
+        # deepspeed
+        self.setup_deepspeed()
 
-        # consistency check between accelerate and deepspeed
-        if config.accelerate_enable and config.deepspeed_enable:
-            raise ValueError(
-                "Both DeepSpeed and Accelerate are enabled for the Actor."
-                "Please choose one of them."
-            )
-
-        # initialize deepspeed
-        self.model_engine = None
-        if config.deepspeed_enable is True:
-            if config.deepspeed_config_path is None:
-                raise ValueError(
-                    "DeepSpeed config path is None, but deepspeed is enabled"
-                )
-            if os.path.exists(config.deepspeed_config_path) is False:
-                raise ValueError(
-                    f"DeepSpeed config path {config.deepspeed_config_path}"
-                    f"does not exist"
-                )
-            (
-                self.model_engine,
-                self.optimizer,
-                self.train_dataloader,
-                _,
-            ) = deepspeed.initialize(
-                args=None,
-                model=self.actor,
-                model_parameters=self.actor.parameters(),
-                training_data=self.train_dataset,
-                config=self.config.deepspeed_config_path,
-            )
-            print("Training with DeepSpeed")
-
-        # initialize accelerate
-        self.accelerator = None
-        if config.accelerate_enable is True:
-            self.accelerator = Accelerator()
-            (
-                self.actor,
-                self.optimizer,
-                self.train_dataloader,
-                self.scheduler,
-            ) = self.accelerator.prepare(
-                self.actor,
-                self.optimizer,
-                self.train_dataloader,
-                self.scheduler,
-            )
-            print("Training with Accelerate")
-
-    @beartype
-    def save_checkpoint(
-        self,
-        current_epoch: int,
-        current_step: int,
-        max_epochs: int,
-        max_steps: int,
-    ) -> None:
-        """Save the current checkpoint
-
-        Args:
-            current_epoch (int): Current epoch
-            current_step (int): Current step
-            max_epochs (int): Maximum number of epochs
-            max_steps (int): Maximum number of steps
-        """
-
-        print(
-            f"Saving checkpoint for epoch {current_epoch + 1}, "
-            f"step {current_step + 1} ..."
-        )
-        # look for path to save the checkpoint
-        model_folder, model_name, path = ModelLoader.get_model_path(
-            config=self.config,
-            is_checkpoint=True,
-            current_epoch=current_epoch,
-            current_step=current_step,
-            max_epochs=max_epochs,
-            max_steps=max_steps,
-        )
-
-        # remove the checkpoint if it already exists
-        if os.path.exists(path):
-            if self.config.deepspeed_enable:
-                shutil.rmtree(path)
-            else:
-                os.remove(path)
-
-        if self.config.deepspeed_enable:
-            client_state = {
-                "epoch": current_epoch,
-                "step": current_step,
-            }
-            self.model_engine.save_checkpoint(path, client_state=client_state)
-        else:
-            # save the checkpoint
-            torch.save(
-                {
-                    "state_dict": self.actor.model.state_dict(),
-                    "optim_state_dict": self.optimizer.state_dict(),
-                    "training_stats": self.training_stats,
-                    "epoch": current_epoch,
-                    "step": current_step,
-                },
-                path,
-            )
-
-        # remove old checkpoints
-        n_checkpoints_to_keep = self.config.n_checkpoints_to_keep
-        ModelLoader.delete_old_checkpoints(
-            model_folder, model_name, n_checkpoints_to_keep
-        )
-
-    @beartype
-    def load_checkpoint(
-        self,
-    ) -> Tuple[int, int]:
-        """Load a checkpoint from the model folder
-
-        Returns:
-            Tuple[int, int]: Current epoch and current step to resume
-                training
-        """
-
-        print("Looking for checkpoints...")
-        # look for a checkpoint
-        path = ModelLoader.check_model_path(
-            config=self.config,
-            is_checkpoint=True,
-            current_epoch=None,
-        )
-
-        # if there is a checkpoint
-        if path is not None:
-            print("Loading ...")
-
-            if self.config.deepspeed_enable:
-                # try to load the checkpoint
-                try:
-                    _, client_state = self.model_engine.load_checkpoint(path)
-                except Exception:
-                    print(
-                        "Checkpoint corrupted!"
-                        "Try to remove the last checkpoint."
-                        "Now Starting from epoch 0, step 0"
-                    )
-                    return 0, 0
-                # load epoch and step to resume loops
-                epoch = client_state["epoch"]
-                step = client_state["step"]
-            else:
-                # try to load the checkpoint
-                try:
-                    checkpoint = torch.load(path)
-                except Exception:
-                    print(
-                        "Checkpoint corrupted!"
-                        "Try to remove the last checkpoint."
-                        "Now Starting from epoch 0, step 0"
-                    )
-                    return 0, 0
-
-                # assing the checkpoint to the model
-                epoch = checkpoint["epoch"]
-                self.actor.model.load_state_dict(checkpoint["state_dict"])
-                self.optimizer.load_state_dict(checkpoint["optim_state_dict"])
-                self.trainign_stats = checkpoint["training_stats"]
-                step = checkpoint["step"]
-                return epoch, step + 1  # return the next episode to train
-        return 0, 0
+        # HF accelerate
+        self.setup_accelerate()
 
     def add_eos_token(
         self, tokens: torch.Tensor, mask: torch.Tensor
@@ -557,7 +232,7 @@ class ActorTrainer:
         # given tokens and mask, add eos token to the end of each sequence
         # and update the mask
         batch_size, seq_len = tokens.shape
-        eos_token = self.actor.tokenizer.eos_token_id
+        eos_token = self.model.tokenizer.eos_token_id
 
         # see if i can append 1 token
         n_tokens_to_append = min(self.config.max_sequence_length - seq_len, 1)
@@ -615,7 +290,7 @@ class ActorTrainer:
 
         # traing loop
         for epoch in range(start_epoch, epochs):
-            self.actor.train()
+            self.model.train()
             for i, input_text in enumerate(self.train_dataloader):
 
                 # skip the first steps if we are resuming training
@@ -624,7 +299,7 @@ class ActorTrainer:
 
                 # tokenize input
                 with torch.no_grad():
-                    input_tokenized = self.actor.tokenizer(
+                    input_tokenized = self.model.tokenizer(
                         input_text,
                         return_tensors="pt",
                         truncation=True,
@@ -660,13 +335,13 @@ class ActorTrainer:
                         training_input, attention_mask
                     )
                 else:
-                    est_output = self.actor(training_input, attention_mask)
+                    est_output = self.model(training_input, attention_mask)
 
                 # compute loss
                 est_output = rearrange(est_output, "b s v -> (b s) v")
                 training_output = rearrange(training_output, "b s -> (b s)")
                 loss = self.loss_function(est_output, training_output)
-                self.training_stats.training_loss.append(loss.item())
+                self.append_training_stats(training_loss=loss.item())
 
                 # backward pass
                 if self.config.deepspeed_enable:
@@ -701,12 +376,12 @@ class ActorTrainer:
 
             # Validation
             if self.validation_flag:
-                self.actor.eval()
+                self.model.eval()
                 with torch.no_grad():
                     for i, input_text in enumerate(self.validation_dataloader):
 
                         # tokenize input
-                        input_tokenized = self.actor.tokenizer(
+                        input_tokenized = self.model.tokenizer(
                             input_text, return_tensors="pt", padding=True
                         )
                         validation_output = input_tokenized["input_ids"][:, 1:]
@@ -716,7 +391,7 @@ class ActorTrainer:
                         ]
 
                         # forward pass
-                        est_output = self.actor.forward(
+                        est_output = self.model.forward(
                             validation_input, attention_mask
                         )
                         validation_output = rearrange(
@@ -728,7 +403,7 @@ class ActorTrainer:
                         loss = self.loss_function(
                             est_output, validation_output
                         )
-                        self.training_stats.validation_loss.append(loss.item())
+                        self.append_training_stats(validation_loss=loss.item())
 
                         # print progress
                         if i % self.config.iteration_per_print == 0:
@@ -741,5 +416,5 @@ class ActorTrainer:
             start_step = 0
 
         # save the model
-        self.actor.save()
+        self.model.save()
         print("Training Finished ")
