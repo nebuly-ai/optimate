@@ -1,6 +1,7 @@
 import json
-import shutil
+import yaml
 import os
+import shutil
 
 import deepspeed
 import torch
@@ -8,6 +9,7 @@ from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Tuple
 from einops import rearrange
+from peft import get_peft_model, LoraConfig, TaskType
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
     AutoModelForCausalLM,
@@ -72,7 +74,34 @@ class ActorModel(torch.nn.Module):
             self.model = AutoModelForCausalLM.from_pretrained(
                 config.model,
             )
+
+            # Setup PEFT model
+            if config.peft_enable:
+
+                # check that the peft config exist
+                if os.path.exists(config.peft_config_path):
+                    # Read the peft config from yaml
+                    with open(config.peft_config_path, "r") as c:
+                        config_peft = yaml.safe_load(c)
+                else:
+                    raise ValueError(
+                        f"PEFT config {config.peft_config_path} not found"
+                    )
+
+                print(config_peft)
+                # define lora config for peft
+                peft_config = LoraConfig(
+                    task_type=TaskType.CAUSAL_LM, **config_peft
+                )
+
+                # create peft model
+                self.model = get_peft_model(
+                    model=self.model,
+                    peft_config=peft_config,
+                )
+
             self.model.to(config.device)
+
         else:
             raise ValueError(f"Model {config.model} not supported")
 

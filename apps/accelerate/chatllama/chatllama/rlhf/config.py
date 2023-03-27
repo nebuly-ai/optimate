@@ -125,7 +125,10 @@ class ConfigActor:
         device (torch.device): Device to be used for the actor
         checkpoint_name (Optional[str]): Name of the checkpoint. Default to
             None.
+        peft_enable (bool): Enable peft for the actor
+        peft_config_path (str): Path to the peft config file.
         debug (bool): Enable prints for debugging
+
     """
 
     model: str
@@ -153,6 +156,8 @@ class ConfigActor:
     accelerate_enable: bool
 
     device: torch.device
+    peft_enable: bool
+    peft_config_path: str
     checkpoint_name: Optional[str] = None
     debug: bool = False
 
