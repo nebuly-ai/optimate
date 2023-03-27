@@ -97,14 +97,14 @@ class BaseModel(torch.nn.Module):
                 # load model
                 if isinstance(config, ConfigActor):
                     self.model = AutoModelForCausalLM.from_pretrained(
-                        config.model,
+                        config.model, load_in_8bit=config.load_8bit
                     )
 
                 elif isinstance(config, ConfigReward) or isinstance(
                     config, ConfigCritic
                 ):
                     self.model = AutoModel.from_pretrained(
-                        config.model,
+                        config.model, load_in_8bit=config.load_8bit
                     )
 
                 # if add the head for the reward and critic

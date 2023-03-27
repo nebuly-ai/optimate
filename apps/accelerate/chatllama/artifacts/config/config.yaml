@@ -34,6 +34,7 @@ trainer_config:
 
 actor_config:
   model: "facebook/opt-1.3b"
+  load_8bit: False
   model_folder: "./models"
   tokenizer_path: "path-to-tokenizer"
   train_dataset_path: "./datasets/actor_training_data.json"
@@ -81,6 +82,7 @@ reward_config:
   # more can be simply added in the reward.py __init__()
   model: "facebook/opt-125m"
   model_folder: "./models"
+  load_8bit: False
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
   max_sequence_length: 2048
@@ -105,6 +107,7 @@ critic_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
   # more can be simply added in the reward.py __init__()
   model: "facebook/opt-125m"
+  load_8bit: False
   # hidden size of the additional ffw head to produce the scores
   model_head_hidden_size: 2048
   max_sequence_length: 2048

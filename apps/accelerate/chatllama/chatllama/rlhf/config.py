@@ -14,6 +14,7 @@ class ConfigReward:
     Attributes:
         device (torch.device): Device to be used for the reward model
         model (str): Model to be used for the reward model
+        load_8bit (bool): Load the reward model in 8bit mode
         model_folder (str): Path to the folder where model are stored (used
             to load / store finetuned model or checkpoints)
         model_head_hidden_size (int): Hidden size of the reward model head
@@ -93,6 +94,7 @@ class ConfigActor:
 
     Attributes:
         model (str): Model to be used for the actor
+        load_8bit (bool): Load the actor in 8bit mode
         model_folder (str): Path to the folder where model are stored (used
             to load / store finetuned model or checkpoints)
         tokenizer_path (str): Path to the folder where tokenizer are stored
@@ -132,6 +134,7 @@ class ConfigActor:
     """
 
     model: str
+    load_8bit: bool
     model_folder: str
     tokenizer_path: str
     train_dataset_path: str
