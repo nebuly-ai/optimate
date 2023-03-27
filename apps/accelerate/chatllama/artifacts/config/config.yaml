@@ -69,7 +69,7 @@ actor_config:
   deepspeed_config_path: "./artifacts/config/ds_config.json"
   # accelerate settings
   accelerate_enable: False
-  # use_peft
+  # use_peft - the parameters of PEFT can be modified in the peft_config.yaml
   peft_enable: True
   peft_config_path: "./artifacts/config/peft_config.yaml"
 
