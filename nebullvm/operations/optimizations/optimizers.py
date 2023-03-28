@@ -38,6 +38,14 @@ class PytorchOptimizer(Optimizer):
             elif self.device.type is DeviceType.NEURON:
                 if torch_neuron_is_available():
                     compilers.append(ModelCompiler.TORCH_NEURON)
+                else:
+                    raise RuntimeError(
+                        "Torch Neuron is not available on your platform. "
+                        "Please install torch-neuron by following "
+                        "this guide: https://awsdocs-neuron"
+                        ".readthedocs-hosted.com/en/latest/general/"
+                        "quick-start/torch-neuron.html."
+                    )
             else:
                 compilers.append(ModelCompiler.TORCHSCRIPT)
                 if tvm_is_available():

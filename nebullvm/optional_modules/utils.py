@@ -9,7 +9,8 @@ from nebullvm.operations.optimizations.compilers.utils import (
     bladedisc_is_available,
     deepsparse_is_available,
     intel_neural_compressor_is_available,
-    torch_tensorrt_is_available, torch_neuron_is_available,
+    torch_tensorrt_is_available,
+    torch_neuron_is_available,
 )
 from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.utils import gpu_is_available, check_module_version
