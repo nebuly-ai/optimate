@@ -1,7 +1,12 @@
 import argparse
 import os
 
-from chatllama.rlhf.dataset import AnthropicRLHF, StanfordNLPSHPDataset
+from chatllama.rlhf.dataset import (
+    AnthropicRLHF,
+    LaionOIG,
+    SelfInstruct,
+    StanfordNLPSHP,
+)
 
 
 if __name__ == "__main__":
@@ -15,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "dataset_name",
         help="dataset name it can be. SSHP: stanfordnlp/SHP or ",
-        choices=["SHP", "ARLHF"],
+        choices=["SHP", "ARLHF", "SI"],
     )
     parser.add_argument(
         "-p",
@@ -40,7 +45,7 @@ if __name__ == "__main__":
         raise ValueError("Number of samples should be an integer")
 
     if args.dataset_name == "SHP":
-        dataset = StanfordNLPSHPDataset()
+        dataset = StanfordNLPSHP()
         dataset.save_dataset(args.path, n_samples)
 
     elif args.dataset_name == "ARLHF":
@@ -49,3 +54,10 @@ if __name__ == "__main__":
             args.path,
             n_samples,
         )
+    elif args.dataset_name == "SI":
+        dataset = SelfInstruct()
+        dataset.save_dataset(
+            args.path,
+            n_samples,
+        )
+        

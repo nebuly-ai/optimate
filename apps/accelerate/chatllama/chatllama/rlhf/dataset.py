@@ -245,7 +245,7 @@ class BaseDataset:
             )
 
 
-class StanfordNLPSHPDataset(BaseDataset):
+class StanfordNLPSHP(BaseDataset):
     """Class for Stanford NLP SHP dataset from HuggingFace"""
 
     def __init__(
@@ -341,6 +341,8 @@ class StanfordNLPSHPDataset(BaseDataset):
 
 
 class AnthropicRLHF(BaseDataset):
+    """Class for Anthropic RLHF dataset from HuggingFace"""
+    
     def __init__(
         self,
     ) -> None:
@@ -384,7 +386,7 @@ class AnthropicRLHF(BaseDataset):
 
             conversations.append(conv)
         return conversations
-
+    
     def save_dataset(
         self, dataset_folder: str, number_of_samples: int, reverse: bool = True
     ) -> None:
@@ -430,3 +432,104 @@ class AnthropicRLHF(BaseDataset):
             json.dump(conversations, f, indent=4)
 
         print("Generation Completed")
+
+    
+
+class SelfInstruct(BaseDataset):
+    """Class for SelfInstruct dataset from HuggingFace"""
+    
+    def __init__(
+        self,
+    ) -> None:
+        print("Download the dataset")
+        self.dataset = load_dataset("HuggingFaceH4/self-instruct")
+        print("Download Completed")
+        
+    def reformat_dataset(self, data: List) -> List[Dict]:
+        """Reformat the dataset to the format required by RLHF
+
+        Args:
+            data (List): dataset from HuggingFace
+
+        Returns:
+            List[Dict]: reformatted dataset
+        """
+        
+        # here do a tiling to reformat the dataset (otherwise is slow)
+        def reformat_shard(shard_data):
+            rshard = [
+                {
+                    "user_input": shard_data["prompt"][i],
+                    "completion": shard_data["completion"][i],
+                }
+                for i in range(len(shard_data["prompt"]))
+            ]
+            return rshard
+
+        # number of shards
+        n_split = 100
+        
+        # shard size
+        shard_size = len(data) // n_split
+        
+        # initialize the reformatted dataset list
+        reformat_data = []
+        
+        # loop over the shards
+        for i in range(n_split):
+            current_shard = data[
+                i * shard_size : (i + 1) * shard_size  # noqa E203
+            ]
+            reformat_data.extend(reformat_shard(current_shard))
+        return reformat_data
+    
+    def save_dataset(
+        self, dataset_folder: str, number_of_samples: int, reverse: bool = True
+    ) -> None:
+        """Save the dataset in the format required by RLHF
+
+        Args:
+            dataset_folder (str): path to the folder where the dataset
+                will be saved
+            number_of_samples (int): number of samples to take from the
+                dataset
+            reverse (bool, optional): sort the dataset in descending order.
+                Defaults to True.
+        """
+
+        print("Generate datasets for RLHF")
+        # divide train data in two chunks 
+        data = self.reformat_dataset(self.dataset["train"])
+        slice_index = int(len(data) * 0.9)
+        data1 = data[: slice_index]
+        data2 = data[slice_index :]
+        
+        # generate actor and reward dataset
+        conversations = self.sort_conversation(data1, reverse=reverse)
+
+        # save actor training data
+        with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
+            json.dump(conversations, f, indent=4)
+
+        # sample N number of index from 0 to len(conversations)
+        conversations = self.take_n_samples(conversations, number_of_samples)
+        conversations = self.sort_conversation(conversations, reverse=reverse)
+
+        # save reward training data
+        with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
+            json.dump(conversations, f, indent=4)
+
+        # rlhf dataset
+        conversations = data2
+
+        # sort conversations by length of user_input
+        conversations = self.sort_conversation(
+            conversations, only_input=True, reverse=reverse
+        )
+
+        # save rlhf training data
+        with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
+            json.dump(conversations, f, indent=4)
+
+        print("Generation Completed")
+
