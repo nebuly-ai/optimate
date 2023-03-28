@@ -9,7 +9,7 @@ from nebullvm.optional_modules.torch import (
     symbolic_trace,
 )
 from nebullvm.optional_modules.torch_neuron import torch_neuron
-from nebullvm.tools.base import QuantizationType, DeviceType
+from nebullvm.tools.base import QuantizationType, DeviceType, ModelParams
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
@@ -21,9 +21,35 @@ class TorchNeuronCompiler(Compiler):
         "neuron": [None, QuantizationType.HALF]
     }
 
+    @staticmethod
+    def _check_dynamic_shape(network_parameters: ModelParams) -> bool:
+        """Handles case when model inputs have dynamic shapes. 
+        For now TorchNeuron only supports dynamic shape for the
+        batch dimension.
+
+        Args:
+            network_parameters (ModelParams): The model parameters.
+
+        Returns:
+            bool: True if the model has dynamic batch size, False otherwise.
+        """
+        if network_parameters.dynamic_info is None:
+            return False
+
+        for i, input_shape in enumerate(network_parameters.dynamic_info.inputs):
+            if len(input_shape) > 1 or (len(input_shape) == 1 and input_shape.get(0) is None):
+                raise ValueError(
+                    f"TorchNeuronCompiler only supports dynamic shapes for batch dimension. "
+                    f"Provided dynamic info for input {i} is: {input_shape}. "
+                    f"Please use padding for the other dimensions."
+                )
+
+        return True
+
     def execute(
         self,
         model: torch.nn.Module,
+        model_params: ModelParams,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         input_data: DataManager = None,
@@ -33,6 +59,7 @@ class TorchNeuronCompiler(Compiler):
 
         Args:
             model (torch.nn.Module): The pytorch model.
+            model_params (ModelParams): The model parameters.
             input_tfms (MultiStageTransformation, optional): Transformations
                 to be performed to the model's input tensors in order to
                 get the prediction. Default: None.
@@ -57,9 +84,10 @@ class TorchNeuronCompiler(Compiler):
         )
 
         check_quantization(quantization_type, metric_drop_ths)
+        dynamic_batch_size = self._check_dynamic_shape(model_params)
 
         self.compiled_model = self._compile_model(
-            model, input_data, quantization_type
+            model, input_data, quantization_type, dynamic_batch_size=dynamic_batch_size
         )
 
     @torch.no_grad()
@@ -68,6 +96,7 @@ class TorchNeuronCompiler(Compiler):
         model: torch.nn.Module,
         input_data: DataManager,
         quantization_type: QuantizationType,
+        dynamic_batch_size: bool,
     ) -> torch.jit.ScriptModule:
         input_sample = input_data.get_list(1)[0]
         if self.device.type is DeviceType.GPU:
@@ -90,13 +119,20 @@ class TorchNeuronCompiler(Compiler):
             model_scripted = torch_neuron.trace(
                 model_scripted,
                 input_sample,
-                compiler_args=["--fast-math", "none"] if quantization_type is None else None)
+                dynamic_batch_size=dynamic_batch_size,
+                compiler_args=["--fast-math", "none"]
+                if quantization_type is None
+                else None,
+            )
         except Exception:
             try:
                 model_scripted = torch_neuron.trace(
                     model,
                     input_sample,
-                    compiler_args=["--fast-math", "none"] if quantization_type is None else None)
+                    dynamic_batch_size=dynamic_batch_size,
+                    compiler_args=["--fast-math", "none"]
+                    if quantization_type is None
+                    else None)
             except Exception:
                 raise RuntimeError("Unable to trace model with torch_neuron.")
 
