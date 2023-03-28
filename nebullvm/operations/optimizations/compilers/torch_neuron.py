@@ -1,4 +1,4 @@
-from typing import Union, List, Tuple
+from typing import List, Tuple
 
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.quantizations.utils import (
@@ -6,9 +6,6 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
 )
 from nebullvm.optional_modules.torch import (
     torch,
-    Module,
-    ScriptModule,
-    GraphModule,
     symbolic_trace,
 )
 from nebullvm.optional_modules.torch_neuron import torch_neuron
@@ -26,7 +23,7 @@ class TorchNeuronCompiler(Compiler):
 
     def execute(
         self,
-        model: Module,
+        model: torch.nn.Module,
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         input_data: DataManager = None,
@@ -68,10 +65,10 @@ class TorchNeuronCompiler(Compiler):
     @torch.no_grad()
     def _compile_model(
         self,
-        model: Union[Module, GraphModule],
+        model: torch.nn.Module,
         input_data: DataManager,
         quantization_type: QuantizationType,
-    ) -> ScriptModule:
+    ) -> torch.jit.ScriptModule:
         input_sample = input_data.get_list(1)[0]
         if self.device.type is DeviceType.GPU:
             if quantization_type is QuantizationType.HALF:
@@ -86,34 +83,29 @@ class TorchNeuronCompiler(Compiler):
                     t.to(self.device.to_torch_format()) for t in input_sample
                 ]
             model.to(self.device.to_torch_format())
+        model.eval()
 
-        if not isinstance(model, torch.fx.GraphModule):
-            model.eval()
+        try:
+            model_scripted = symbolic_trace(model)
+            model_scripted = torch_neuron.trace(
+                model_scripted,
+                input_sample,
+                compiler_args=["--fast-math", "none"] if quantization_type is None else None)
+        except Exception:
             try:
-                model_scripted = symbolic_trace(model)
                 model_scripted = torch_neuron.trace(
-                    model_scripted,
+                    model,
                     input_sample,
                     compiler_args=["--fast-math", "none"] if quantization_type is None else None)
             except Exception:
-                if quantization_type is None:
-                    self.logger.warning("Unable to trace model with torch.fx")
-                try:
-                    model_scripted = torch_neuron.trace(
-                        model_scripted,
-                        input_sample,
-                        compiler_args=["--fast-math", "none"] if quantization_type is None else None)
-                except Exception:
-                    pass
-        else:
-            model_scripted = torch.jit.script(model)
+                raise RuntimeError("Unable to trace model with torch_neuron.")
 
         return model_scripted
 
     @torch.no_grad()
     def _quantize_model(
         self,
-        model: Module,
+        model: torch.nn.Module,
         quantization_type: QuantizationType,
         input_tfms: MultiStageTransformation,
         input_data_torch: List[Tuple[torch.Tensor, ...]],

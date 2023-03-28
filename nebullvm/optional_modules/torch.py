@@ -19,12 +19,16 @@ except ImportError:
     class nn:
         Module = DummyClass
 
+    class jit:
+        ScriptModule = DummyClass
+
     class torch:
         float = half = int8 = DummyClass
         float16 = float32 = int32 = int64 = DummyClass
         Tensor = DummyClass
         dtype = DummyClass
         nn = nn
+        jit = jit
 
         @staticmethod
         def no_grad():
