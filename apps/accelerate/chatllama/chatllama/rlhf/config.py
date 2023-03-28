@@ -19,6 +19,8 @@ class ConfigReward:
             to load / store finetuned model or checkpoints)
         model_head_hidden_size (int): Hidden size of the reward model head
         max_sequence_length (int): Max sequence length of the reward model
+        peft_enable (bool): Enable peft for the reward model
+        peft_config_path (str): Path to the peft config file.
         train_dataset_path (Optional[str]): Path to the training dataset.
             Default to None. To be specified only for the reward model trainig.
         validation_dataset_path (Optional[str]): Path to the validation
@@ -59,9 +61,12 @@ class ConfigReward:
 
     device: torch.device
     model: str
+    load_8bit: bool
     model_folder: str
     model_head_hidden_size: int
     max_sequence_length: int
+    peft_enable: bool
+    peft_config_path: str
     train_dataset_path: Optional[str] = None
     validation_dataset_path: Optional[str] = None
     batch_size: Optional[int] = None

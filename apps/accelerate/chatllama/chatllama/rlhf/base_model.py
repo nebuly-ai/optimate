@@ -28,7 +28,7 @@ from chatllama.rlhf.model_list import (
 )
 
 from chatllama.rlhf.model_loader import ModelLoader
-from chatllama.rlhf.utils import TrainingStats
+from chatllama.rlhf.utils import TrainingStats, IgnoreLabelsWrapper
 
 
 ConfigType = Union[ConfigActor, ConfigReward, ConfigCritic, Config]
@@ -95,14 +95,12 @@ class BaseModel(torch.nn.Module):
                 self.tokenizer = self.load_tokenizer(config)
 
                 # check load 8 bit condition
-                if not isinstance(config, ConfigActor):
+                if not config.peft_enable:
                     config.load_8bit = False
-                else:
-                    if not config.peft_enable:
-                        config.load_8bit = False
 
                 # load model
                 if isinstance(config, ConfigActor):
+                    # load model for the actor
                     self.model = AutoModelForCausalLM.from_pretrained(
                         config.model, load_in_8bit=config.load_8bit
                     )
@@ -110,15 +108,15 @@ class BaseModel(torch.nn.Module):
                 elif isinstance(config, ConfigReward) or isinstance(
                     config, ConfigCritic
                 ):
+                    # load the model for Critic and Reward 
+                    # (i.e. without the LM Head)
                     self.model = AutoModel.from_pretrained(
                         config.model, load_in_8bit=config.load_8bit
                     )
-
-                # if add the head for the reward and critic
-                if isinstance(config, ConfigReward) or isinstance(
-                    config, ConfigCritic
-                ):
-
+                    
+                    # define the head for the reward and critic
+                    # the head is a ff layer that squash the hidden dimension
+                    # to 1 (i.e. the score)
                     head_hidden_size = config.model_head_hidden_size
                     head_dim = self.model.config.hidden_size
                     if config.model.startswith("gpt2"):
@@ -130,33 +128,10 @@ class BaseModel(torch.nn.Module):
                         torch.nn.Linear(head_hidden_size, 1),
                         Rearrange("... 1 -> ..."),
                     )
-
-                # Setup PEFT model -- The head is not included in the PEFTmodel
-                if isinstance(config, ConfigActor):
-                    if config.peft_enable:
-
-                        # check that the peft config exist
-                        if os.path.exists(config.peft_config_path):
-
-                            # Read the peft config from yaml
-                            with open(config.peft_config_path, "r") as c:
-                                config_peft = yaml.safe_load(c)
-                        else:
-                            raise ValueError(
-                                f"PEFT config {config.peft_config_path}"
-                                f" not found"
-                            )
-
-                        # define lora config for peft
-                        peft_config = LoraConfig(
-                            task_type=TaskType.CAUSAL_LM, **config_peft
-                        )
-
-                        # create peft model
-                        self.model = get_peft_model(
-                            model=self.model,
-                            peft_config=peft_config,
-                        )
+                    
+                # apply LoRA with PEFT
+                self.is_lora_peft_applied = False
+                self.apply_lora_with_peft()
 
             # move model to device
             self.model.to(config.device)
@@ -171,12 +146,57 @@ class BaseModel(torch.nn.Module):
             self.load()
 
         else:
+            # ActorCritic initialization
 
             # if the actor and critic use the same tokenizer is set to True
             self.use_same_tokenizer = False
 
             # debug flag
             self.debug = config.actor.debug
+            
+            
+    @beartype
+    def apply_lora_with_peft(self) -> None:
+        """Apply LoRA with PEFT to the model.
+        The model is modified in place and the head is not included in the
+        PEFTmodel beacause we need to train it as well.
+        """
+        if self.config.peft_enable:
+
+            # check that the peft config exist
+            if (not os.path.exists(self.config.peft_config_path)):
+                raise ValueError(
+                    f"PEFT config {self.config.peft_config_path}"
+                    f" not found. Can't apply LoRA with PEFT."
+                )
+                
+            # Read the peft config from yaml
+            with open(self.config.peft_config_path, "r") as c:
+                config_peft = yaml.safe_load(c)
+
+            # define lora config for peft
+            peft_config = LoraConfig(
+                task_type=TaskType.CAUSAL_LM, **config_peft
+            )
+            
+            # if the model is a reward or critic model
+            # needs to be wrapped in a IgnoreLabelsWrapper or lora will pass
+            # the labels argument that is not present in the reward and critic
+            if isinstance(self.config, ConfigReward) or isinstance(
+                self.config, ConfigCritic
+            ):
+                self.model = IgnoreLabelsWrapper(self.model)
+
+            # create peft model
+            self.model = get_peft_model(
+                model=self.model,
+                peft_config=peft_config,
+            )
+            
+            print("LoRA with PEFT applied to the model.")
+            
+            self.is_lora_peft_applied = True
+        
 
     @beartype
     def load(self) -> None:
@@ -191,7 +211,14 @@ class BaseModel(torch.nn.Module):
         """
 
         if not isinstance(self.config, Config):
+            
             # Actor, Critic or Reward Model load()
+            if ((not isinstance(self.config, ConfigActor)) and
+                (not isinstance(self.config, ConfigReward)) and
+                (not isinstance(self.config, ConfigCritic))):
+                raise ValueError(
+                        f"Model type not supported: {type(self.config)}"
+                    )
 
             # check if there is a model to load
             path = ModelLoader.check_model_path(
@@ -202,10 +229,25 @@ class BaseModel(torch.nn.Module):
 
             # if there is a model to load
             if path is not None:
-
-                # load the model
+                
                 print("Loading ...")
+                
+                # load the model
                 model_dict = torch.load(path)
+                
+                # check model_dict["lora_peft"] and self.is_lora_peft_applied
+                # must be the same i.e. lora with peft must be applied
+                # to both the model to load and the current model
+                if "lora_peft" in model_dict:
+                    if model_dict["lora_peft"] != self.is_lora_peft_applied:
+                        raise ValueError(
+                            "The model to load is not compatible with the "
+                            "current model. The model to load has "
+                            f"lora_peft={model_dict['lora_peft']} while "
+                            f"the current model has "
+                            f"lora_peft={self.is_lora_peft_applied}."
+                        )
+                
                 if isinstance(self.config, ConfigActor):
                     self.model.load_state_dict(model_dict["model"])
 
@@ -214,10 +256,7 @@ class BaseModel(torch.nn.Module):
                 ):
                     self.model.load_state_dict(model_dict["model"])
                     self.head.load_state_dict(model_dict["head"])
-                else:
-                    raise ValueError(
-                        f"Model type not supported: " f"{type(self.config)}"
-                    )
+                    
         else:
             # ActorCritic -- not implemented it relies on the load of the
             # actor and critic
@@ -251,7 +290,10 @@ class BaseModel(torch.nn.Module):
         if isinstance(self.config, ConfigActor):
             # Actor Model Save()
             torch.save(
-                {"model": self.model.state_dict()},
+                {
+                    "model": self.model.state_dict(),
+                    "lora_peft": self.is_lora_peft_applied,
+                },
                 path,
             )
         elif isinstance(self.config, ConfigReward) or isinstance(
@@ -262,6 +304,7 @@ class BaseModel(torch.nn.Module):
                 {
                     "model": self.model.state_dict(),
                     "head": self.head.state_dict(),
+                    "lora_peft": self.is_lora_peft_applied,
                 },
                 path,
             )
@@ -277,7 +320,10 @@ class BaseModel(torch.nn.Module):
             # save the model
             print(f"Saving model to {path} ...")
             torch.save(
-                {"model": self.actor.model.state_dict()},
+                {
+                    "model": self.actor.model.state_dict(),
+                    "lora_peft": self.actor.is_lora_peft_applied,
+                },
                 path,
             )
 
@@ -293,6 +339,7 @@ class BaseModel(torch.nn.Module):
                 {
                     "model": self.critic.model.state_dict(),
                     "head": self.critic.head.state_dict(),
+                    "lora_peft": self.critic.is_lora_peft_applied,  
                 },
                 path,
             )
@@ -582,11 +629,13 @@ class BaseTrainer:
                 torch.save(
                     {
                         "model": self.model.actor.state_dict(),
-                        "actorcritic": self.model.state_dict(),
+                        "critic": self.model.critic.state_dict(),
                         "optimizer": self.scheduler.state_dict(),
                         "scheduler": self.optimizer.state_dict(),
                         "training_stats": self.training_stats,
                         "episode": current_epoch,
+                        "lora_peft": self.model.actor.is_lora_peft_applied,
+                        "critic_lora_peft": self.model.critic.is_lora_peft_applied, #noqa 501
                     },
                     path,
                 )
@@ -600,6 +649,7 @@ class BaseTrainer:
                         "training_stats": self.training_stats,
                         "epoch": current_epoch,
                         "step": current_step,
+                        "lora_peft": self.model.is_lora_peft_applied,
                     },
                     path,
                 )
@@ -671,11 +721,45 @@ class BaseTrainer:
                 # load model and epochs
                 if isinstance(self.config, Config):
                     # ActorCritic Trainer
-                    self.model.load_state_dict(checkpoint["actorcritic"])
+                    
+                    # first check for lora_peft compatibility
+                    if "lora_peft" in checkpoint:
+                        if (checkpoint["lora_peft"] !=
+                            self.model.actor.is_lora_peft_applied):
+                            print(
+                                "Checkpoint is not compatible with the current"
+                                "lora_peft setting. Now Starting from epoch 0,"
+                                "step 0"
+                            )
+                            return 0, 0
+                    if "critic_lora_peft" in checkpoint:
+                        if (checkpoint["critic_lora_peft"] !=
+                            self.model.critic.is_lora_peft_applied):
+                            print(
+                                "Checkpoint is not compatible with the current"
+                                "lora_peft setting. Now Starting from epoch 0,"
+                                "step 0"
+                            )
+                            return 0, 0
+                    
+                    self.model.actor.load_state_dict(checkpoint["model"])
+                    self.model.critic.load_state_dict(checkpoint["critic"])
                     episode = checkpoint["episode"]
                     return episode, 0
                 else:
-                    # other trainers
+                    # Actor and Reward Trainer
+                    
+                    # first check for lora_peft compatibility
+                    if "lora_peft" in checkpoint:
+                        if (checkpoint["lora_peft"] !=
+                            self.model.is_lora_peft_applied):
+                            print(
+                                "Checkpoint is not compatible with the current"
+                                "lora_peft setting. Now Starting from epoch 0,"
+                                "step 0"
+                            )
+                            return 0, 0
+                    
                     self.model.model.load_state_dict(checkpoint["model"])
                     self.training_stats = checkpoint["training_stats"]
                     epoch = checkpoint["epoch"]

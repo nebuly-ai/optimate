@@ -38,8 +38,8 @@ class RewardModel(BaseModel):
         Returns:
             torch.Tensor: Rewards for the given output sequence
         """
-        output = self.model(
-            output_sequence, attention_mask=output_sequence_mask
+        output = self.model.forward(
+            output_sequence, attention_mask=output_sequence_mask,
         )
 
         # What if the output_sequence is longer than the max context of

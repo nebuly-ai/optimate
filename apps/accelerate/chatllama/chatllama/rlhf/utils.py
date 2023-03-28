@@ -1,5 +1,7 @@
 import json
 import os
+
+import torch
 from beartype import beartype
 from plotly import graph_objects as go
 
@@ -196,3 +198,35 @@ class ConversationLog:
                         f"## Model Output:\n\n{c['model_output']}\n\n"
                         f"## Reward: {c['reward']}\n\n"
                     )
+                    
+                                   
+class IgnoreLabelsWrapper(torch.nn.Module):
+    def __init__(self, base_model: torch.nn.Module):
+        super().__init__()
+        self.base_model = base_model
+        self.config = base_model.config
+
+    def forward(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        inputs_embeds=None,
+        labels=None,
+        output_attentions=None,
+        output_hidden_states=None,
+        return_dict=None,
+        **kwargs,
+    ):
+        # Remove labels, which are unused by the base model
+        return self.base_model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            inputs_embeds=inputs_embeds,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+            **kwargs,
+        )
+        
+    def prepare_inputs_for_generation(self, *args, **kwargs):
+        return self.model.prepare_inputs_for_generation(*args, **kwargs)

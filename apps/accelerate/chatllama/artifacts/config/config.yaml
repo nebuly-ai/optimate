@@ -39,7 +39,7 @@ actor_config:
   tokenizer_path: "path-to-tokenizer"
   train_dataset_path: "./datasets/actor_training_data.json"
   validation_dataset_path: null
-  # froze model embedding during training
+  # froze model embedding during training (only for llama)
   froze_embeddings: True
   # use fairscale layers to build the model instead of vanilla pytorch
   # only for llama
@@ -102,6 +102,8 @@ reward_config:
   deepspeed_config_path: "./artifacts/config/ds_config.json"
   # accelerate settings
   accelerate_enable: False
+  peft_enable: True
+  peft_config_path: "./artifacts/config/peft_config.yaml"
 
 critic_config:
   # model to be chosen are gp2-large, bart-base, longformer-base-4096
@@ -115,3 +117,5 @@ critic_config:
   # here specify the name of the critic checkpoint from which resume 
   # during critic training. If null load the last one.
   checkpoint_name: null
+  peft_enable: True
+  peft_config_path: "./artifacts/config/peft_config.yaml"
