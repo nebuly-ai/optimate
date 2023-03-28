@@ -3,7 +3,6 @@ import os
 
 from chatllama.rlhf.dataset import (
     AnthropicRLHF,
-    LaionOIG,
     SelfInstruct,
     StanfordNLPSHP,
 )
