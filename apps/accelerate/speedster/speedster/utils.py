@@ -28,7 +28,7 @@ def get_model_name(model: Any):
         return model.__class__.__name__
 
 
-def _get_gpu_name():
+def _get_gpu_name() -> str:
     if torch_is_available():
         name = torch_get_device_name()
     elif tensorflow_is_available():
@@ -39,7 +39,19 @@ def _get_gpu_name():
     return name
 
 
-def get_hw_info(device: Device):
+def _get_neuron_device_name() -> str:
+    output = os.popen("lshw -businfo").read()
+    neuron_name = "Unknown Neuron"
+    for line in output.splitlines():
+        if "neuron" in line.lower():
+            words = line.split(" ")
+            if len(words) > 2:
+                neuron_name = " ".join(words[-2:])
+                break
+    return neuron_name
+
+
+def get_hw_info(device: Device) -> dict:
     hw_info = {
         "cpu": cpuinfo.get_cpu_info()["brand_raw"],
         "operative_system": platform.system(),
@@ -47,6 +59,8 @@ def get_hw_info(device: Device):
     }
     if device.type is DeviceType.GPU:
         hw_info["gpu"] = _get_gpu_name()
+    if device.type is DeviceType.NEURON:
+        hw_info["neuron"] = _get_neuron_device_name()
     return hw_info
 
 

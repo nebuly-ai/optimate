@@ -156,7 +156,7 @@ class SpeedsterRootOp(Operation):
         **kwargs,
     ):
         device_id = (
-            f":{self.device.idx}" if self.device.type is DeviceType.GPU else ""
+            f":{self.device.idx}" if self.device.type is not DeviceType.CPU else ""
         )
         self.logger.info(
             f"Running Speedster on {self.device.type.name}{device_id}"
@@ -468,7 +468,7 @@ class SpeedsterRootOp(Operation):
                 )
                 hw_info = get_hw_info(self.device)
                 hw_name = hw_info[
-                    "cpu" if self.device.type is DeviceType.CPU else "gpu"
+                    self.device.type.name.lower()
                 ]
                 self.logger.info(
                     (

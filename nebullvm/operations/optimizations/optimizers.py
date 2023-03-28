@@ -8,6 +8,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     onnxruntime_is_available,
     tensorrt_is_available,
     openvino_is_available,
+    torch_neuron_is_available,
 )
 from nebullvm.optional_modules.utils import (
     torch_is_available,
@@ -29,20 +30,29 @@ class PytorchOptimizer(Optimizer):
     def _select_compilers_from_hardware(self):
         compilers = []
         if torch_is_available():
-            compilers.append(ModelCompiler.TORCHSCRIPT)
-            if tvm_is_available():
-                compilers.append(ModelCompiler.APACHE_TVM_TORCH)
-            if bladedisc_is_available():
-                compilers.append(ModelCompiler.BLADEDISC)
+            if self.device.type is DeviceType.TPU:
+                raise NotImplementedError(
+                    "TPU support is not implemented yet. "
+                    "Please use a CPU, GPU or NEURON device."
+                )
+            elif self.device.type is DeviceType.NEURON:
+                if torch_neuron_is_available():
+                    compilers.append(ModelCompiler.TORCH_NEURON)
+            else:
+                compilers.append(ModelCompiler.TORCHSCRIPT)
+                if tvm_is_available():
+                    compilers.append(ModelCompiler.APACHE_TVM_TORCH)
+                if bladedisc_is_available():
+                    compilers.append(ModelCompiler.BLADEDISC)
 
-            if self.device.type is DeviceType.CPU:
-                if deepsparse_is_available():
-                    compilers.append(ModelCompiler.DEEPSPARSE)
-                if intel_neural_compressor_is_available():
-                    compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
-            elif self.device.type is DeviceType.GPU:
-                if torch_tensorrt_is_available():
-                    compilers.append(ModelCompiler.TENSOR_RT_TORCH)
+                if self.device.type is DeviceType.CPU:
+                    if deepsparse_is_available():
+                        compilers.append(ModelCompiler.DEEPSPARSE)
+                    if intel_neural_compressor_is_available():
+                        compilers.append(ModelCompiler.INTEL_NEURAL_COMPRESSOR)
+                elif self.device.type is DeviceType.GPU:
+                    if torch_tensorrt_is_available():
+                        compilers.append(ModelCompiler.TENSOR_RT_TORCH)
         return compilers
 
 

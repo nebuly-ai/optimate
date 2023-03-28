@@ -71,6 +71,22 @@ def gpu_is_available():
         return False
 
 
+def neuron_is_available():
+    try:
+        subprocess.check_output("neuron-ls")
+        return True
+    except Exception:
+        return False
+
+
+def tpu_is_available():
+    try:
+        subprocess.check_output("gcloud compute tpus list")
+        return True
+    except Exception:
+        return False
+
+
 def check_module_version(
     module: ModuleType, min_version: str = None, max_version: str = None
 ) -> bool:
@@ -217,29 +233,60 @@ def is_dict_type(data_sample: Any):
         return True
 
 
+def _get_idx(device: str) -> int:
+    device_info = device.split(":")
+    if len(device_info) == 2 and device_info[1].isdigit():
+        idx = int(device_info[1])
+    else:
+        idx = 0
+    return idx
+
+
+def _set_device(accelerator_is_available: bool, device_type: DeviceType, idx: int) -> Device:
+    if not accelerator_is_available:
+        logger.warning(
+            f"Selected {device_type.name} device but no available "
+            f"{device_type.name} found on this platform. CPU will "
+            f"be used instead. Please make sure that the "
+            f"{device_type.name} is installed and can be used by your "
+            "framework."
+        )
+        device = Device(DeviceType.CPU)
+    else:
+        device = Device(device_type, idx=idx)
+
+    return device
+
+
 def check_device(device: Optional[str]) -> Device:
     if device is None:
         if gpu_is_available():
             device = Device(DeviceType.GPU)
+        elif neuron_is_available():
+            device = Device(DeviceType.NEURON)
+        elif tpu_is_available():
+            device = Device(DeviceType.TPU)
         else:
             device = Device(DeviceType.CPU)
     else:
         if any(x in device.lower() for x in ["cuda", "gpu"]):
-            device_info = device.split(":")
-            if len(device_info) == 2 and device_info[1].isdigit():
-                idx = int(device_info[1])
-            else:
-                idx = 0
-            if not gpu_is_available():
-                logger.warning(
-                    "Selected GPU device but no available GPU found on this "
-                    "platform. CPU will be used instead. Please make sure "
-                    "that the gpu is installed and can be used by your "
-                    "framework."
-                )
-                device = Device(DeviceType.CPU)
-            else:
-                device = Device(DeviceType.GPU, idx=idx)
+            device = _set_device(
+                accelerator_is_available=gpu_is_available(),
+                device_type=DeviceType.GPU,
+                idx=_get_idx(device),
+            )
+        elif "neuron" in device.lower():
+            device = _set_device(
+                accelerator_is_available=neuron_is_available(),
+                device_type=DeviceType.NEURON,
+                idx=_get_idx(device),
+            )
+        elif "tpu" in device.lower():
+            device = _set_device(
+                accelerator_is_available=tpu_is_available(),
+                device_type=DeviceType.TPU,
+                idx=_get_idx(device),
+            )
         else:
             device = Device(DeviceType.CPU)
 

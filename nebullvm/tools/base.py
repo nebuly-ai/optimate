@@ -29,6 +29,8 @@ class DeepLearningFramework(Enum):
 class DeviceType(Enum):
     CPU = "cpu"
     GPU = "gpu"
+    TPU = "tpu"
+    NEURON = "neuron"
 
 
 class DataType(str, Enum):
@@ -39,7 +41,7 @@ class DataType(str, Enum):
 
     @classmethod
     def from_framework_format(
-        cls, dtype: Union[torch.dtype, tf.dtypes.DType, np.dtype]
+            cls, dtype: Union[torch.dtype, tf.dtypes.DType, np.dtype]
     ):
         if isinstance(dtype, torch.dtype):
             framework = "torch"
@@ -87,6 +89,7 @@ class ModelCompiler(Enum):
     TFLITE = "tflite"
     BLADEDISC = "bladedisc"
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
+    TORCH_NEURON = "torch_neuron"
 
 
 class ModelCompressor(Enum):
@@ -197,30 +200,29 @@ class Device:
 
     @classmethod
     def from_str(cls, string: str) -> "Device":
-        if string == "cpu":
-            return cls(DeviceType.CPU)
-        elif string.startswith("cuda") or string.startswith("gpu"):
+        if string.startswith("cuda") or string.startswith("gpu"):
             return cls(
                 DeviceType.GPU,
                 int(string.split(":")[1] if ":" in string else 0),
             )
-        else:
-            raise Exception("Invalid device string")
+        return cls(DeviceType.CPU)
 
     def to_torch_format(self) -> str:
-        if self.type is DeviceType.CPU:
-            return "cpu"
-        return f"cuda:{self.idx}"
+        if self.type is DeviceType.GPU:
+            return f"cuda:{self.idx}"
+
+        return "cpu"
 
     def to_tf_format(self) -> str:
-        if self.type is DeviceType.CPU:
-            return "CPU"
-        return f"GPU:{self.idx}"
+        if self.type is DeviceType.GPU:
+            return f"GPU:{self.idx}"
+
+        return "CPU"
 
     def get_total_memory(self) -> int:
         # Return total memory in bytes using nvidia-smi in bytes
-        if self.type is DeviceType.CPU:
-            raise Exception("CPU does not have memory")
+        if self.type is not DeviceType.GPU:
+            raise Exception("Device type must be GPU")
         else:
             try:
                 output = (
@@ -241,8 +243,8 @@ class Device:
 
     def get_free_memory(self) -> int:
         # Return free memory in bytes using nvidia-smi in bytes
-        if self.type is DeviceType.CPU:
-            raise Exception("CPU does not have memory")
+        if self.type is not DeviceType.GPU:
+            raise Exception("Device type must be GPU")
         else:
             try:
                 output = (

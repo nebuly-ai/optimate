@@ -23,6 +23,7 @@ from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
+from nebullvm.operations.inference_learners.torch_neuron import TorchNeuronInferenceLearner
 from nebullvm.operations.inference_learners.tvm import (
     PytorchApacheTVMInferenceLearner,
     APACHE_TVM_INFERENCE_LEARNERS,
@@ -53,6 +54,22 @@ class PytorchBuildInferenceLearner(BuildInferenceLearner):
         **kwargs,
     ):
         self.inference_learner = PytorchBackendInferenceLearner(
+            torch_model=model,
+            network_parameters=model_params,
+            input_tfms=input_tfms,
+            device=self.device,
+        )
+
+
+class TorchNeuronBuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: ScriptModule,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = TorchNeuronInferenceLearner(
             torch_model=model,
             network_parameters=model_params,
             input_tfms=input_tfms,

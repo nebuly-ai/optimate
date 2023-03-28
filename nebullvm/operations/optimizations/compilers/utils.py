@@ -13,7 +13,7 @@ def onnxruntime_is_available() -> bool:
 def tvm_is_available() -> bool:
     try:
         import tvm  # noqa F401
-
+        from tvm.runtime import Module
         return True
     except ImportError:
         return False
@@ -74,6 +74,14 @@ def intel_neural_compressor_is_available() -> bool:
         return True
 
 
+def torch_neuron_is_available():
+    try:
+        import torch_neuron  # noqa F401
+        return True
+    except ImportError:
+        return False
+
+
 def select_compilers_from_hardware_onnx(device: Device):
     from nebullvm.optional_modules.utils import onnx_is_available
 
@@ -100,6 +108,8 @@ def select_compilers_from_hardware_torch(device: Device):
             compilers.append(ModelCompiler.APACHE_TVM)
         if bladedisc_is_available():
             compilers.append(ModelCompiler.BLADEDISC)
+        if torch_neuron_is_available():
+            compilers.append(ModelCompiler.TORCH_NEURON)
 
         if device.type is DeviceType.CPU:
             if deepsparse_is_available():
