@@ -2,12 +2,13 @@
 llama_models = ["llama-7B", "llama-13B", "llama-33B", "llama-65B"]
 
 # HF Models
-# encoder-decoder models
+# encoder-decoder models TODO: still not supported
 hf_models_seq_2_seq = [
     "google/flan-t5-xxl",
     "google/flan-t5-xl",
     "google/flan-t5-large",
     "google/flan-t5-base",
+    "google/flan-t5-small",
 ]
 
 # decoder only TODO: codegen is still broken

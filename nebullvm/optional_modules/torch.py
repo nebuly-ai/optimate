@@ -25,6 +25,8 @@ except ImportError:
         Tensor = DummyClass
         dtype = DummyClass
         nn = nn
+        Generator = DummyClass
+        FloatTensor = DummyClass
 
         @staticmethod
         def no_grad():
@@ -42,3 +44,5 @@ except ImportError:
     symbolic_trace = None
     QuantStub = DeQuantStub = DummyClass
     default_dynamic_qconfig = prepare_fx = convert_fx = None
+    Generator = DummyClass
+    FloatTensor = DummyClass

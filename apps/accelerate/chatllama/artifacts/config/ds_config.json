@@ -8,7 +8,45 @@
       }
     },
     "fp16": {
-      "enabled": true
+      "enabled": false,
+      "auto_cast": false,
+      "loss_scale": 0,
+      "initial_scale_power": 16,
+      "loss_scale_window": 1000,
+      "hysteresis": 2,
+      "min_loss_scale": 1
+  },
+  "zero_optimization": {
+    "stage": 2,
+    "allgather_partitions": true,
+    "allgather_bucket_size": 5e8,
+    "overlap_comm": false,
+    "reduce_scatter": true,
+    "reduce_bucket_size": 5e8,
+    "contiguous_gradients" : true,
+    "offload_param": {
+      "device": "cpu",
+      "nvme_path": "/local_nvme",
+      "pin_memory": true,
+      "buffer_count": 5,
+      "buffer_size": 1e8,
+      "max_in_cpu": 1e9
     },
-    "zero_optimization": true
+    "offload_optimizer": {
+      "device": "cpu",
+      "nvme_path": "/local_nvme",
+      "pin_memory": true,
+      "buffer_count": 4,
+      "fast_init": false
+    },
+    "stage3_max_live_parameters" : 1e9,
+    "stage3_max_reuse_distance" : 1e9,
+    "stage3_prefetch_bucket_size" : 5e8,
+    "stage3_param_persistence_threshold" : 1e6,
+    "sub_group_size" : 1e12,
+    "elastic_checkpoint" : true,
+    "stage3_gather_16bit_weights_on_model_save": true,
+    "ignore_unused_parameters": true,
+    "round_robin_gradients": true
+    }
   }

@@ -26,10 +26,11 @@ from nebullvm.optional_modules.diffusers import (
     AutoencoderKL,
     onnx_graphsurgeon as gs,
 )
+from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
+from nebullvm.optional_modules.huggingface import CLIPTextModel, CLIPTokenizer
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensor_rt import fold_constants
 from nebullvm.optional_modules.torch import torch
-from nebullvm.optional_modules.huggingface import CLIPTextModel, CLIPTokenizer
 from nebullvm.tools.base import Device
 
 
@@ -194,9 +195,9 @@ def preprocess_diffusers(pipe: DiffusionPipeline) -> torch.nn.Module:
 
 def postprocess_diffusers(
     optimized_model: Any,
-    pipe: DiffusionPipeline,
+    pipe: StableDiffusionPipeline,
     device: Device,
-) -> DiffusionPipeline:
+) -> StableDiffusionPipeline:
     # Function that puts the optimized Diffusion UNet model back
     # into the Diffusion Pipeline
     final_model = OptimizedDiffusionWrapper(optimized_model)

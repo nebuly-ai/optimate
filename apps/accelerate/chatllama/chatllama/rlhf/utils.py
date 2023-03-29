@@ -15,12 +15,18 @@ class TrainingStats:
         validation_accuracy (List): List of validation accuracies
     """
 
-    def __init__(self):
+    def __init__(self, path: str):
+        """Initialize the training stats
+
+        Args:
+            path (str): Path to save the stats
+        """
         self.training_loss = []
         self.training_accuracy = []
         self.value_loss = []
         self.validation_loss = []
         self.validation_accuracy = []
+        self.path = path
 
     def plot(self):
         """Plot the training statistics using plotly"""
@@ -49,6 +55,53 @@ class TrainingStats:
             showlegend=True, xaxis_type="log", xaxis_title="steps"
         )
         fig.show()
+
+    def save(
+        self,
+    ):
+        """Save the stats"""
+        if os.path.exists(self.path):
+            with open(self.path, "r") as f:
+                stats = json.load(f)
+            stats["training_loss"].extend(self.training_loss)
+            stats["training_accuracy"].extend(self.training_accuracy)
+            stats["value_loss"].extend(self.value_loss)
+            stats["validation_loss"].extend(self.validation_loss)
+            stats["validation_accuracy"].extend(self.validation_accuracy)
+        else:
+            stats = {
+                "training_loss": self.training_loss,
+                "training_accuracy": self.training_accuracy,
+                "value_loss": self.value_loss,
+                "validation_loss": self.validation_loss,
+                "validation_accuracy": self.validation_accuracy,
+            }
+        with open(self.path, "w") as f:
+            json.dump(stats, f, indent=4)
+
+    def load(
+        self,
+    ):
+        """Load the stats"""
+        with open(self.path, "r") as f:
+            stats = json.load(f)
+        self.training_loss = stats["training_loss"]
+        self.training_accuracy = stats["training_accuracy"]
+        self.value_loss = stats["value_loss"]
+        self.validation_loss = stats["validation_loss"]
+        self.validation_accuracy = stats["validation_accuracy"]
+
+    def clear(
+        self,
+    ):
+        """Clear the stats"""
+        self.training_loss = []
+        self.training_accuracy = []
+        self.value_loss = []
+        self.validation_loss = []
+        self.validation_accuracy = []
+        if os.path.exists(self.path):
+            os.remove(self.path)
 
 
 class ConversationLog:
@@ -91,12 +144,16 @@ class ConversationLog:
         )
 
     def save(self):
+        print("Saving conversations log")
         if os.path.exists(self.path):
             with open(self.path, "r") as f:
                 conversation = json.load(f)
             self.conversation.extend(conversation)
+        self.conversation = sorted(
+            self.conversation, key=lambda x: float(x["learn_counter"])
+        )
         with open(self.path, "w") as f:
-            json.dump(self.conversation, f)
+            json.dump(self.conversation, f, indent=4)
 
     def load(self):
         with open(self.path, "r") as f:

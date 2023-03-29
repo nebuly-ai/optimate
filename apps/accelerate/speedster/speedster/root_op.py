@@ -82,7 +82,7 @@ from speedster.utils import (
 SPEEDSTER_FEEDBACK_COLLECTOR = FeedbackCollector(
     url="https://nebuly.cloud/v1/store_speedster_results",
     disable_telemetry_environ_var="SPEEDSTER_DISABLE_TELEMETRY",
-    app_version="0.2.1",
+    app_version="0.3.0",
 )
 
 
@@ -236,7 +236,7 @@ class SpeedsterRootOp(Operation):
         ) or (
             hasattr(model, "model")
             and isinstance(
-                model.model, diffusers.models.UNet2DConditionModel
+                model.model, UNet2DConditionModel
             )
         ):
             is_diffusion = True

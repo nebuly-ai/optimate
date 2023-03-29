@@ -84,6 +84,8 @@ class ScoreGenerator:
                     continue
                 data["score"] = score
                 print(f"### Score: {score} \n\n")
+        # remove all the data that have no score
+        train_data = [data for data in train_data if data.get("score", None)]
         # save the dataset back
         print("Writing the updated dataset back to disk ... ")
         with open(dataset_path, "w") as f:
