@@ -8,7 +8,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     onnxruntime_is_available,
     tensorrt_is_available,
     openvino_is_available,
-    torch_neuron_is_available,
+    torch_neuron_is_available, torch_xla_is_available,
 )
 from nebullvm.optional_modules.utils import (
     torch_is_available,
@@ -31,10 +31,14 @@ class PytorchOptimizer(Optimizer):
         compilers = []
         if torch_is_available():
             if self.device.type is DeviceType.TPU:
-                raise NotImplementedError(
-                    "TPU support is not implemented yet. "
-                    "Please use a CPU, GPU or NEURON device."
-                )
+                if torch_xla_is_available():
+                    compilers.append(ModelCompiler.TORCH_XLA)
+                else:
+                    raise RuntimeError(
+                        "Torch XLA is not available on your platform. "
+                        "Please install torch-xla the readme at this "
+                        "link: https://github.com/pytorch/xla"
+                    )
             elif self.device.type is DeviceType.NEURON:
                 if torch_neuron_is_available():
                     compilers.append(ModelCompiler.TORCH_NEURON)

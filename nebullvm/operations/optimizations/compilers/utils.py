@@ -74,6 +74,14 @@ def intel_neural_compressor_is_available() -> bool:
         return True
 
 
+def torch_xla_is_available():
+    try:
+        import torch_xla  # noqa F401
+        return True
+    except ImportError:
+        return False
+
+
 def torch_neuron_is_available():
     try:
         import torch_neuron  # noqa F401

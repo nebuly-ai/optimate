@@ -41,7 +41,7 @@ class DataType(str, Enum):
 
     @classmethod
     def from_framework_format(
-            cls, dtype: Union[torch.dtype, tf.dtypes.DType, np.dtype]
+        cls, dtype: Union[torch.dtype, tf.dtypes.DType, np.dtype]
     ):
         if isinstance(dtype, torch.dtype):
             framework = "torch"
@@ -90,6 +90,7 @@ class ModelCompiler(Enum):
     BLADEDISC = "bladedisc"
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
     TORCH_NEURON = "torch_neuron"
+    TORCH_XLA = "torch_xla"
 
 
 class ModelCompressor(Enum):
@@ -210,6 +211,8 @@ class Device:
     def to_torch_format(self) -> str:
         if self.type is DeviceType.GPU:
             return f"cuda:{self.idx}"
+        elif self.type is DeviceType.TPU:
+            return f"xla:{self.idx}"
 
         return "cpu"
 

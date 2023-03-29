@@ -8,6 +8,7 @@ import cpuinfo
 import psutil
 
 from nebullvm.optional_modules.torch import Module
+from nebullvm.optional_modules.torch_xla import torch_xla, xm
 from nebullvm.optional_modules.utils import (
     torch_is_available,
     tensorflow_is_available,
@@ -49,6 +50,10 @@ def _get_neuron_device_name() -> str:
                 neuron_name = " ".join(words[-2:])
                 break
     return neuron_name
+
+
+def _get_tpu_device_name() -> str:
+    return xm.xla_device_hw(xm.xla_device())
 
 
 def get_hw_info(device: Device) -> dict:

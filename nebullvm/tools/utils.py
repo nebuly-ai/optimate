@@ -80,9 +80,12 @@ def neuron_is_available():
 
 
 def tpu_is_available():
+    # Check if a tpu is available
     try:
-        subprocess.check_output("gcloud compute tpus list")
-        return True
+        import torch_xla
+        import torch_xla.core.xla_model as xm
+
+        return xm.xla_device_hw(torch_xla.core.xla_model.xla_device()) == "TPU"
     except Exception:
         return False
 

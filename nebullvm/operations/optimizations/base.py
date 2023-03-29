@@ -23,7 +23,7 @@ from nebullvm.operations.inference_learners.builders import (
     OpenVINOBuildInferenceLearner,
     TFLiteBuildInferenceLearner,
     TensorflowBuildInferenceLearner,
-    TorchNeuronBuildInferenceLearner,
+    TorchNeuronBuildInferenceLearner, TorchXLABuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import (
@@ -55,6 +55,7 @@ from nebullvm.operations.optimizations.compilers.tensorflow import (
     TensorflowBackendCompiler,
 )
 from nebullvm.operations.optimizations.compilers.torch_neuron import TorchNeuronCompiler
+from nebullvm.operations.optimizations.compilers.torch_xla import TorchXLACompiler
 from nebullvm.operations.optimizations.compilers.tvm import (
     PyTorchApacheTVMCompiler,
     ONNXApacheTVMCompiler,
@@ -365,6 +366,7 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
     ModelCompiler.TFLITE: TFLiteBackendCompiler,
     ModelCompiler.XLA: TensorflowBackendCompiler,
     ModelCompiler.TORCH_NEURON: TorchNeuronCompiler,
+    ModelCompiler.TORCH_XLA: TorchXLACompiler,
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
@@ -382,4 +384,5 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler.TFLITE: TFLiteBuildInferenceLearner,
     ModelCompiler.XLA: TensorflowBuildInferenceLearner,
     ModelCompiler.TORCH_NEURON: TorchNeuronBuildInferenceLearner,
+    ModelCompiler.TORCH_XLA: TorchXLABuildInferenceLearner,
 }
