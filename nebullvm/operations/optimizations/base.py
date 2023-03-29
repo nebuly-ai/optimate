@@ -251,9 +251,7 @@ class Optimizer(Operation, abc.ABC):
                                     inference_learner,
                                     test_input_data,
                                     model_outputs,
-                                    metric_drop_ths
-                                    if q_type is not None
-                                    else CONSTRAINED_METRIC_DROP_THS,
+                                    metric_drop_ths,
                                     metric_func=metric
                                     if q_type is not None
                                     else compute_relative_difference,
@@ -311,7 +309,7 @@ class Optimizer(Operation, abc.ABC):
                                         "obtained with the given metric."
                                     )
 
-                                if self.device.type is DeviceType.GPU:
+                                if self.device.type in [DeviceType.GPU, DeviceType.TPU]:
                                     inference_learner.free_gpu_memory()
                     except Exception as ex:
                         self.logger.warning(

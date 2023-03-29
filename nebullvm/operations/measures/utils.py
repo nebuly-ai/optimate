@@ -40,11 +40,13 @@ def compute_torch_latency(
         Float: Average latency.
         List[Float]: List of latencies obtained.
     """
-    xs = [
-        tuple(t.to(device.to_torch_format()) for t in tensors)
-        for tensors in xs
-    ]
-    model = model.to(device.to_torch_format()).eval()
+    if device.type is not DeviceType.TPU:
+        xs = [
+            tuple(t.to(device.to_torch_format()) for t in tensors)
+            for tensors in xs
+        ]
+        model = model.to(device.to_torch_format())
+    model.eval()
     latencies = []
     with torch.no_grad():
         for i in range(warmup_steps):

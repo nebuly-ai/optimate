@@ -27,7 +27,7 @@ from nebullvm.tools.utils import (
 
 
 def _get_dl_framework(model: Any):
-    if isinstance(model, torch.nn.Module) or str(model).startswith("Pytorch"):
+    if isinstance(model, torch.nn.Module) or str(model).startswith("Pytorch") or str(model).startswith("Torch"):
         return DeepLearningFramework.PYTORCH
     elif (isinstance(model, tf.Module) and model is not None) or str(
         model

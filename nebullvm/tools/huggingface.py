@@ -13,7 +13,7 @@ import numpy as np
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, Module
-from nebullvm.tools.base import Device
+from nebullvm.tools.base import Device, DeviceType
 
 try:
     from transformers import (
@@ -138,7 +138,7 @@ def get_output_structure_from_dict(
     transformers model.
     """
 
-    if isinstance(model, torch.nn.Module):
+    if isinstance(model, torch.nn.Module) and device.type is not DeviceType.TPU:
         model.to(device.to_torch_format())
         input_example.to(device.to_torch_format())
 

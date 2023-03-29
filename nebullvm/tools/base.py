@@ -206,6 +206,12 @@ class Device:
                 DeviceType.GPU,
                 int(string.split(":")[1] if ":" in string else 0),
             )
+        elif string.startswith("tpu"):
+            return cls(
+                DeviceType.TPU,
+                int(string.split(":")[1] if ":" in string else 0),
+            )
+
         return cls(DeviceType.CPU)
 
     def to_torch_format(self) -> str:

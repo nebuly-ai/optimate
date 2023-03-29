@@ -10,7 +10,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     deepsparse_is_available,
     intel_neural_compressor_is_available,
     torch_tensorrt_is_available,
-    torch_neuron_is_available,
+    torch_neuron_is_available, torch_xla_is_available,
 )
 from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.utils import gpu_is_available, check_module_version
@@ -124,10 +124,10 @@ def check_dependencies(device: Device):
     processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
 
     if device.type is DeviceType.TPU:
-        raise NotImplementedError(
-            "TPU support is not implemented yet. "
-            "Please use a CPU, GPU or NEURON device."
-        )
+        if not torch_is_available():
+            missing_frameworks.append("torch")
+        if not torch_xla_is_available():
+            missing_dependencies.append("torch_xla")
     elif device.type is DeviceType.NEURON:
         if not torch_is_available():
             missing_frameworks.append("torch")

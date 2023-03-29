@@ -64,6 +64,8 @@ def get_hw_info(device: Device) -> dict:
     }
     if device.type is DeviceType.GPU:
         hw_info["gpu"] = _get_gpu_name()
+    elif device.type is DeviceType.TPU:
+        hw_info["tpu"] = _get_tpu_device_name()
     if device.type is DeviceType.NEURON:
         hw_info["neuron"] = _get_neuron_device_name()
     return hw_info

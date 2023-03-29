@@ -2,7 +2,7 @@ import os
 import pickle
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Tuple, Union, Optional, List
+from typing import Tuple, Union
 
 from nebullvm.operations.inference_learners.base import (
     PytorchBaseInferenceLearner,
@@ -10,7 +10,6 @@ from nebullvm.operations.inference_learners.base import (
 )
 from nebullvm.optional_modules.torch import (
     torch,
-    ScriptModule,
 )
 from nebullvm.tools.base import DeviceType, ModelParams, Device
 from nebullvm.tools.transformations import MultiStageTransformation
@@ -18,7 +17,7 @@ from nebullvm.tools.transformations import MultiStageTransformation
 
 class TorchXLAInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_scripted.pt"
-    name = "TorchScript"
+    name = "TorchXLA"
 
     def __init__(self, torch_model: torch.nn.Module, device: Device, **kwargs):
         super().__init__(**kwargs)
@@ -38,9 +37,8 @@ class TorchXLAInferenceLearner(PytorchBaseInferenceLearner):
         with torch.no_grad():
             res = self.model(*input_tensors)
             if not isinstance(res, tuple):
-                res = res.to(self.device.to_torch_format())
                 return (res,)
-            return tuple(out.to(self.device.to_torch_format()) for out in res)
+            return tuple(out for out in res)
 
     def get_size(self):
         try:
@@ -63,15 +61,16 @@ class TorchXLAInferenceLearner(PytorchBaseInferenceLearner):
         path.mkdir(exist_ok=True)
         metadata = LearnerMetadata.from_model(self, **kwargs)
         metadata.save(path)
-
-        torch.jit.save(self.model, path / self.MODEL_NAME)
+        self.model.cpu()
+        torch.save(self.model, path / self.MODEL_NAME)
 
     @classmethod
     def load(cls, path: Union[Path, str], **kwargs):
         path = Path(path)
-        model = torch.jit.load(path / cls.MODEL_NAME)
+        model = torch.load(path / cls.MODEL_NAME)
         metadata = LearnerMetadata.read(path)
         device = Device.from_str(metadata.device)
+        model.to(device.to_torch_format())
         return cls(
             torch_model=model,
             network_parameters=ModelParams(**metadata.network_parameters),
