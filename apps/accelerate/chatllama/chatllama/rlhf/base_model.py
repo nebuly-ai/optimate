@@ -28,7 +28,11 @@ from chatllama.rlhf.model_list import (
 )
 
 from chatllama.rlhf.model_loader import ModelLoader
-from chatllama.rlhf.utils import TrainingStats, IgnoreLabelsWrapper
+from chatllama.rlhf.utils import (
+    TrainingStats,
+    IgnoreLabelsWrapper,
+    LogMessages,
+)
 
 
 ConfigType = Union[ConfigActor, ConfigReward, ConfigCritic, Config]
@@ -50,6 +54,7 @@ class BaseModel(torch.nn.Module):
         parameters: Return the parameters of the model
         load_tokenizer: Load the tokenizer for the model (staticmethod)
     """
+    logger = LogMessages()
 
     @beartype
     def __init__(self, config: ConfigType) -> None:
@@ -57,6 +62,9 @@ class BaseModel(torch.nn.Module):
 
         # save config
         self.config = config
+        
+        # if not initialized, initialize the logger
+        self.logger = LogMessages(config)
 
         if not isinstance(config, Config):
             # Actor, Critic or Reward Model initialization
@@ -66,9 +74,10 @@ class BaseModel(torch.nn.Module):
 
                 # llama is supported only for the actor for NOW
                 if not isinstance(config, ConfigActor):
-                    raise ValueError(
+                    raise self.logger.error(
+                        ValueError,
                         "LLAMA is supported only for the actor as of now"
-                    )
+                        )
 
                 # llama module might not be present when HF models are used
                 from chatllama.llama_model import (
@@ -165,7 +174,7 @@ class BaseModel(torch.nn.Module):
 
             # check that the peft config exist
             if (not os.path.exists(self.config.peft_config_path)):
-                raise ValueError(
+                raise self.logger.error(ValueError,
                     f"PEFT config {self.config.peft_config_path}"
                     f" not found. Can't apply LoRA with PEFT."
                 )
@@ -193,7 +202,7 @@ class BaseModel(torch.nn.Module):
                 peft_config=peft_config,
             )
             
-            print("LoRA with PEFT applied to the model.")
+            self.logger.info("LoRA with PEFT applied to the model.")
             
             self.is_lora_peft_applied = True
         
@@ -216,7 +225,8 @@ class BaseModel(torch.nn.Module):
             if ((not isinstance(self.config, ConfigActor)) and
                 (not isinstance(self.config, ConfigReward)) and
                 (not isinstance(self.config, ConfigCritic))):
-                raise ValueError(
+                raise self.logger.error(
+                        ValueError,
                         f"Model type not supported: {type(self.config)}"
                     )
 
@@ -230,7 +240,7 @@ class BaseModel(torch.nn.Module):
             # if there is a model to load
             if path is not None:
                 
-                print("Loading ...")
+                self.logger.info("Loading ...")
                 
                 # load the model
                 model_dict = torch.load(path)
@@ -240,12 +250,13 @@ class BaseModel(torch.nn.Module):
                 # to both the model to load and the current model
                 if "lora_peft" in model_dict:
                     if model_dict["lora_peft"] != self.is_lora_peft_applied:
-                        raise ValueError(
+                        raise self.logger.error(
+                            ValueError,
                             "The model to load is not compatible with the "
                             "current model. The model to load has "
                             f"lora_peft={model_dict['lora_peft']} while "
                             f"the current model has "
-                            f"lora_peft={self.is_lora_peft_applied}."
+                            f"lora_peft={self.is_lora_peft_applied}.",
                         )
                 
                 if isinstance(self.config, ConfigActor):
@@ -286,7 +297,7 @@ class BaseModel(torch.nn.Module):
         )
 
         # save the model
-        print(f"Saving model to {path} ...")
+        self.logger.info(f"Saving model to {path} ...")
         if isinstance(self.config, ConfigActor):
             # Actor Model Save()
             torch.save(
@@ -318,7 +329,7 @@ class BaseModel(torch.nn.Module):
             )
 
             # save the model
-            print(f"Saving model to {path} ...")
+            self.logger.info(f"Saving model to {path} ...")
             torch.save(
                 {
                     "model": self.actor.model.state_dict(),
@@ -334,7 +345,7 @@ class BaseModel(torch.nn.Module):
             )
 
             # save the model
-            print(f"Saving model to {path} ...")
+            self.logger.info(f"Saving model to {path} ...")
             torch.save(
                 {
                     "model": self.critic.model.state_dict(),
@@ -344,10 +355,10 @@ class BaseModel(torch.nn.Module):
                 path,
             )
 
-    @staticmethod
-    def load_tokenizer(config: ConfigType):
+    @classmethod
+    def load_tokenizer(cls, config: ConfigType):
         """Load the tokenizer from the model name"""
-
+        
         if config.model in hf_models:
 
             # load the tokenizer from HF
@@ -372,7 +383,10 @@ class BaseModel(torch.nn.Module):
         elif config.model in llama_models:
 
             if not isinstance(config, ConfigActor):
-                raise ValueError("LLaMA models can only be used as actor")
+                raise cls.logger.error(
+                    ValueError,
+                    "LLaMA models can only be used as actor",
+                    )
 
             # llama module might not be present when HF models are used
             from chatllama.llama_model import (
@@ -428,6 +442,8 @@ class BaseTrainer:
         load_checkpoints: Load the checkpoints of the model
 
     """
+    
+    logger = LogMessages()
 
     @beartype
     def __init__(self, config: ConfigType) -> None:
@@ -437,6 +453,9 @@ class BaseTrainer:
 
         # save the config
         self.config = config
+        
+        # if not initialized, initialize the logger
+        self.logger = LogMessages(config)
 
         # initialize trainint stats
         self.trainig_stats = self.setup_training_stats()
@@ -462,19 +481,24 @@ class BaseTrainer:
 
         # check consistency of flags
         if self.accelerate_enable and self.deepspeed_enable:
-            raise ValueError(
-                "Both DeepSpeed and Accelerate are enabled"
-                "Please choose one of them."
+            raise self.logger.error(
+                ValueError,
+                (   
+                    "Both DeepSpeed and Accelerate are enabled" +
+                    "Please choose one of them."
+                ),
             )
 
         # check deepspeed config
         if self.deepspeed_enable:
             if self.deepspeed_config_path is None:
-                raise ValueError(
-                    "DeepSpeed config path is None, but deepspeed is enabled"
-                )
+                raise self.logger.error(
+                    ValueError,
+                    "DeepSpeed config path is None, but deepspeed is enabled",
+                    )
             if os.path.exists(self.deepspeed_config_path) is False:
-                raise ValueError(
+                raise self.logger.error(
+                    ValueError,
                     f"DeepSpeed config path"
                     f" {self.deepspeed_config_path} "
                     f"does not exist"
@@ -523,6 +547,7 @@ class BaseTrainer:
         self,
     ) -> None:
         """This method initializes the deepspeed engine"""
+        deepspeed.init_distributed()
 
         # initialize deepspeed
         self.model_engine = None
@@ -541,7 +566,7 @@ class BaseTrainer:
                 training_data=self.train_dataset,
                 config=self.deepspeed_config_path,
             )
-            print("Training with DeepSpeed")
+            self.logger.info("Training with DeepSpeed")
 
     @beartype
     def setup_accelerate(
@@ -564,7 +589,7 @@ class BaseTrainer:
                 self.train_dataloader,
                 self.scheduler,
             )
-            print("Training with Accelerate")
+            self.logger.info("Training with Accelerate")
 
     @beartype
     def save_checkpoint(
@@ -583,7 +608,7 @@ class BaseTrainer:
             max_steps (int): Maximum number of steps
         """
 
-        print(
+        self.logger.info(
             f"Saving checkpoint for epoch {current_epoch + 1}, "
             f" step {current_step} ..."
         )
@@ -653,6 +678,7 @@ class BaseTrainer:
                     },
                     path,
                 )
+            self.logger.success(f"Checkpoint saved at {path}")
 
     @beartype
     def load_checkpoint(
@@ -665,7 +691,7 @@ class BaseTrainer:
                 from which you should resume the training
         """
 
-        print("Looking for checkpoints...")
+        self.logger.info("Looking for checkpoints...")
 
         # look for the checkpoints
         path = ModelLoader.check_model_path(
@@ -676,7 +702,7 @@ class BaseTrainer:
 
         # check if a checkpoint exists
         if path is not None:
-            print("Loading ...")
+            self.logger.info("Loading ...")
 
             # if deepspeed is enabled
             if self.config.deepspeed_enable:
@@ -685,10 +711,12 @@ class BaseTrainer:
                 try:
                     _, client_state = self.model_engine.load_checkpoint(path)
                 except Exception:
-                    print(
-                        "Checkpoint corrupted!"
-                        "Try to remove the last checkpoint."
-                        "Now Starting from epoch 0, step 0"
+                    self.logger.warning(
+                        (
+                            "Checkpoint corrupted! " + 
+                            "Try to remove the last checkpoint. " +
+                            "Now Starting from epoch 0, step 0"
+                        )
                     )
                     return 0, 0
 
@@ -699,6 +727,8 @@ class BaseTrainer:
                 else:
                     epoch = client_state["epoch"]
                     step = client_state["step"]
+                    
+                self.logger.success(f"Checkpoint loaded from {path}")
                 return epoch, step
 
             else:
@@ -707,10 +737,12 @@ class BaseTrainer:
                 try:
                     checkpoint = torch.load(path)
                 except Exception:
-                    print(
-                        "Checkpoint corrupted!"
-                        "Try to remove the last checkpoint."
-                        "Now Starting from epoch 0, step 0"
+                    self.logger.warning(
+                        (
+                            "Checkpoint corrupted! " + 
+                            "Try to remove the last checkpoint. " +
+                            "Now Starting from epoch 0, step 0"
+                        )
                     )
                     return 0, 0
 
@@ -726,25 +758,30 @@ class BaseTrainer:
                     if "lora_peft" in checkpoint:
                         if (checkpoint["lora_peft"] !=
                             self.model.actor.is_lora_peft_applied):
-                            print(
-                                "Checkpoint is not compatible with the current"
-                                "lora_peft setting. Now Starting from epoch 0,"
-                                "step 0"
+                            self.logger.warning(
+                                (
+                                    "Checkpoint is not compatible with the " +
+                                    "current lora_peft setting. " +
+                                    "Now Starting from epoch 0, step 0"
+                                )
                             )
                             return 0, 0
                     if "critic_lora_peft" in checkpoint:
                         if (checkpoint["critic_lora_peft"] !=
                             self.model.critic.is_lora_peft_applied):
-                            print(
-                                "Checkpoint is not compatible with the current"
-                                "lora_peft setting. Now Starting from epoch 0,"
-                                "step 0"
+                            self.logger.warning(
+                                (
+                                    "Checkpoint is not compatible with the " +
+                                    "current lora_peft setting. " +
+                                    "Now Starting from epoch 0, step 0"
+                                )
                             )
                             return 0, 0
                     
                     self.model.actor.load_state_dict(checkpoint["model"])
                     self.model.critic.load_state_dict(checkpoint["critic"])
                     episode = checkpoint["episode"]
+                    self.logger.success(f"Checkpoint loaded from {path}")
                     return episode, 0
                 else:
                     # Actor and Reward Trainer
@@ -753,10 +790,12 @@ class BaseTrainer:
                     if "lora_peft" in checkpoint:
                         if (checkpoint["lora_peft"] !=
                             self.model.is_lora_peft_applied):
-                            print(
-                                "Checkpoint is not compatible with the current"
-                                "lora_peft setting. Now Starting from epoch 0,"
-                                "step 0"
+                            self.logger.warning(
+                                (
+                                    "Checkpoint is not compatible with the " +
+                                    "current lora_peft setting. " +
+                                    "Now Starting from epoch 0, step 0"
+                                )
                             )
                             return 0, 0
                     
@@ -764,5 +803,6 @@ class BaseTrainer:
                     self.training_stats = checkpoint["training_stats"]
                     epoch = checkpoint["epoch"]
                     step = checkpoint["step"]
+                    self.logger.success(f"Checkpoint loaded from {path}")
                     return epoch, step + 1  # return the next episode to train
         return 0, 0

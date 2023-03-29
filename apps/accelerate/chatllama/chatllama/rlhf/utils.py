@@ -1,9 +1,19 @@
 import json
 import os
+import sys
 
 import torch
 from beartype import beartype
+from beartype.typing import Union, Optional
+from loguru import logger
 from plotly import graph_objects as go
+
+from chatllama.rlhf.config import (
+    Config,
+    ConfigActor,
+    ConfigCritic,
+    ConfigReward,
+)
 
 
 class TrainingStats:
@@ -230,3 +240,56 @@ class IgnoreLabelsWrapper(torch.nn.Module):
         
     def prepare_inputs_for_generation(self, *args, **kwargs):
         return self.model.prepare_inputs_for_generation(*args, **kwargs)
+
+
+ConfigType = Union[Config, ConfigActor, ConfigCritic, ConfigReward]
+
+
+class Singleton:
+    __instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+        return cls.__instance
+
+
+class LogMessages(Singleton):
+    config = None
+    
+    def __init__(self, config: Optional[ConfigType] = None):
+        if config is not None:
+            self.config = config
+        if self.config is None:
+            # the config for the logger has not been set yet.
+            # the defualt beahviour should be single vanilla single GPU
+            pass
+        self.log_config = {
+            "handlers": [
+                {
+                    "sink": sys.stdout,
+                    "format": "<level> {time:YYYY-MM-DD HH:mm:ss.SSS} | {message} </level>",
+                    "colorize": True,
+                    "level": "INFO"
+                },
+                {
+                    "sink": "file.log",
+                    "serialize": True,
+                },
+            ],
+        }
+        logger.configure(**self.log_config)
+        
+    def error(self, error_type, text: str):
+        logger.error(text)
+        return error_type(text)
+    
+    def warning(self, text: str):
+        logger.warning(text)
+    
+    def info(self, text: str):
+        logger.info(text)
+        
+    def success(self, text: str):
+        logger.success(text)
+    

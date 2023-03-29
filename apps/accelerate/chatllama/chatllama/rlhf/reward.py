@@ -95,10 +95,8 @@ class RewardDataset(Dataset):
     """
 
     def __init__(self, path: str) -> None:
-        print(f"Loading dataset from {path}")
         with open(path, "r") as f:
             self.data = list(json.load(f))
-        print(f"Loaded {len(self.data)} samples")
 
     def __getitem__(self, idx: int):
         user_input = self.data[idx]["user_input"]
@@ -151,9 +149,16 @@ class RewardTrainer(BaseTrainer):
         self.model = RewardModel(config)
 
         # optimizer
-        self.optimizer = torch.optim.AdamW(
-            self.model.parameters(), lr=config.lr
-        )
+        if self.deepspeed_enable:
+            import deepspeed
+            deepspeed.ops.op_builder.CPUAdamBuilder().load()
+            self.optimizer = deepspeed.ops.adam.DeepSpeedCPUAdam(
+                self.model.parameters(), lr=config.lr
+            )
+        else:
+            self.optimizer = torch.optim.AdamW(
+                self.model.parameters(), lr=config.lr
+            )
 
         # loss function
         self.loss_function = torch.nn.MSELoss()
@@ -194,7 +199,8 @@ class RewardTrainer(BaseTrainer):
         self,
     ) -> None:
         """Train the reward model"""
-        print("Start Training the Reward Model")
+        
+        self.logger.success("Start Training the Reward Model")
 
         # get config parameters
         if self.config.deepspeed_enable:
@@ -274,7 +280,7 @@ class RewardTrainer(BaseTrainer):
 
                 # print progress
                 if i % iteration_per_print == 0:
-                    print(
+                    self.logger.info(
                         f"Epoch: {epoch+1}/{epochs}, "
                         f"Iteration: {i+1}/{n_iter}, "
                         f"Training Loss: {loss.item()}"
@@ -282,11 +288,9 @@ class RewardTrainer(BaseTrainer):
                     printed_est_output = [
                         round(float(x), 1) for x in est_output.cpu().tolist()
                     ]
-                    print(
-                        "prediction",
-                        printed_est_output,
-                        "target",
-                        score.cpu().tolist(),
+                    self.logger.info(
+                        f"prediction {printed_est_output} "
+                        f"target {score.cpu().tolist()}"
                     )
 
                 # checkpoints saving
@@ -327,7 +331,7 @@ class RewardTrainer(BaseTrainer):
 
                         # print progress
                         if i % iteration_per_print == 0:
-                            print(
+                            self.logger.info(
                                 f"Epoch: {epoch+1}/{epochs}, "
                                 f"Iteration: {i+1}/{n_iter}, "
                                 f"Validation Loss: {loss.item()}"
@@ -337,3 +341,4 @@ class RewardTrainer(BaseTrainer):
 
         # save the model at the end of the training
         self.model.save()
+        self.logger.success("Training is finished")

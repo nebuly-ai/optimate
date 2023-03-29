@@ -46,10 +46,6 @@ class ActorModel(BaseModel):
         # need to return logits for the actions
         if self.config.model in hf_models_causal_lm:
             model_output = model_output.logits
-        if self.config.debug:
-            print("ActorModel.forward")
-            print("model_output_logits shape", model_output.shape)
-            print("model_output logits", model_output)
         return model_output
 
     @beartype
@@ -82,7 +78,8 @@ class ActorModel(BaseModel):
         # max generation possible given the state and the max sequence length
         max_generation_possible = max_sequence_length - states.shape[1]
         if max_generation_possible < min_tokens:
-            raise ValueError(
+            raise self.logger.error(
+                ValueError,
                 f"The prompt is too long w.r.t the "
                 f"model sequence length \n"
                 f"max_sequence_length={max_sequence_length}\n"
@@ -103,20 +100,6 @@ class ActorModel(BaseModel):
             no_repeat_ngram_size=3,
         )
         actions = sequences[:, states.shape[1] :]  # noqa E203
-        if self.config.debug:
-            print(
-                f"input length {states.shape[1]} \n"
-                f"max sequence length {max_sequence_length} \n"
-                f"max completion {max_completion} \n"
-                f"generated sequence {sequences.shape[1]} \n"
-            )
-            print("ActorModel.generate")
-            print("state", states)
-            print("state shape", states.shape)
-            print("sequence shape", sequences.shape)
-            print("sequence", sequences)
-            print("actions shape", actions.shape)
-            print("actions", actions)
         return actions, sequences
 
 
@@ -265,7 +248,8 @@ class ActorTrainer(BaseTrainer):
         self,
     ) -> None:
         """Train the model"""
-        print("Start Actor Model Pretraining")
+        
+        self.logger.success("Start Actor Model Pretraining")
 
         # get config parameters
         if self.config.deepspeed_enable:
@@ -360,7 +344,7 @@ class ActorTrainer(BaseTrainer):
 
                 # print progress
                 if i % self.config.iteration_per_print == 0:
-                    print(
+                    self.logger.info(
                         f"Epoch: {epoch+1}/{epochs}, "
                         f"Iteration: {i+1}/{n_iter}, "
                         f"Training Loss: {loss}"
@@ -407,7 +391,7 @@ class ActorTrainer(BaseTrainer):
 
                         # print progress
                         if i % self.config.iteration_per_print == 0:
-                            print(
+                            self.logger.info(
                                 f"Epoch: {epoch+1}/{epochs}, "
                                 f"Iteration: {i+1}/{n_iter}, "
                                 f"Validation Loss: {loss}"
@@ -417,4 +401,4 @@ class ActorTrainer(BaseTrainer):
 
         # save the model
         self.model.save()
-        print("Training Finished ")
+        self.logger.success("Training Finished ")

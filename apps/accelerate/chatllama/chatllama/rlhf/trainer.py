@@ -210,19 +210,6 @@ class ActorCritic(BaseModel):
         real_actions_logits = actions_logits[:, -action_len_actor:, :]
         real_values = values[:, -action_len_critic:]
 
-        if self.debug:
-            print("ActorCritic.forward")
-            print("action_len_actor", action_len_actor)
-            print("action_len_critic", action_len_critic)
-            print("sequences_actor.shape", sequences_actor.shape)
-            print("sequences_actor", sequences_actor)
-            print("sequences_critic.shape", sequences_critic.shape)
-            print("sequences_critic", sequences_critic)
-            print("real_action_logits.shape", actions_logits.shape)
-            print("real_action_logits", actions_logits)
-            print("real_values.shape", values.shape)
-            print("real_values", values)
-
         return (
             real_actions_logits,
             real_values,
@@ -304,16 +291,6 @@ class ActorCritic(BaseModel):
             action_len_actor,
             action_len_critic,
         )
-        if self.debug:
-            print("ActorCritic.generate")
-            print("actions shape", actions.shape)
-            print("actions", actions)
-            print("sequence shape", sequences_actor.shape)
-            print("sequence", sequences_actor)
-            print("actions_logits shape", actions_logits.shape)
-            print("actions_logits", actions_logits)
-            print("values shape", values.shape)
-            print("values", values)
 
         return (
             actions,
@@ -509,7 +486,7 @@ class RLTrainer(BaseTrainer):
         - then compare action logits probs with memories one and values with
             rewards to compute the PPO loss and update the actor-critic model
         """
-        print("Start to Learn...")
+        self.logger.info("Start to Learn...")
 
         # get parameters
         epochs = self.config.trainer.epochs
@@ -555,28 +532,6 @@ class RLTrainer(BaseTrainer):
                 action_len_actor,
                 action_len_critic,
             ) in enumerate(self.train_dataloader):
-
-                if self.debug:
-                    print(
-                        f"#########################################"
-                        f" batch from memories {k} \n "
-                        f"#########################################"
-                        f"states_actor {states_actor.shape} \n"
-                        f"old_actions {old_actions.shape} \n"
-                        f"old_values {old_values.shape} \n"
-                        f"rewards {rewards.shape} \n"
-                        f"old_actions_log_probs "
-                        f"{old_actions_log_probs.shape}\n"
-                        f"sequences_actor {sequences_actor.shape} \n"
-                        f"sequences_mask_actor "
-                        f"{sequences_mask_actor.shape} \n"
-                        f"sequences_critic {sequences_critic.shape} \n"
-                        f"sequences_mask_critic "
-                        f"{sequences_mask_critic.shape} \n"
-                        f"action_len_actor {action_len_actor} \n"
-                        f"action_len_critic {action_len_critic} \n"
-                        f"#########################################"
-                    )
 
                 # get actor critic new probabilities and values
                 actions_logits, values = self.actorcritic.forward(
@@ -641,7 +596,10 @@ class RLTrainer(BaseTrainer):
 
                 # check if loss item is NaN
                 if torch.isnan(policy_loss):
-                    raise ValueError("Policy Loss is nan")
+                    raise self.logger.error(
+                        ValueError,
+                        "Policy Loss is nan",
+                    )
 
                 # compute value loss
                 # the loss is the distance between the rewards and the values
@@ -657,7 +615,10 @@ class RLTrainer(BaseTrainer):
                 value_loss = torch.max(value_loss1, value_loss2).mean()
 
                 if torch.isnan(value_loss):
-                    raise ValueError("Value loss is nan")
+                    raise self.logger.error(
+                        ValueError,
+                        "Value loss is nan"
+                    )
 
                 # Sum the two losses
                 loss = policy_loss + value_loss
@@ -688,7 +649,7 @@ class RLTrainer(BaseTrainer):
                 )
 
                 # print iteration info
-                print(
+                self.logger.info(
                     f"Epoch {epoch+1}/{epochs}",
                     f"Step "
                     f"{k+1}/{int(len(self.train_dataloader) / batch_size)}",
@@ -697,13 +658,13 @@ class RLTrainer(BaseTrainer):
                 )
 
         self.actorcritic.eval()
-        print("End Learning")
+        self.logger.info("End Learning")
 
     def train(
         self,
     ) -> None:
 
-        print("Start RL Training")
+        self.logger.success("Start RL Training")
 
         # initialize settings
         num_episodes = self.config.trainer.num_episodes
@@ -753,7 +714,7 @@ class RLTrainer(BaseTrainer):
             for timestep in range(max_timesteps):
 
                 # print the iteration info
-                print(
+                self.logger.info(
                     f"Episode: {episode + 1}/{num_episodes}, "
                     f"Timestep: {timestep + 1}/{max_timesteps}",
                     f"Learning Cnt: {cnt_timesteps + 1}/{update_timesteps}",
@@ -884,13 +845,14 @@ class RLTrainer(BaseTrainer):
                 if (cnt_timesteps % update_timesteps == 0) and (
                     cnt_timesteps != 0
                 ):
-                    print("len memories", len(memories))
+                    
+                    self.logger.info("Len memories", len(memories))
                     # self.conversation_log.show(cnt_learn_iter)
                     self.learn(memories)
                     mean_reward = sum([m.rewards[-1] for m in memories]) / len(
                         memories
                     )
-                    print(f"Mean Reward: {mean_reward}")
+                    self.logger.info(f"Mean Reward: {mean_reward}")
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
@@ -905,4 +867,4 @@ class RLTrainer(BaseTrainer):
 
         # save the models
         self.actorcritic.save()
-        print("End RL Training")
+        self.logger.success("End RL Training")

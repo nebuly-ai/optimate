@@ -1,10 +1,14 @@
 import argparse
 
+import deepspeed
+
 from chatllama.rlhf.actor import ActorTrainer
 from chatllama.rlhf.config import Config
 from chatllama.rlhf.dataset import BaseDataset
 from chatllama.rlhf.reward import RewardTrainer
 from chatllama.rlhf.trainer import RLTrainer
+
+
 
 
 # Setup argument parser
@@ -31,6 +35,12 @@ parser.add_argument(
 parser.add_argument(
     "-r", "--reward", help="Specify reward model by name", default=None
 )
+
+parser.add_argument('--local_rank', type=int, default=-1,
+                    help='local rank passed from distributed launcher')
+
+# Include DeepSpeed configuration arguments
+# parser = deepspeed.add_config_arguments(parser)
 
 # parse arguments
 args = parser.parse_args()

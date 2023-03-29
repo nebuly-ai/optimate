@@ -8,12 +8,14 @@ from datasets import load_dataset
 from chatllama.rlhf.config import Config, ConfigActor, ConfigReward
 from chatllama.rlhf.reward import RewardModel, CriticModel
 from chatllama.rlhf.actor import ActorModel
+from chatllama.rlhf.utils import LogMessages
 
 
 ConfigType = Union[Config, ConfigActor, ConfigReward]
 
-
 class BaseDataset:
+    logger = LogMessages()
+    
     def __init__(
         self,
     ) -> None:
@@ -94,8 +96,8 @@ class BaseDataset:
         conversations = [conversations[i] for i in indexes]
         return conversations
 
-    @staticmethod
-    def clean_dataset(config: ConfigType):
+    @classmethod
+    def clean_dataset(cls, config: ConfigType):
         """Clean the datasets by removing too long examples
         The Reward Dataset constraints are:
         - user_input + completion < Reward model max sequence length
@@ -111,7 +113,7 @@ class BaseDataset:
         """
 
         if isinstance(config, Config):
-            print("Start cleaning the dataset for RLHF")
+            cls.logger.info("Start cleaning the dataset for RLHF")
             # constraints
             r_model_max_seq_len = config.reward.max_sequence_length
             a_model_max_seq_len = config.actor.max_sequence_length
@@ -127,7 +129,7 @@ class BaseDataset:
             safety_tokens = config.actor.additonal_prompt_tokens
 
         elif isinstance(config, ConfigActor):
-            print("Start cleaning the dataset for Actor")
+            cls.logger.info("Start cleaning the dataset for Actor")
             # constraint
             a_model_max_seq_len = config.max_sequence_length
             # dataset
@@ -138,7 +140,7 @@ class BaseDataset:
             safety_tokens = config.additonal_prompt_tokens
 
         elif isinstance(config, ConfigReward):
-            print("Start cleaning the dataset for Reward")
+            cls.logger.info("Start cleaning the dataset for Reward")
             # constraint
             r_model_max_seq_len = config.max_sequence_length
             # dataset
@@ -224,8 +226,8 @@ class BaseDataset:
 
             # if the number of examples has changed
             if len(conversations) != old_len:
-                print("Number of examples before cleaning: ", old_len)
-                print(
+                cls.logger.info("Number of examples before cleaning: ", old_len)
+                cls.logger.info(
                     "Number of examples after cleaning: ", len(conversations)
                 )
 
@@ -235,11 +237,12 @@ class BaseDataset:
                 # save the new dataset
                 with open(dataset_path, "w") as f:
                     json.dump(conversations, f, indent=4)
+                cls.logger.success("Dataset cleaned")
             else:
-                print("Dataset is already clean")
+                cls.logger.success("Dataset is already clean")
 
         else:
-            print(
+            cls.logger.warning(
                 f"Dataset not found at {dataset_path}"
                 f" Skipping cleaning of the dataset"
             )
@@ -251,9 +254,9 @@ class StanfordNLPSHP(BaseDataset):
     def __init__(
         self,
     ) -> None:
-        print("Download the dataset")
+        self.logger.info("Download the dataset")
         self.dataset = load_dataset("stanfordnlp/SHP")
-        print("Download Completed")
+        self.logger.info("Download Completed")
 
     def reformat_dataset(self, data: List) -> List[Dict]:
         """Reformat the dataset to the format required by RLHF
@@ -304,7 +307,7 @@ class StanfordNLPSHP(BaseDataset):
                 Defaults to True.
         """
 
-        print("Generate datasets for RLHF")
+        self.logger.info("Generate datasets for RLHF")
 
         # take the train and test dataset to create the finetuning dataset
         conversations = self.reformat_dataset(self.dataset["train"])
@@ -337,7 +340,7 @@ class StanfordNLPSHP(BaseDataset):
         with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
             json.dump(conversations, f, indent=4)
 
-        print("Generation Completed")
+        self.logger.success("Generation Completed")
 
 
 class AnthropicRLHF(BaseDataset):
@@ -347,9 +350,9 @@ class AnthropicRLHF(BaseDataset):
         self,
     ) -> None:
 
-        print("Download the dataset")
+        self.logger.info("Download the dataset")
         self.dataset = load_dataset("Anthropic/hh-rlhf")
-        print("Download Completed")
+        self.logger.info("Download Completed")
 
     def reformat_dataset(self, data: List) -> List[Dict]:
         """Reformat the dataset to the format required by RLHF
@@ -401,7 +404,7 @@ class AnthropicRLHF(BaseDataset):
                 Defaults to True.
         """
 
-        print("Generate datasets for RLHF")
+        self.logger.info("Generate datasets for RLHF")
 
         # generate actor and reward dataset
         conversations = self.reformat_dataset(self.dataset["train"])
@@ -431,7 +434,7 @@ class AnthropicRLHF(BaseDataset):
         with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
             json.dump(conversations, f, indent=4)
 
-        print("Generation Completed")
+        self.logger.success("Generation Completed")
 
     
 
@@ -441,9 +444,9 @@ class SelfInstruct(BaseDataset):
     def __init__(
         self,
     ) -> None:
-        print("Download the dataset")
+        self.logger.info("Download the dataset")
         self.dataset = load_dataset("HuggingFaceH4/self-instruct")
-        print("Download Completed")
+        self.logger.info("Download Completed")
         
     def reformat_dataset(self, data: List) -> List[Dict]:
         """Reformat the dataset to the format required by RLHF
@@ -497,7 +500,8 @@ class SelfInstruct(BaseDataset):
                 Defaults to True.
         """
 
-        print("Generate datasets for RLHF")
+        self.logger.info("Generate datasets for RLHF")
+        
         # divide train data in two chunks 
         data = self.reformat_dataset(self.dataset["train"])
         slice_index = int(len(data) * 0.9)
@@ -531,5 +535,5 @@ class SelfInstruct(BaseDataset):
         with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
             json.dump(conversations, f, indent=4)
 
-        print("Generation Completed")
+        self.logger.success("Generation Completed")
 
