@@ -11,6 +11,7 @@ from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
 )
+from chatllama.rlhf.dataset import BaseDataset
 
 
 class ActorModel(BaseModel):
@@ -184,11 +185,13 @@ class ActorTrainer(BaseTrainer):
             self.validation_flag = True
 
         # create dataset and dataloaders
+        BaseDataset.clean_dataset(config)
         self.train_dataset = ActorDataset(config.train_dataset_path)
         self.train_dataloader = DataLoader(
             self.train_dataset, batch_size=config.batch_size
         )
         if self.validation_flag:
+            BaseDataset.clean_dataset(config)
             self.eval_dataset = ActorDataset(config.validation_dataset_path)
             self.validation_dataloader = DataLoader(
                 self.eval_dataset, batch_size=config.batch_size

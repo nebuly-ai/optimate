@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigReward
+from chatllama.rlhf.dataset import BaseDataset
 
 
 class RewardModel(BaseModel):
@@ -169,11 +170,13 @@ class RewardTrainer(BaseTrainer):
             self.validation_flag = True
 
         # create dataset and dataloaders
+        BaseDataset.clean_dataset(config)
         self.train_dataset = RewardDataset(config.train_dataset_path)
         self.train_dataloader = DataLoader(
             self.train_dataset, batch_size=config.batch_size
         )
         if self.validation_flag:
+            BaseDataset.clean_dataset(config)
             self.eval_dataset = RewardDataset(config.validation_dataset_path)
             self.validation_dataloader = DataLoader(
                 self.eval_dataset, batch_size=config.batch_size
@@ -201,6 +204,9 @@ class RewardTrainer(BaseTrainer):
         """Train the reward model"""
         
         self.logger.success("Start Training the Reward Model")
+        
+        # setup the logs 
+        self.setup_logs()
 
         # get config parameters
         if self.config.deepspeed_enable:

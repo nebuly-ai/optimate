@@ -32,6 +32,8 @@ from chatllama.rlhf.utils import (
     TrainingStats,
     IgnoreLabelsWrapper,
     LogMessages,
+    load_tokenizer
+    
 )
 
 
@@ -52,8 +54,9 @@ class BaseModel(torch.nn.Module):
         load: Load the model from a path
         save: Save the model to a path
         parameters: Return the parameters of the model
-        load_tokenizer: Load the tokenizer for the model (staticmethod)
     """
+    
+    # intialize logger
     logger = LogMessages()
 
     @beartype
@@ -64,7 +67,7 @@ class BaseModel(torch.nn.Module):
         self.config = config
         
         # if not initialized, initialize the logger
-        self.logger = LogMessages(config)
+        self.logger = LogMessages()
 
         if not isinstance(config, Config):
             # Actor, Critic or Reward Model initialization
@@ -101,7 +104,7 @@ class BaseModel(torch.nn.Module):
             elif config.model in hf_models_causal_lm:
 
                 # load tokenizer
-                self.tokenizer = self.load_tokenizer(config)
+                self.tokenizer = load_tokenizer(config)
 
                 # check load 8 bit condition
                 if not config.peft_enable:
@@ -355,47 +358,6 @@ class BaseModel(torch.nn.Module):
                 path,
             )
 
-    @classmethod
-    def load_tokenizer(cls, config: ConfigType):
-        """Load the tokenizer from the model name"""
-        
-        if config.model in hf_models:
-
-            # load the tokenizer from HF
-            tokenizer = AutoTokenizer.from_pretrained(
-                config.model,
-                padding_side="left",
-                padding=True,
-                truncation=True,
-                model_max_length=config.max_sequence_length,
-            )
-
-            # add eos token if not present
-            if tokenizer.eos_token is None:
-                tokenizer.eos_token = "</s>"
-                tokenizer.eos_token_id = 2  # OPT eos-token-id
-
-            # add pad token if not present
-            if tokenizer.pad_token is None:
-                tokenizer.pad_token = tokenizer.eos_token
-                tokenizer.pad_token_id = tokenizer.eos_token_id
-
-        elif config.model in llama_models:
-
-            if not isinstance(config, ConfigActor):
-                raise cls.logger.error(
-                    ValueError,
-                    "LLaMA models can only be used as actor",
-                    )
-
-            # llama module might not be present when HF models are used
-            from chatllama.llama_model import (
-                load_tokenizer,
-            )  # noqa
-
-            tokenizer = load_tokenizer(config.tokenizer_path)
-        return tokenizer
-
     def parameters(self) -> Iterable[torch.nn.Parameter]:
         """Return the parameters of the model"""
         for p in self.model.parameters():
@@ -443,6 +405,7 @@ class BaseTrainer:
 
     """
     
+    # intialize logger
     logger = LogMessages()
 
     @beartype
@@ -455,7 +418,7 @@ class BaseTrainer:
         self.config = config
         
         # if not initialized, initialize the logger
-        self.logger = LogMessages(config)
+        self.logger = LogMessages()
 
         # initialize trainint stats
         self.trainig_stats = self.setup_training_stats()
@@ -503,6 +466,18 @@ class BaseTrainer:
                     f" {self.deepspeed_config_path} "
                     f"does not exist"
                 )
+                
+        # setup the logs
+        self.setup_logs()
+                
+    @beartype
+    def setup_logs(self) -> None:
+        """This method initializes the logs"""
+        # setup logger for multiGPU
+        if self.deepspeed_enable or self.accelerate_enable:
+            self.logger.set_multi_gpu()
+        else:
+            self.logger.set_single_gpu()
 
     @beartype
     def setup_training_stats(

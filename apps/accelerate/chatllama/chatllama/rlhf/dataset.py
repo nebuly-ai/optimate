@@ -6,12 +6,11 @@ import numpy as np
 from beartype.typing import Dict, List, Union
 from datasets import load_dataset
 from chatllama.rlhf.config import Config, ConfigActor, ConfigReward
-from chatllama.rlhf.reward import RewardModel, CriticModel
-from chatllama.rlhf.actor import ActorModel
-from chatllama.rlhf.utils import LogMessages
+from chatllama.rlhf.utils import LogMessages, load_tokenizer
 
 
 ConfigType = Union[Config, ConfigActor, ConfigReward]
+
 
 class BaseDataset:
     logger = LogMessages()
@@ -122,9 +121,9 @@ class BaseDataset:
             # dataset
             dataset_path = config.trainer.examples_path
             # tokenizers
-            r_tokenizer = RewardModel.load_tokenizer(config.reward)
-            a_tokenizer = ActorModel.load_tokenizer(config.actor)
-            c_tokenizer = CriticModel.load_tokenizer(config.critic)
+            r_tokenizer = load_tokenizer(config.reward)
+            a_tokenizer = load_tokenizer(config.actor)
+            c_tokenizer = load_tokenizer(config.critic)
             # safety tokens
             safety_tokens = config.actor.additonal_prompt_tokens
 
@@ -135,7 +134,7 @@ class BaseDataset:
             # dataset
             dataset_path = config.train_dataset_path
             # tokenizer
-            a_tokenizer = ActorModel.load_tokenizer(config)
+            a_tokenizer = load_tokenizer(config)
             # safety tokens
             safety_tokens = config.additonal_prompt_tokens
 
@@ -146,7 +145,7 @@ class BaseDataset:
             # dataset
             dataset_path = config.train_dataset_path
             # tokenizer
-            r_tokenizer = RewardModel.load_tokenizer(config)
+            r_tokenizer = load_tokenizer(config)
 
         # if there is the datasets
         if os.path.exists(dataset_path):

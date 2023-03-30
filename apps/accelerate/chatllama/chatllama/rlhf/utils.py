@@ -1,12 +1,17 @@
 import json
 import os
+import re
 import sys
 
 import torch
+import logging
 from beartype import beartype
 from beartype.typing import Union, Optional
 from loguru import logger
 from plotly import graph_objects as go
+from transformers import AutoTokenizer
+
+import deepspeed
 
 from chatllama.rlhf.config import (
     Config,
@@ -14,6 +19,84 @@ from chatllama.rlhf.config import (
     ConfigCritic,
     ConfigReward,
 )
+from chatllama.rlhf.model_list import (
+    hf_models,
+    llama_models
+)
+
+
+# To control logging level for various modules used in the application:
+def set_global_logging_level(level=logging.ERROR, prefices=["transformers", "torch", "deepspeed"]):
+    """
+    Override logging levels of different modules based on their name as a prefix.
+    It needs to be invoked after the modules have been loaded so that their loggers have been initialized.
+
+    Args:
+        - level: desired level. e.g. logging.INFO. Optional. Default is logging.ERROR
+        - prefices: list of one or more str prefices to match (e.g. ["transformers", "torch"]). Optional.
+          Default is `[""]` to match all active loggers.
+          The match is a case-sensitive `module_name.startswith(prefix)`
+    """
+    prefix_re = re.compile(fr'^(?:{ "|".join(prefices) })')
+    for name in logging.root.manager.loggerDict:
+        if re.match(prefix_re, name):
+            logging.getLogger(name).setLevel(level)
+    if "deepspeed" in prefices:
+        deepspeed.utils.logging.logger.setLevel(level)
+        
+set_global_logging_level()
+
+
+ConfigType = Union[Config, ConfigActor, ConfigCritic, ConfigReward]
+
+
+def load_tokenizer(config: ConfigType):
+    """Load the tokenizer from the model name
+    placed in utils to avoid circular imports from dataset and model class
+    """
+    
+    # logger
+    logger = LogMessages()
+
+    # disable tokenizer parallelization (Avoid warnings in HF)
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+    if config.model in hf_models:
+
+        # load the tokenizer from HF
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.model,
+            padding_side="left",
+            padding=True,
+            truncation=True,
+            model_max_length=config.max_sequence_length,
+        )
+
+        # add eos token if not present
+        if tokenizer.eos_token is None:
+            tokenizer.eos_token = "</s>"
+            tokenizer.eos_token_id = 2  # OPT eos-token-id
+
+        # add pad token if not present
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    elif config.model in llama_models:
+
+        if not isinstance(config, ConfigActor):
+            raise logger.error(
+                ValueError,
+                "LLaMA models can only be used as actor",
+                )
+
+        # llama module might not be present when HF models are used
+        from chatllama.llama_model import (
+            load_tokenizer,
+        )  # noqa
+
+        tokenizer = load_tokenizer(config.tokenizer_path)
+    return tokenizer
 
 
 class TrainingStats:
@@ -255,15 +338,11 @@ class Singleton:
 
 
 class LogMessages(Singleton):
-    config = None
     
-    def __init__(self, config: Optional[ConfigType] = None):
-        if config is not None:
-            self.config = config
-        if self.config is None:
-            # the config for the logger has not been set yet.
-            # the defualt beahviour should be single vanilla single GPU
-            pass
+    def __init__(self,):
+        
+        set_global_logging_level()
+        
         self.log_config = {
             "handlers": [
                 {
@@ -280,16 +359,52 @@ class LogMessages(Singleton):
         }
         logger.configure(**self.log_config)
         
-    def error(self, error_type, text: str):
-        logger.error(text)
+        # flag to enable multi gpu logging
+        self.is_multi_gpu = False
+        
+        # rank to print when multi gpu
+        self.log_rank = -1
+        
+        # local rank 
+        self.local_rank = -2
+    
+    def set_multi_gpu(self, rank: int = 0):
+        self.is_multi_gpu = True
+        self.log_rank = rank
+        self.local_rank = int(os.environ.get("RANK", "0"))
+        
+    def set_single_gpu(self):
+        self.is_multi_gpu = False
+        
+    def error(self,
+              error_type,
+              text: str):
+        
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.error(f'[Rank {self.local_rank}] {text}')
+        else:
+            logger.error(text)
         return error_type(text)
     
     def warning(self, text: str):
-        logger.warning(text)
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.warning(f'[Rank {self.local_rank}] {text}')
+        else:
+            logger.warning(text)
     
     def info(self, text: str):
-        logger.info(text)
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.info(f'[Rank {self.local_rank}] {text}')
+        else:
+            logger.info(text)
         
     def success(self, text: str):
-        logger.success(text)
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.success(f'[Rank {self.local_rank}] {text}')
+        else:
+            logger.success(text)
     
