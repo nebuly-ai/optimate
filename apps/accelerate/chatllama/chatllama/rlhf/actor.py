@@ -12,6 +12,7 @@ from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
 )
 from chatllama.rlhf.dataset import BaseDataset
+from chatllama.rlhf.utils import my_logger
 
 
 class ActorModel(BaseModel):
@@ -79,7 +80,7 @@ class ActorModel(BaseModel):
         # max generation possible given the state and the max sequence length
         max_generation_possible = max_sequence_length - states.shape[1]
         if max_generation_possible < min_tokens:
-            raise self.logger.error(
+            raise my_logger.error(
                 ValueError,
                 f"The prompt is too long w.r.t the "
                 f"model sequence length \n"
@@ -87,7 +88,7 @@ class ActorModel(BaseModel):
                 f"state_length={states.shape[1]}\n"
                 f"min_tokens={min_tokens}\n"
                 f"max_tokens={max_tokens}\n"
-                f"max_generation_possible={max_generation_possible}\n"
+                f"max_generation_possible={max_generation_possible}\n",
             )
 
         # take the minimum the max_tokens and the max_generation_possible
@@ -251,8 +252,8 @@ class ActorTrainer(BaseTrainer):
         self,
     ) -> None:
         """Train the model"""
-        
-        self.logger.success("Start Actor Model Pretraining")
+
+        my_logger.success("Start Actor Model Pretraining")
 
         # get config parameters
         if self.config.deepspeed_enable:
@@ -347,7 +348,7 @@ class ActorTrainer(BaseTrainer):
 
                 # print progress
                 if i % self.config.iteration_per_print == 0:
-                    self.logger.info(
+                    my_logger.info(
                         f"Epoch: {epoch+1}/{epochs}, "
                         f"Iteration: {i+1}/{n_iter}, "
                         f"Training Loss: {loss}"
@@ -394,7 +395,7 @@ class ActorTrainer(BaseTrainer):
 
                         # print progress
                         if i % self.config.iteration_per_print == 0:
-                            self.logger.info(
+                            my_logger.info(
                                 f"Epoch: {epoch+1}/{epochs}, "
                                 f"Iteration: {i+1}/{n_iter}, "
                                 f"Validation Loss: {loss}"
@@ -404,4 +405,4 @@ class ActorTrainer(BaseTrainer):
 
         # save the model
         self.model.save()
-        self.logger.success("Training Finished ")
+        my_logger.success("Training Finished ")

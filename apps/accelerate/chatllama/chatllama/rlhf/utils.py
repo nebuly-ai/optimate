@@ -6,7 +6,7 @@ import sys
 import torch
 import logging
 from beartype import beartype
-from beartype.typing import Union, Optional
+from beartype.typing import Union, Tuple
 from loguru import logger
 from plotly import graph_objects as go
 from transformers import AutoTokenizer
@@ -19,44 +19,180 @@ from chatllama.rlhf.config import (
     ConfigCritic,
     ConfigReward,
 )
-from chatllama.rlhf.model_list import (
-    hf_models,
-    llama_models
-)
-
-
-# To control logging level for various modules used in the application:
-def set_global_logging_level(level=logging.ERROR, prefices=["transformers", "torch", "deepspeed"]):
-    """
-    Override logging levels of different modules based on their name as a prefix.
-    It needs to be invoked after the modules have been loaded so that their loggers have been initialized.
-
-    Args:
-        - level: desired level. e.g. logging.INFO. Optional. Default is logging.ERROR
-        - prefices: list of one or more str prefices to match (e.g. ["transformers", "torch"]). Optional.
-          Default is `[""]` to match all active loggers.
-          The match is a case-sensitive `module_name.startswith(prefix)`
-    """
-    prefix_re = re.compile(fr'^(?:{ "|".join(prefices) })')
-    for name in logging.root.manager.loggerDict:
-        if re.match(prefix_re, name):
-            logging.getLogger(name).setLevel(level)
-    if "deepspeed" in prefices:
-        deepspeed.utils.logging.logger.setLevel(level)
-        
-set_global_logging_level()
+from chatllama.rlhf.model_list import hf_models, llama_models
 
 
 ConfigType = Union[Config, ConfigActor, ConfigCritic, ConfigReward]
+
+
+class Singleton:
+    __instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+        return cls.__instance
+
+
+class LogMessages(Singleton):
+    def __init__(
+        self,
+    ):
+
+        set_global_logging_level()
+
+        self.log_config = {
+            "handlers": [
+                {
+                    "sink": sys.stdout,
+                    "format": (
+                        "<level> {time:YY-MM-DD HH:mm:ss.S}"
+                        " | "
+                        "{message} </level>"
+                    ),
+                    "colorize": True,
+                    "level": "INFO",
+                },
+                {
+                    "sink": "file.log",
+                    "serialize": True,
+                },
+            ],
+        }
+        logger.configure(**self.log_config)
+
+        # flag to enable multi gpu logging
+        self.is_multi_gpu = False
+
+        # rank to print when multi gpu
+        self.log_rank = -1
+
+        # local rank
+        self.local_rank = -2
+
+    def setup_logger(self, accelerate_enable: bool, deepspeed_enable: bool):
+        if accelerate_enable or deepspeed_enable:
+            self.set_multi_gpu()
+        else:
+            self.set_single_gpu
+
+    def set_multi_gpu(self, rank: int = 0):
+        self.is_multi_gpu = True
+        self.log_rank = rank
+        self.local_rank = int(os.environ.get("RANK", "0"))
+
+    def set_single_gpu(self):
+        self.is_multi_gpu = False
+
+    def error(self, error_type, text: str):
+
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.error(f"[Rank {self.local_rank}] {text}")
+        else:
+            logger.error(text)
+        return error_type(text)
+
+    def warning(self, text: str):
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.warning(f"[Rank {self.local_rank}] {text}")
+        else:
+            logger.warning(text)
+
+    def info(self, text: str):
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.info(f"[Rank {self.local_rank}] {text}")
+        else:
+            logger.info(text)
+
+    def success(self, text: str):
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.success(f"[Rank {self.local_rank}] {text}")
+        else:
+            logger.success(text)
+
+
+# To control logging level for various modules used in the application:
+def set_global_logging_level(level=logging.ERROR, prefices=[""]):
+    """
+    Override logging levels of different modules based on their name as a
+    prefix.
+    It needs to be invoked after the modules have been loaded so that their
+    loggers have been initialized.
+
+    Args:
+        - level: desired level. e.g. logging.INFO. Optional.
+        Default is logging.ERROR
+        - prefices: list of one or more str prefices to match
+        (e.g. ["transformers", "torch"]). Optional. Default is `[""]`
+        to match all active loggers.
+          The match is a case-sensitive `module_name.startswith(prefix)`
+    """
+    prefix_re = re.compile(rf'^(?:{ "|".join(prefices) })')
+    for name in logging.root.manager.loggerDict:
+        if re.match(prefix_re, name):
+            logging.getLogger(name).setLevel(level)
+
+    # force deepspeed
+    deepspeed.utils.logging.logger.setLevel(level)
+
+
+set_global_logging_level()
+my_logger = LogMessages()
+
+
+@beartype
+def get_multi_gpu_flags(config: ConfigType) -> Tuple[bool, bool, str]:
+    """Setup for multi-gpu training"""
+
+    # flags for training
+    if isinstance(config, Config):
+        accelerate_enable = config.trainer.accelerate_enable
+        deepspeed_enable = config.trainer.deepspeed_enable
+        deepspeed_config_path = config.trainer.deepspeed_config_path
+    else:
+        accelerate_enable = config.accelerate_enable
+        deepspeed_enable = config.deepspeed_enable
+        deepspeed_config_path = config.deepspeed_config_path
+
+    # check consistency of flags
+    if accelerate_enable and deepspeed_enable:
+        raise my_logger.error(
+            ValueError,
+            (
+                "Both DeepSpeed and Accelerate are enabled"
+                + "Please choose one of them."
+            ),
+        )
+
+    # check deepspeed config
+    if deepspeed_enable:
+        if deepspeed_config_path is None:
+            raise my_logger.error(
+                ValueError,
+                "DeepSpeed config path is None, but deepspeed is enabled",
+            )
+        if os.path.exists(deepspeed_config_path) is False:
+            raise my_logger.error(
+                ValueError,
+                f"DeepSpeed config path"
+                f" {deepspeed_config_path} "
+                f"does not exist",
+            )
+
+    # setup the logger consequently
+    my_logger.setup_logger(accelerate_enable, deepspeed_enable)
+
+    return accelerate_enable, deepspeed_enable, deepspeed_config_path
 
 
 def load_tokenizer(config: ConfigType):
     """Load the tokenizer from the model name
     placed in utils to avoid circular imports from dataset and model class
     """
-    
-    # logger
-    logger = LogMessages()
 
     # disable tokenizer parallelization (Avoid warnings in HF)
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -85,10 +221,10 @@ def load_tokenizer(config: ConfigType):
     elif config.model in llama_models:
 
         if not isinstance(config, ConfigActor):
-            raise logger.error(
+            raise my_logger.error(
                 ValueError,
                 "LLaMA models can only be used as actor",
-                )
+            )
 
         # llama module might not be present when HF models are used
         from chatllama.llama_model import (
@@ -291,8 +427,8 @@ class ConversationLog:
                         f"## Model Output:\n\n{c['model_output']}\n\n"
                         f"## Reward: {c['reward']}\n\n"
                     )
-                    
-                                   
+
+
 class IgnoreLabelsWrapper(torch.nn.Module):
     def __init__(self, base_model: torch.nn.Module):
         super().__init__()
@@ -320,91 +456,6 @@ class IgnoreLabelsWrapper(torch.nn.Module):
             return_dict=return_dict,
             **kwargs,
         )
-        
+
     def prepare_inputs_for_generation(self, *args, **kwargs):
         return self.model.prepare_inputs_for_generation(*args, **kwargs)
-
-
-ConfigType = Union[Config, ConfigActor, ConfigCritic, ConfigReward]
-
-
-class Singleton:
-    __instance = None
-    
-    def __new__(cls, *args, **kwargs):
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance
-
-
-class LogMessages(Singleton):
-    
-    def __init__(self,):
-        
-        set_global_logging_level()
-        
-        self.log_config = {
-            "handlers": [
-                {
-                    "sink": sys.stdout,
-                    "format": "<level> {time:YYYY-MM-DD HH:mm:ss.SSS} | {message} </level>",
-                    "colorize": True,
-                    "level": "INFO"
-                },
-                {
-                    "sink": "file.log",
-                    "serialize": True,
-                },
-            ],
-        }
-        logger.configure(**self.log_config)
-        
-        # flag to enable multi gpu logging
-        self.is_multi_gpu = False
-        
-        # rank to print when multi gpu
-        self.log_rank = -1
-        
-        # local rank 
-        self.local_rank = -2
-    
-    def set_multi_gpu(self, rank: int = 0):
-        self.is_multi_gpu = True
-        self.log_rank = rank
-        self.local_rank = int(os.environ.get("RANK", "0"))
-        
-    def set_single_gpu(self):
-        self.is_multi_gpu = False
-        
-    def error(self,
-              error_type,
-              text: str):
-        
-        if self.is_multi_gpu:
-            if self.local_rank == self.log_rank:
-                logger.error(f'[Rank {self.local_rank}] {text}')
-        else:
-            logger.error(text)
-        return error_type(text)
-    
-    def warning(self, text: str):
-        if self.is_multi_gpu:
-            if self.local_rank == self.log_rank:
-                logger.warning(f'[Rank {self.local_rank}] {text}')
-        else:
-            logger.warning(text)
-    
-    def info(self, text: str):
-        if self.is_multi_gpu:
-            if self.local_rank == self.log_rank:
-                logger.info(f'[Rank {self.local_rank}] {text}')
-        else:
-            logger.info(text)
-        
-    def success(self, text: str):
-        if self.is_multi_gpu:
-            if self.local_rank == self.log_rank:
-                logger.success(f'[Rank {self.local_rank}] {text}')
-        else:
-            logger.success(text)
-    

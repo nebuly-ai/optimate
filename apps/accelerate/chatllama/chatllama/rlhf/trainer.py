@@ -19,7 +19,7 @@ from chatllama.rlhf.config import (
 from chatllama.rlhf.model_list import hf_models
 from chatllama.rlhf.model_loader import ModelLoader
 from chatllama.rlhf.reward import RewardModel, CriticModel
-from chatllama.rlhf.utils import ConversationLog
+from chatllama.rlhf.utils import ConversationLog, my_logger
 
 
 """
@@ -486,7 +486,7 @@ class RLTrainer(BaseTrainer):
         - then compare action logits probs with memories one and values with
             rewards to compute the PPO loss and update the actor-critic model
         """
-        self.logger.info("Start to Learn...")
+        my_logger.info("Start to Learn...")
 
         # get parameters
         epochs = self.config.trainer.epochs
@@ -596,7 +596,7 @@ class RLTrainer(BaseTrainer):
 
                 # check if loss item is NaN
                 if torch.isnan(policy_loss):
-                    raise self.logger.error(
+                    raise my_logger.error(
                         ValueError,
                         "Policy Loss is nan",
                     )
@@ -615,10 +615,7 @@ class RLTrainer(BaseTrainer):
                 value_loss = torch.max(value_loss1, value_loss2).mean()
 
                 if torch.isnan(value_loss):
-                    raise self.logger.error(
-                        ValueError,
-                        "Value loss is nan"
-                    )
+                    raise my_logger.error(ValueError, "Value loss is nan")
 
                 # Sum the two losses
                 loss = policy_loss + value_loss
@@ -649,7 +646,7 @@ class RLTrainer(BaseTrainer):
                 )
 
                 # print iteration info
-                self.logger.info(
+                my_logger.info(
                     f"Epoch {epoch+1}/{epochs}",
                     f"Step "
                     f"{k+1}/{int(len(self.train_dataloader) / batch_size)}",
@@ -658,13 +655,13 @@ class RLTrainer(BaseTrainer):
                 )
 
         self.actorcritic.eval()
-        self.logger.info("End Learning")
+        my_logger.info("End Learning")
 
     def train(
         self,
     ) -> None:
 
-        self.logger.success("Start RL Training")
+        my_logger.success("Start RL Training")
 
         # initialize settings
         num_episodes = self.config.trainer.num_episodes
@@ -714,7 +711,7 @@ class RLTrainer(BaseTrainer):
             for timestep in range(max_timesteps):
 
                 # print the iteration info
-                self.logger.info(
+                my_logger.info(
                     f"Episode: {episode + 1}/{num_episodes}, "
                     f"Timestep: {timestep + 1}/{max_timesteps}",
                     f"Learning Cnt: {cnt_timesteps + 1}/{update_timesteps}",
@@ -845,14 +842,14 @@ class RLTrainer(BaseTrainer):
                 if (cnt_timesteps % update_timesteps == 0) and (
                     cnt_timesteps != 0
                 ):
-                    
-                    self.logger.info("Len memories", len(memories))
+
+                    my_logger.info("Len memories", len(memories))
                     # self.conversation_log.show(cnt_learn_iter)
                     self.learn(memories)
                     mean_reward = sum([m.rewards[-1] for m in memories]) / len(
                         memories
                     )
-                    self.logger.info(f"Mean Reward: {mean_reward}")
+                    my_logger.info(f"Mean Reward: {mean_reward}")
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
@@ -867,4 +864,4 @@ class RLTrainer(BaseTrainer):
 
         # save the models
         self.actorcritic.save()
-        self.logger.success("End RL Training")
+        my_logger.success("End RL Training")

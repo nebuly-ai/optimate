@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.dataset import BaseDataset
+from chatllama.rlhf.utils import my_logger
 
 
 class RewardModel(BaseModel):
@@ -40,7 +41,8 @@ class RewardModel(BaseModel):
             torch.Tensor: Rewards for the given output sequence
         """
         output = self.model.forward(
-            output_sequence, attention_mask=output_sequence_mask,
+            output_sequence,
+            attention_mask=output_sequence_mask,
         )
 
         # What if the output_sequence is longer than the max context of
@@ -148,10 +150,13 @@ class RewardTrainer(BaseTrainer):
 
         # load the model
         self.model = RewardModel(config)
+        self.accelerate_enable = self.model.accelerate_enable
+        self.deepspeed_enable = self.model.deepspeed_enable
 
         # optimizer
         if self.deepspeed_enable:
             import deepspeed
+
             deepspeed.ops.op_builder.CPUAdamBuilder().load()
             self.optimizer = deepspeed.ops.adam.DeepSpeedCPUAdam(
                 self.model.parameters(), lr=config.lr
@@ -202,11 +207,8 @@ class RewardTrainer(BaseTrainer):
         self,
     ) -> None:
         """Train the reward model"""
-        
-        self.logger.success("Start Training the Reward Model")
-        
-        # setup the logs 
-        self.setup_logs()
+
+        my_logger.success("Start Training the Reward Model")
 
         # get config parameters
         if self.config.deepspeed_enable:
@@ -286,7 +288,7 @@ class RewardTrainer(BaseTrainer):
 
                 # print progress
                 if i % iteration_per_print == 0:
-                    self.logger.info(
+                    my_logger.info(
                         f"Epoch: {epoch+1}/{epochs}, "
                         f"Iteration: {i+1}/{n_iter}, "
                         f"Training Loss: {loss.item()}"
@@ -294,7 +296,7 @@ class RewardTrainer(BaseTrainer):
                     printed_est_output = [
                         round(float(x), 1) for x in est_output.cpu().tolist()
                     ]
-                    self.logger.info(
+                    my_logger.info(
                         f"prediction {printed_est_output} "
                         f"target {score.cpu().tolist()}"
                     )
@@ -337,7 +339,7 @@ class RewardTrainer(BaseTrainer):
 
                         # print progress
                         if i % iteration_per_print == 0:
-                            self.logger.info(
+                            my_logger.info(
                                 f"Epoch: {epoch+1}/{epochs}, "
                                 f"Iteration: {i+1}/{n_iter}, "
                                 f"Validation Loss: {loss.item()}"
@@ -347,4 +349,4 @@ class RewardTrainer(BaseTrainer):
 
         # save the model at the end of the training
         self.model.save()
-        self.logger.success("Training is finished")
+        my_logger.success("Training is finished")
