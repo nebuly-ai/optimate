@@ -219,7 +219,10 @@ class ActorTrainer(BaseTrainer):
         # given tokens and mask, add eos token to the end of each sequence
         # and update the mask
         batch_size, seq_len = tokens.shape
-        eos_token = self.model.tokenizer.eos_token_id
+        if self.accelerate_enable:
+            eos_token = self.model.module.tokenizer.eos_token_id
+        else:
+            eos_token = self.model.tokenizer.eos_token_id
 
         # see if i can append 1 token
         n_tokens_to_append = min(self.config.max_sequence_length - seq_len, 1)
@@ -287,12 +290,21 @@ class ActorTrainer(BaseTrainer):
 
                 # tokenize input
                 with torch.no_grad():
-                    input_tokenized = self.model.tokenizer(
-                        input_text,
-                        return_tensors="pt",
-                        truncation=True,
-                        padding=True,
-                    )
+                    if self.accelerate_enable:
+                        input_tokenized = self.model.module.tokenizer(
+                            input_text,
+                            return_tensors="pt",
+                            truncation=True,
+                            padding=True,
+                        )
+                    else:
+                        input_tokenized = self.model.tokenizer(
+                            input_text,
+                            return_tensors="pt",
+                            truncation=True,
+                            padding=True,
+                            max_length=self.config.max_sequence_length,
+                        )
 
                     # split tokens and mask
                     input_tokenized_id = input_tokenized["input_ids"]
@@ -404,5 +416,8 @@ class ActorTrainer(BaseTrainer):
             start_step = 0
 
         # save the model
-        self.model.save()
+        if self.accelerate_enable:
+            self.model.module.save()
+        else:
+            self.model.save()
         my_logger.success("Training Finished ")

@@ -741,19 +741,34 @@ class RLTrainer(BaseTrainer):
                 states_critic = tok_inputs_crt["input_ids"].to(device)
 
                 # generate sequences of actions and values
-                (
-                    actions,
-                    actions_logits,
-                    values,
-                    sequences_actor,
-                    sequences_mask_actor,
-                    sequences_critic,
-                    sequences_mask_critic,
-                    action_len_actor,
-                    action_len_critic,
-                ) = self.actorcritic.generate(
-                    states_actor, states_mask_actor, states_critic
-                )
+                if self.accelerate_enable:
+                    (
+                        actions,
+                        actions_logits,
+                        values,
+                        sequences_actor,
+                        sequences_mask_actor,
+                        sequences_critic,
+                        sequences_mask_critic,
+                        action_len_actor,
+                        action_len_critic,
+                    ) = self.actorcritic.module.generate(
+                        states_actor, states_mask_actor, states_critic
+                    )
+                else:
+                    (
+                        actions,
+                        actions_logits,
+                        values,
+                        sequences_actor,
+                        sequences_mask_actor,
+                        sequences_critic,
+                        sequences_mask_critic,
+                        action_len_actor,
+                        action_len_critic,
+                    ) = self.actorcritic.generate(
+                        states_actor, states_mask_actor, states_critic
+                    )
 
                 # compute action log probs
                 action_prob = (
@@ -771,11 +786,18 @@ class RLTrainer(BaseTrainer):
                     reward_sequence = sequences_critic
                     reward_mask = sequences_mask_critic
                 else:
-                    tokenized_responses = change_tokenization(
-                        sequences_actor,
-                        self.actorcritic.actor.tokenizer,
-                        self.reward.tokenizer,
-                    )
+                    if self.accelerate_enable:
+                        tokenized_responses = change_tokenization(
+                            sequences_actor,
+                            self.actorcritic.module.actor.tokenizer,
+                            self.reward.tokenizer,
+                        )
+                    else:
+                        tokenized_responses = change_tokenization(
+                            sequences_actor,
+                            self.actorcritic.actor.tokenizer,
+                            self.reward.tokenizer,
+                        )
                     # get tokens and mask
                     reward_sequence = tokenized_responses["input_ids"].to(
                         device
@@ -863,5 +885,8 @@ class RLTrainer(BaseTrainer):
                 self.conversation_log.save()
 
         # save the models
-        self.actorcritic.save()
+        if self.accelerate_enable:
+            self.actorcritic.module.save()
+        else:
+            self.actorcritic.save()
         my_logger.success("End RL Training")

@@ -554,7 +554,8 @@ class BaseTrainer:
 
         # remove the checkpoint if it already exists
         if os.path.exists(path):
-            if self.config.deepspeed_enable:
+            # check if path is a directory
+            if os.path.isdir(path):
                 shutil.rmtree(path)
             else:
                 os.remove(path)
@@ -580,33 +581,62 @@ class BaseTrainer:
             if isinstance(self.config, Config):
                 # save actor for ActorCritic Trainer
                 # "model" is just for compatibility with load() and save()
-                torch.save(
-                    {
-                        "model": self.model.actor.state_dict(),
-                        "critic": self.model.critic.state_dict(),
-                        "optimizer": self.scheduler.state_dict(),
-                        "scheduler": self.optimizer.state_dict(),
-                        "training_stats": self.training_stats,
-                        "episode": current_epoch,
-                        "lora_peft": self.model.actor.is_lora_peft_applied,
-                        "critic_lora_peft": self.model.critic.is_lora_peft_applied,  # noqa 501
-                    },
-                    path,
-                )
+                if self.accelerate_enable:
+                    self.accelerator.save(
+                        {
+                            "model": self.model.module.actor.state_dict(),
+                            "critic": self.model.module.critic.state_dict(),
+                            "optimizer": self.scheduler.state_dict(),
+                            "scheduler": self.optimizer.state_dict(),
+                            "training_stats": self.training_stats,
+                            "episode": current_epoch,
+                            "lora_peft": self.model.module.actor.is_lora_peft_applied,  # noqa 501
+                            "critic_lora_peft": self.model.module.critic.is_lora_peft_applied,  # noqa 501
+                        },
+                        path,
+                    )
+                else:
+                    torch.save(
+                        {
+                            "model": self.model.actor.state_dict(),
+                            "critic": self.model.critic.state_dict(),
+                            "optimizer": self.scheduler.state_dict(),
+                            "scheduler": self.optimizer.state_dict(),
+                            "training_stats": self.training_stats,
+                            "episode": current_epoch,
+                            "lora_peft": self.model.actor.is_lora_peft_applied,
+                            "critic_lora_peft": self.model.critic.is_lora_peft_applied,  # noqa 501
+                        },
+                        path,
+                    )
             else:
                 # save the model for other trainers
-                torch.save(
-                    {
-                        "model": self.model.model.state_dict(),
-                        "optimizer": self.optimizer.state_dict(),
-                        "scheduler": self.scheduler.state_dict(),
-                        "training_stats": self.training_stats,
-                        "epoch": current_epoch,
-                        "step": current_step,
-                        "lora_peft": self.model.is_lora_peft_applied,
-                    },
-                    path,
-                )
+                if self.accelerate_enable:
+                    self.accelerator.save(
+                        {
+                            "model": self.model.module.model.state_dict(),
+                            "optimizer": self.optimizer.state_dict(),
+                            "scheduler": self.scheduler.state_dict(),
+                            "training_stats": self.training_stats,
+                            "epoch": current_epoch,
+                            "step": current_step,
+                            "lora_peft": self.model.module.is_lora_peft_applied,  # noqa 501
+                        },
+                        path,
+                    )
+                else:
+                    torch.save(
+                        {
+                            "model": self.model.model.state_dict(),
+                            "optimizer": self.optimizer.state_dict(),
+                            "scheduler": self.scheduler.state_dict(),
+                            "training_stats": self.training_stats,
+                            "epoch": current_epoch,
+                            "step": current_step,
+                            "lora_peft": self.model.is_lora_peft_applied,
+                        },
+                        path,
+                    )
             my_logger.success(f"Checkpoint saved at {path}")
 
     @beartype

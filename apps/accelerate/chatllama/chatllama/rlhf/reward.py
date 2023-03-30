@@ -245,12 +245,20 @@ class RewardTrainer(BaseTrainer):
 
                 # tokenize the input
                 with torch.no_grad():
-                    input_tokens = self.model.tokenizer(
-                        input_text,
-                        return_tensors="pt",
-                        truncation=True,
-                        padding=True,
-                    )
+                    if self.accelerate_enable:
+                        input_tokens = self.model.module.tokenizer(
+                            input_text,
+                            return_tensors="pt",
+                            truncation=True,
+                            padding=True,
+                        )
+                    else:
+                        input_tokens = self.model.tokenizer(
+                            input_text,
+                            return_tensors="pt",
+                            truncation=True,
+                            padding=True,
+                        )
                     output = torch.as_tensor(
                         score, dtype=torch.float32, device=device
                     )
@@ -262,10 +270,16 @@ class RewardTrainer(BaseTrainer):
                         input_tokens["attention_mask"].to(device),
                     )[:, -1]
                 else:
-                    est_output = self.model.get_reward(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
-                    )
+                    if self.accelerate_enable:
+                        est_output = self.model.module.get_reward(
+                            input_tokens["input_ids"].to(device),
+                            input_tokens["attention_mask"].to(device),
+                        )
+                    else:
+                        est_output = self.model.get_reward(
+                            input_tokens["input_ids"].to(device),
+                            input_tokens["attention_mask"].to(device),
+                        )
 
                 # compute the loss
                 loss = self.loss_function(est_output, output)
@@ -348,5 +362,8 @@ class RewardTrainer(BaseTrainer):
             start_step = 0
 
         # save the model at the end of the training
-        self.model.save()
+        if self.accelerate_enable:
+            self.model.module.save()
+        else:
+            self.model.save()
         my_logger.success("Training is finished")
