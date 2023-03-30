@@ -211,8 +211,12 @@ class RewardTrainer(BaseTrainer):
         my_logger.success("Start Training the Reward Model")
 
         # get config parameters
-        if self.config.deepspeed_enable:
+        if self.deepspeed_enable:
             batch_size = self.train_dataloader.batch_size
+        elif self.accelerate_enable:
+            batch_size = (
+                self.config.batch_size * self.accelerator.num_processes
+            )
         else:
             batch_size = self.config.batch_size
 
