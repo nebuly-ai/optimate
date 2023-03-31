@@ -5,6 +5,7 @@ from beartype import beartype
 from beartype.typing import Tuple
 from einops import rearrange
 from torch.utils.data import DataLoader, Dataset
+from torch.cuda.amp import GradScaler
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigActor
@@ -213,6 +214,12 @@ class ActorTrainer(BaseTrainer):
         # HF accelerate
         self.setup_accelerate()
 
+        # define the scaler needed for vanilla pytorch with mixed precision
+        if (not self.accelerate_enable) and (not self.deepspeed_enable):
+            self.scaler = GradScaler()
+        else:
+            self.scaler = None
+
     def add_eos_token(
         self, tokens: torch.Tensor, mask: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -260,13 +267,15 @@ class ActorTrainer(BaseTrainer):
 
         # get config parameters
         if self.deepspeed_enable:
-            batch_size = self.train_dataloader.batch_size
+            # get batch size from deepspeed
+            batch_size = self.model_engine.train_batch_size()
         elif self.accelerate_enable:
             batch_size = (
                 self.config.batch_size * self.accelerator.num_processes
             )
         else:
             batch_size = self.config.batch_size
+
         epochs = self.config.epochs
         device = self.config.device
         checkpoint_steps = self.config.checkpoint_steps
@@ -334,17 +343,44 @@ class ActorTrainer(BaseTrainer):
                     attention_mask = attention_mask.to(device)
 
                 # forward pass
-                if self.config.deepspeed_enable:
+                if self.deepspeed_enable:
                     est_output = self.model_engine(
                         training_input, attention_mask
                     )
-                else:
+                elif self.accelerate_enable:
                     est_output = self.model(training_input, attention_mask)
+                else:
+                    with torch.autocast(
+                        device_type=self.config.device_type,
+                        dtype=torch.float16,
+                    ):
+                        est_output = self.model(training_input, attention_mask)
 
                 # compute loss
-                est_output = rearrange(est_output, "b s v -> (b s) v")
-                training_output = rearrange(training_output, "b s -> (b s)")
-                loss = self.loss_function(est_output, training_output)
+                if (not self.accelerate_enable) and (
+                    not self.deepspeed_enable
+                ):
+
+                    # vanilla pytorch use autocast
+                    with torch.autocast(
+                        device_type=self.config.device_type,
+                        dtype=torch.float16,
+                    ):
+                        est_output = rearrange(est_output, "b s v -> (b s) v")
+                        training_output = rearrange(
+                            training_output, "b s -> (b s)"
+                        )
+                        loss = self.loss_function(est_output, training_output)
+                else:
+
+                    # deepspeed and accelerate use defualt
+                    est_output = rearrange(est_output, "b s v -> (b s) v")
+                    training_output = rearrange(
+                        training_output, "b s -> (b s)"
+                    )
+                    loss = self.loss_function(est_output, training_output)
+
+                # save training stats
                 self.append_training_stats(training_loss=loss.item())
 
                 # backward pass
@@ -358,8 +394,9 @@ class ActorTrainer(BaseTrainer):
                     self.scheduler.step()
                 else:
                     self.optimizer.zero_grad()
-                    loss.backward()
-                    self.optimizer.step()
+                    self.scaler.scale(loss).backward()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
                     self.scheduler.step()
 
                 # print progress

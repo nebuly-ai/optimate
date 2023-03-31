@@ -156,6 +156,7 @@ class BaseModel(torch.nn.Module):
 
             # load the model from model_folder
             self.load()
+            my_logger.success("Model loaded")
 
         else:
             # ActorCritic initialization
@@ -481,20 +482,35 @@ class BaseTrainer:
         # initialize deepspeed
         self.model_engine = None
         if self.deepspeed_enable is True:
-            (
-                self.model_engine,
-                self.optimizer,
-                self.train_dataloader,
-                self.scheduler,
-            ) = deepspeed.initialize(
-                args=None,
-                model=self.model,
-                model_parameters=self.model.parameters(),
-                optimizer=self.optimizer,
-                lr_scheduler=self.scheduler,
-                training_data=self.train_dataset,
-                config=self.deepspeed_config_path,
-            )
+            if isinstance(self.config, Config):
+                (
+                    self.model_engine,
+                    self.optimizer,
+                    self.train_dataloader,
+                    self.scheduler,
+                ) = deepspeed.initialize(
+                    args=None,
+                    model=self.model,
+                    model_parameters=self.model.parameters(),
+                    optimizer=self.optimizer,
+                    lr_scheduler=self.scheduler,
+                    training_data=self.train_dataset,
+                    config=self.deepspeed_config_path,
+                )
+            else:
+                (
+                    self.model_engine,
+                    self.optimizer,
+                    self.train_dataloader,
+                    self.scheduler,
+                ) = deepspeed.initialize(
+                    args=None,
+                    model=self.model,
+                    model_parameters=self.model.parameters(),
+                    lr_scheduler=self.scheduler,
+                    training_data=self.train_dataset,
+                    config=self.deepspeed_config_path,
+                )
             my_logger.info("Training with DeepSpeed")
 
     @beartype

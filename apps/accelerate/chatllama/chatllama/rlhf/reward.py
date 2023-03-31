@@ -4,6 +4,7 @@ import json
 import torch
 from beartype import beartype
 from torch.utils.data import Dataset, DataLoader
+from torch.cuda.amp import GradScaler
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigReward
@@ -150,21 +151,14 @@ class RewardTrainer(BaseTrainer):
 
         # load the model
         self.model = RewardModel(config)
+
         self.accelerate_enable = self.model.accelerate_enable
         self.deepspeed_enable = self.model.deepspeed_enable
 
         # optimizer
-        if self.deepspeed_enable:
-            import deepspeed
-
-            deepspeed.ops.op_builder.CPUAdamBuilder().load()
-            self.optimizer = deepspeed.ops.adam.DeepSpeedCPUAdam(
-                self.model.parameters(), lr=config.lr
-            )
-        else:
-            self.optimizer = torch.optim.AdamW(
-                self.model.parameters(), lr=config.lr
-            )
+        self.optimizer = torch.optim.AdamW(
+            self.model.parameters(), lr=config.lr
+        )
 
         # loss function
         self.loss_function = torch.nn.MSELoss()
@@ -197,11 +191,20 @@ class RewardTrainer(BaseTrainer):
             last_epoch=-1,
         )
 
+        # for scaling the gradients
+        self.scaler = None
+
         # deepspeed
         self.setup_deepspeed()
 
         # HF accelerate
         self.setup_accelerate()
+
+        # define the scaler needed for vanilla pytorch with mixed precision
+        if (not self.accelerate_enable) and (not self.deepspeed_enable):
+            self.scaler = GradScaler()
+        else:
+            self.scaler = None
 
     def train(
         self,
@@ -212,7 +215,8 @@ class RewardTrainer(BaseTrainer):
 
         # get config parameters
         if self.deepspeed_enable:
-            batch_size = self.train_dataloader.batch_size
+            # get batch size from deepspeed
+            batch_size = self.model_engine.train_batch_size()
         elif self.accelerate_enable:
             batch_size = (
                 self.config.batch_size * self.accelerator.num_processes
@@ -263,9 +267,7 @@ class RewardTrainer(BaseTrainer):
                             truncation=True,
                             padding=True,
                         )
-                    output = torch.as_tensor(
-                        score, dtype=torch.float32, device=device
-                    )
+                    output = torch.as_tensor(score, device=device)
 
                 # forward pass
                 if self.config.deepspeed_enable:
@@ -273,20 +275,35 @@ class RewardTrainer(BaseTrainer):
                         input_tokens["input_ids"].to(device),
                         input_tokens["attention_mask"].to(device),
                     )[:, -1]
+                elif self.accelerate_enable:
+                    est_output = self.model.module.get_reward(
+                        input_tokens["input_ids"].to(device),
+                        input_tokens["attention_mask"].to(device),
+                    )
                 else:
-                    if self.accelerate_enable:
-                        est_output = self.model.module.get_reward(
-                            input_tokens["input_ids"].to(device),
-                            input_tokens["attention_mask"].to(device),
-                        )
-                    else:
+                    with torch.autocast(
+                        device_type=self.config.device_type,
+                        dtype=torch.float16,
+                    ):
                         est_output = self.model.get_reward(
                             input_tokens["input_ids"].to(device),
                             input_tokens["attention_mask"].to(device),
                         )
 
                 # compute the loss
-                loss = self.loss_function(est_output, output)
+                if (not self.accelerate_enable) and (
+                    not self.deepspeed_enable
+                ):
+                    # if vanilla pytorch use autocast
+                    with torch.autocast(
+                        device_type=self.config.device_type,
+                        dtype=torch.float16,
+                    ):
+                        loss = self.loss_function(est_output, output)
+                else:
+                    # compute the loss normally
+                    loss = self.loss_function(est_output, output)
+
                 self.append_training_stats(training_loss=loss.item())
 
                 # backward pass
@@ -300,8 +317,9 @@ class RewardTrainer(BaseTrainer):
                     self.scheduler.step()
                 else:
                     self.optimizer.zero_grad()
-                    loss.backward()
-                    self.optimizer.step()
+                    self.scaler.scale(loss).backward()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
                     self.scheduler.step()
 
                 # print progress

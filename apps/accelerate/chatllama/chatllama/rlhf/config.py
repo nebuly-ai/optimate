@@ -87,6 +87,7 @@ class ConfigReward:
     accelerate_enable: bool = False
 
     debug: bool = False
+    device_type: str = "cuda"
 
 
 # just for naming consistency
@@ -168,6 +169,7 @@ class ConfigActor:
     peft_config_path: str
     checkpoint_name: Optional[str] = None
     debug: bool = False
+    device_type: str = "cuda"
 
 
 @dataclass
@@ -231,6 +233,7 @@ class ConfigTrainer:
     accelerate_enable: bool
     checkpoint_name: Optional[str] = None
     debug: bool = False
+    device_type: str = "cuda"
 
 
 class Config:
@@ -270,9 +273,16 @@ class Config:
     ) -> None:
 
         # if not specified use the device available
+        if device is not None:
+            if ":" in str(device):
+                device_type = str(device).split(":")[0]
+            else:
+                device_type = str(device)
+
         if device is None:
             if torch.cuda.is_available():
                 device = torch.device("cuda")
+                device_type = "cuda"
             else:
                 raise ValueError("No GPU available...")
             # print(f"Current device used :{str(device)}")
@@ -292,17 +302,21 @@ class Config:
         # Trainer Config
         trainer_dict["device"] = device
         trainer_dict["debug"] = debug
+        trainer_dict["device_type"] = device_type
         self.trainer = ConfigTrainer(**trainer_dict)
         # Actor Config
         actor_dict["device"] = device
         actor_dict["debug"] = debug
+        actor_dict["device_type"] = device_type
         self.actor = ConfigActor(**actor_dict)
         # Critic Config
         critic_dict["device"] = device
         critic_dict["debug"] = debug
+        critic_dict["device_type"] = device_type
         self.critic = ConfigCritic(**critic_dict)
         self.critic.is_reward = False
         # Reward Config
         reward_dict["device"] = device
         reward_dict["debug"] = debug
+        reward_dict["device_type"] = device_type
         self.reward = ConfigReward(**reward_dict)
