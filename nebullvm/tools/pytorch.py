@@ -3,7 +3,7 @@ from typing import List, Tuple, Optional, Dict, Union, Sequence
 
 from loguru import logger
 
-from nebullvm.optional_modules.torch import torch, Module, DataLoader
+from nebullvm.optional_modules.torch import torch, DataLoader
 from nebullvm.tools.base import DataType, InputInfo, Device, DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.diffusers import get_default_dynamic_info
@@ -11,7 +11,7 @@ from nebullvm.tools.diffusers import get_default_dynamic_info
 FX_MODULE_NAME = "NebullvmFxModule"
 
 
-def save_with_torch_fx(model: Module, path: Path):
+def save_with_torch_fx(model: torch.nn.Module, path: Path):
     traced_model = torch.fx.symbolic_trace(model)
     traced_model.to_folder(path, FX_MODULE_NAME)
 
@@ -29,7 +29,7 @@ def load_with_torch_fx(
 
 
 def get_output_info_torch(
-    torch_model: Module,
+    torch_model: torch.nn.Module,
     input_tensors: List[torch.Tensor],
     device: Device,
 ) -> List[Tuple[Tuple[int, ...], DataType]]:
@@ -72,7 +72,7 @@ def create_model_inputs_torch(
 
 
 def run_torch_model(
-    torch_model: Module,
+    torch_model: torch.nn.Module,
     input_tensors: List[torch.Tensor],
     device: Device,
     dtype: torch.dtype = torch.float,
@@ -101,7 +101,7 @@ def run_torch_model(
 
 
 def _extract_dynamic_axis(
-    torch_model: Module,
+    torch_model: torch.nn.Module,
     dataloader: DataManager,
     input_sizes: List[Tuple[int, ...]],
     device: Device,
@@ -131,7 +131,7 @@ def _extract_dynamic_axis(
 
 
 def extract_info_from_torch_data(
-    model: Module,
+    model: torch.nn.Module,
     dataloader: Union[DataLoader, Sequence],
     dynamic_axis: Dict,
     device: Device,
@@ -190,3 +190,14 @@ def torch_is_gpu_available():
 
 def torch_get_device_name():
     return torch.cuda.get_device_name(0)
+
+
+def get_torch_model_size(model: Union[torch.nn.Module, torch.jit.ScriptModule, torch.fx.GraphModule]):
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+
+    return param_size + buffer_size

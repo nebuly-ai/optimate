@@ -30,6 +30,7 @@ from nebullvm.tools.pytorch import (
     save_with_torch_fx,
     load_with_torch_fx,
     create_model_inputs_torch,
+    get_torch_model_size
 )
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.utils import check_module_version
@@ -59,9 +60,7 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         self.device = device
 
     def get_size(self):
-        return len(pickle.dumps(self.model_quant, -1)) + len(
-            pickle.dumps(self.model, -1)
-        )
+        return get_torch_model_size(self.model_quant) + get_torch_model_size(self.model)
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.

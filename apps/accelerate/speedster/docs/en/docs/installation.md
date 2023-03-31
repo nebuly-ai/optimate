@@ -196,10 +196,10 @@ In order to use a TPU, you must request a TPU-enabled VM from Google Cloud. You 
 for more information about how to create a TPU VM and how to get started with PyTorch on TPUs.
 
 To use Speedster on Google TPUs, we will use the [`torch_xla`](https://github.com/pytorch/xla) library, which is already 
-preinstalled in all the Google Cloud TPU VMs, you will find it in the base Python environment.
+preinstalled in all the Google Cloud TPU VMs, you will find it in the base Python3 environment.
 
 After creating the VM, you can follow these steps to set up Speedster:
-- Check that the `torch_xla` library is installed in the base Python environment. You can do this by running `python -c "import torch_xla; print(torch_xla.__version__)"` in the VM console;
+- Check that the `torch_xla` library is installed in the base Python3 environment. You can do this by running `python3 -c "import torch_xla; print(torch_xla.__version__)"` in the VM console;
 - Set TPU runtime configuration as explained in the [official documentation](https://cloud.google.com/tpu/docs/run-calculation-pytorch?hl=en#set_tpu_runtime_configuration);
 - [Optional] Check that the TPU is working by running the [official example](https://cloud.google.com/tpu/docs/run-calculation-pytorch?hl=en#perform_a_simple_calculation);
 - Install Speedster by running `pip install speedster`. It's not required to install the deep learning compilers in this case, since they are not supported on TPUs.
