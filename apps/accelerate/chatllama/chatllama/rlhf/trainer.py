@@ -552,6 +552,55 @@ class RLTrainer:
         # eps
         self.eps = 1e-8
 
+        # deepspeed initialization
+        self.actor_model_engine = None
+        self.critic_model_engine = None
+
+        if self.config.actor.deepspeed_enable or self.config.critic.deepspeed_enable:
+            deepspeed.init_distributed("nccl")
+            self.is_deepspeed_init = True
+            os.environ["TOKENIZERS_PARALLELISM"] = "False"
+
+        if self.config.actor.deepspeed_enable:
+            (
+                self.actor_model_engine,
+                self.actorcritic.actor,
+                self.actor_optimizer,
+            ) = self.initialize_deepspeed_model(
+                config=self.config.actor, model=self.actorcritic.actor
+            )
+
+        if self.config.critic.deepspeed_enable:
+            (
+                self.critic_model_engine,
+                self.actorcritic.critic,
+                self.critic_optimizer,
+            ) = self.initialize_deepspeed_model(
+                config=self.config.critic, model=self.actorcritic.critic
+            )
+
+    @staticmethod
+    def initialize_deepspeed_model(
+            config: Union[ConfigActor, ConfigCritic, ConfigReward],
+            model: torch.nn.Module,
+    ):
+
+        if config.deepspeed_config_path is None:
+            raise ValueError("DeepSpeed config path is None, but deepspeed is enabled")
+        if os.path.exists(config.deepspeed_config_path) is False:
+            raise ValueError(
+                f"DeepSpeed config path"
+                f"{config.deepspeed_config_path}"
+                f"does not exist"
+            )
+        (model_engine, ds_optimizer, _, _,) = deepspeed.initialize(
+            args=None,
+            model=model,
+            model_parameters=model.parameters(),
+            config=config.deepspeed_config_path,
+        )
+        return model_engine, model_engine.module, ds_optimizer
+
     @beartype
     def save_checkpoint(
         self,
@@ -712,7 +761,11 @@ class RLTrainer:
 
         # create dataset from memories
         dataset = ExperienceDataset(memories, device)
-        dataloader = DataLoader(dataset, batch_size=batch_size)
+        if self.is_deepspeed_init:
+            engine = self.actor_model_engine or self.critic_model_engine
+            dataloader = engine.deepspeed_io(dataset)
+        else:
+            dataloader = DataLoader(dataset, batch_size=batch_size)
 
         # initialize scheduler for actor
         actor_lr = self.config.trainer.actor_lr
@@ -725,63 +778,6 @@ class RLTrainer:
         self.critic_scheduler = CosineAnnealingWarmRestarts(
             self.critic_optimizer, T_0=len(dataset), eta_min=critic_lr * 0.1
         )
-
-        # initialize deepspeed for actor
-        if self.config.actor.deepspeed_enable:
-            if self.config.actor.deepspeed_config_path is None:
-                raise ValueError(
-                    "DeepSpeed config path is None, but deepspeed is enabled"
-                )
-            if (
-                os.path.exists(self.config.actor.deepspeed_config_path)
-                is False
-            ):
-                raise ValueError(
-                    f"DeepSpeed config path"
-                    f"{self.config.actor.deepspeed_config_path}"
-                    f"does not exist"
-                )
-            (
-                actor_model_engine,
-                self.actor_optimizer,
-                self.dataloader,
-                _,
-            ) = deepspeed.initialize(
-                args=None,
-                model=self.actorcritic.actor,
-                model_parameters=self.actorcritic.actor.parameters(),
-                training_data=dataloader,
-                config=self.config.actor.deepspeed_config_path,
-            )
-            self.actorcritic.actor = actor_model_engine
-
-        # initialize deepspeed for critic
-        if self.config.critic.deepspeed_enable:
-            if self.config.critic.deepspeed_config_path is None:
-                raise ValueError(
-                    "DeepSpeed config path is None, but deepspeed is enabled"
-                )
-            if (
-                os.path.exists(self.config.critic.deepspeed_config_path)
-                is False
-            ):
-                raise ValueError(
-                    f"DeepSpeed config path"
-                    f"{self.config.critic.deepspeed_config_path}"
-                    f"does not exist"
-                )
-            (
-                critic_model_engine,
-                self.critic_optimizer,
-                _,
-                _,
-            ) = deepspeed.initialize(
-                args=None,
-                model=self.actorcritic.critic,
-                model_parameters=self.actorcritic.critic.parameters(),
-                config=self.config.critic.deepspeed_config_path,
-            )
-            self.actorcritic.critic = critic_model_engine
 
         # initialize actor accelerate
         if self.config.actor.accelerate_enable is True:
