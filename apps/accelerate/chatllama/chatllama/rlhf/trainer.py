@@ -556,10 +556,17 @@ class RLTrainer:
         self.actor_model_engine = None
         self.critic_model_engine = None
 
-        if self.config.actor.deepspeed_enable or self.config.critic.deepspeed_enable:
+        if (
+            self.config.actor.deepspeed_enable
+            or self.config.critic.deepspeed_enable
+            or self.config.critic.deepspeed_enable
+        ):
             deepspeed.init_distributed("nccl")
             self.is_deepspeed_init = True
             os.environ["TOKENIZERS_PARALLELISM"] = "False"
+
+        else:
+            self.is_deepspeed_init = False
 
         if self.config.actor.deepspeed_enable:
             (
@@ -1191,7 +1198,8 @@ class RLTrainer:
                     cnt_timesteps != 0
                 ):
                     print("len memories", len(memories))
-                    # self.conversation_log.show(cnt_learn_iter)
+                    if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                        self.conversation_log.save()
                     self.learn(memories)
                     mean_reward = sum([m.rewards[-1] for m in memories]) / len(
                         memories
@@ -1200,16 +1208,16 @@ class RLTrainer:
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
-                    # TODO fix log saving in deepspeed multi GPU training
-                    # self.conversation_log.save()
+                    if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                        self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
                 self.save_checkpoint(
                     current_episode=episode, max_episode=num_episodes
                 )
-                # TODO fix log saving in deepspeed multi GPU training
-                # self.conversation_log.save()
+                if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                    self.conversation_log.save()
 
         # save the models
         self.actorcritic.save()
