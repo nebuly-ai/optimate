@@ -1,4 +1,3 @@
-import pickle
 from abc import ABC
 from pathlib import Path
 from typing import Union, Tuple, Dict, Type
@@ -30,7 +29,7 @@ from nebullvm.tools.pytorch import (
     save_with_torch_fx,
     load_with_torch_fx,
     create_model_inputs_torch,
-    get_torch_model_size
+    get_torch_model_size,
 )
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.utils import check_module_version
@@ -60,7 +59,9 @@ class NeuralCompressorInferenceLearner(BaseInferenceLearner, ABC):
         self.device = device
 
     def get_size(self):
-        return get_torch_model_size(self.model_quant) + get_torch_model_size(self.model)
+        return get_torch_model_size(self.model_quant) + get_torch_model_size(
+            self.model
+        )
 
     def save(self, path: Union[str, Path], **kwargs):
         """Save the model.

@@ -8,7 +8,8 @@ from nebullvm.operations.optimizations.compilers.utils import (
     onnxruntime_is_available,
     tensorrt_is_available,
     openvino_is_available,
-    torch_neuron_is_available, torch_xla_is_available,
+    torch_neuron_is_available,
+    torch_xla_is_available,
 )
 from nebullvm.optional_modules.utils import (
     torch_is_available,

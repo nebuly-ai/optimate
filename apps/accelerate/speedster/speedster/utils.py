@@ -8,7 +8,7 @@ import cpuinfo
 import psutil
 
 from nebullvm.optional_modules.torch import Module
-from nebullvm.optional_modules.torch_xla import torch_xla, xm
+from nebullvm.optional_modules.torch_xla import xm
 from nebullvm.optional_modules.utils import (
     torch_is_available,
     tensorflow_is_available,

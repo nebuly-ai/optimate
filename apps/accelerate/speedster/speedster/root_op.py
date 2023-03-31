@@ -41,7 +41,7 @@ from nebullvm.operations.optimizations.optimizers import (
 from nebullvm.operations.optimizations.utils import (
     map_compilers_and_compressors,
 )
-from nebullvm.optional_modules.diffusers import diffusers, UNet2DConditionModel
+from nebullvm.optional_modules.diffusers import UNet2DConditionModel
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
 from nebullvm.optional_modules.utils import check_dependencies
@@ -156,7 +156,9 @@ class SpeedsterRootOp(Operation):
         **kwargs,
     ):
         device_id = (
-            f":{self.device.idx}" if self.device.type is not DeviceType.CPU else ""
+            f":{self.device.idx}"
+            if self.device.type is not DeviceType.CPU
+            else ""
         )
         self.logger.info(
             f"Running Speedster on {self.device.type.name}{device_id}"
@@ -232,9 +234,7 @@ class SpeedsterRootOp(Operation):
                 model, (UNet2DConditionModel, DiffusionUNetWrapper)
             ) or (
                 hasattr(model, "model")
-                and isinstance(
-                    model.model, UNet2DConditionModel
-                )
+                and isinstance(model.model, UNet2DConditionModel)
             ):
                 is_diffusion = True
 
@@ -467,9 +467,7 @@ class SpeedsterRootOp(Operation):
                     sys.stdout, format="<level>{message}</level>"
                 )
                 hw_info = get_hw_info(self.device)
-                hw_name = hw_info[
-                    self.device.type.name.lower()
-                ]
+                hw_name = hw_info[self.device.type.name.lower()]
                 self.logger.info(
                     (
                         f"\n[Speedster results on {hw_name}]\n"

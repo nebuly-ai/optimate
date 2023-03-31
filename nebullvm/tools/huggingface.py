@@ -138,7 +138,10 @@ def get_output_structure_from_dict(
     transformers model.
     """
 
-    if isinstance(model, torch.nn.Module) and device.type is not DeviceType.TPU:
+    if (
+        isinstance(model, torch.nn.Module)
+        and device.type is not DeviceType.TPU
+    ):
         model.to(device.to_torch_format())
         input_example.to(device.to_torch_format())
 

@@ -192,7 +192,9 @@ def torch_get_device_name():
     return torch.cuda.get_device_name(0)
 
 
-def get_torch_model_size(model: Union[torch.nn.Module, torch.jit.ScriptModule, torch.fx.GraphModule]):
+def get_torch_model_size(
+    model: Union[torch.nn.Module, torch.jit.ScriptModule, torch.fx.GraphModule]
+):
     param_size = 0
     for param in model.parameters():
         param_size += param.nelement() * param.element_size()

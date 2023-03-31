@@ -140,7 +140,14 @@ def install_torch_tensor_rt():
     ]
     subprocess.run(cmd)
     cuda_version = subprocess.check_output(["nvidia-smi"])
-    cuda_version = int(cuda_version.decode("utf-8").split("\n")[2].split("|")[-2].split(":")[-1].strip().split(".")[0])
+    cuda_version = int(
+        cuda_version.decode("utf-8")
+        .split("\n")[2]
+        .split("|")[-2]
+        .split(":")[-1]
+        .strip()
+        .split(".")[0]
+    )
     if cuda_version >= 12:
         cmd = [
             "pip3",

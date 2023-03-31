@@ -3,7 +3,6 @@ from tempfile import TemporaryDirectory
 from typing import List, Callable, Union, Tuple, Any, Dict, Type
 
 from nebullvm.config import (
-    CONSTRAINED_METRIC_DROP_THS,
     ACTIVATION_METRIC_DROP_THS,
 )
 from nebullvm.operations.base import Operation
@@ -23,7 +22,8 @@ from nebullvm.operations.inference_learners.builders import (
     OpenVINOBuildInferenceLearner,
     TFLiteBuildInferenceLearner,
     TensorflowBuildInferenceLearner,
-    TorchNeuronBuildInferenceLearner, TorchXLABuildInferenceLearner,
+    TorchNeuronBuildInferenceLearner,
+    TorchXLABuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import (
@@ -54,8 +54,12 @@ from nebullvm.operations.optimizations.compilers.tensorflow import (
     TFLiteBackendCompiler,
     TensorflowBackendCompiler,
 )
-from nebullvm.operations.optimizations.compilers.torch_neuron import TorchNeuronCompiler
-from nebullvm.operations.optimizations.compilers.torch_xla import TorchXLACompiler
+from nebullvm.operations.optimizations.compilers.torch_neuron import (
+    TorchNeuronCompiler,
+)
+from nebullvm.operations.optimizations.compilers.torch_xla import (
+    TorchXLACompiler,
+)
 from nebullvm.operations.optimizations.compilers.tvm import (
     PyTorchApacheTVMCompiler,
     ONNXApacheTVMCompiler,
@@ -309,7 +313,10 @@ class Optimizer(Operation, abc.ABC):
                                         "obtained with the given metric."
                                     )
 
-                                if self.device.type in [DeviceType.GPU, DeviceType.TPU]:
+                                if self.device.type in [
+                                    DeviceType.GPU,
+                                    DeviceType.TPU,
+                                ]:
                                     inference_learner.free_gpu_memory()
                     except Exception as ex:
                         self.logger.warning(

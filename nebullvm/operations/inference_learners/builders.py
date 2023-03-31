@@ -23,15 +23,24 @@ from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
-from nebullvm.operations.inference_learners.torch_neuron import TorchNeuronInferenceLearner
-from nebullvm.operations.inference_learners.torch_xla import TorchXLAInferenceLearner
+from nebullvm.operations.inference_learners.torch_neuron import (
+    TorchNeuronInferenceLearner,
+)
+from nebullvm.operations.inference_learners.torch_xla import (
+    TorchXLAInferenceLearner,
+)
 from nebullvm.operations.inference_learners.tvm import (
     PytorchApacheTVMInferenceLearner,
     APACHE_TVM_INFERENCE_LEARNERS,
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule, torch
+from nebullvm.optional_modules.torch import (
+    ScriptModule,
+    Module,
+    GraphModule,
+    torch,
+)
 from nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
 from nebullvm.tools.base import (
     DeepLearningFramework,
@@ -64,11 +73,11 @@ class PytorchBuildInferenceLearner(BuildInferenceLearner):
 
 class TorchXLABuildInferenceLearner(BuildInferenceLearner):
     def execute(
-            self,
-            model: torch.nn.Module,
-            model_params: ModelParams,
-            input_tfms: MultiStageTransformation,
-            **kwargs,
+        self,
+        model: torch.nn.Module,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
     ):
         self.inference_learner = TorchXLAInferenceLearner(
             torch_model=model,

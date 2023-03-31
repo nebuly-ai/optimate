@@ -13,7 +13,8 @@ def onnxruntime_is_available() -> bool:
 def tvm_is_available() -> bool:
     try:
         import tvm  # noqa F401
-        from tvm.runtime import Module
+        from tvm.runtime import Module  # noqa F401
+
         return True
     except ImportError:
         return False
@@ -77,6 +78,7 @@ def intel_neural_compressor_is_available() -> bool:
 def torch_xla_is_available():
     try:
         import torch_xla  # noqa F401
+
         return True
     except ImportError:
         return False
@@ -85,6 +87,7 @@ def torch_xla_is_available():
 def torch_neuron_is_available():
     try:
         import torch_neuron  # noqa F401
+
         return True
     except ImportError:
         return False

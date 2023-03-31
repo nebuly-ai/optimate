@@ -1,4 +1,6 @@
-from nebullvm.operations.optimizations.compilers.pytorch import PytorchBackendCompiler
+from nebullvm.operations.optimizations.compilers.pytorch import (
+    PytorchBackendCompiler,
+)
 from nebullvm.optional_modules.torch import (
     torch,
 )

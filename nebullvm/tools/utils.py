@@ -245,7 +245,9 @@ def _get_idx(device: str) -> int:
     return idx
 
 
-def _set_device(accelerator_is_available: bool, device_type: DeviceType, idx: int) -> Device:
+def _set_device(
+    accelerator_is_available: bool, device_type: DeviceType, idx: int
+) -> Device:
     if not accelerator_is_available:
         logger.warning(
             f"Selected {device_type.name} device but no available "

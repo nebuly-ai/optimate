@@ -18,12 +18,12 @@ class TorchNeuronCompiler(Compiler):
     supported_ops = {
         "cpu": [],
         "gpu": [],
-        "neuron": [None, QuantizationType.HALF]
+        "neuron": [None, QuantizationType.HALF],
     }
 
     @staticmethod
     def _check_dynamic_shape(network_parameters: ModelParams) -> bool:
-        """Handles case when model inputs have dynamic shapes. 
+        """Handles case when model inputs have dynamic shapes.
         For now TorchNeuron only supports dynamic shape for the
         batch dimension.
 
@@ -36,12 +36,17 @@ class TorchNeuronCompiler(Compiler):
         if network_parameters.dynamic_info is None:
             return False
 
-        for i, input_shape in enumerate(network_parameters.dynamic_info.inputs):
-            if len(input_shape) > 1 or (len(input_shape) == 1 and input_shape.get(0) is None):
+        for i, input_shape in enumerate(
+            network_parameters.dynamic_info.inputs
+        ):
+            if len(input_shape) > 1 or (
+                len(input_shape) == 1 and input_shape.get(0) is None
+            ):
                 raise ValueError(
-                    f"TorchNeuronCompiler only supports dynamic shapes for batch dimension. "
-                    f"Provided dynamic info for input {i} is: {input_shape}. "
-                    f"Please use padding for the other dimensions."
+                    f"TorchNeuronCompiler only supports dynamic shapes for "
+                    f"batch dimension. Provided dynamic info for input {i} "
+                    f"is: {input_shape}. Please use padding for the other "
+                    f"dimensions."
                 )
 
         return True
@@ -87,7 +92,10 @@ class TorchNeuronCompiler(Compiler):
         dynamic_batch_size = self._check_dynamic_shape(model_params)
 
         self.compiled_model = self._compile_model(
-            model, input_data, quantization_type, dynamic_batch_size=dynamic_batch_size
+            model,
+            input_data,
+            quantization_type,
+            dynamic_batch_size=dynamic_batch_size,
         )
 
     @torch.no_grad()
@@ -132,7 +140,8 @@ class TorchNeuronCompiler(Compiler):
                     dynamic_batch_size=dynamic_batch_size,
                     compiler_args=["--fast-math", "none"]
                     if quantization_type is None
-                    else None)
+                    else None,
+                )
             except Exception:
                 raise RuntimeError("Unable to trace model with torch_neuron.")
 
