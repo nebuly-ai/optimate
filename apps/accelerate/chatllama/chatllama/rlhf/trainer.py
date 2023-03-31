@@ -599,6 +599,8 @@ class RLTrainer:
             model_parameters=model.parameters(),
             config=config.deepspeed_config_path,
         )
+        # model_engine.module has to be returned to make custom methods
+        # of Module accessible
         return model_engine, model_engine.module, ds_optimizer
 
     @beartype
@@ -769,15 +771,21 @@ class RLTrainer:
 
         # initialize scheduler for actor
         actor_lr = self.config.trainer.actor_lr
-        self.actor_scheduler = CosineAnnealingWarmRestarts(
-            self.actor_optimizer, T_0=len(dataset), eta_min=actor_lr * 0.1
-        )
+        # This lr_scheduler is not available in deepspeed
+        # see https://deepspeed.readthedocs.io/en/latest/schedulers.html
+        if not self.is_deepspeed_init:
+            self.actor_scheduler = CosineAnnealingWarmRestarts(
+                self.actor_optimizer, T_0=len(dataset), eta_min=actor_lr * 0.1
+            )
 
         # initialize scheduler for critic
         critic_lr = self.config.trainer.critic_lr
-        self.critic_scheduler = CosineAnnealingWarmRestarts(
-            self.critic_optimizer, T_0=len(dataset), eta_min=critic_lr * 0.1
-        )
+        # This lr_scheduler is not available in deepspeed
+        # see https://deepspeed.readthedocs.io/en/latest/schedulers.html
+        if not self.is_deepspeed_init:
+            self.critic_scheduler = CosineAnnealingWarmRestarts(
+                self.critic_optimizer, T_0=len(dataset), eta_min=critic_lr * 0.1
+            )
 
         # initialize actor accelerate
         if self.config.actor.accelerate_enable is True:
