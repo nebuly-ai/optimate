@@ -211,7 +211,10 @@ class ActorCritic(torch.nn.Module):
         # save the model
         print(f"Saving model to {path} ...")
         torch.save(
-            {"state_dict": self.critic.model.state_dict()},
+            {
+                "model": self.critic.model.state_dict(),
+                "head": self.critic.head.state_dict(),
+            },
             path,
         )
 
