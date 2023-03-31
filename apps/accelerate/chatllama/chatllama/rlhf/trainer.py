@@ -1200,14 +1200,16 @@ class RLTrainer:
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
-                    self.conversation_log.save()
+                    # TODO fix log saving in deepspeed multi GPU training
+                    # self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
                 self.save_checkpoint(
                     current_episode=episode, max_episode=num_episodes
                 )
-                self.conversation_log.save()
+                # TODO fix log saving in deepspeed multi GPU training
+                # self.conversation_log.save()
 
         # save the models
         self.actorcritic.save()
