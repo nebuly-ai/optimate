@@ -32,6 +32,8 @@ except ImportError:
         dtype = DummyClass
         nn = nn
         jit = jit
+        Generator = DummyClass
+        FloatTensor = DummyClass
         fx = fx
 
         @staticmethod
