@@ -124,7 +124,7 @@ class ActorModel(torch.nn.Module):
             # load the model
             print("Loading ...")
             model_dict = torch.load(path)
-            self.model.load_state_dict(model_dict["state_dict"])
+            self.model.load_state_dict(model_dict.get("state_dict") or model_dict.get("model"))
 
     @beartype
     def save(self) -> None:

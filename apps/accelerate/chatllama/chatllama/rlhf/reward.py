@@ -113,7 +113,7 @@ class RewardModel(torch.nn.Module):
             # load the model from the path
             print("Loading ...")
             model_dict = torch.load(path)
-            self.model.load_state_dict(model_dict["model"])
+            self.model.load_state_dict(model_dict.get("state_dict") or model_dict.get("model"))
             self.head.load_state_dict(model_dict["head"])
 
     @beartype
