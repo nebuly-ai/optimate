@@ -31,6 +31,7 @@ parser.add_argument(
 parser.add_argument(
     "-r", "--reward", help="Specify reward model by name", default=None
 )
+parser.add_argument("--local_rank", help="Local rank parameter for deepspeed", default=None)
 
 # parse arguments
 args = parser.parse_args()
