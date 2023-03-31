@@ -923,8 +923,8 @@ class RLTrainer:
 
                 # update actor with loss
                 if self.config.actor.deepspeed_enable:
-                    actor_model_engine.backward(loss)
-                    actor_model_engine.step()
+                    self.actor_model_engine.backward(loss)
+                    self.actor_model_engine.step()
                 elif self.config.actor.accelerate_enable:
                     self.actor_optimizer.zero_grad()
                     actor_accelerator.backward(loss)
@@ -954,8 +954,8 @@ class RLTrainer:
 
                 # upate critic
                 if self.config.critic.deepspeed_enable:
-                    critic_model_engine.backward(value_loss)
-                    critic_model_engine.step()
+                    self.critic_model_engine.backward(value_loss)
+                    self.critic_model_engine.step()
                 elif self.config.critic.accelerate_enable:
                     self.critic_optimizer.zero_grad()
                     critic_accelerator.backward(loss)
