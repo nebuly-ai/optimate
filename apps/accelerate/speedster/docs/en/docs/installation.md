@@ -3,7 +3,9 @@ In this installation guide we will learn:
 
 - [Quick installation](#quick-installation) of `Speedster` with pip **(Recommended)** 
 
-- [Selective installation](#optional-selective-installation-of-speedster-requirements) of the requirements **(Optional)** 
+- [Selective installation](#optional-selective-installation-of-speedster-requirements) of the requirements **(Optional)**
+
+- [Set up Speedster on custom DL devices](#optional-set-up-speedster-on-custom-dl-devices) to run models on Google TPUs and AWS Inferentia Chips **(Optional)**
 
 - [Installation](#optional-download-docker-images-with-frameworks-and-optimizers) with docker **(Optional)** 
 
@@ -41,7 +43,7 @@ To customize the libraries installation you have two options:
 ### Use the auto-installer (recommended)
 To understand how to selectively install your preferred libraries, let's examine the auto-installer API:
 
-```python
+```bash
 python -m nebullvm.installers.auto_installer 
     --frameworks <frameworks> 
     --extra-backends <backends> 
@@ -117,7 +119,7 @@ python -m nebullvm.installers.auto_installer
 
 Let's see an example of how to use these three arguments:
 
-```python
+```bash
 python -m nebullvm.installers.auto_installer 
     --frameworks torch 
     --extra-backends all 
@@ -166,6 +168,48 @@ If you want to manually install the requirements, this section collects links to
 - onnx-simplifier: https://github.com/daquexian/onnx-simplifier#python-version (Install it if you want to use TensorRT)
 - onnx_graphsurgeon: https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon#installation (Install it if you want to use TensorRT plugins with Stable Diffusion)
 - onnxmltools: https://github.com/onnx/onnxmltools#install (Install it if you want to convert models to ONNX)
+
+## (Optional) Set up Speedster on custom DL devices
+
+From version `0.10.0`, Speedster supports optimization of PyTorch models on `Google TPUs` and `AWS Inferentia` chips. 
+For these devices, the user must ensure that the required libraries are installed on the machine. 
+The following sections describe how to install the required libraries for each device.
+
+### Google TPUs
+
+In order to use a TPU, you must request a TPU-enabled VM from Google Cloud. You can consult the [official documentation](https://cloud.google.com/tpu/docs/run-calculation-pytorch?hl=en) 
+for more information about how to create a TPU VM and how to get started with PyTorch on TPUs.
+
+To use Speedster on Google TPUs, we will use the [`torch_xla`](https://github.com/pytorch/xla) library, which is already 
+preinstalled in all the Google Cloud TPU VMs, you will find it in the base Python environment.
+
+After creating the VM, you can follow these steps to set up Speedster:
+- Check that the `torch_xla` library is installed in the base Python environment. You can do this by running `python -c "import torch_xla; print(torch_xla.__version__)"` in the VM console;
+- Set TPU runtime configuration as explained in the [official documentation](https://cloud.google.com/tpu/docs/run-calculation-pytorch?hl=en#set_tpu_runtime_configuration);
+- [Optional] Check that the TPU is working by running the [official example](https://cloud.google.com/tpu/docs/run-calculation-pytorch?hl=en#perform_a_simple_calculation);
+- Install Speedster by running `pip install speedster`. It's not required to install the deep learning compilers in this case, since they are not supported on TPUs.
+
+You are now ready to use Speedster on TPUs! Speedster will automatically detect the TPU device and will use the `torch_xla` library to optimize the model, comparing its performances with the original model running on the CPU.
+
+### AWS Inferentia
+
+For AWS Inferentia, you must first create an AWS EC2 instance with the `inf1` instance type. 
+You can find more information about `inf1` instances in the [official documentation](https://aws.amazon.com/it/ec2/instance-types/inf1/).
+
+!!! info AWS has recently released the `inf2` instance type, which is a more powerful version of `inf1`. For now `inf2` instances are only available in preview, you can request them directly to AWS by filling this [form](https://pages.awscloud.com/EC2-Inf2-Preview.html).
+
+To use Speedster on AWS Inferentia, we will use the [`torch-neuron`](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/torch-setup.html) library, that must be manually installed on `inf1` instances (on `inf2`instances it's already preinstalled if you use the PyTorch DLAMI provided by AWS).
+
+You can find here the full guides to set up the EC2 instances and install the required libraries:
+- `inf1`: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/torch-neuron/setup/pytorch-install.html#install-neuron-pytorch
+- `inf2`: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/torch-neuronx/setup/pytorch-install.html#pytorch-neuronx-install
+
+After creating the EC2 instance and installing `torch_neuron`, you can follow these steps to set up Speedster:
+- Check that the `torch_neuron` library is installed, you can do this by running `python -c "import torch_neuron; print(torch_neuron.__version__)"` in the console (if using `inf1` instances, otherwise change `torch_neuron` with `torch_neuronx`);
+- Install Speedster by running `pip install speedster`. It's not required to install the deep learning compilers in this case, since they are not supported on AWS Inferentia.
+
+You are now ready to use Speedster on AWS Inferentia! Speedster will automatically detect the AWS Inferentia device and will use the `torch_neuron` library to optimize the model, comparing its performances with the original model running on the CPU.
+
 
 ## (Optional) Download Docker images with frameworks and optimizers
 
