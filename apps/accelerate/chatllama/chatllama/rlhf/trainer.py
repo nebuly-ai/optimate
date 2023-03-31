@@ -579,6 +579,15 @@ class RLTrainer:
                 config=self.config.critic, model=self.actorcritic.critic
             )
 
+        if self.config.reward.deepspeed_enable:
+            (
+                _,
+                self.reward,
+                _,
+            ) = self.initialize_deepspeed_model(
+                config=self.config.reward, model=self.reward
+            )
+
     @staticmethod
     def initialize_deepspeed_model(
             config: Union[ConfigActor, ConfigCritic, ConfigReward],
