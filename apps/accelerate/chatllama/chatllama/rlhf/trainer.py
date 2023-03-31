@@ -4,8 +4,10 @@ import random
 from collections import deque, namedtuple
 
 import torch
+import torch.distributed as dist
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader, Dataset
 
 from chatllama.rlhf.actor import ActorModel
@@ -334,7 +336,6 @@ class ExperienceDataset(Dataset):
     ) -> None:
         super().__init__()
         self.data = list(memories)
-        self.device = device
 
     def __len__(
         self,
@@ -344,15 +345,15 @@ class ExperienceDataset(Dataset):
     def __getitem__(self, idx) -> Tuple:
         # return the idx-th memory element as a tuple of tensors on the device
         item = (
-            self.data[idx].states_actor.to(self.device),
-            self.data[idx].actions.to(self.device),
-            self.data[idx].values.to(self.device),
-            self.data[idx].rewards.to(self.device),
-            self.data[idx].actions_log_probs.to(self.device),
-            self.data[idx].sequences_actor.to(self.device),
-            self.data[idx].sequences_mask_actor.to(self.device),
-            self.data[idx].sequences_critic.to(self.device),
-            self.data[idx].sequences_mask_critic.to(self.device),
+            self.data[idx].states_actor,
+            self.data[idx].actions,
+            self.data[idx].values,
+            self.data[idx].rewards,
+            self.data[idx].actions_log_probs,
+            self.data[idx].sequences_actor,
+            self.data[idx].sequences_mask_actor,
+            self.data[idx].sequences_critic,
+            self.data[idx].sequences_mask_critic,
             int(self.data[idx].action_len_actor),
             int(self.data[idx].action_len_critic),
         )
@@ -494,21 +495,39 @@ class RLTrainer(BaseTrainer):
         critic_eps_clip = self.config.trainer.critic_eps_clip
         beta_s = self.config.trainer.beta_s
         batch_size = self.config.trainer.batch_size
-        device = self.config.trainer.device
+        device = (
+            torch.device(f"cuda:{dist.get_rank()}")
+            if self.is_deepspeed_init
+            else self.config.trainer.device
+        )
 
         # create dataset from memories
-        self.train_dataset = ExperienceDataset(memories, device)
-        self.train_dataloader = DataLoader(
-            self.train_dataset, batch_size=batch_size
-        )
+        dataset = ExperienceDataset(memories, device)
+        if self.is_deepspeed_init:
+            engine = self.actor_model_engine or self.critic_model_engine
+            dataloader = engine.deepspeed_io(dataset)
+        else:
+            dataloader = DataLoader(dataset, batch_size=batch_size)
 
-        # initialize scheduler
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            self.optimizer.actor,
-            T_0=len(self.train_dataset) // batch_size,
-            T_mult=1,
-            eta_min=self.config.trainer.actor_lr * 0.1,
-        )
+        # initialize scheduler for actor
+        actor_lr = self.config.trainer.actor_lr
+        # This lr_scheduler is not available in deepspeed
+        # see https://deepspeed.readthedocs.io/en/latest/schedulers.html
+        if not self.is_deepspeed_init:
+            self.actor_scheduler = CosineAnnealingWarmRestarts(
+                self.actor_optimizer, T_0=len(dataset), eta_min=actor_lr * 0.1
+            )
+
+        # initialize scheduler for critic
+        critic_lr = self.config.trainer.critic_lr
+        # This lr_scheduler is not available in deepspeed
+        # see https://deepspeed.readthedocs.io/en/latest/schedulers.html
+        if not self.is_deepspeed_init:
+            self.critic_scheduler = CosineAnnealingWarmRestarts(
+                self.critic_optimizer,
+                T_0=len(dataset),
+                eta_min=critic_lr * 0.1,
+            )
 
         # setup deepspeed
         self.setup_deepspeed()
@@ -519,19 +538,21 @@ class RLTrainer(BaseTrainer):
         # train agent-critic
         self.actorcritic.train()
         for epoch in range(epochs):
-            for k, (
-                states_actor,
-                old_actions,
-                old_values,
-                rewards,
-                old_actions_log_probs,
-                sequences_actor,
-                sequences_mask_actor,
-                sequences_critic,
-                sequences_mask_critic,
-                action_len_actor,
-                action_len_critic,
-            ) in enumerate(self.train_dataloader):
+            for k, batch in enumerate(dataloader):
+
+                (
+                    states_actor,
+                    old_actions,
+                    old_values,
+                    rewards,
+                    old_actions_log_probs,
+                    sequences_actor,
+                    sequences_mask_actor,
+                    sequences_critic,
+                    sequences_mask_critic,
+                    action_len_actor,
+                    action_len_critic,
+                ) = [tensor.to(device) for tensor in batch]
 
                 # get actor critic new probabilities and values
                 actions_logits, values = self.actorcritic.forward(
@@ -670,7 +691,11 @@ class RLTrainer(BaseTrainer):
         update_timesteps = self.config.trainer.update_timesteps
         batch_size = self.config.trainer.batch_size
         checkpoint_steps = self.config.trainer.checkpoint_steps
-        device = self.config.trainer.device
+        device = (
+            torch.device(f"cuda:{dist.get_rank()}")
+            if self.is_deepspeed_init
+            else self.config.trainer.device
+        )
 
         # number of elements that the memories should contain when learning
         number_of_memories_per_learn_iteration = (
@@ -875,14 +900,16 @@ class RLTrainer(BaseTrainer):
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
-                    self.conversation_log.save()
+                    # TODO fix log saving in deepspeed multi GPU training
+                    # self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
                 self.save_checkpoint(
                     current_episode=episode, max_episode=num_episodes
                 )
-                self.conversation_log.save()
+                # TODO fix log saving in deepspeed multi GPU training
+                # self.conversation_log.save()
 
         # save the models
         if self.accelerate_enable:
