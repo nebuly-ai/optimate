@@ -5,6 +5,7 @@ from collections import deque, namedtuple
 
 import deepspeed
 import torch
+import torch.distributed as dist
 from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
@@ -759,7 +760,11 @@ class RLTrainer:
         critic_eps_clip = self.config.trainer.critic_eps_clip
         beta_s = self.config.trainer.beta_s
         batch_size = self.config.trainer.batch_size
-        device = self.config.trainer.device
+        device = (
+            torch.device(f"cuda:{dist.get_rank()}")
+            if self.is_deepspeed_init
+            else self.config.trainer.device
+        )
 
         # create dataset from memories
         dataset = ExperienceDataset(memories, device)
@@ -999,7 +1004,11 @@ class RLTrainer:
         update_timesteps = self.config.trainer.update_timesteps
         batch_size = self.config.trainer.batch_size
         checkpoint_steps = self.config.trainer.checkpoint_steps
-        device = self.config.trainer.device
+        device = (
+            torch.device(f"cuda:{dist.get_rank()}")
+            if self.is_deepspeed_init
+            else self.config.trainer.device
+        )
 
         # number of elements that the memories should contain when learning
         number_of_memories_per_learn_iteration = (
