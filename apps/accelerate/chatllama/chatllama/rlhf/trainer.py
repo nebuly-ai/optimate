@@ -413,7 +413,6 @@ class ExperienceDataset(Dataset):
     ) -> None:
         super().__init__()
         self.data = list(memories)
-        self.device = device
 
     def __len__(
         self,
@@ -423,15 +422,15 @@ class ExperienceDataset(Dataset):
     def __getitem__(self, idx) -> Tuple:
         # return the idx-th memory element as a tuple of tensors on the device
         item = (
-            self.data[idx].states_actor.to(self.device),
-            self.data[idx].actions.to(self.device),
-            self.data[idx].values.to(self.device),
-            self.data[idx].rewards.to(self.device),
-            self.data[idx].actions_log_probs.to(self.device),
-            self.data[idx].sequences_actor.to(self.device),
-            self.data[idx].sequences_mask_actor.to(self.device),
-            self.data[idx].sequences_critic.to(self.device),
-            self.data[idx].sequences_mask_critic.to(self.device),
+            self.data[idx].states_actor,
+            self.data[idx].actions,
+            self.data[idx].values,
+            self.data[idx].rewards,
+            self.data[idx].actions_log_probs,
+            self.data[idx].sequences_actor,
+            self.data[idx].sequences_mask_actor,
+            self.data[idx].sequences_critic,
+            self.data[idx].sequences_mask_critic,
             int(self.data[idx].action_len_actor),
             int(self.data[idx].action_len_critic),
         )
@@ -825,19 +824,21 @@ class RLTrainer:
         # train agent-critic
         self.actorcritic.train()
         for epoch in range(epochs):
-            for k, (
-                states_actor,
-                old_actions,
-                old_values,
-                rewards,
-                old_actions_log_probs,
-                sequences_actor,
-                sequences_mask_actor,
-                sequences_critic,
-                sequences_mask_critic,
-                action_len_actor,
-                action_len_critic,
-            ) in enumerate(dataloader):
+            for k, batch in enumerate(dataloader):
+
+                (
+                    states_actor,
+                    old_actions,
+                    old_values,
+                    rewards,
+                    old_actions_log_probs,
+                    sequences_actor,
+                    sequences_mask_actor,
+                    sequences_critic,
+                    sequences_mask_critic,
+                    action_len_actor,
+                    action_len_critic,
+                ) = [tensor.to(device) for tensor in batch]
 
                 if self.debug:
                     print(
