@@ -5,9 +5,10 @@ In this installation guide we will learn:
 
 - [Selective installation](#optional-selective-installation-of-speedster-requirements) of the requirements **(Optional)**
 
-- [Set up Speedster on custom DL devices](#optional-set-up-speedster-on-custom-dl-devices) to run models on Google TPUs and AWS Inferentia Chips **(Optional)**
-
 - [Installation](#optional-download-docker-images-with-frameworks-and-optimizers) with docker **(Optional)** 
+
+- [Set up Speedster on custom DL devices](#set-up-speedster-on-custom-dl-devices) to run models on Google TPUs and AWS Inferentia Chips
+
 
 ## Quick installation 
 You can easily install `Speedster` using pip.
@@ -169,7 +170,21 @@ If you want to manually install the requirements, this section collects links to
 - onnx_graphsurgeon: https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon#installation (Install it if you want to use TensorRT plugins with Stable Diffusion)
 - onnxmltools: https://github.com/onnx/onnxmltools#install (Install it if you want to convert models to ONNX)
 
-## (Optional) Set up Speedster on custom DL devices
+## (Optional) Download Docker images with frameworks and optimizers
+
+Instead of installing the frameworks and compilers needed for optimization, which can be a time-consuming task, you can simply download a docker container with all compilers preinstalled.
+
+To pull up the docker image, run:
+
+    docker pull nebulydocker/nebullvm:latest
+
+and then run and access the docker with:
+
+    docker run -ti --gpus=all nebulydocker/nebullvm:latest
+
+After optimizing the model, you may decide to deploy it to production. Note that you need to have the deep learning compiler used to optimize the model and other components inside the production docker. For this reason, we have created several versions of the Docker nebullvm container in the [Docker Hub](https://hub.docker.com/repository/docker/nebulydocker/nebullvm), each containing only one compiler. Pull the image with the compiler that has optimized your model!
+
+## Set up Speedster on custom DL devices
 
 From version `0.10.0`, Speedster supports optimization of PyTorch models on `Google TPUs` and `AWS Inferentia` chips. 
 For these devices, the user must ensure that the required libraries are installed on the machine. 
@@ -196,7 +211,8 @@ You are now ready to use Speedster on TPUs! Speedster will automatically detect 
 For AWS Inferentia, you must first create an AWS EC2 instance with the `inf1` instance type. 
 You can find more information about `inf1` instances in the [official documentation](https://aws.amazon.com/it/ec2/instance-types/inf1/).
 
-!!! info AWS has recently released the `inf2` instance type, which is a more powerful version of `inf1`. For now `inf2` instances are only available in preview, you can request them directly to AWS by filling this [form](https://pages.awscloud.com/EC2-Inf2-Preview.html).
+!!! info AWS has recently released the `inf2` instance type, which is a more powerful version of `inf1`. For now `inf2` 
+instances are only available in private preview, you can request them directly to AWS by filling this [form](https://pages.awscloud.com/EC2-Inf2-Preview.html).
 
 To use Speedster on AWS Inferentia, we will use the [`torch-neuron`](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/torch-setup.html) library, that must be manually installed on `inf1` instances (on `inf2`instances it's already preinstalled if you use the PyTorch DLAMI provided by AWS).
 
@@ -209,18 +225,3 @@ After creating the EC2 instance and installing `torch_neuron`, you can follow th
 - Install Speedster by running `pip install speedster`. It's not required to install the deep learning compilers in this case, since they are not supported on AWS Inferentia.
 
 You are now ready to use Speedster on AWS Inferentia! Speedster will automatically detect the AWS Inferentia device and will use the `torch_neuron` library to optimize the model, comparing its performances with the original model running on the CPU.
-
-
-## (Optional) Download Docker images with frameworks and optimizers
-
-Instead of installing the frameworks and compilers needed for optimization, which can be a time-consuming task, you can simply download a docker container with all compilers preinstalled.
-
-To pull up the docker image, run:
-
-    docker pull nebulydocker/nebullvm:latest
-
-and then run and access the docker with:
-
-    docker run -ti --gpus=all nebulydocker/nebullvm:latest
-
-After optimizing the model, you may decide to deploy it to production. Note that you need to have the deep learning compiler used to optimize the model and other components inside the production docker. For this reason, we have created several versions of the Docker nebullvm container in the [Docker Hub](https://hub.docker.com/repository/docker/nebulydocker/nebullvm), each containing only one compiler. Pull the image with the compiler that has optimized your model!
