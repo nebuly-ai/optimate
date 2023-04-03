@@ -283,7 +283,7 @@ class SpeedsterRootOp(Operation):
 
             dl_framework = get_dl_framework(self.model)
 
-            if metric_drop_ths is not None and metric_drop_ths <= 0:
+            if metric_drop_ths is not None and metric_drop_ths < 0:
                 metric_drop_ths = None
             elif metric_drop_ths is not None and metric is None:
                 metric = "numeric_precision"
