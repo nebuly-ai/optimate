@@ -3,15 +3,14 @@ import os
 import re
 import sys
 
-import torch
+import deepspeed
 import logging
+import torch
 from beartype import beartype
 from beartype.typing import Union, Tuple, Optional
 from loguru import logger
 from plotly import graph_objects as go
 from transformers import AutoTokenizer
-
-import deepspeed
 
 from chatllama.rlhf.config import (
     Config,

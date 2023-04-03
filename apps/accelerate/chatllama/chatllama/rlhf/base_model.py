@@ -7,11 +7,23 @@ import torch
 import torch.distributed as dist
 from accelerate import Accelerator
 from beartype import beartype
-from beartype.typing import Tuple, Union, Iterable, Optional
+from beartype.typing import (
+    Tuple,
+    Union,
+    Iterable,
+    Optional,
+)
 from deepspeed.runtime.dataloader import DeepSpeedDataLoader
 from einops.layers.torch import Rearrange
-from peft import get_peft_model, LoraConfig, TaskType
-from torch.utils.data import DataLoader, Dataset
+from peft import (
+    get_peft_model,
+    LoraConfig,
+    TaskType,
+)
+from torch.utils.data import (
+    DataLoader,
+    Dataset,
+)
 from transformers import (
     AutoModel,
     AutoModelForCausalLM,
@@ -30,11 +42,11 @@ from chatllama.rlhf.model_list import (
 )
 from chatllama.rlhf.model_loader import ModelLoader
 from chatllama.rlhf.utils import (
-    TrainingStats,
     IgnoreLabelsWrapper,
-    load_tokenizer,
+    TrainingStats,
     get_multi_gpu_flags,
     my_logger,
+    load_tokenizer,
 )
 
 

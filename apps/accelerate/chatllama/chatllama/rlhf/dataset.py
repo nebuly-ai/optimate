@@ -2,9 +2,9 @@ import json
 import os
 
 import numpy as np
-
 from beartype.typing import Dict, List, Union
 from datasets import load_dataset
+
 from chatllama.rlhf.config import Config, ConfigActor, ConfigReward
 from chatllama.rlhf.utils import load_tokenizer, my_logger
 

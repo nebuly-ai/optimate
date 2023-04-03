@@ -3,8 +3,8 @@ import json
 
 import torch
 from beartype import beartype
-from torch.utils.data import Dataset
 from torch.cuda.amp import GradScaler
+from torch.utils.data import Dataset
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigReward
