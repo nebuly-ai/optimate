@@ -642,14 +642,21 @@ class RLTrainer:
             os.remove(path)
 
         # save the checkpoint
-        torch.save(
-            {
-                "episode": current_episode,
-                "critic_state_dict": self.actorcritic.critic.state_dict(),
-                "critic_optim_state_dict": self.critic_optimizer.state_dict(),
-            },
-            path,
-        )
+        actor_checkpoint_dict = {
+            "episode": current_episode,
+            "critic_state_dict": self.actorcritic.critic.state_dict(),
+            "critic_optim_state_dict": self.critic_optimizer.state_dict(),
+        }
+
+        if self.config.actor.deepspeed_enable:
+            # The model and optimizer state dicts are actually already saved
+            # In the deepspeed model engine. But to make sure no depending
+            # methods fail, the states are included in actor_checkpoint_dict
+            self.actor_model_engine.save_checkpoint(
+                save_dir=path, client_state=actor_checkpoint_dict
+            )
+        else:
+            torch.save(actor_checkpoint_dict, path)
 
         # get the path to save the checkpoint for the actor
         model_folder, model_name, path = ModelLoader.get_model_path(
@@ -665,15 +672,22 @@ class RLTrainer:
             os.remove(path)
 
         # save the checkpoint
-        torch.save(
-            {
-                "episode": current_episode,
-                "actor_state_dict": self.actorcritic.actor.state_dict(),
-                "actor_optim_state_dict": self.actor_optimizer.state_dict(),
-                "training_stats": self.training_stats,
-            },
-            path,
-        )
+        critic_checkpoint_dict = {
+            "episode": current_episode,
+            "actor_state_dict": self.actorcritic.actor.state_dict(),
+            "actor_optim_state_dict": self.actor_optimizer.state_dict(),
+            "training_stats": self.training_stats,
+        }
+
+        if self.config.critic.deepspeed_enable:
+            # The model and optimizer state dicts are actually already saved
+            # In the deepspeed model engine. But to make sure no depending
+            # methods fail, the states are included in critic_checkpoint_dict
+            self.critic_model_engine.save_checkpoint(
+                save_dir=path, client_state=critic_checkpoint_dict
+            )
+        else:
+            torch.save(critic_checkpoint_dict, path)
 
     @beartype
     def load_checkpoint(
