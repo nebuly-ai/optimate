@@ -3,12 +3,11 @@ import json
 
 import torch
 from beartype import beartype
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from torch.cuda.amp import GradScaler
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigReward
-from chatllama.rlhf.dataset import BaseDataset
 from chatllama.rlhf.utils import my_logger
 
 
@@ -147,13 +146,8 @@ class RewardTrainer(BaseTrainer):
 
     def __init__(self, config: ConfigReward) -> None:
 
-        super().__init__(config)
-
         # load the model
         self.model = RewardModel(config)
-
-        self.accelerate_enable = self.model.accelerate_enable
-        self.deepspeed_enable = self.model.deepspeed_enable
 
         # optimizer
         self.optimizer = torch.optim.AdamW(
@@ -168,18 +162,10 @@ class RewardTrainer(BaseTrainer):
         if config.validation_dataset_path is not None:
             self.validation_flag = True
 
-        # create dataset and dataloaders
-        BaseDataset.clean_dataset(config)
+        # create dataset
         self.train_dataset = RewardDataset(config.train_dataset_path)
-        self.train_dataloader = DataLoader(
-            self.train_dataset, batch_size=config.batch_size
-        )
         if self.validation_flag:
-            BaseDataset.clean_dataset(config)
             self.eval_dataset = RewardDataset(config.validation_dataset_path)
-            self.validation_dataloader = DataLoader(
-                self.eval_dataset, batch_size=config.batch_size
-            )
 
         # intilize scheduler - learning rate will drop to 10% of the initial
         # value
@@ -191,14 +177,17 @@ class RewardTrainer(BaseTrainer):
             last_epoch=-1,
         )
 
-        # for scaling the gradients
-        self.scaler = None
+        # initialize the super class
+        super().__init__(config)
 
-        # deepspeed
-        self.setup_deepspeed()
-
-        # HF accelerate
-        self.setup_accelerate()
+        # dataloader
+        self.train_dataloader = self.create_dataloader(
+            self.train_dataset, batch_size=config.batch_size
+        )
+        if self.validation_flag:
+            self.validation_dataloader = self.create_dataloader(
+                self.eval_dataset, batch_size=config.batch_size
+            )
 
         # define the scaler needed for vanilla pytorch with mixed precision
         if (not self.accelerate_enable) and (not self.deepspeed_enable):

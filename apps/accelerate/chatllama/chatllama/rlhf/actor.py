@@ -4,7 +4,7 @@ import torch
 from beartype import beartype
 from beartype.typing import Tuple
 from einops import rearrange
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 from torch.cuda.amp import GradScaler
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
@@ -12,7 +12,6 @@ from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
 )
-from chatllama.rlhf.dataset import BaseDataset
 from chatllama.rlhf.utils import my_logger
 
 
@@ -80,7 +79,7 @@ class ActorModel(BaseModel):
 
         # max generation possible given the state and the max sequence length
         max_generation_possible = max_sequence_length - states.shape[1]
-        if max_generation_possible < min_tokens:
+        if max_generation_possible <= min_tokens:
             raise my_logger.error(
                 ValueError,
                 f"The prompt is too long w.r.t the "
@@ -167,9 +166,6 @@ class ActorTrainer(BaseTrainer):
 
     def __init__(self, config: ConfigActor) -> None:
 
-        # store config
-        super().__init__(config)
-
         # load the model
         self.model = ActorModel(config)
 
@@ -186,18 +182,10 @@ class ActorTrainer(BaseTrainer):
         if config.validation_dataset_path is not None:
             self.validation_flag = True
 
-        # create dataset and dataloaders
-        BaseDataset.clean_dataset(config)
+        # create dataset
         self.train_dataset = ActorDataset(config.train_dataset_path)
-        self.train_dataloader = DataLoader(
-            self.train_dataset, batch_size=config.batch_size
-        )
         if self.validation_flag:
-            BaseDataset.clean_dataset(config)
             self.eval_dataset = ActorDataset(config.validation_dataset_path)
-            self.validation_dataloader = DataLoader(
-                self.eval_dataset, batch_size=config.batch_size
-            )
 
         # define scheduler for the learning rate
         # learning rate is decreased until 10% of the initial value
@@ -208,11 +196,17 @@ class ActorTrainer(BaseTrainer):
             eta_min=config.lr * 0.1,
         )
 
-        # deepspeed
-        self.setup_deepspeed()
+        # super init
+        super().__init__(config)
 
-        # HF accelerate
-        self.setup_accelerate()
+        # create dataloader
+        self.train_dataloader = self.create_dataloader(
+            self.train_dataset, batch_size=config.batch_size
+        )
+        if self.validation_flag:
+            self.validation_dataloader = self.create_dataloader(
+                self.eval_dataset, batch_size=config.batch_size
+            )
 
         # define the scaler needed for vanilla pytorch with mixed precision
         if (not self.accelerate_enable) and (not self.deepspeed_enable):

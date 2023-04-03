@@ -158,12 +158,14 @@ class BaseDataset:
                     conversations,
                     only_input=True,
                     reverse=True,
+                    shuffle=False,
                 )
             else:
                 conversations = BaseDataset.sort_conversation(
                     conversations,
                     only_input=False,
                     reverse=True,
+                    shuffle=False,
                 )
 
             old_len = len(conversations)
@@ -188,17 +190,17 @@ class BaseDataset:
                     r_tokens = r_tokenizer.encode(text, truncation=False)
                     c_tokens = c_tokenizer.encode(text, truncation=False)
                     if (
-                        len(a_tokens) + min_completion + safety_tokens
+                        len(a_tokens) + min_completion + safety_tokens + 100
                         > a_model_max_seq_len
                     ):
                         conversations.pop(0)
                     elif (
-                        len(r_tokens) + min_completion + safety_tokens
+                        len(r_tokens) + min_completion + safety_tokens + 100
                         > r_model_max_seq_len
                     ):
                         conversations.pop(0)
                     elif (
-                        len(c_tokens) + min_completion + safety_tokens
+                        len(c_tokens) + min_completion + safety_tokens + 100
                         > c_model_max_seq_len
                     ):
                         conversations.pop(0)
@@ -223,13 +225,15 @@ class BaseDataset:
 
             # if the number of examples has changed
             if len(conversations) != old_len:
-                my_logger.info("Number of examples before cleaning: ", old_len)
                 my_logger.info(
-                    "Number of examples after cleaning: ", len(conversations)
+                    f"Number of examples before cleaning:  {old_len}"
+                )
+                my_logger.info(
+                    f"Number of examples after cleaning: {len(conversations)}"
                 )
 
                 # remove the old dataset
-                os.remove(dataset_path)
+                # os.remove(dataset_path)
 
                 # save the new dataset
                 with open(dataset_path, "w") as f:

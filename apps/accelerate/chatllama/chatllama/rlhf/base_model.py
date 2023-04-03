@@ -4,11 +4,14 @@ import shutil
 
 import deepspeed
 import torch
+import torch.distributed as dist
 from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Tuple, Union, Iterable, Optional
+from deepspeed.runtime.dataloader import DeepSpeedDataLoader
 from einops.layers.torch import Rearrange
 from peft import get_peft_model, LoraConfig, TaskType
+from torch.utils.data import DataLoader, Dataset
 from transformers import (
     AutoModel,
     AutoModelForCausalLM,
@@ -20,16 +23,15 @@ from chatllama.rlhf.config import (
     ConfigCritic,
     ConfigReward,
 )
+from chatllama.rlhf.dataset import BaseDataset
 from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
     llama_models,
 )
-
 from chatllama.rlhf.model_loader import ModelLoader
 from chatllama.rlhf.utils import (
     TrainingStats,
     IgnoreLabelsWrapper,
-    LogMessages,
     load_tokenizer,
     get_multi_gpu_flags,
     my_logger,
@@ -114,7 +116,8 @@ class BaseModel(torch.nn.Module):
                 if isinstance(config, ConfigActor):
                     # load model for the actor
                     self.model = AutoModelForCausalLM.from_pretrained(
-                        config.model, load_in_8bit=config.load_8bit
+                        config.model,
+                        load_in_8bit=config.load_8bit,
                     )
 
                 elif isinstance(config, ConfigReward) or isinstance(
@@ -123,7 +126,8 @@ class BaseModel(torch.nn.Module):
                     # load the model for Critic and Reward
                     # (i.e. without the LM Head)
                     self.model = AutoModel.from_pretrained(
-                        config.model, load_in_8bit=config.load_8bit
+                        config.model,
+                        load_in_8bit=config.load_8bit,
                     )
 
                     # define the head for the reward and critic
@@ -362,8 +366,19 @@ class BaseModel(torch.nn.Module):
 
     def parameters(self) -> Iterable[torch.nn.Parameter]:
         """Return the parameters of the model"""
-        for p in self.model.parameters():
-            yield p
+        if isinstance(self.config, Config):
+            for p in self.actor.parameters():
+                yield p
+            # TODO: check if i am missing some critic parameters.
+            for p in self.critic.parameters():
+                yield p
+        if (
+            isinstance(self.config, ConfigActor)
+            or isinstance(self.config, ConfigReward)
+            or isinstance(self.config, ConfigCritic)
+        ):
+            for p in self.model.parameters():
+                yield p
         if isinstance(self.config, ConfigReward) or isinstance(
             self.config, ConfigCritic
         ):
@@ -407,13 +422,10 @@ class BaseTrainer:
 
     """
 
-    # intialize logger
-    logger = LogMessages()
-
     @beartype
     def __init__(self, config: ConfigType) -> None:
-        """Initialize the trainer to be called at the end of the child class
-        initialization.
+        """Initialize the trainer to be called after the model initialization
+        of the child class initialization.
         """
 
         # save the config
@@ -433,6 +445,16 @@ class BaseTrainer:
             self.deepspeed_enable,
             self.deepspeed_config_path,
         ) = get_multi_gpu_flags(config)
+
+        self.setup_accelerate()
+        self.setup_deepspeed()
+
+        # clean the dataset
+        if self.accelerate_enable or self.deepspeed_enable:
+            if dist.get_rank() == 0:
+                BaseDataset.clean_dataset(config)
+        else:
+            BaseDataset.clean_dataset(config)
 
     @beartype
     def setup_training_stats(
@@ -473,44 +495,83 @@ class BaseTrainer:
             self.training_stats.validation_accuracy.append(validation_accuracy)
 
     @beartype
+    def create_dataloader(
+        self,
+        dataset: Dataset,
+        batch_size: Optional[int] = None,
+    ) -> Union[DataLoader, DeepSpeedDataLoader]:
+        """This method creates the dataloader for the training
+
+        Args:
+            dataset (Dataset): Dataset to be used to create
+                the dataloader.
+
+        Returns:
+            DataLoader: Distributed dataloader
+        """
+
+        if self.accelerate_enable:
+            # accelerate
+            dataloader = DataLoader(dataset, batch_size=batch_size)
+            return self.accelerator.prepare(dataloader)
+        elif self.deepspeed_enable:
+            # deepspeed
+            return self.model_engine.deepspeed_io(dataset)
+        else:
+            # vanilla pytorch
+            return DataLoader(self.train_dataset, batch_size=batch_size)
+
+    @beartype
     def setup_deepspeed(
         self,
     ) -> None:
         """This method initializes the deepspeed engine"""
-        deepspeed.init_distributed()
 
         # initialize deepspeed
         self.model_engine = None
+
+        # create model engine
         if self.deepspeed_enable is True:
             if isinstance(self.config, Config):
+
+                # RL Training
+                # here self.optimizer is removed from the arguments to use the
+                # one from deepspeed.
+                # the custom optimizer to differentiate between actor and
+                # critic is not working anymore
                 (
                     self.model_engine,
                     self.optimizer,
-                    self.train_dataloader,
+                    _,
                     self.scheduler,
                 ) = deepspeed.initialize(
                     args=None,
-                    model=self.model,
-                    model_parameters=self.model.parameters(),
-                    optimizer=self.optimizer,
+                    model=self.actorcritic,
+                    model_parameters=self.actorcritic.parameters(),
                     lr_scheduler=self.scheduler,
-                    training_data=self.train_dataset,
                     config=self.deepspeed_config_path,
                 )
             else:
+
+                # Actor or Reward Training
+                # here self.optimizer is removed from the arguments to use the
+                # one from deepspeed.
                 (
                     self.model_engine,
                     self.optimizer,
-                    self.train_dataloader,
+                    _,
                     self.scheduler,
                 ) = deepspeed.initialize(
                     args=None,
                     model=self.model,
                     model_parameters=self.model.parameters(),
                     lr_scheduler=self.scheduler,
-                    training_data=self.train_dataset,
                     config=self.deepspeed_config_path,
                 )
+
+            # assign device
+            self.device = torch.device(f"cuda:{dist.get_rank()}")
+
             my_logger.info("Training with DeepSpeed")
 
     @beartype
@@ -523,17 +584,30 @@ class BaseTrainer:
         self.accelerator = None
         if self.accelerate_enable is True:
             self.accelerator = Accelerator()
-            (
-                self.model,
-                self.optimizer,
-                self.train_dataloader,
-                self.scheduler,
-            ) = self.accelerator.prepare(
-                self.model,
-                self.optimizer,
-                self.train_dataloader,
-                self.scheduler,
-            )
+            if isinstance(self.config, Config):
+                (
+                    self.actorcritic,
+                    self.optimizer,
+                    self.scheduler,
+                ) = self.accelerator.prepare(
+                    self.actorcritic,
+                    self.optimizer,
+                    self.scheduler,
+                )
+            else:
+                (
+                    self.model,
+                    self.optimizer,
+                    self.scheduler,
+                ) = self.accelerator.prepare(
+                    self.model,
+                    self.optimizer,
+                    self.scheduler,
+                )
+
+            # assign device
+            self.device = torch.device(f"cuda:{dist.get_rank()}")
+
             my_logger.info("Training with Accelerate")
 
     @beartype

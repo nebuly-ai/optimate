@@ -6,7 +6,7 @@ import sys
 import torch
 import logging
 from beartype import beartype
-from beartype.typing import Union, Tuple
+from beartype.typing import Union, Tuple, Optional
 from loguru import logger
 from plotly import graph_objects as go
 from transformers import AutoTokenizer
@@ -145,7 +145,9 @@ my_logger = LogMessages()
 
 
 @beartype
-def get_multi_gpu_flags(config: ConfigType) -> Tuple[bool, bool, str]:
+def get_multi_gpu_flags(
+    config: ConfigType,
+) -> Tuple[bool, bool, Optional[str]]:
     """Setup for multi-gpu training"""
 
     # flags for training

@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
+    "bitsandbytes",
     "loguru",
     "peft",
     "accelerate",

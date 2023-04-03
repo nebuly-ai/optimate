@@ -4,11 +4,10 @@ import random
 from collections import deque, namedtuple
 
 import torch
-import torch.distributed as dist
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 from chatllama.rlhf.actor import ActorModel
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
@@ -164,6 +163,11 @@ class ActorCritic(BaseModel):
 
         # now load the critic
         self.critic = CriticModel(config.critic)
+
+        # flag to check if actor and critic use the same tokenizer
+        self.use_same_tokenizer = check_model_family(
+            config.actor, config.critic
+        )
 
     @beartype
     def forward(
@@ -393,9 +397,15 @@ class ExamplesSampler:
 
 
 class CustomOptimizer(torch.optim.Optimizer):
+    """Class to define two different LR for the actor and the critic.
+    Still not working with distributed trainig.
+    """
+
     def __init__(self, params_actor, params_critic, lr_actor, lr_critic):
         self.actor = torch.optim.AdamW(params_actor, lr=lr_actor)
         self.critic = torch.optim.AdamW(params_critic, lr=lr_critic)
+
+        self.param_groups = self.actor.param_groups + self.critic.param_groups
 
     def step(self):
         self.actor.step()
@@ -437,23 +447,22 @@ class RLTrainer(BaseTrainer):
         config: Config,
     ) -> None:
 
-        super().__init__(config)
-
-        # set debug mode
-        self.debug = config.trainer.debug
-
         # initialize actor-critic
         self.actorcritic = ActorCritic(config)
 
         # initialize actor optimizer
-        self.optimizer = CustomOptimizer(
-            self.actorcritic.actor.parameters(),
-            self.actorcritic.critic.parameters(),
-            config.trainer.actor_lr,
-            config.trainer.critic_lr,
+        # self.optimizer = CustomOptimizer(
+        #     self.actorcritic.actor.parameters(),
+        #     self.actorcritic.critic.parameters(),
+        #     config.trainer.actor_lr,
+        #     config.trainer.critic_lr,
+        # )
+        self.optimizer = torch.optim.AdamW(
+            self.actorcritic.parameters(),
+            lr=config.trainer.actor_lr,
         )
 
-        # scheduler (defined in the learn() method (i need dataset size))
+        # scheduler init to None (need the dataset info to initialize it)
         self.scheduler = None
 
         # initialize reward model
@@ -470,15 +479,8 @@ class RLTrainer(BaseTrainer):
         # initialize examples sampler
         self.example_sampler = ExamplesSampler(config.trainer.examples_path)
 
-        # check if actor and critic use the same tokenizer
-        self.actorcritic.use_same_tokenizer = check_model_family(
-            config.actor, config.critic
-        )
-
-        # check if actor and reward use the same tokenizer
-        self.use_same_tokenizer = check_model_family(
-            config.actor, config.reward
-        )
+        # Base Trainer Initialization:
+        super().__init__(config)
 
     @beartype
     def learn(self, memories: Deque[Memory]) -> None:
@@ -494,52 +496,40 @@ class RLTrainer(BaseTrainer):
         actor_eps_clip = self.config.trainer.actor_eps_clip
         critic_eps_clip = self.config.trainer.critic_eps_clip
         beta_s = self.config.trainer.beta_s
+
+        # TODO: check this with distributed training
         batch_size = self.config.trainer.batch_size
-        device = (
-            torch.device(f"cuda:{dist.get_rank()}")
-            if self.is_deepspeed_init
-            else self.config.trainer.device
-        )
 
         # create dataset from memories
-        dataset = ExperienceDataset(memories, device)
-        if self.is_deepspeed_init:
-            engine = self.actor_model_engine or self.critic_model_engine
-            dataloader = engine.deepspeed_io(dataset)
+        self.train_dataset = ExperienceDataset(memories, self.device)
+        self.train_dataloader = self.create_dataloader(
+            self.train_dataset, batch_size
+        )
+
+        # assign a scheduler to the optimizer
+        if (self.deepspeed_enable is False) and (
+            self.accelerate_enable is False
+        ):
+            self.scheduler = CosineAnnealingWarmRestarts(
+                self.optimizer.actor,
+                T_0=len(self.train_dataset) // batch_size,
+                T_mult=1,
+                eta_min=self.config.trainer.actor_lr * 0.1,
+            )
         else:
-            dataloader = DataLoader(dataset, batch_size=batch_size)
-
-        # initialize scheduler for actor
-        actor_lr = self.config.trainer.actor_lr
-        # This lr_scheduler is not available in deepspeed
-        # see https://deepspeed.readthedocs.io/en/latest/schedulers.html
-        if not self.is_deepspeed_init:
-            self.actor_scheduler = CosineAnnealingWarmRestarts(
-                self.actor_optimizer, T_0=len(dataset), eta_min=actor_lr * 0.1
+            self.scheduler = CosineAnnealingWarmRestarts(
+                self.optimizer,
+                T_0=len(self.train_dataset) // batch_size,
+                T_mult=1,
+                eta_min=self.config.trainer.actor_lr * 0.1,
             )
-
-        # initialize scheduler for critic
-        critic_lr = self.config.trainer.critic_lr
-        # This lr_scheduler is not available in deepspeed
-        # see https://deepspeed.readthedocs.io/en/latest/schedulers.html
-        if not self.is_deepspeed_init:
-            self.critic_scheduler = CosineAnnealingWarmRestarts(
-                self.critic_optimizer,
-                T_0=len(dataset),
-                eta_min=critic_lr * 0.1,
-            )
-
-        # setup deepspeed
-        self.setup_deepspeed()
-
-        # setup accelerate
-        self.setup_accelerate()
 
         # train agent-critic
         self.actorcritic.train()
         for epoch in range(epochs):
-            for k, batch in enumerate(dataloader):
+            for k, batch in enumerate(self.train_dataloader):
 
+                # TODO: now first two elements are not used can be removed?
                 (
                     states_actor,
                     old_actions,
@@ -552,17 +542,36 @@ class RLTrainer(BaseTrainer):
                     sequences_mask_critic,
                     action_len_actor,
                     action_len_critic,
-                ) = [tensor.to(device) for tensor in batch]
+                ) = [tensor.to(self.device) for tensor in batch]
 
                 # get actor critic new probabilities and values
-                actions_logits, values = self.actorcritic.forward(
-                    sequences_actor,
-                    sequences_mask_actor,
-                    sequences_critic,
-                    sequences_mask_critic,
-                    action_len_actor.item(),
-                    action_len_critic.item(),
-                )
+                if self.deepspeed_enable:
+                    actions_logits, values = self.model_engine.forward(
+                        sequences_actor,
+                        sequences_mask_actor,
+                        sequences_critic,
+                        sequences_mask_critic,
+                        action_len_actor.item(),
+                        action_len_critic.item(),
+                    )
+                elif self.accelerate_enable:
+                    actions_logits, values = self.actorcritic.forward(
+                        sequences_actor,
+                        sequences_mask_actor,
+                        sequences_critic,
+                        sequences_mask_critic,
+                        action_len_actor.item(),
+                        action_len_critic.item(),
+                    )
+                else:
+                    actions_logits, values = self.actorcritic.forward(
+                        sequences_actor,
+                        sequences_mask_actor,
+                        sequences_critic,
+                        sequences_mask_critic,
+                        action_len_actor.item(),
+                        action_len_critic.item(),
+                    )
 
                 # get action log prob
                 actions_prob = (
@@ -615,19 +624,7 @@ class RLTrainer(BaseTrainer):
                 policy_loss = policy_loss.mean()
                 policy_loss = policy_loss + kl_div_loss
 
-                # check if loss item is NaN
-                if torch.isnan(policy_loss):
-                    raise my_logger.error(
-                        ValueError,
-                        "Policy Loss is nan",
-                    )
-
                 # compute value loss
-                # the loss is the distance between the rewards and the values
-                # I want this distance to be small so that values are
-                # representative of the rewards, for this reason i took the
-                # maximum between the two.
-                # The clip is limiting the slew-rate of values_loss_clipped
                 value_loss_clipped = old_values + (values - old_values).clamp(
                     -critic_eps_clip, critic_eps_clip
                 )
@@ -635,11 +632,27 @@ class RLTrainer(BaseTrainer):
                 value_loss2 = (values - rewards) ** 2
                 value_loss = torch.max(value_loss1, value_loss2).mean()
 
-                if torch.isnan(value_loss):
-                    raise my_logger.error(ValueError, "Value loss is nan")
-
                 # Sum the two losses
                 loss = policy_loss + value_loss
+
+                # check the losses
+                if torch.isnan(loss):
+                    if torch.isnan(policy_loss):
+                        if torch.isnan(kl_div_loss):
+                            raise my_logger.error(
+                                ValueError,
+                                "KL div Loss is nan",
+                            )
+                        else:
+                            raise my_logger.error(
+                                ValueError,
+                                "Policy Loss is nan",
+                            )
+                    else:
+                        raise my_logger.error(
+                            ValueError,
+                            "Value Loss is nan",
+                        )
 
                 # backward pass
                 if self.deepspeed_enable:
@@ -668,11 +681,11 @@ class RLTrainer(BaseTrainer):
 
                 # print iteration info
                 my_logger.info(
-                    f"Epoch {epoch+1}/{epochs}",
+                    f"Epoch {epoch+1}/{epochs} "
                     f"Step "
-                    f"{k+1}/{int(len(self.train_dataloader) / batch_size)}",
-                    f"Loss {loss.detach().cpu().item():.4f}",
-                    f"Value Loss {value_loss.detach().cpu().item():.4f}",
+                    f"{k+1}/{int(len(self.train_dataloader) / batch_size)} "
+                    f"Loss {loss.detach().cpu().item():.4f} "
+                    f"Value Loss {value_loss.detach().cpu().item():.4f} "
                 )
 
         self.actorcritic.eval()
@@ -691,11 +704,6 @@ class RLTrainer(BaseTrainer):
         update_timesteps = self.config.trainer.update_timesteps
         batch_size = self.config.trainer.batch_size
         checkpoint_steps = self.config.trainer.checkpoint_steps
-        device = (
-            torch.device(f"cuda:{dist.get_rank()}")
-            if self.is_deepspeed_init
-            else self.config.trainer.device
-        )
 
         # number of elements that the memories should contain when learning
         number_of_memories_per_learn_iteration = (
@@ -730,167 +738,245 @@ class RLTrainer(BaseTrainer):
         cnt_timesteps = 0
         cnt_learn_iter = 0
 
+        # move reward model to correct device
+        self.reward.to(self.device)
+
         # loop over episodes and timesteps
         self.actorcritic.eval()
         for episode in range(start_episode, num_episodes):
             for timestep in range(max_timesteps):
 
-                # print the iteration info
-                my_logger.info(
-                    f"Episode: {episode + 1}/{num_episodes}, "
-                    f"Timestep: {timestep + 1}/{max_timesteps}",
-                    f"Learning Cnt: {cnt_timesteps + 1}/{update_timesteps}",
-                )
+                # ensure that no gradients are computed during this step
+                with torch.no_grad():
 
-                # counter used to count timesteps into memory
-                cnt_timesteps += 1
-
-                # sample num_examples examples from  example dataset
-                inputs = self.example_sampler.sample(num_examples)
-
-                # tokenize examples for the actor
-                tok_inputs_act = self.actorcritic.actor.tokenizer(
-                    inputs, padding=True, return_tensors="pt", truncation=True
-                )
-
-                # states are [batch_size, seq_len_of_states]
-                states_actor = tok_inputs_act["input_ids"].to(device)
-                states_mask_actor = tok_inputs_act["attention_mask"].to(device)
-
-                # tokenize examples for the critic
-                tok_inputs_crt = self.actorcritic.critic.tokenizer(
-                    inputs, padding=True, return_tensors="pt", truncation=True
-                )
-
-                # states are [batch_size, seq_len_of_states]
-                states_critic = tok_inputs_crt["input_ids"].to(device)
-
-                # generate sequences of actions and values
-                if self.accelerate_enable:
-                    (
-                        actions,
-                        actions_logits,
-                        values,
-                        sequences_actor,
-                        sequences_mask_actor,
-                        sequences_critic,
-                        sequences_mask_critic,
-                        action_len_actor,
-                        action_len_critic,
-                    ) = self.actorcritic.module.generate(
-                        states_actor, states_mask_actor, states_critic
-                    )
-                else:
-                    (
-                        actions,
-                        actions_logits,
-                        values,
-                        sequences_actor,
-                        sequences_mask_actor,
-                        sequences_critic,
-                        sequences_mask_critic,
-                        action_len_actor,
-                        action_len_critic,
-                    ) = self.actorcritic.generate(
-                        states_actor, states_mask_actor, states_critic
+                    # print the iteration info
+                    my_logger.info(
+                        f"Episode: {episode + 1}/{num_episodes}, "
+                        f"Timestep: {timestep + 1}/{max_timesteps}, "
+                        f"Learning Cnt: "
+                        f"{cnt_timesteps + 1}/{update_timesteps}"
                     )
 
-                # compute action log probs
-                action_prob = (
-                    torch.softmax(actions_logits, dim=-1).max(dim=-1).values
-                )
-                actions_log_probs = torch.log(action_prob + self.eps)
+                    # counter used to count timesteps into memory
+                    cnt_timesteps += 1
 
-                # get tokenized sequence for the reward models
-                if self.use_same_tokenizer:
-                    reward_sequence = sequences_actor
-                    reward_mask = sequences_mask_actor
-                elif check_model_family(
-                    self.config.critic, self.config.reward
-                ):
-                    reward_sequence = sequences_critic
-                    reward_mask = sequences_mask_critic
-                else:
+                    # sample num_examples examples from  example dataset
+                    inputs = self.example_sampler.sample(num_examples)
+
+                    # tokenize examples for the actor
                     if self.accelerate_enable:
-                        tokenized_responses = change_tokenization(
-                            sequences_actor,
-                            self.actorcritic.module.actor.tokenizer,
-                            self.reward.tokenizer,
+                        tok_inputs_act = self.actorcritic.module.actor.tokenizer(  # noqa 501
+                            inputs,
+                            padding=True,
+                            return_tensors="pt",
+                            truncation=True,
                         )
                     else:
-                        tokenized_responses = change_tokenization(
+                        tok_inputs_act = self.actorcritic.actor.tokenizer(
+                            inputs,
+                            padding=True,
+                            return_tensors="pt",
+                            truncation=True,
+                        )
+
+                    # states are [batch_size, seq_len_of_states]
+                    states_actor = tok_inputs_act["input_ids"].to(self.device)
+                    states_mask_actor = tok_inputs_act["attention_mask"].to(
+                        self.device
+                    )
+
+                    # tokenize examples for the critic
+                    if self.accelerate_enable:
+                        tok_inputs_crt = self.actorcritic.module.critic.tokenizer(  # noqa 501
+                            inputs,
+                            padding=True,
+                            return_tensors="pt",
+                            truncation=True,
+                        )
+                    else:
+                        tok_inputs_crt = self.actorcritic.critic.tokenizer(
+                            inputs,
+                            padding=True,
+                            return_tensors="pt",
+                            truncation=True,
+                        )
+
+                    # states are [batch_size, seq_len_of_states]
+                    states_critic = tok_inputs_crt["input_ids"].to(self.device)
+
+                    # generate sequences of actions and values
+                    if self.accelerate_enable:
+                        (
+                            actions,
+                            actions_logits,
+                            values,
                             sequences_actor,
-                            self.actorcritic.actor.tokenizer,
-                            self.reward.tokenizer,
+                            sequences_mask_actor,
+                            sequences_critic,
+                            sequences_mask_critic,
+                            action_len_actor,
+                            action_len_critic,
+                        ) = self.actorcritic.module.generate(
+                            states_actor, states_mask_actor, states_critic
                         )
-                    # get tokens and mask
-                    reward_sequence = tokenized_responses["input_ids"].to(
-                        device
-                    )
-                    reward_mask = tokenized_responses["attention_mask"].to(
-                        device
-                    )
-
-                # compute rewards
-                rewards = self.reward.forward(
-                    reward_sequence,
-                    reward_mask,
-                )
-
-                rewards = rewards[:, -action_len_critic:]
-                reward = rewards[:, -1]
-
-                # store memories of the episode / timestep
-                for i in range(states_actor.shape[0]):
-                    memories.append(
-                        Memory(
-                            states_actor[i, :].detach().cpu(),
-                            actions[i, :].detach().cpu(),
-                            values[i, :].detach().cpu(),
-                            rewards[i, :].detach().cpu(),
-                            actions_log_probs[i, :].detach().cpu(),
-                            sequences_actor[i, :].detach().cpu(),
-                            sequences_mask_actor[i, :].detach().cpu(),
-                            sequences_critic[i, :].detach().cpu(),
-                            sequences_mask_critic[i, :].detach().cpu(),
-                            int(action_len_actor),
-                            int(action_len_critic),
+                    else:
+                        (
+                            actions,
+                            actions_logits,
+                            values,
+                            sequences_actor,
+                            sequences_mask_actor,
+                            sequences_critic,
+                            sequences_mask_critic,
+                            action_len_actor,
+                            action_len_critic,
+                        ) = self.actorcritic.generate(
+                            states_actor, states_mask_actor, states_critic
                         )
+
+                    # compute action log probs
+                    action_prob = (
+                        torch.softmax(actions_logits, dim=-1)
+                        .max(dim=-1)
+                        .values
+                    )
+                    actions_log_probs = torch.log(action_prob + self.eps)
+
+                    # get tokenized sequence for the reward models
+                    # if the reward model uses the same tokenizer as the actor
+                    # then the sequences are already tokenized
+                    # otherwise the sequences need to be converted
+                    if check_model_family(
+                        self.config.actor, self.config.reward
+                    ):
+
+                        # they can be directly used since the tokenizer is the
+                        # same
+                        reward_sequence = sequences_critic
+                        reward_mask = sequences_mask_critic
+                    else:
+
+                        # convert tokenization
+                        if self.accelerate_enable:
+                            tokenized_responses = change_tokenization(
+                                sequences_actor,
+                                self.actorcritic.module.actor.tokenizer,
+                                self.reward.tokenizer,
+                            )
+                        else:
+                            tokenized_responses = change_tokenization(
+                                sequences_actor,
+                                self.actorcritic.actor.tokenizer,
+                                self.reward.tokenizer,
+                            )
+
+                        # get tokens and mask
+                        reward_sequence = tokenized_responses["input_ids"].to(
+                            self.device
+                        )
+                        reward_mask = tokenized_responses["attention_mask"].to(
+                            self.device
+                        )
+
+                    # compute rewards
+                    rewards = self.reward.forward(
+                        reward_sequence,
+                        reward_mask,
                     )
 
-                # decode completions to be logged in the conversation log
-                completions = [
-                    self.actorcritic.actor.tokenizer.decode(action)
-                    for action in actions
-                ]
-                # remove pad tokens from completions
-                completions = [
-                    c.replace(self.actorcritic.actor.tokenizer.pad_token, "")
-                    for c in completions
-                ]
-                # remove eos tokens from completions
-                completions = [
-                    c.replace(self.actorcritic.actor.tokenizer.eos_token, "")
-                    for c in completions
-                ]
-                # strange i need to force this?
-                completions = [c.replace("<pad>", "") for c in completions]
+                    # the interesting rewards are only for the action
+                    # TODO: need to use action_len_reward and compute it
+                    # before just in case
+                    rewards = rewards[:, -action_len_critic:]
 
-                # log the memories in the conversation log
-                for i in range(states_actor.shape[0]):
-                    self.conversation_log.append(
-                        inputs[i],
-                        completions[i],
-                        reward[i].detach().cpu().item(),
-                        cnt_learn_iter,
-                    )
+                    # the scalar "reward" is the last reward (see reward model)
+                    reward = rewards[:, -1]
+
+                    # store memories of the episode and timestep
+                    for i in range(states_actor.shape[0]):
+                        memories.append(
+                            Memory(
+                                states_actor[i, :].detach().cpu(),
+                                actions[i, :].detach().cpu(),
+                                values[i, :].detach().cpu(),
+                                rewards[i, :].detach().cpu(),
+                                actions_log_probs[i, :].detach().cpu(),
+                                sequences_actor[i, :].detach().cpu(),
+                                sequences_mask_actor[i, :].detach().cpu(),
+                                sequences_critic[i, :].detach().cpu(),
+                                sequences_mask_critic[i, :].detach().cpu(),
+                                int(action_len_actor),
+                                int(action_len_critic),
+                            )
+                        )
+
+                    # decode completions to be logged in the conversation log
+                    if self.accelerate_enable:
+                        completions = [
+                            self.actorcritic.module.actor.tokenizer.decode(
+                                action
+                            )  # noqa 501
+                            for action in actions
+                        ]
+                    else:
+                        completions = [
+                            self.actorcritic.actor.tokenizer.decode(action)
+                            for action in actions
+                        ]
+
+                    # remove pad tokens from completions
+                    if self.accelerate_enable:
+                        completions = [
+                            c.replace(
+                                self.actorcritic.module.actor.tokenizer.pad_token,  # noqa 501
+                                "",
+                            )
+                            for c in completions
+                        ]
+                    else:
+                        completions = [
+                            c.replace(
+                                self.actorcritic.actor.tokenizer.pad_token, ""
+                            )
+                            for c in completions
+                        ]
+
+                    # remove eos tokens from completions
+                    if self.accelerate_enable:
+                        completions = [
+                            c.replace(
+                                self.actorcritic.module.actor.tokenizer.eos_token,  # noqa 501
+                                "",
+                            )
+                            for c in completions
+                        ]
+                    else:
+                        completions = [
+                            c.replace(
+                                self.actorcritic.actor.tokenizer.eos_token, ""
+                            )
+                            for c in completions
+                        ]
+
+                    # strange i need to force this?
+                    # TODO check how to remove this
+                    completions = [c.replace("<pad>", "") for c in completions]
+
+                    # log the memories in the conversation log
+                    for i in range(states_actor.shape[0]):
+                        self.conversation_log.append(
+                            inputs[i],
+                            completions[i],
+                            reward[i].detach().cpu().item(),
+                            cnt_learn_iter,
+                        )
 
                 # learn from memories
                 if (cnt_timesteps % update_timesteps == 0) and (
                     cnt_timesteps != 0
                 ):
 
-                    my_logger.info("Len memories", len(memories))
+                    my_logger.info(f"Len memories {len(memories)}")
                     # self.conversation_log.show(cnt_learn_iter)
                     self.learn(memories)
                     mean_reward = sum([m.rewards[-1] for m in memories]) / len(
@@ -900,6 +986,7 @@ class RLTrainer(BaseTrainer):
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
+
                     # TODO fix log saving in deepspeed multi GPU training
                     # self.conversation_log.save()
 
@@ -908,6 +995,7 @@ class RLTrainer(BaseTrainer):
                 self.save_checkpoint(
                     current_episode=episode, max_episode=num_episodes
                 )
+
                 # TODO fix log saving in deepspeed multi GPU training
                 # self.conversation_log.save()
 
@@ -916,4 +1004,5 @@ class RLTrainer(BaseTrainer):
             self.actorcritic.module.save()
         else:
             self.actorcritic.save()
+
         my_logger.success("End RL Training")
