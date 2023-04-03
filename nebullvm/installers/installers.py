@@ -111,25 +111,21 @@ def install_torch_tensor_rt():
             "Torch-TensorRT can run just on Nvidia machines. "
             "No available cuda driver has been found."
         )
-    elif not check_module_version(torch, min_version="1.12.0"):
-        raise RuntimeError(
-            "Torch-TensorRT can be installed only from Pytorch 1.12. "
-            "Please update your Pytorch version."
+    elif not check_module_version(
+        torch, min_version="1.12.0", max_version="1.13.1"
+    ):
+        logger.warning(
+            "Torch-TensorRT can be installed only for "
+            "'PyTorch>=1.12, <=1.13.1'. Please update your Pytorch "
+            "version accordingly if you want to use Torch-TensorRT."
         )
+        return False
 
     # Verify that TensorRT is installed, otherwise install it
     try:
         import tensorrt  # noqa F401
     except ImportError:
         install_tensor_rt()
-
-    # cmd = [
-    #     "pip3",
-    #     "install",
-    #     "torch-tensorrt>=1.2.0",
-    #     "-f",
-    #     "https://github.com/pytorch/TensorRT/releases",
-    # ]
 
     cmd = [
         "pip3",
@@ -409,17 +405,19 @@ class PytorchInstaller(BaseInstaller):
                 "it from https://pytorch.org/get-started/locally/."
             )
 
-        if not check_module_version(torch, min_version="1.12.0"):
+        if not check_module_version(
+            torch, min_version="1.12.0", max_version="2.0.0"
+        ):
             logger.warning(
-                "You are using an old version of PyTorch, please update it "
-                "in order to get the best optimization results."
+                "PyTorch version is not supported. Please install "
+                "PyTorch >= 1.12.0 and <= 2.0.0."
             )
 
         return True
 
     @staticmethod
     def install_framework():
-        cmd = ["pip3", "install", "torch>=1.10.0"]
+        cmd = ["pip3", "install", "torch>=1.12.0, <=2.0.0"]
         subprocess.run(cmd)
 
         try:
@@ -443,7 +441,13 @@ class TensorflowInstaller(BaseInstaller):
         except ImportError:
             return False
 
-        if not check_module_version(tensorflow, min_version="2.7.0"):
+        if not check_module_version(
+            tensorflow, min_version="2.7.0", max_version="2.11.1"
+        ):
+            logger.warning(
+                "TensorFlow version is not supported. Please install "
+                "TensorFlow >= 2.7.0 and <= 2.11.1."
+            )
             return False
 
         return True
@@ -486,7 +490,13 @@ class ONNXInstaller(BaseInstaller):
         except ImportError:
             return False
 
-        if not check_module_version(onnx, min_version="1.10.0"):
+        if not check_module_version(
+            onnx, min_version="1.10.0", max_version="1.13.1"
+        ):
+            logger.warning(
+                "ONNX version is not supported. Please install "
+                "ONNX >= 1.10.0 and <= 1.13.1."
+            )
             return False
 
         return True
