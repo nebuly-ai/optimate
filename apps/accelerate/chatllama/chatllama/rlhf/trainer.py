@@ -584,7 +584,7 @@ class RLTrainer(BaseTrainer):
 
                 # compute KL divergence
                 kl_div_loss = (
-                    (actions_prob * (old_actions_log_probs - actions_log_prob))
+                    (actions_prob * (actions_log_prob - old_actions_log_probs))
                     .sum(dim=-1)
                     .mean()
                 )
