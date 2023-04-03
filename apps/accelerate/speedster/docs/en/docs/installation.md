@@ -5,7 +5,7 @@ In this installation guide we will learn:
 
 - [Selective installation](#optional-selective-installation-of-speedster-requirements) of the requirements **(Optional)**
 
-- [Installation](#optional-download-docker-images-with-frameworks-and-optimizers) with docker **(Optional)** 
+- [Installation](#optional-download-docker-images-with-frameworks-and-optimizers) with Docker **(Optional)** 
 
 - [Set up Speedster on custom DL devices](#set-up-speedster-on-custom-dl-devices) to run models on Google TPUs and AWS Inferentia Chips
 
@@ -20,13 +20,12 @@ Then make sure to install all the available deep learning compilers:
     python -m nebullvm.installers.auto_installer --compilers all
 
 
-!!! info
-    If you want to optimize PyTorch or HuggingFace models, PyTorch must be pre-installed in the environment before using the auto-installer, please install it from [this](https://pytorch.org/get-started/locally/) link. Moreover, for Mac computers with M1/M2 processors, please use a conda environment, or you may run into problems when installing some of the deep learning compilers.
+**NOTE**: if you want to optimize PyTorch or HuggingFace models, PyTorch must be pre-installed in the environment before using the auto-installer, please install it from [this](https://pytorch.org/get-started/locally/) link. Moreover, for Mac computers with M1/M2 processors, please use a conda environment, or you may run into problems when installing some of the deep learning compilers.
 
-Great, now you are now ready to accelerate your model 🚀 Please visit the following pages to get started based on the DL framework of your input model:
+Great, now you are ready to accelerate your model 🚀 Please visit the following pages to get started based on the DL framework of your input model:
 
 - [Getting started with PyTorch optimization](./getting_started/pytorch_getting_started.md)
-- [Getting started with 🤗 HuggingFace optimization](./getting_started/hf_getting_started.md)
+- [Getting started with 🤗 Hugging Face optimization](./getting_started/hf_getting_started.md)
 - [Getting started with Stable Diffusion optimization](./getting_started/diffusers_getting_started.md)
 - [Getting started with TensorFlow/Keras optimization](./getting_started/tf_getting_started.md)
 - [Getting started with ONNX optimization](./getting_started/onnx_getting_started.md)
@@ -51,7 +50,7 @@ python -m nebullvm.installers.auto_installer
     --compilers <compilers>
 ```
 
-!!! Description
+**Description**
 
     === "--frameworks"
 
@@ -136,12 +135,12 @@ The following table shows the supported combinations of frameworks, backends and
 | PyTorch     | ONNX                      | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
 | TensorFlow  | ONNX                      | TensorRT, OpenVINO                                                      |
 | ONNX        | /                         | TensorRT, OpenVINO                                                      |
-| HuggingFace | PyTorch, TensorFlow, ONNX | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
+| Hugging Face | PyTorch, TensorFlow, ONNX | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
 | Diffusers   | PyTorch, ONNX             | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
 
 
-!!! info
-    Hugginface models can be of two types, PyTorch-based or TensorFlow-based. For PyTorch-based models, it is necessary to include `torch` as an extra-backend. For TensorFlow-based models, you must include `tensorflow` as an extra-backend.
+**info**
+Hugging Face models can be of two types, PyTorch-based or TensorFlow-based. For PyTorch-based models, it is necessary to include `torch` as an extra-backend. For TensorFlow-based models, you must include `tensorflow` as an extra-backend.
 
 ### Manual installation
 
@@ -172,17 +171,17 @@ If you want to manually install the requirements, this section collects links to
 
 ## (Optional) Download Docker images with frameworks and optimizers
 
-Instead of installing the frameworks and compilers needed for optimization, which can be a time-consuming task, you can simply download a docker container with all compilers preinstalled.
+Instead of installing the frameworks and compilers needed for optimization, which can be a time-consuming task, you can simply download a Docker container with all compilers preinstalled.
 
-To pull up the docker image, run:
+To pull up the Docker image, run:
 
     docker pull nebulydocker/nebullvm:latest
 
-and then run and access the docker with:
+and then run and access the Docker with:
 
     docker run -ti --gpus=all nebulydocker/nebullvm:latest
 
-After optimizing the model, you may decide to deploy it to production. Note that you need to have the deep learning compiler used to optimize the model and other components inside the production docker. For this reason, we have created several versions of the Docker nebullvm container in the [Docker Hub](https://hub.docker.com/repository/docker/nebulydocker/nebullvm), each containing only one compiler. Pull the image with the compiler that has optimized your model!
+After optimizing the model, you may decide to deploy it to production. Note that you need to have the deep learning compiler used to optimize the model and other components inside the production Docker. For this reason, we have created several versions of the Docker nebullvm container in the [Docker Hub](https://hub.docker.com/repository/docker/nebulydocker/nebullvm), each containing only one compiler. Pull the image with the compiler that has optimized your model!
 
 ## Set up Speedster on custom DL devices
 
@@ -211,7 +210,8 @@ You are now ready to use Speedster on TPUs! Speedster will automatically detect 
 For AWS Inferentia, you must first create an AWS EC2 instance with the `inf1` instance type. 
 You can find more information about `inf1` instances in the [official documentation](https://aws.amazon.com/it/ec2/instance-types/inf1/).
 
-!!! info AWS has recently released the `inf2` instance type, which is a more powerful version of `inf1`. For now `inf2` 
+**info**
+AWS has recently released the `inf2` instance type, which is a more powerful version of `inf1`. For now `inf2` 
 instances are only available in private preview, you can request them directly to AWS by filling this [form](https://pages.awscloud.com/EC2-Inf2-Preview.html).
 
 To use Speedster on AWS Inferentia, we will use the [`torch-neuron`](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/torch-setup.html) library, that must be manually installed on `inf1` instances (on `inf2`instances it's already preinstalled if you use the PyTorch DLAMI provided by AWS).
