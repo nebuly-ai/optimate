@@ -149,6 +149,18 @@ class BaseModel(torch.nn.Module):
                 self.is_lora_peft_applied = False
                 self.apply_lora_with_peft()
 
+            else:
+                raise my_logger.error(
+                    ValueError,
+                    f"Unsupported model {config.model}.\n"
+                    f"Try to add your model to the model_list.py and if you "
+                    f"want open a new PR "
+                    f"@https://github.com/nebuly-ai/nebullvm/pulls\n"
+                    f"The supported models are:\n\n"
+                    f"- Standard LLaMA:\n{llama_models}\n\n"
+                    f"- HF models:\n{hf_models_causal_lm}",
+                )
+
             # move model to device
             self.model.to(config.device)
 
@@ -160,16 +172,18 @@ class BaseModel(torch.nn.Module):
 
             # load the model from model_folder
             self.load()
-            my_logger.success("Model loaded")
+
+            if isinstance(config, ConfigActor):
+                my_logger.success("Actor Model loaded")
+            elif isinstance(config, ConfigReward):
+                if config.is_reward:
+                    my_logger.success("Reward Model loaded")
+                else:
+                    my_logger.success("Critic Model loaded")
 
         else:
             # ActorCritic initialization
-
-            # if the actor and critic use the same tokenizer is set to True
-            self.use_same_tokenizer = False
-
-            # debug flag
-            self.debug = config.actor.debug
+            pass
 
     @beartype
     def apply_lora_with_peft(self) -> None:

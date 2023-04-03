@@ -257,7 +257,7 @@ class StanfordNLPSHP(BaseDataset):
     ) -> None:
         my_logger.info("Download the dataset")
         self.dataset = load_dataset("stanfordnlp/SHP")
-        my_logger.info("Download Completed")
+        my_logger.success("Download Completed")
 
     def reformat_dataset(self, data: List) -> List[Dict]:
         """Reformat the dataset to the format required by RLHF
@@ -353,7 +353,7 @@ class AnthropicRLHF(BaseDataset):
 
         my_logger.info("Download the dataset")
         self.dataset = load_dataset("Anthropic/hh-rlhf")
-        my_logger.info("Download Completed")
+        my_logger.success("Download Completed")
 
     def reformat_dataset(self, data: List) -> List[Dict]:
         """Reformat the dataset to the format required by RLHF
@@ -446,7 +446,7 @@ class SelfInstruct(BaseDataset):
     ) -> None:
         my_logger.info("Download the dataset")
         self.dataset = load_dataset("HuggingFaceH4/self-instruct")
-        my_logger.info("Download Completed")
+        my_logger.success("Download Completed")
 
     def reformat_dataset(self, data: List) -> List[Dict]:
         """Reformat the dataset to the format required by RLHF

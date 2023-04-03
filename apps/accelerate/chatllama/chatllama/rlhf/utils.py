@@ -91,7 +91,7 @@ class LogMessages(Singleton):
                 logger.error(f"[Rank {self.local_rank}] {text}")
         else:
             logger.error(text)
-        return error_type(text)
+        return error_type("")
 
     def warning(self, text: str):
         if self.is_multi_gpu:
