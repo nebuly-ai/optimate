@@ -112,7 +112,7 @@ def install_torch_tensor_rt():
             "No available cuda driver has been found."
         )
     elif not check_module_version(
-        torch, min_version="1.12.0", max_version="1.13.1"
+        torch, min_version="1.12.0", max_version="1.13.1+cu117"
     ):
         logger.warning(
             "Torch-TensorRT can be installed only for "
@@ -406,7 +406,7 @@ class PytorchInstaller(BaseInstaller):
             )
 
         if not check_module_version(
-            torch, min_version="1.12.0", max_version="2.0.0"
+            torch, min_version="1.12.0", max_version="2.0.0+cu118"
         ):
             logger.warning(
                 "PyTorch version is not supported. Please install "
@@ -442,11 +442,11 @@ class TensorflowInstaller(BaseInstaller):
             return False
 
         if not check_module_version(
-            tensorflow, min_version="2.7.0", max_version="2.11.1"
+            tensorflow, min_version="2.7.0", max_version="2.12.0"
         ):
             logger.warning(
                 "TensorFlow version is not supported. Please install "
-                "TensorFlow >= 2.7.0 and <= 2.11.1."
+                "TensorFlow >= 2.7.0 and <= 2.12.0."
             )
             return False
 
@@ -464,7 +464,7 @@ class TensorflowInstaller(BaseInstaller):
             ]
             subprocess.run(cmd)
         else:
-            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0, <2.12.0"]
+            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0, <=2.12.0"]
             subprocess.run(cmd)
 
         try:
