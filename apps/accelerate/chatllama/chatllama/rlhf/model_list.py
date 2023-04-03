@@ -52,6 +52,10 @@ hf_models_causal_lm = [
     "cerebras/Cerebras-GPT-2.7B",
     "cerebras/Cerebras-GPT-6.7B",
     "cerebras/Cerebras-GPT-13B",
+    "decapoda-research/llama-7b-hf",
+    "decapoda-research/llama-13b-hf",
+    "decapoda-research/llama-30b-hf",
+    "decapoda-research/llama-65b-hf",
 ]
 
 # create a list of all the models from hf
