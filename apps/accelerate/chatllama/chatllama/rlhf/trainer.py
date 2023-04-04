@@ -1,7 +1,6 @@
 import json
 import os
 import random
-import shutil
 from collections import deque, namedtuple
 
 import deepspeed
@@ -10,6 +9,7 @@ import torch.distributed as dist
 from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
+from deepspeed.runtime.engine import DeepSpeedEngine
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
@@ -218,6 +218,29 @@ class ActorCritic(torch.nn.Module):
                 "head": self.critic.head.state_dict(),
             },
             path,
+        )
+
+    def save_deepspeed(
+        self,
+        model_engine: DeepSpeedEngine,
+        config: ConfigType,
+        client_state: dict = None,
+    ):
+        """Save the deepspeed model_engine to the path
+        This method is implemented to save the actor model as result of RLHF
+        in the folder actor_rl instead of actor.save() method that saves it
+        in the actor folder. Same goes for the critic model.
+        """
+        # get the path to save the actor
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=config,
+            is_checkpoint=False,
+        )
+
+        # save the model
+        print(f"Saving model to {path} ...")
+        model_engine.save_checkpoint(
+            save_dir=path, client_state=client_state if client_state else {}
         )
 
     @beartype
@@ -1241,5 +1264,11 @@ class RLTrainer:
                     self.conversation_log.save()
 
         # save the models
-        self.actorcritic.save()
+        if self.is_deepspeed_init:
+            self.actorcritic.save_deepspeed(self.actor_model_engine, self.config)
+            self.actorcritic.save_deepspeed(
+                self.critic_model_engine, self.config.critic
+            )
+        else:
+            self.actorcritic.save()
         print("End RL Training")
