@@ -35,12 +35,15 @@ class ActorModel(BaseModel):
             of the actions
 
         Args:
-            sequences (torch.Tensor): Sequences of states and actions used to
-                    compute token logits for the whole list of sequences
-            attention_mask (torch.Tensor): Mask for the sequences attention
+            sequences (torch.Tensor) [batch_size, seq_len]: Sequences of
+                states and actions used to compute token logits
+                for the whole list of sequences
+            attention_mask (torch.Tensor) [batch_size, seq_len]: Mask for the
+                sequences attention
 
         Returns:
-            logits (torch.Tensor): Logits for the actions taken
+            logits (torch.Tensor) [batch_size, seq_len, vocab_size]: Logits for
+                the actions taken
         """
         model_output = self.model.forward(
             sequences, attention_mask=sequences_mask
@@ -48,6 +51,7 @@ class ActorModel(BaseModel):
         # need to return logits for the actions
         if self.config.model in hf_models_causal_lm:
             model_output = model_output.logits
+
         return model_output
 
     @beartype
@@ -59,13 +63,15 @@ class ActorModel(BaseModel):
             (i.e. input of the prompt generator model)
 
         Args:
-            state (torch.Tensor): the input of the user
-            state_mask (torch.Tensor): Mask for the state input (for padding)
+            state (torch.Tensor) [batch_size, input_len]: the input of the user
+            state_mask (torch.Tensor) [batch_size, input_len]: Mask for the
+                state input (for padding)
 
         Returns:
-            actions (torch.Tensor): Actions generated from the state
-            sequences (torch.Tensor): Sequences generated from the
-                state as [states, actions]
+            actions (torch.Tensor) [batch_size, act_len]: Actions generated
+                from the state
+            sequences (torch.Tensor) [batch_size, seq_len]:
+                Sequences generated from the state as [states, actions]
         """
         # temperature for the actor
         temperature = self.config.temperature
@@ -94,6 +100,7 @@ class ActorModel(BaseModel):
         # take the minimum the max_tokens and the max_generation_possible
         max_completion = min(max_tokens, max_generation_possible)
 
+        # generate the actions and the sequences
         sequences = self.model.generate(
             input_ids=states,
             attention_mask=state_mask,
@@ -101,6 +108,8 @@ class ActorModel(BaseModel):
             max_new_tokens=max_completion,
             no_repeat_ngram_size=3,
         )
+
+        # take the actions
         actions = sequences[:, states.shape[1] :]  # noqa E203
         return actions, sequences
 
@@ -145,23 +154,26 @@ class ActorTrainer(BaseTrainer):
         config (ConfigActor): Configuration for the actor model
 
     Attributes:
-        config (ConfigActor): Configuration for the actor model
         model (ActorModel): Actor model
         loss_function (torch.nn.CrossEntropyLoss): Loss function
-        optimizer (torch.optim.Adam): Optimizer
-        validation_flag (bool): Flag to indicate if the validation dataset
-            is provided
-        train_dataset (ActorDataset): Training dataset
-        train_dataloader (DataLoader): Training dataloader
-        validation_dataset (ActorDataset): Validation dataset
-        validation_dataloader (DataLoader): Validation dataloader
-        scheduler (torch.optim.lr_scheduler): Learning rate scheduler
-        training_stats (TrainingStats): Training statistics
-        model_engine (ModelEngine): Model engine for deepspeed training
-        accelerator (Accelerator): Accelerator for accelerate training
-
+        optimizer (torch.optim.AdamW): Optimizer
+        validation_flag (bool): Flag to check if validation dataset is provided
+        train_dataset (ActorDataset): Dataset for the training
+        validation_dataset (ActorDataset): Dataset for the validation
+        scheduler (torch.optim.lr_scheduler): Scheduler for the optimizer
+        train_dataloader (torch.utils.data.DataLoader): Dataloader for the
+            training dataset
+        validation_dataloader (torch.utils.data.DataLoader): Dataloader for the
+            validation dataset
+        scaler (torch.cuda.amp.GradScaler): Scaler for the mixed precision
+            training
     Methods:
         train: Train the actor model
+        add_eos_token: Add the eos token to the end of the sequences
+
+    Known Issues:
+        - When training with lora, 8bit and accelerate the tensor placement
+            is a mess and the training crash.
     """
 
     def __init__(self, config: ConfigActor) -> None:
@@ -209,10 +221,13 @@ class ActorTrainer(BaseTrainer):
             )
 
         # define the scaler needed for vanilla pytorch with mixed precision
-        if (not self.accelerate_enable) and (not self.deepspeed_enable):
-            self.scaler = GradScaler()
-        else:
+        if self.accelerate_enable or self.deepspeed_enable:
             self.scaler = None
+        else:
+            if self.config.load_8bit:
+                self.scaler = None
+            else:
+                self.scaler = GradScaler()
 
     def add_eos_token(
         self, tokens: torch.Tensor, mask: torch.Tensor
@@ -252,9 +267,8 @@ class ActorTrainer(BaseTrainer):
 
         my_logger.success("Start Actor Model Pretraining")
 
-        # get config parameters
+        # get batch size
         if self.deepspeed_enable:
-            # get batch size from deepspeed
             batch_size = self.model_engine.train_batch_size()
         elif self.accelerate_enable:
             batch_size = (
@@ -263,8 +277,8 @@ class ActorTrainer(BaseTrainer):
         else:
             batch_size = self.config.batch_size
 
+        # get other parameters
         epochs = self.config.epochs
-        device = self.config.device
         checkpoint_steps = self.config.checkpoint_steps
 
         # compute the number of iterations
@@ -273,6 +287,7 @@ class ActorTrainer(BaseTrainer):
         # load model_checkpoint
         start_epoch, start_step = self.load_checkpoint()
 
+        # clean the training stats if we are starting from scratch
         if start_epoch == 0 and start_step == 0:
             self.training_stats.clear()
 
@@ -288,8 +303,10 @@ class ActorTrainer(BaseTrainer):
                 if i < start_step:
                     continue
 
-                # tokenize input
+                # get input and output tensors
                 with torch.no_grad():
+
+                    # tokenize the input
                     if self.accelerate_enable:
                         input_tokenized = self.model.module.tokenizer(
                             input_text,
@@ -306,18 +323,20 @@ class ActorTrainer(BaseTrainer):
                             max_length=self.config.max_sequence_length,
                         )
 
-                    # split tokens and mask
-                    input_tokenized_id = input_tokenized["input_ids"]
-                    input_tokenized_mask = input_tokenized["attention_mask"]
+                        # split tokens and mask
+                        input_tokenized_id = input_tokenized["input_ids"]
+                        input_tokenized_mask = input_tokenized[
+                            "attention_mask"
+                        ]
 
-                    # add eos token
-                    (
-                        input_tokenized_id,
-                        input_tokenized_mask,
-                    ) = self.add_eos_token(
-                        input_tokenized_id,
-                        input_tokenized_mask,
-                    )
+                        # add eos token at the end of the sequence
+                        (
+                            input_tokenized_id,
+                            input_tokenized_mask,
+                        ) = self.add_eos_token(
+                            input_tokenized_id,
+                            input_tokenized_mask,
+                        )
 
                     # split into input and output
                     training_output = input_tokenized_id[:, 1:]
@@ -326,18 +345,21 @@ class ActorTrainer(BaseTrainer):
 
                     # move to device
                     if self.config.load_8bit is False:
-                        training_output = training_output.to(device)
-                        training_input = training_input.to(device)
-                        attention_mask = attention_mask.to(device)
+                        training_output = training_output.to(self.device)
+                        training_input = training_input.to(self.device)
+                        attention_mask = attention_mask.to(self.device)
 
                 # forward pass
                 if self.deepspeed_enable:
+                    # deepspeed
                     est_output = self.model_engine(
                         training_input, attention_mask
                     )
                 elif self.accelerate_enable:
+                    # accelerate
                     est_output = self.model(training_input, attention_mask)
                 else:
+                    # pytorch mixed precison
                     with torch.autocast(
                         device_type=self.config.device_type,
                         dtype=torch.float16,
@@ -345,11 +367,15 @@ class ActorTrainer(BaseTrainer):
                         est_output = self.model(training_input, attention_mask)
 
                 # compute loss
-                if (not self.accelerate_enable) and (
-                    not self.deepspeed_enable
-                ):
-
-                    # vanilla pytorch use autocast
+                if self.deepspeed_enable or self.accelerate_enable:
+                    # deepspeed and accelerate use defualt
+                    est_output = rearrange(est_output, "b s v -> (b s) v")
+                    training_output = rearrange(
+                        training_output, "b s -> (b s)"
+                    )
+                    loss = self.loss_function(est_output, training_output)
+                else:
+                    # mixed precision pytorch use autocast
                     with torch.autocast(
                         device_type=self.config.device_type,
                         dtype=torch.float16,
@@ -359,39 +385,33 @@ class ActorTrainer(BaseTrainer):
                             training_output, "b s -> (b s)"
                         )
                         loss = self.loss_function(est_output, training_output)
-                else:
-
-                    # deepspeed and accelerate use defualt
-                    est_output = rearrange(est_output, "b s v -> (b s) v")
-                    training_output = rearrange(
-                        training_output, "b s -> (b s)"
-                    )
-                    loss = self.loss_function(est_output, training_output)
-
-                # save training stats
-                self.append_training_stats(training_loss=loss.item())
 
                 # backward pass
                 if self.config.deepspeed_enable:
+                    # deepspeed
                     self.model_engine.backward(loss)
                     self.model_engine.step()
                 elif self.config.accelerate_enable:
+                    # accelerate
                     self.optimizer.zero_grad()
                     self.accelerator.backward(loss)
                     self.optimizer.step()
                     self.scheduler.step()
                 else:
+                    self.optimizer.zero_grad()
                     if self.config.load_8bit:
-                        self.optimizer.zero_grad()
+                        # 8 bit from HF
                         loss.backward()
                         self.optimizer.step()
-                        self.scheduler.step()
                     else:
-                        self.optimizer.zero_grad()
+                        # Pytorch mixed precision
                         self.scaler.scale(loss).backward()
                         self.scaler.step(self.optimizer)
                         self.scaler.update()
-                        self.scheduler.step()
+                    self.scheduler.step()
+
+                # save training stats
+                self.append_training_stats(training_loss=loss.detach().item())
 
                 # print progress
                 if i % self.config.iteration_per_print == 0:

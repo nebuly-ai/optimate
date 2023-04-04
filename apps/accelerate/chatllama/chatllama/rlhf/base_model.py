@@ -58,13 +58,19 @@ class BaseModel(torch.nn.Module):
 
     Attributes:
         model: The model used
+        head: The head used if specified directly
         tokenizer: The tokenizer used
         config (ConfigActor): Configuration for the model
+        accelerate_enable (bool): Flag to enable Accelerate
+        deepspeed_enable (bool): Flag to enable DeepSpeed
+        deepspeed_config_path (str): Path to the DeepSpeed configuration file
+        is_lora_peft_enable (bool): Flag to signal if LORA PEFT is enabled
 
     Methods:
         load: Load the model from a path
         save: Save the model to a path
         parameters: Return the parameters of the model
+        apply_lora_with_peft: Apply LORA with PEFT to the model
     """
 
     @beartype
@@ -124,52 +130,33 @@ class BaseModel(torch.nn.Module):
 
                 # load model
                 if isinstance(config, ConfigActor):
-
                     # load model for the actor
-
                     if config.load_8bit:
-
                         # 8 bit + LoRA + PEFT
-
                         self.model = AutoModelForCausalLM.from_pretrained(
                             config.model,
                             load_in_8bit=config.load_8bit,
                             device_map="auto",
                         )
-
-                        prepare_model_for_int8_training(self.model)
-
                     else:
-
                         # Vanilla HF model
-
                         self.model = AutoModelForCausalLM.from_pretrained(
                             config.model,
                         )
-
                 elif isinstance(config, ConfigReward) or isinstance(
                     config, ConfigCritic
                 ):
-
                     # load the model for Critic and Reward
                     # (i.e. without the LM Head)
-
                     if config.load_8bit:
-
                         # 8 bit + LoRA + PEFT
-
                         self.model = AutoModel.from_pretrained(
                             config.model,
                             load_in_8bit=config.load_8bit,
                             device_map="auto",
                         )
-
-                        prepare_model_for_int8_training(self.model)
-
                     else:
-
                         # Vanilla HF model
-
                         self.model = AutoModel.from_pretrained(
                             config.model,
                         )
@@ -190,7 +177,6 @@ class BaseModel(torch.nn.Module):
                     )
 
                 # apply LoRA with PEFT
-                self.is_lora_peft_applied = False
                 self.apply_lora_with_peft()
 
             else:
@@ -208,12 +194,11 @@ class BaseModel(torch.nn.Module):
             # move model to device
             if config.load_8bit is False:
                 self.model.to(config.device)
-
-            # move the head for the reward and critic to device
-            if isinstance(config, ConfigReward) or isinstance(
-                config, ConfigCritic
-            ):
-                self.head.to(config.device)
+                # move the head for the reward and critic to device
+                if (isinstance(config, ConfigReward)) or (
+                    isinstance(config, ConfigCritic)
+                ):
+                    self.head.to(config.device)
 
             # load the model from model_folder
             self.load()
@@ -236,6 +221,10 @@ class BaseModel(torch.nn.Module):
         The model is modified in place and the head is not included in the
         PEFTmodel beacause we need to train it as well.
         """
+
+        # defualt flag to False
+        self.is_lora_peft_applied = False
+
         if self.config.peft_enable:
 
             # check that the peft config exist
@@ -263,6 +252,9 @@ class BaseModel(torch.nn.Module):
             ):
                 self.model = IgnoreLabelsWrapper(self.model)
 
+            # call the prepare model method (as in the lora int8 examples)
+            prepare_model_for_int8_training(self.model)
+
             # create peft model
             self.model = get_peft_model(
                 model=self.model,
@@ -271,6 +263,7 @@ class BaseModel(torch.nn.Module):
 
             my_logger.info("LoRA with PEFT applied to the model.")
 
+            # change lora Flag
             self.is_lora_peft_applied = True
 
     @beartype
@@ -455,30 +448,22 @@ class BaseTrainer:
         config (ConfigModel): Config parameters for the model
 
     Attributes:
-        model (RewardModel): Reward model
         config (ConfigModel): Config parameters for the model
-        optimizer (torch.optim): Optimizer for the model
-        loss_function (torch.nn): Loss function for the model
-        validation_flag (bool): Flag to indicate if the validation dataset
-            is available
-        train_dataset (RewardDataset): Dataset for training
-        validation_dataset (RewardDataset): Dataset for validation
-        train_dataloader (DataLoader): Dataloader for training
-        validation_dataloader (DataLoader): Dataloader for validation
-        scheduler (torch.optim.lr_scheduler): Scheduler for the optimizer
-        training_stats (List[Dict]): List of dictionaries with the training
-            statistics
-        model_engine (ModelEngine): Model engine to train the model
-            using deepspeed
-        accelerator (Accelerator): Accelerator to train the model using
-            accelerate by HF.
-
+        device (torch.device): Device to use for the training
+        trainig_stats (TrainingStats): Training stats
+        eps (float): Epsilon for numerical stability
+        accelerator (Accelerator): Accelerator for the training
+        model_engine (Engine): Engine for the training
+        deepspeed_enabled (bool): Flag to enable deepspeed
+        accelerate_enabled (bool): Flag to enable accelerate
 
     Methods:
-        train: Train the reward model
         save_checkpoints: Save the checkpoints of the model
         load_checkpoints: Load the checkpoints of the model
-
+        setup_training_stats: Setup the training stats
+        setup_accelerate: Setup the accelerate library
+        setup_deepspeed: Setup the deepspeed library
+        create_dataloader: Create the dataloader
     """
 
     @beartype
@@ -489,6 +474,10 @@ class BaseTrainer:
 
         # save the config
         self.config = config
+        if isinstance(config, Config):
+            self.device = self.config.trainer.device
+        else:
+            self.device = self.config.device
 
         # initialize trainint stats
         self.trainig_stats = self.setup_training_stats()

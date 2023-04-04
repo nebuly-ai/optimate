@@ -25,6 +25,8 @@ ConfigType = Union[Config, ConfigActor, ConfigCritic, ConfigReward]
 
 
 class Singleton:
+    """Singleton class to ensure only one instance of a class is created"""
+
     __instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -34,6 +36,10 @@ class Singleton:
 
 
 class LogMessages(Singleton):
+    """
+    Class to handle all logging messages
+    """
+
     def __init__(
         self,
     ):
@@ -70,21 +76,26 @@ class LogMessages(Singleton):
         self.local_rank = -2
 
     def setup_logger(self, accelerate_enable: bool, deepspeed_enable: bool):
+        """Setup logger for multi gpu training
+
+        Args:
+            accelerate_enable (bool): flag to signal if using accelerate
+            deepspeed_enable (bool): flag to signal if using deepspeed
+        """
         if accelerate_enable or deepspeed_enable:
-            self.set_multi_gpu()
+            self.is_multi_gpu = True
+            self.log_rank = 0
+            self.local_rank = int(os.environ.get("RANK", "0"))
         else:
-            self.set_single_gpu
-
-    def set_multi_gpu(self, rank: int = 0):
-        self.is_multi_gpu = True
-        self.log_rank = rank
-        self.local_rank = int(os.environ.get("RANK", "0"))
-
-    def set_single_gpu(self):
-        self.is_multi_gpu = False
+            self.is_multi_gpu = False
 
     def error(self, error_type, text: str):
+        """Log error message
 
+        Args:
+            error_type (Exception): type of error to raise
+            text (str): error message to log
+        """
         if self.is_multi_gpu:
             if self.local_rank == self.log_rank:
                 logger.error(f"[Rank {self.local_rank}] {text}")
@@ -93,6 +104,11 @@ class LogMessages(Singleton):
         return error_type("")
 
     def warning(self, text: str):
+        """Log warning message
+
+        Args:
+            text (str): warning message to log
+        """
         if self.is_multi_gpu:
             if self.local_rank == self.log_rank:
                 logger.warning(f"[Rank {self.local_rank}] {text}")
@@ -100,6 +116,11 @@ class LogMessages(Singleton):
             logger.warning(text)
 
     def info(self, text: str):
+        """Log info message
+
+        Args:
+            text (str): info message to log
+        """
         if self.is_multi_gpu:
             if self.local_rank == self.log_rank:
                 logger.info(f"[Rank {self.local_rank}] {text}")
@@ -107,6 +128,11 @@ class LogMessages(Singleton):
             logger.info(text)
 
     def success(self, text: str):
+        """Log success message
+
+        Args:
+            text (str): success message to log
+        """
         if self.is_multi_gpu:
             if self.local_rank == self.log_rank:
                 logger.success(f"[Rank {self.local_rank}] {text}")
@@ -139,7 +165,7 @@ def set_global_logging_level(level=logging.ERROR, prefices=[""]):
     deepspeed.utils.logging.logger.setLevel(level)
 
 
-set_global_logging_level()
+# configure logger and logging level
 my_logger = LogMessages()
 
 
@@ -147,7 +173,14 @@ my_logger = LogMessages()
 def get_multi_gpu_flags(
     config: ConfigType,
 ) -> Tuple[bool, bool, Optional[str]]:
-    """Setup for multi-gpu training"""
+    """Setup for multi-gpu training
+
+    Args:
+        config (ConfigType): Config object
+
+    Returns:
+        Tuple[bool, bool, Optional[str]]: Tuple of flags for multi-gpu training
+    """
 
     # flags for training
     if isinstance(config, Config):
@@ -193,6 +226,9 @@ def get_multi_gpu_flags(
 def load_tokenizer(config: ConfigType):
     """Load the tokenizer from the model name
     placed in utils to avoid circular imports from dataset and model class
+
+    Args:
+        config (ConfigType): config object
     """
 
     # disable tokenizer parallelization (Avoid warnings in HF)
@@ -376,7 +412,8 @@ class ConversationLog:
         )
 
     def save(self):
-        print("Saving conversations log")
+        """Save the conversation log"""
+        my_logger.info("Saving conversations log")
         if os.path.exists(self.path):
             with open(self.path, "r") as f:
                 conversation = json.load(f)
@@ -388,11 +425,13 @@ class ConversationLog:
             json.dump(self.conversation, f, indent=4)
 
     def load(self):
+        """Load the conversation log"""
         with open(self.path, "r") as f:
             self.conversation = json.load(f)
 
     def clear(self):
-        print("Clearing conversations log")
+        """Clear the conversation log"""
+        my_logger.info("Clearing conversations log")
         self.conversation = []
         # remove the file in path exists
         if os.path.exists(self.path):
@@ -406,6 +445,8 @@ class ConversationLog:
                 if not None, print only the conversations that happened at
                 <current_iteration>
         """
+
+        # TODO: use logger to show messages...
         for i, c in enumerate(self.conversation):
             if current_iteration is None:
                 print(
@@ -431,6 +472,10 @@ class ConversationLog:
 
 
 class IgnoreLabelsWrapper(torch.nn.Module):
+    """Wrapper to ignore labels arguments when using lora models
+    with AutoModel HF models.
+    """
+
     def __init__(self, base_model: torch.nn.Module):
         super().__init__()
         self.base_model = base_model

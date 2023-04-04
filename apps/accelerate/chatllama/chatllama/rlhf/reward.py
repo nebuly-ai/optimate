@@ -33,20 +33,20 @@ class RewardModel(BaseModel):
         what is the quality of the output sequence tokens?
 
         Args:
-            output_sequence (torch.Tensor): The sequence of tokens to be
-                evaluated
-            output_sequence_mask (torch.Tensor): Mask for the attention
+            output_sequence (torch.Tensor) [batch_size, seq_len]: The sequence
+                of tokens to be evaluated
+            output_sequence_mask (torch.Tensor) [batch_size, seq_len]: Mask
+                for the attention
 
         Returns:
-            torch.Tensor: Rewards for the given output sequence
+            torch.Tensor [batch_size, seq_len]: Rewards for the given output
+                sequence
         """
         output = self.model.forward(
             output_sequence,
             attention_mask=output_sequence_mask,
         )
 
-        # What if the output_sequence is longer than the max context of
-        # the model?
         rewards = self.head(output.last_hidden_state)
         if self.config.debug:
             print("RewardModel.forward")
@@ -63,9 +63,13 @@ class RewardModel(BaseModel):
         """Get the reward for the given output sequence
 
         Args:
-            output_sequence (torch.Tensor): The concatenation of initial input
-                and actor output as tokens
-            output_sequence_mask (torch.Tensor): Mask for the attention
+            output_sequence (torch.Tensor) [batch_size, seq_len]: The
+                concatenation of initial input and actor output as tokens
+            output_sequence_mask (torch.Tensor) [batch_size, seq_len]: Mask
+                for the attention
+
+        Returns:
+            torch.Tensor [batch_size]: The reward for the given output sequence
         """
         if output_sequence.shape[1] > self.config.max_sequence_length:
             raise ValueError(
@@ -132,16 +136,21 @@ class RewardTrainer(BaseTrainer):
         train_dataloader (DataLoader): Dataloader for training
         validation_dataloader (DataLoader): Dataloader for validation
         scheduler (torch.optim.lr_scheduler): Scheduler for the optimizer
-        training_stats (List[Dict]): List of dictionaries with the training
-            statistics
-        model_engine (ModelEngine): Model engine to train the model
-            using deepspeed
-        accelerator (Accelerator): Accelerator to train the model using
-            accelerate by HF.
-
+        scaler (GradScaler): GradScaler to train the model using mixed
+            precision
 
     Methods:
         train: Train the reward model
+
+    Known Issues:
+        When using lora and 8 bit precision, the following error is raised:
+        - result = F.linear(
+            x,
+            transpose(self.weight, self.fan_in_fan_out),
+            bias=self.bias
+            )
+        RuntimeError: self and mat2 must have the same dtype
+        https://github.com/huggingface/peft/issues/84
     """
 
     def __init__(self, config: ConfigReward) -> None:
@@ -190,10 +199,13 @@ class RewardTrainer(BaseTrainer):
             )
 
         # define the scaler needed for vanilla pytorch with mixed precision
-        if (not self.accelerate_enable) and (not self.deepspeed_enable):
-            self.scaler = GradScaler()
-        else:
+        if self.accelerate_enable or self.deepspeed_enable:
             self.scaler = None
+        else:
+            if self.config.load_8bit:
+                self.scaler = None
+            else:
+                self.scaler = GradScaler()
 
     def train(
         self,
@@ -202,9 +214,8 @@ class RewardTrainer(BaseTrainer):
 
         my_logger.success("Start Training the Reward Model")
 
-        # get config parameters
+        # get batch size
         if self.deepspeed_enable:
-            # get batch size from deepspeed
             batch_size = self.model_engine.train_batch_size()
         elif self.accelerate_enable:
             batch_size = (
@@ -213,8 +224,8 @@ class RewardTrainer(BaseTrainer):
         else:
             batch_size = self.config.batch_size
 
+        # get other parameters
         epochs = self.config.epochs
-        device = self.config.device
         iteration_per_print = self.config.iteration_per_print
         checkpoint_steps = self.config.checkpoint_steps
 
@@ -236,12 +247,14 @@ class RewardTrainer(BaseTrainer):
                 if i < start_step:
                     continue
 
-                # get the inputs
-                input_text = inputs[0]
-                score = inputs[1]
-
-                # tokenize the input
+                # get tensor for forward and loss computation
                 with torch.no_grad():
+
+                    # get the inputs
+                    input_text = inputs[0]
+                    score = inputs[1]
+
+                    # tokenize the input
                     if self.accelerate_enable:
                         input_tokens = self.model.module.tokenizer(
                             input_text,
@@ -256,60 +269,82 @@ class RewardTrainer(BaseTrainer):
                             truncation=True,
                             padding=True,
                         )
-                    output = torch.as_tensor(score, device=device)
+
+                    # assign the input and output
+                    output = torch.as_tensor(score, dtype=torch.float16)
+                    input_ids = input_tokens["input_ids"]
+                    input_mask = input_tokens["attention_mask"]
+
+                    # move to device
+                    if self.config.load_8bit is False:
+                        input_ids = input_ids.to(self.device)
+                        input_mask = input_mask.to(self.device)
+                        output = output.to(self.device)
 
                 # forward pass
                 if self.config.deepspeed_enable:
+                    # deepspeed
                     est_output = self.model_engine(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
+                        input_ids,
+                        input_mask,
                     )[:, -1]
                 elif self.accelerate_enable:
-                    est_output = self.model.module.get_reward(
-                        input_tokens["input_ids"].to(device),
-                        input_tokens["attention_mask"].to(device),
-                    )
+                    # accelerate
+                    est_output = self.model(
+                        input_ids,
+                        input_mask,
+                    )[:, -1]
                 else:
+                    # Pytorch
                     with torch.autocast(
                         device_type=self.config.device_type,
                         dtype=torch.float16,
                     ):
-                        est_output = self.model.get_reward(
-                            input_tokens["input_ids"].to(device),
-                            input_tokens["attention_mask"].to(device),
-                        )
+                        est_output = self.model(
+                            input_ids,
+                            input_mask,
+                        )[:, -1]
 
                 # compute the loss
-                if (not self.accelerate_enable) and (
-                    not self.deepspeed_enable
-                ):
-                    # if vanilla pytorch use autocast
+                if self.deepspeed_enable or self.accelerate_enable:
+                    # DeepSpeed and Accelerate
+                    loss = self.loss_function(est_output, output)
+
+                else:
+                    # if mixed precision with pytorch use autocast
                     with torch.autocast(
                         device_type=self.config.device_type,
                         dtype=torch.float16,
                     ):
                         loss = self.loss_function(est_output, output)
-                else:
-                    # compute the loss normally
-                    loss = self.loss_function(est_output, output)
-
-                self.append_training_stats(training_loss=loss.item())
 
                 # backward pass
-                if self.config.deepspeed_enable:
+                if self.deepspeed_enable:
+                    # DeepSpeed
                     self.model_engine.backward(loss)
                     self.model_engine.step()
-                elif self.config.accelerate_enable:
+                elif self.accelerate_enable:
+                    # Accelerate
                     self.optimizer.zero_grad()
                     self.accelerator.backward(loss)
                     self.optimizer.step()
                     self.scheduler.step()
                 else:
+                    # Pytorch
                     self.optimizer.zero_grad()
-                    self.scaler.scale(loss).backward()
-                    self.scaler.step(self.optimizer)
-                    self.scaler.update()
+                    if self.config.load_8bit:
+                        # 8 bit from HF
+                        loss.backward()
+                        self.optimizer.step()
+                    else:
+                        # Pytorch Mixed Precision
+                        self.scaler.scale(loss).backward()
+                        self.scaler.step(self.optimizer)
+                        self.scaler.update()
                     self.scheduler.step()
+
+                # save training stats
+                self.append_training_stats(training_loss=loss.detach().item())
 
                 # print progress
                 if i % iteration_per_print == 0:
@@ -345,11 +380,11 @@ class RewardTrainer(BaseTrainer):
                         input_tokens = self.model.tokenizer(
                             text, return_tensors="pt", padding=True
                         )
-                        input_tokens = input_tokens.to(device)
+                        input_tokens = input_tokens.to(self.device)
                         # TODO: check on the length of the input tokens if
                         # they are too many it can create problems
                         output = torch.tensor(score, dtype=torch.float32).to(
-                            device
+                            self.device
                         )
 
                         # forward pass
