@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import shutil
 from collections import deque, namedtuple
 
 import deepspeed
@@ -637,8 +638,9 @@ class RLTrainer:
             max_steps=0,
         )
 
-        # if the checkpoint already exists remove it
-        if os.path.exists(path):
+        # if the checkpoint already exists remove it.
+        # Deepspeed checkpoints are already directories and will be overwritten
+        if os.path.exists(path) and not self.is_deepspeed_init:
             os.remove(path)
 
         # save the checkpoint
@@ -651,7 +653,9 @@ class RLTrainer:
         if self.config.actor.deepspeed_enable:
             # The model and optimizer state dicts are actually already saved
             # In the deepspeed model engine. But to make sure no depending
-            # methods fail, the states are included in actor_checkpoint_dict
+            # methods fail, the states are included in actor_checkpoint_dict.
+            # ATTENTION: If you use deepspeed zero optimization, the client_state
+            # will not be saved
             self.actor_model_engine.save_checkpoint(
                 save_dir=path, client_state=actor_checkpoint_dict
             )
@@ -667,8 +671,9 @@ class RLTrainer:
             max_steps=0,
         )
 
-        # if the checkpoint already exists remove it
-        if os.path.exists(path):
+        # if the checkpoint already exists remove it.
+        # Deepspeed checkpoints are already directories and will be overwritten
+        if os.path.exists(path) and not self.is_deepspeed_init:
             os.remove(path)
 
         # save the checkpoint
@@ -682,7 +687,9 @@ class RLTrainer:
         if self.config.critic.deepspeed_enable:
             # The model and optimizer state dicts are actually already saved
             # In the deepspeed model engine. But to make sure no depending
-            # methods fail, the states are included in critic_checkpoint_dict
+            # methods fail, the states are included in critic_checkpoint_dict.
+            # ATTENTION: If you use deepspeed zero optimization, the client_state
+            # will not be saved
             self.critic_model_engine.save_checkpoint(
                 save_dir=path, client_state=critic_checkpoint_dict
             )
