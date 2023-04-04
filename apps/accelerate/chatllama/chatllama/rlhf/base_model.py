@@ -19,11 +19,9 @@ from peft import (
     get_peft_model,
     LoraConfig,
     TaskType,
+    prepare_model_for_int8_training,
 )
-from torch.utils.data import (
-    DataLoader,
-    Dataset,
-)
+from torch.utils.data import DataLoader, Dataset
 from transformers import (
     AutoModel,
     AutoModelForCausalLM,
@@ -126,21 +124,55 @@ class BaseModel(torch.nn.Module):
 
                 # load model
                 if isinstance(config, ConfigActor):
+
                     # load model for the actor
-                    self.model = AutoModelForCausalLM.from_pretrained(
-                        config.model,
-                        load_in_8bit=config.load_8bit,
-                    )
+
+                    if config.load_8bit:
+
+                        # 8 bit + LoRA + PEFT
+
+                        self.model = AutoModelForCausalLM.from_pretrained(
+                            config.model,
+                            load_in_8bit=config.load_8bit,
+                            device_map="auto",
+                        )
+
+                        prepare_model_for_int8_training(self.model)
+
+                    else:
+
+                        # Vanilla HF model
+
+                        self.model = AutoModelForCausalLM.from_pretrained(
+                            config.model,
+                        )
 
                 elif isinstance(config, ConfigReward) or isinstance(
                     config, ConfigCritic
                 ):
+
                     # load the model for Critic and Reward
                     # (i.e. without the LM Head)
-                    self.model = AutoModel.from_pretrained(
-                        config.model,
-                        load_in_8bit=config.load_8bit,
-                    )
+
+                    if config.load_8bit:
+
+                        # 8 bit + LoRA + PEFT
+
+                        self.model = AutoModel.from_pretrained(
+                            config.model,
+                            load_in_8bit=config.load_8bit,
+                            device_map="auto",
+                        )
+
+                        prepare_model_for_int8_training(self.model)
+
+                    else:
+
+                        # Vanilla HF model
+
+                        self.model = AutoModel.from_pretrained(
+                            config.model,
+                        )
 
                     # define the head for the reward and critic
                     # the head is a ff layer that squash the hidden dimension
