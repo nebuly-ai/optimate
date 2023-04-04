@@ -444,6 +444,20 @@ class RLTrainer(BaseTrainer):
             the experiences.
         learn: Learn from a batch of experiences and update the actor and the
             critic model.
+
+    Known Issues:
+        - When using load_8bit and peft on the actor model, the following error
+            is raised:
+            return torch.layer_norm(input,
+                        normalized_shape,
+                        weight,
+                        bias,
+                        eps,
+                        torch.backends.cudnn.enabled)
+            RuntimeError: Expected all tensors to be on the same device,
+                but found at least two devices, cuda:1 and cuda:0!
+                (when checking argument for argument weight
+                in method wrapper_CUDA__native_layer_norm)
     """
 
     def __init__(
@@ -454,6 +468,7 @@ class RLTrainer(BaseTrainer):
         # initialize actor-critic
         self.actorcritic = ActorCritic(config)
 
+        # TODO: currently now working with custom optimizer
         # initialize actor optimizer
         # self.optimizer = CustomOptimizer(
         #     self.actorcritic.actor.parameters(),
@@ -461,6 +476,7 @@ class RLTrainer(BaseTrainer):
         #     config.trainer.actor_lr,
         #     config.trainer.critic_lr,
         # )
+
         self.optimizer = torch.optim.AdamW(
             self.actorcritic.parameters(),
             lr=config.trainer.actor_lr,
@@ -511,22 +527,12 @@ class RLTrainer(BaseTrainer):
         )
 
         # assign a scheduler to the optimizer
-        if (self.deepspeed_enable is False) and (
-            self.accelerate_enable is False
-        ):
-            self.scheduler = CosineAnnealingWarmRestarts(
-                self.optimizer.actor,
-                T_0=len(self.train_dataset) // batch_size,
-                T_mult=1,
-                eta_min=self.config.trainer.actor_lr * 0.1,
-            )
-        else:
-            self.scheduler = CosineAnnealingWarmRestarts(
-                self.optimizer,
-                T_0=len(self.train_dataset) // batch_size,
-                T_mult=1,
-                eta_min=self.config.trainer.actor_lr * 0.1,
-            )
+        self.scheduler = CosineAnnealingWarmRestarts(
+            self.optimizer,
+            T_0=len(self.train_dataset) // batch_size,
+            T_mult=1,
+            eta_min=self.config.trainer.actor_lr * 0.1,
+        )
 
         # train agent-critic
         self.actorcritic.train()
@@ -596,7 +602,7 @@ class RLTrainer(BaseTrainer):
                 # compute ratios
                 ratios = (actions_log_prob - old_actions_log_probs).exp()
 
-                # compute PPO loss
+                # compute policy loss
                 if check_model_family(self.config.actor, self.config.critic):
                     # compute discounted rewards as in TRL
                     gamma = self.config.trainer.gamma_discounted
@@ -623,7 +629,6 @@ class RLTrainer(BaseTrainer):
                     torch.clamp(ratios, 1 - actor_eps_clip, 1 + actor_eps_clip)
                     * advantages
                 )
-
                 policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
                 policy_loss = policy_loss.mean()
                 policy_loss = policy_loss + kl_div_loss
@@ -783,11 +788,8 @@ class RLTrainer(BaseTrainer):
                             truncation=True,
                         )
 
-                    # states are [batch_size, seq_len_of_states]
-                    states_actor = tok_inputs_act["input_ids"].to(self.device)
-                    states_mask_actor = tok_inputs_act["attention_mask"].to(
-                        self.device
-                    )
+                    states_actor = tok_inputs_act["input_ids"]
+                    states_mask_actor = tok_inputs_act["attention_mask"]
 
                     # tokenize examples for the critic
                     if self.accelerate_enable:
@@ -805,8 +807,13 @@ class RLTrainer(BaseTrainer):
                             truncation=True,
                         )
 
-                    # states are [batch_size, seq_len_of_states]
-                    states_critic = tok_inputs_crt["input_ids"].to(self.device)
+                    states_critic = tok_inputs_crt["input_ids"]
+
+                    # move to device
+                    if self.config.critic.load_8bit is False:
+                        states_critic = states_critic.to(self.device)
+                        states_actor = states_actor.to(self.device)
+                        states_mask_actor = states_mask_actor.to(self.device)
 
                     # generate sequences of actions and values
                     if self.accelerate_enable:
@@ -824,19 +831,23 @@ class RLTrainer(BaseTrainer):
                             states_actor, states_mask_actor, states_critic
                         )
                     else:
-                        (
-                            actions,
-                            actions_logits,
-                            values,
-                            sequences_actor,
-                            sequences_mask_actor,
-                            sequences_critic,
-                            sequences_mask_critic,
-                            action_len_actor,
-                            action_len_critic,
-                        ) = self.actorcritic.generate(
-                            states_actor, states_mask_actor, states_critic
-                        )
+                        with torch.autocast(
+                            device_type=self.config.trainer.device_type,
+                            dtype=torch.float16,
+                        ):
+                            (
+                                actions,
+                                actions_logits,
+                                values,
+                                sequences_actor,
+                                sequences_mask_actor,
+                                sequences_critic,
+                                sequences_mask_critic,
+                                action_len_actor,
+                                action_len_critic,
+                            ) = self.actorcritic.generate(
+                                states_actor, states_mask_actor, states_critic
+                            )
 
                     # compute action log probs
                     action_prob = (
@@ -875,15 +886,16 @@ class RLTrainer(BaseTrainer):
                             )
 
                         # get tokens and mask
-                        reward_sequence = tokenized_responses["input_ids"].to(
-                            self.device
-                        )
-                        reward_mask = tokenized_responses["attention_mask"].to(
-                            self.device
-                        )
+                        reward_sequence = tokenized_responses["input_ids"]
+                        reward_mask = tokenized_responses["attention_mask"]
+
+                        # move to device
+                        if self.config.reward.load_8bit is False:
+                            reward_sequence = reward_sequence.to(self.device)
+                            reward_mask = reward_mask.to(self.device)
 
                     # compute rewards
-                    rewards = self.reward.forward(
+                    rewards = self.reward(
                         reward_sequence,
                         reward_mask,
                     )
