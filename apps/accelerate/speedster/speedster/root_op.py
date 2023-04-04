@@ -68,6 +68,7 @@ from nebullvm.tools.utils import (
     check_input_data,
     is_data_subscriptable,
     extract_info_from_data,
+    check_module_version,
 )
 from tabulate import tabulate
 
@@ -206,6 +207,12 @@ class SpeedsterRootOp(Operation):
             needs_conversion_to_diffusers = False
             is_diffusion = False
             if is_diffusion_model_pipe(self.model):
+                if not check_module_version(torch, max_version="1.13.1"):
+                    raise ValueError(
+                        "Diffusion models are only supported in PyTorch "
+                        "versions <= 1.13.1. Please downgrade your PyTorch "
+                        "version and try again."
+                    )
                 self.logger.info(
                     "The provided model is a diffusion model. "
                     "Speedster will optimize the UNet part of the model."
@@ -236,6 +243,12 @@ class SpeedsterRootOp(Operation):
                 hasattr(model, "model")
                 and isinstance(model.model, UNet2DConditionModel)
             ):
+                if not check_module_version(torch, max_version="1.13.1"):
+                    raise ValueError(
+                        "Diffusion models are only supported in PyTorch "
+                        "versions <= 1.13.1. Please downgrade your PyTorch "
+                        "version and try again."
+                    )
                 is_diffusion = True
 
             needs_conversion_to_hf = False
