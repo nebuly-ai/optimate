@@ -234,20 +234,13 @@ class ActorTrainer(BaseTrainer):
             tokens = torch.cat(
                 [
                     tokens,
-                    torch.ones(batch_size, n_tokens_to_append)
-                    .long()
-                    .to(tokens.device)
+                    torch.ones(batch_size, n_tokens_to_append).long()
                     * eos_token,
                 ],
                 dim=1,
             )
             mask = torch.cat(
-                [
-                    mask,
-                    torch.ones(batch_size, n_tokens_to_append)
-                    .long()
-                    .to(mask.device),
-                ],
+                [mask, torch.ones(batch_size, n_tokens_to_append).long()],
                 dim=1,
             )
         return tokens, mask
@@ -332,9 +325,10 @@ class ActorTrainer(BaseTrainer):
                     attention_mask = input_tokenized_mask[:, :-1]
 
                     # move to device
-                    training_output = training_output.to(device)
-                    training_input = training_input.to(device)
-                    attention_mask = attention_mask.to(device)
+                    if self.config.load_8bit is False:
+                        training_output = training_output.to(device)
+                        training_input = training_input.to(device)
+                        attention_mask = attention_mask.to(device)
 
                 # forward pass
                 if self.deepspeed_enable:
@@ -387,11 +381,17 @@ class ActorTrainer(BaseTrainer):
                     self.optimizer.step()
                     self.scheduler.step()
                 else:
-                    self.optimizer.zero_grad()
-                    self.scaler.scale(loss).backward()
-                    self.scaler.step(self.optimizer)
-                    self.scaler.update()
-                    self.scheduler.step()
+                    if self.config.load_8bit:
+                        self.optimizer.zero_grad()
+                        loss.backward()
+                        self.optimizer.step()
+                        self.scheduler.step()
+                    else:
+                        self.optimizer.zero_grad()
+                        self.scaler.scale(loss).backward()
+                        self.scaler.step(self.optimizer)
+                        self.scaler.update()
+                        self.scheduler.step()
 
                 # print progress
                 if i % self.config.iteration_per_print == 0:

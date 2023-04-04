@@ -206,7 +206,8 @@ class BaseModel(torch.nn.Module):
                 )
 
             # move model to device
-            self.model.to(config.device)
+            if config.load_8bit is False:
+                self.model.to(config.device)
 
             # move the head for the reward and critic to device
             if isinstance(config, ConfigReward) or isinstance(
