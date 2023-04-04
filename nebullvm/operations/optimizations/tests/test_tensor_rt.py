@@ -213,7 +213,7 @@ def test_tensorrt_onnx(
     reason="Skip because cuda is not available.",
 )
 @pytest.mark.skipif(
-    not check_module_version(torch, max_version="1.13.1"),
+    not check_module_version(torch, max_version="1.13.1+cu117"),
     reason="Skip because torch version is not supported.",
 )
 def test_tensorrt_torch(

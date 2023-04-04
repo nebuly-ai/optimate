@@ -207,7 +207,7 @@ class SpeedsterRootOp(Operation):
             needs_conversion_to_diffusers = False
             is_diffusion = False
             if is_diffusion_model_pipe(self.model):
-                if not check_module_version(torch, max_version="1.13.1"):
+                if not check_module_version(torch, max_version="1.13.1+cu117"):
                     raise ValueError(
                         "Diffusion models are only supported in PyTorch "
                         "versions <= 1.13.1. Please downgrade your PyTorch "
@@ -243,7 +243,7 @@ class SpeedsterRootOp(Operation):
                 hasattr(model, "model")
                 and isinstance(model.model, UNet2DConditionModel)
             ):
-                if not check_module_version(torch, max_version="1.13.1"):
+                if not check_module_version(torch, max_version="1.13.1+cu117"):
                     raise ValueError(
                         "Diffusion models are only supported in PyTorch "
                         "versions <= 1.13.1. Please downgrade your PyTorch "
