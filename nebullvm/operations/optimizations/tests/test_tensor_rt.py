@@ -28,6 +28,7 @@ from nebullvm.tools.base import (
     ModelCompiler,
     Device,
 )
+from nebullvm.tools.utils import check_module_version
 
 device = Device(DeviceType.GPU)
 
@@ -210,6 +211,10 @@ def test_tensorrt_onnx(
 @pytest.mark.skipif(
     not torch.cuda.is_available(),
     reason="Skip because cuda is not available.",
+)
+@pytest.mark.skipif(
+    not check_module_version(torch, max_version="1.13.1"),
+    reason="Skip because torch version is not supported.",
 )
 def test_tensorrt_torch(
     output_library: DeepLearningFramework,
