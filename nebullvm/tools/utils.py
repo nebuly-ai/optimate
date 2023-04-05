@@ -1,5 +1,7 @@
+import os
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 from types import ModuleType
 from typing import (
@@ -39,6 +41,39 @@ from nebullvm.tools.tf import (
     extract_info_from_tf_data,
     get_output_info_tf,
 )
+
+
+def get_model_size_mb(model: Any) -> float:
+    if isinstance(model, str):
+        size = os.stat(model).st_size
+    elif isinstance(model, Path):
+        size = os.path.getsize(model.as_posix())
+    elif isinstance(model, torch.Module):
+        size = sum(p.nelement() * p.element_size() for p in model.parameters())
+    else:
+        # we assume it is a tf_model
+        # assuming full precision 32 bit
+        size = model.count_params() * 4
+    return round(size * 1e-6, 2)
+
+
+def get_model_name(model: Any) -> str:
+    if isinstance(model, str):
+        return model
+    if isinstance(model, Path):
+        return model.as_posix()
+    return model.__class__.__name__
+
+
+def generate_model_id(model: Any) -> str:
+    model_name = get_model_name(model)
+    return f"{str(uuid.uuid4())}_{hash(model_name)}"
+
+
+def get_throughput(latency: float, batch_size: int) -> float:
+    if latency == 0:
+        return -1
+    return (1 / latency) * batch_size
 
 
 def ifnone(target, new_value):
