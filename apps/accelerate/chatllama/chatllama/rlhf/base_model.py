@@ -128,6 +128,8 @@ class BaseModel(torch.nn.Module):
                 # check load 8 bit condition
                 if not config.peft_enable:
                     config.load_8bit = False
+                if torch.cuda.device_count() > 1:
+                    config.load_8bit = False
 
                 # load model
                 if isinstance(config, ConfigActor):
@@ -507,7 +509,10 @@ class BaseTrainer:
         # clean the dataset
         if self.accelerate_enable or self.deepspeed_enable:
             # TODO fix error for process group when using accelerate
-            if dist.get_rank() == 0:
+            if torch.cuda.device_count() > 1:
+                if dist.get_rank() == 0:
+                    BaseDataset.clean_dataset(config)
+            else:
                 BaseDataset.clean_dataset(config)
         else:
             BaseDataset.clean_dataset(config)
@@ -626,7 +631,8 @@ class BaseTrainer:
                 )
 
             # assign device
-            self.device = torch.device(f"cuda:{dist.get_rank()}")
+            if torch.cuda.device_count() > 1:
+                self.device = torch.device(f"cuda:{dist.get_rank()}")
 
             my_logger.info("Training with DeepSpeed")
 
@@ -663,8 +669,8 @@ class BaseTrainer:
 
             # assign device
             # Fix error with process group not initialized when using
-            self.device = torch.device("cuda:0")
-            # self.device = torch.device(f"cuda:{dist.get_rank()}")
+            if torch.cuda.device_count() > 1:
+                self.device = torch.device(f"cuda:{dist.get_rank()}")
 
             my_logger.info("Training with Accelerate")
 

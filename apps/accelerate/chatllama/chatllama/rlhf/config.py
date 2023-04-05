@@ -288,7 +288,6 @@ class Config:
                 device_type = "cuda"
             else:
                 raise ValueError("No GPU available...")
-            # print(f"Current device used :{str(device)}")
 
         if path is None or os.path.exists(path) is False:
             raise ValueError("Path to the config.yaml is not valid")
