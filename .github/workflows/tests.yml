@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         # Run in all these versions of Python
-        python-version: [ 3.7, 3.8, 3.9, "3.10" ]
+        python-version: [ 3.8, 3.9, "3.10" ]
 
     steps:
       # Checkout the latest code from the repo
@@ -79,7 +79,7 @@ jobs:
     strategy:
       matrix:
         # Run in all these versions of Python
-        python-version: [ 3.7, 3.8, 3.9, "3.10" ]
+        python-version: [ 3.8, 3.9, "3.10" ]
 
     steps:
       # Checkout the latest code from the repo
