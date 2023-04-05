@@ -1,11 +1,15 @@
 from collections import OrderedDict
-from typing import List, Any, Dict
+from pathlib import Path
+from typing import List, Any, Dict, Union
 
 from nebullvm.operations.inference_learners.base import (
     InferenceLearnerWrapper,
     PytorchBaseInferenceLearner,
     LearnerMetadata,
+    BaseInferenceLearner,
 )
+from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
+from nebullvm.tools.diffusers import postprocess_diffusers
 from nebullvm.tools.huggingface import restructure_output
 
 
@@ -114,3 +118,65 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
             )
             inputs["output_type"] = eval(metadata["output_type"])
         return inputs
+
+
+class DiffusionInferenceLearner(BaseInferenceLearner):
+    name = "StableDiffusion"
+
+    def __init__(self, pipeline: StableDiffusionPipeline):
+        self.pipeline = pipeline
+
+    def __call__(self, *args, **kwargs):
+        return self.pipeline(*args, **kwargs)
+
+    def tensor2list(self, tensor: Any) -> List:
+        raise NotImplementedError()
+
+    def _read_file(self, input_file: str) -> Any:
+        raise NotImplementedError()
+
+    def _save_file(self, prediction: Any, output_file: str):
+        raise NotImplementedError()
+
+    def run(self, *args, **kwargs) -> Any:
+        self.pipeline(*args, **kwargs)
+
+    def save(self, path: Union[str, Path], **kwargs):
+        self.pipeline.unet.model.save(path)
+
+    @classmethod
+    def load(
+        cls,
+        path: Union[Path, str],
+        **kwargs,
+    ):
+        try:
+            pipe = kwargs["pipe"]
+        except KeyError:
+            raise TypeError("Missing required argument 'pipe'")
+        optimized_model = LearnerMetadata.read(path).load_model(path)
+        return postprocess_diffusers(
+            optimized_model,
+            pipe,
+            optimized_model.device,
+        )
+
+    def get_size(self):
+        return 0  # TODO
+
+    def free_gpu_memory(self):
+        raise NotImplementedError()
+
+    def get_inputs_example(self):
+        raise NotImplementedError()
+
+    @property
+    def output_format(self):
+        return ".pt"
+
+    @property
+    def input_format(self):
+        return ".pt"
+
+    def list2tensor(self, listified_tensor: List) -> Any:
+        raise NotImplementedError()
