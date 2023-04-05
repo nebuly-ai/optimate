@@ -20,7 +20,8 @@ Then make sure to install all the available deep learning compilers:
     python -m nebullvm.installers.auto_installer --compilers all
 
 
-**NOTE**: if you want to optimize PyTorch or HuggingFace models, PyTorch must be pre-installed in the environment before using the auto-installer, please install it from [this](https://pytorch.org/get-started/locally/) link. Moreover, for Mac computers with M1/M2 processors, please use a conda environment, or you may run into problems when installing some of the deep learning compilers.
+!!! info
+    If you want to optimize PyTorch or HuggingFace models, PyTorch must be pre-installed in the environment before using the auto-installer, please install it from [this](https://pytorch.org/get-started/locally/) link. Moreover, for Mac computers with M1/M2 processors, please use a conda environment, or you may run into problems when installing some of the deep learning compilers.
 
 Great, now you are ready to accelerate your model 🚀 Please visit the following pages to get started based on the DL framework of your input model:
 
@@ -50,7 +51,7 @@ python -m nebullvm.installers.auto_installer
     --compilers <compilers>
 ```
 
-**Description**
+!!! Description
 
     === "--frameworks"
 
@@ -130,17 +131,17 @@ This command will setup your environment to optimize PyTorch models, and will in
 
 The following table shows the supported combinations of frameworks, backends and compilers that you can install with the auto-installer:
 
-| Framework   | Extra Backends            | Compilers                                                               |
-|-------------|---------------------------|-------------------------------------------------------------------------|
-| PyTorch     | ONNX                      | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
-| TensorFlow  | ONNX                      | TensorRT, OpenVINO                                                      |
-| ONNX        | /                         | TensorRT, OpenVINO                                                      |
+| Framework    | Extra Backends            | Compilers                                                               |
+|--------------|---------------------------|-------------------------------------------------------------------------|
+| PyTorch      | ONNX                      | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
+| TensorFlow   | ONNX                      | TensorRT, OpenVINO                                                      |
+| ONNX         | /                         | TensorRT, OpenVINO                                                      |
 | Hugging Face | PyTorch, TensorFlow, ONNX | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
-| Diffusers   | PyTorch, ONNX             | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
+| Diffusers    | PyTorch, ONNX             | DeepSparse, TensorRT, Torch TensorRT, OpenVINO, Intel Neural Compressor |
 
 
-**info**
-Hugging Face models can be of two types, PyTorch-based or TensorFlow-based. For PyTorch-based models, it is necessary to include `torch` as an extra-backend. For TensorFlow-based models, you must include `tensorflow` as an extra-backend.
+!!! info
+    Hugging Face models can be of two types, PyTorch-based or TensorFlow-based. For PyTorch-based models, it is necessary to include `torch` as an extra-backend. For TensorFlow-based models, you must include `tensorflow` as an extra-backend.
 
 ### Manual installation
 
@@ -166,7 +167,7 @@ If you want to manually install the requirements, this section collects links to
 - tf2onnx: https://github.com/onnx/tensorflow-onnx#installation (Install it if you want to convert TensorFlow models to ONNX)
 - polygraphy: https://github.com/NVIDIA/TensorRT/tree/main/tools/Polygraphy#installation (Install it if you want to use TensorRT)
 - onnx-simplifier: https://github.com/daquexian/onnx-simplifier#python-version (Install it if you want to use TensorRT)
-- onnx_graphsurgeon: https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon#installation (Install it if you want to use TensorRT plugins with Stable Diffusion)
+- onnx_graphsurgeon: https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon#installation (Install it if you want to use TensorRT with Stable Diffusion)
 - onnxmltools: https://github.com/onnx/onnxmltools#install (Install it if you want to convert models to ONNX)
 
 ## (Optional) Download Docker images with frameworks and optimizers
@@ -185,7 +186,7 @@ After optimizing the model, you may decide to deploy it to production. Note that
 
 ## Set up Speedster on custom DL devices
 
-From version `0.10.0`, Speedster supports optimization of PyTorch models on `Google TPUs` and `AWS Inferentia` chips. 
+From version `0.9.2`, Speedster supports optimization of PyTorch models on `Google TPUs` and `AWS Inferentia` chips. 
 For these devices, the user must ensure that the required libraries are installed on the machine. 
 The following sections describe how to install the required libraries for each device.
 
@@ -210,8 +211,8 @@ You are now ready to use Speedster on TPUs! Speedster will automatically detect 
 For AWS Inferentia, you must first create an AWS EC2 instance with the `inf1` instance type. 
 You can find more information about `inf1` instances in the [official documentation](https://aws.amazon.com/it/ec2/instance-types/inf1/).
 
-**info**
-AWS has recently released the `inf2` instance type, which is a more powerful version of `inf1`. For now `inf2` 
+!!! info
+    AWS has recently released the `inf2` instance type, which is a more powerful version of `inf1`. For now `inf2` 
 instances are only available in private preview, you can request them directly to AWS by filling this [form](https://pages.awscloud.com/EC2-Inf2-Preview.html).
 
 To use Speedster on AWS Inferentia, we will use the [`torch-neuron`](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/torch-setup.html) library, that must be manually installed on `inf1` instances (on `inf2`instances it's already preinstalled if you use the PyTorch DLAMI provided by AWS).
