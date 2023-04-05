@@ -313,6 +313,7 @@ class ActorTrainer(BaseTrainer):
                             return_tensors="pt",
                             truncation=True,
                             padding=True,
+                            max_length=self.config.max_sequence_length,
                         )
                     else:
                         input_tokenized = self.model.tokenizer(
@@ -344,7 +345,7 @@ class ActorTrainer(BaseTrainer):
                     attention_mask = input_tokenized_mask[:, :-1]
 
                     # move to device
-                    if self.config.load_8bit is False:
+                    if not self.config.load_8bit:
                         training_output = training_output.to(self.device)
                         training_input = training_input.to(self.device)
                         attention_mask = attention_mask.to(self.device)

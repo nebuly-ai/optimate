@@ -57,6 +57,7 @@ class ConfigReward:
         is_reward (bool): True if the model is a reward model. Default to True.
         accelerate_enable (bool): Enable accelerate for the reward model
         debug (bool): enable prints for Debugging
+        device_type (str): Device type to be used for the reward model
     """
 
     device: torch.device
@@ -136,6 +137,7 @@ class ConfigActor:
         peft_enable (bool): Enable peft for the actor
         peft_config_path (str): Path to the peft config file.
         debug (bool): Enable prints for debugging
+        device_type (str): Device type to be used for the actor
 
     """
 
@@ -211,6 +213,7 @@ class ConfigTrainer:
         accelerate_enable (bool): Enable accelerate for rl training
         checkpoint_name (Optional[str]): Name of the checkpoint. Default to
             None.
+        device_type (str): Device type to be used for the rl training
     """
 
     actor_lr: int

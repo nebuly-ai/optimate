@@ -14,12 +14,12 @@ trainer_config:
   # number of episodes and generation performed for each episode
   # in the train() method
   num_episodes: 100
-  max_timesteps: 32
+  max_timesteps: 4
   # number of timesteps after which the learn() method is called 
   # (to update the weights)
-  update_timesteps: 32
+  update_timesteps: 4
   # number of example sampled at each timestep
-  num_examples: 1
+  num_examples: 4
   # batch and epochs for the training
   batch_size: 1
   epochs: 1
@@ -33,7 +33,7 @@ trainer_config:
   accelerate_enable: False
 
 actor_config:
-  model: "facebook/opt-125m"
+  model: "facebook/opt-1.3b"
   load_8bit: False
   model_folder: "./models"
   tokenizer_path: "path-to-tokenizer"
@@ -92,13 +92,13 @@ reward_config:
   epochs: 1
   iteration_per_print: 1
   # steps after which the checkpoint are saved
-  checkpoint_steps: 200
+  checkpoint_steps: 10000
   # here specify the name of the reward checkpoint from which resume 
   # during reward training. If null load the last one.
   checkpoint_name: null
   lr: 0.000009
   # deepspeed settings
-  deepspeed_enable: True
+  deepspeed_enable: False
   deepspeed_config_path: "./artifacts/config/ds_config.json"
   # accelerate settings
   accelerate_enable: False
@@ -117,5 +117,5 @@ critic_config:
   # here specify the name of the critic checkpoint from which resume 
   # during critic training. If null load the last one.
   checkpoint_name: null
-  peft_enable: True
+  peft_enable: False
   peft_config_path: "./artifacts/config/peft_config.yaml"

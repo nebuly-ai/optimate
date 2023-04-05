@@ -2,9 +2,9 @@ import argparse
 import os
 
 from chatllama.rlhf.dataset import (
-    AnthropicRLHF,
-    SelfInstruct,
-    StanfordNLPSHP,
+    AnthropicRLHFDataset,
+    SelfInstructDataset,
+    StanfordNLPSHPDataset,
 )
 
 
@@ -44,17 +44,17 @@ if __name__ == "__main__":
         raise ValueError("Number of samples should be an integer")
 
     if args.dataset_name == "SHP":
-        dataset = StanfordNLPSHP()
+        dataset = StanfordNLPSHPDataset()
         dataset.save_dataset(args.path, n_samples)
 
     elif args.dataset_name == "ARLHF":
-        dataset = AnthropicRLHF()
+        dataset = AnthropicRLHFDataset()
         dataset.save_dataset(
             args.path,
             n_samples,
         )
     elif args.dataset_name == "SI":
-        dataset = SelfInstruct()
+        dataset = SelfInstructDataset()
         dataset.save_dataset(
             args.path,
             n_samples,

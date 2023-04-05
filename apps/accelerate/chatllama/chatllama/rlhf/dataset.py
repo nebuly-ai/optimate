@@ -249,7 +249,7 @@ class BaseDataset:
             )
 
 
-class StanfordNLPSHP(BaseDataset):
+class StanfordNLPSHPDataset(BaseDataset):
     """Class for Stanford NLP SHP dataset from HuggingFace"""
 
     def __init__(
@@ -344,7 +344,7 @@ class StanfordNLPSHP(BaseDataset):
         my_logger.success("Generation Completed")
 
 
-class AnthropicRLHF(BaseDataset):
+class AnthropicRLHFDataset(BaseDataset):
     """Class for Anthropic RLHF dataset from HuggingFace"""
 
     def __init__(
@@ -438,7 +438,7 @@ class AnthropicRLHF(BaseDataset):
         my_logger.success("Generation Completed")
 
 
-class SelfInstruct(BaseDataset):
+class SelfInstructDataset(BaseDataset):
     """Class for SelfInstruct dataset from HuggingFace"""
 
     def __init__(

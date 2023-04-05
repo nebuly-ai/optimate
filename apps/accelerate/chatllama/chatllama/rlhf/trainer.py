@@ -6,6 +6,7 @@ from collections import deque, namedtuple
 import torch
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
+from torch.cuda.amp import GradScaler
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import Dataset
 
@@ -326,8 +327,6 @@ class ActorCritic(BaseModel):
 Memory = namedtuple(
     "Memory",
     [
-        "states_actor",
-        "actions",
         "values",
         "rewards",
         "actions_log_probs",
@@ -360,8 +359,6 @@ class ExperienceDataset(Dataset):
     def __getitem__(self, idx) -> Tuple:
         # return the idx-th memory element as a tuple of tensors on the device
         item = (
-            self.data[idx].states_actor,
-            self.data[idx].actions,
             self.data[idx].values,
             self.data[idx].rewards,
             self.data[idx].actions_log_probs,
@@ -501,6 +498,119 @@ class RLTrainer(BaseTrainer):
 
         # Base Trainer Initialization:
         super().__init__(config)
+        
+        # define the scaler needed for vanilla pytorch with mixed precision
+        if self.accelerate_enable or self.deepspeed_enable:
+            self.scaler = None
+        else:
+            self.scaler = GradScaler()
+        
+    def ppo_loss(self,
+                 actions_logits: torch.Tensor,
+                 old_actions_log_probs: torch.Tensor,
+                 old_values: torch.Tensor,
+                 values: torch.Tensor,
+                 rewards: torch.Tensor,
+                ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Compute the PPO loss
+        
+        Args:
+            actions_logits (torch.Tensor): Logits of the actions
+            old_actions_log_probs (torch.Tensor): Log prob of the actions
+            old_values (torch.Tensor): Values of the actions
+            values (torch.Tensor): Values of the actions
+            rewards (torch.Tensor): Rewards of the actions
+
+        Returns:
+            torch.Tensor: PPO loss
+        
+        """
+        
+        # get hyperparameters
+        actor_eps_clip = self.config.trainer.actor_eps_clip
+        critic_eps_clip = self.config.trainer.critic_eps_clip
+        beta_s = self.config.trainer.beta_s
+        
+        # get action log prob
+        actions_prob = (
+            torch.softmax(actions_logits, dim=-1).max(dim=-1).values
+        )
+        actions_log_prob = torch.log(actions_prob + self.eps)
+
+        # compute entropy
+        entropies = (actions_prob * actions_log_prob).sum(dim=-1)
+
+        # compute KL divergence
+        kl_div_loss = (
+            (actions_prob * (actions_log_prob - old_actions_log_probs))
+            .sum(dim=-1)
+            .mean()
+        )
+
+        # compute ratios
+        ratios = (actions_log_prob - old_actions_log_probs).exp()
+
+        # compute policy loss
+        if check_model_family(self.config.actor, self.config.critic):
+            # compute discounted rewards as in TRL
+            gamma = self.config.trainer.gamma_discounted
+            discounted_rewards = torch.zeros_like(old_values)
+            for i in range(discounted_rewards.shape[1]):
+                for j in range(i, discounted_rewards.shape[1]):
+                    discounted_rewards[:, i] += (
+                        gamma ** (j - i) * rewards[:, j]
+                    )
+
+            advantages = (
+                discounted_rewards - old_values
+            )  # TRL has opposite sign for old values
+            advantages = (advantages - advantages.mean(dim=-1)) / (
+                advantages.std() + self.eps
+            )
+
+            surr1 = advantages * ratios
+        else:
+            advantages = rewards - old_values[:, -1]
+            surr1 = advantages * ratios
+
+        surr2 = (
+            torch.clamp(ratios, 1 - actor_eps_clip, 1 + actor_eps_clip)
+            * advantages
+        )
+        policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
+        policy_loss = policy_loss.mean()
+        policy_loss = policy_loss + kl_div_loss
+
+        # compute value loss
+        value_loss_clipped = old_values + (values - old_values).clamp(
+            -critic_eps_clip, critic_eps_clip
+        )
+        value_loss1 = (value_loss_clipped - rewards) ** 2
+        value_loss2 = (values - rewards) ** 2
+        value_loss = torch.max(value_loss1, value_loss2).mean()
+
+        # Sum the two losses
+        loss = policy_loss + value_loss
+
+        # check the losses
+        if torch.isnan(loss):
+            if torch.isnan(policy_loss):
+                if torch.isnan(kl_div_loss):
+                    raise my_logger.error(
+                        ValueError,
+                        "KL div Loss is nan",
+                    )
+                else:
+                    raise my_logger.error(
+                        ValueError,
+                        "Policy Loss is nan",
+                    )
+            else:
+                raise my_logger.error(
+                    ValueError,
+                    "Value Loss is nan",
+                )
+        return loss, policy_loss, value_loss
 
     @beartype
     def learn(self, memories: Deque[Memory]) -> None:
@@ -513,9 +623,6 @@ class RLTrainer(BaseTrainer):
 
         # get parameters
         epochs = self.config.trainer.epochs
-        actor_eps_clip = self.config.trainer.actor_eps_clip
-        critic_eps_clip = self.config.trainer.critic_eps_clip
-        beta_s = self.config.trainer.beta_s
 
         # TODO: check this with distributed training
         batch_size = self.config.trainer.batch_size
@@ -541,8 +648,6 @@ class RLTrainer(BaseTrainer):
 
                 # TODO: now first two elements are not used can be removed?
                 (
-                    states_actor,
-                    old_actions,
                     old_values,
                     rewards,
                     old_actions_log_probs,
@@ -574,101 +679,54 @@ class RLTrainer(BaseTrainer):
                         action_len_critic.item(),
                     )
                 else:
-                    actions_logits, values = self.actorcritic.forward(
-                        sequences_actor,
-                        sequences_mask_actor,
-                        sequences_critic,
-                        sequences_mask_critic,
-                        action_len_actor.item(),
-                        action_len_critic.item(),
-                    )
-
-                # get action log prob
-                actions_prob = (
-                    torch.softmax(actions_logits, dim=-1).max(dim=-1).values
-                )
-                actions_log_prob = torch.log(actions_prob + self.eps)
-
-                # compute entropy
-                entropies = (actions_prob * actions_log_prob).sum(dim=-1)
-
-                # compute KL divergence
-                kl_div_loss = (
-                    (actions_prob * (actions_log_prob - old_actions_log_probs))
-                    .sum(dim=-1)
-                    .mean()
-                )
-
-                # compute ratios
-                ratios = (actions_log_prob - old_actions_log_probs).exp()
-
-                # compute policy loss
-                if check_model_family(self.config.actor, self.config.critic):
-                    # compute discounted rewards as in TRL
-                    gamma = self.config.trainer.gamma_discounted
-                    discounted_rewards = torch.zeros_like(old_values)
-                    for i in range(discounted_rewards.shape[1]):
-                        for j in range(i, discounted_rewards.shape[1]):
-                            discounted_rewards[:, i] += (
-                                gamma ** (j - i) * rewards[:, j]
-                            )
-
-                    advantages = (
-                        discounted_rewards - old_values
-                    )  # TRL has opposite sign for old values
-                    advantages = (advantages - advantages.mean(dim=-1)) / (
-                        advantages.std() + self.eps
-                    )
-
-                    surr1 = advantages * ratios
-                else:
-                    advantages = rewards - old_values[:, -1]
-                    surr1 = advantages * ratios
-
-                surr2 = (
-                    torch.clamp(ratios, 1 - actor_eps_clip, 1 + actor_eps_clip)
-                    * advantages
-                )
-                policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
-                policy_loss = policy_loss.mean()
-                policy_loss = policy_loss + kl_div_loss
-
-                # compute value loss
-                value_loss_clipped = old_values + (values - old_values).clamp(
-                    -critic_eps_clip, critic_eps_clip
-                )
-                value_loss1 = (value_loss_clipped - rewards) ** 2
-                value_loss2 = (values - rewards) ** 2
-                value_loss = torch.max(value_loss1, value_loss2).mean()
-
-                # Sum the two losses
-                loss = policy_loss + value_loss
-
-                # check the losses
-                if torch.isnan(loss):
-                    if torch.isnan(policy_loss):
-                        if torch.isnan(kl_div_loss):
-                            raise my_logger.error(
-                                ValueError,
-                                "KL div Loss is nan",
-                            )
-                        else:
-                            raise my_logger.error(
-                                ValueError,
-                                "Policy Loss is nan",
-                            )
-                    else:
-                        raise my_logger.error(
-                            ValueError,
-                            "Value Loss is nan",
+                    with torch.autocast(
+                        device_type=self.config.trainer.device_type,
+                        dtype=torch.float16,
+                    ):
+                        actions_logits, values = self.actorcritic.forward(
+                            sequences_actor,
+                            sequences_mask_actor,
+                            sequences_critic,
+                            sequences_mask_critic,
+                            action_len_actor.item(),
+                            action_len_critic.item(),
                         )
-
+                    
+                # compute the loss
+                if self.accelerate_enable or self.deepspeed_enable:
+                    (
+                        loss,
+                        policy_loss,
+                        value_loss,
+                    ) = self.ppo_loss(
+                        actions_logits,
+                        old_actions_log_probs,
+                        old_values,
+                        values,
+                        rewards,
+                    )
+                else:
+                    with torch.autocast(
+                        device_type = self.config.trainer.device_type,
+                        dtype = torch.float16
+                    ):
+                        (
+                            loss,
+                            policy_loss,
+                            value_loss,
+                        ) = self.ppo_loss(
+                            actions_logits,
+                            old_actions_log_probs,
+                            old_values,
+                            values,
+                            rewards,
+                        ) 
+                        
                 # backward pass
                 if self.deepspeed_enable:
                     # DeepSpeed backward pass
                     self.model_engine.backward(loss)
                     self.model_engine.step()
-
                 elif self.accelerate_enable:
                     # Accelerate backward pass
                     self.optimizer.zero_grad()
@@ -676,15 +734,16 @@ class RLTrainer(BaseTrainer):
                     self.optimizer.step()
                     self.scheduler.step()
                 else:
-                    # PyTorch backward pass
+                    # PyTorch mixed precision backward pass
                     self.optimizer.zero_grad()
-                    value_loss.backward()
-                    self.optimizer.step()
+                    self.scaler.scale(loss).backward()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
                     self.scheduler.step()
 
                 # append the losses to the training stats
                 self.append_training_stats(
-                    training_loss=loss.detach().cpu().item(),
+                    training_loss=policy_loss.detach().cpu().item(),
                     value_loss=value_loss.detach().cpu().item(),
                 )
 
@@ -693,7 +752,7 @@ class RLTrainer(BaseTrainer):
                     f"Epoch {epoch+1}/{epochs} "
                     f"Step "
                     f"{k+1}/{int(len(self.train_dataloader) / batch_size)} "
-                    f"Loss {loss.detach().cpu().item():.4f} "
+                    f"Policy Loss {policy_loss.detach().cpu().item():.4f} "
                     f"Value Loss {value_loss.detach().cpu().item():.4f} "
                 )
 
@@ -912,8 +971,6 @@ class RLTrainer(BaseTrainer):
                     for i in range(states_actor.shape[0]):
                         memories.append(
                             Memory(
-                                states_actor[i, :].detach().cpu(),
-                                actions[i, :].detach().cpu(),
                                 values[i, :].detach().cpu(),
                                 rewards[i, :].detach().cpu(),
                                 actions_log_probs[i, :].detach().cpu(),
@@ -1004,7 +1061,7 @@ class RLTrainer(BaseTrainer):
                     cnt_learn_iter += 1
 
                     # TODO fix log saving in deepspeed multi GPU training
-                    # self.conversation_log.save()
+                    self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
@@ -1013,7 +1070,7 @@ class RLTrainer(BaseTrainer):
                 )
 
                 # TODO fix log saving in deepspeed multi GPU training
-                # self.conversation_log.save()
+                self.conversation_log.save()
 
         # save the models
         if self.accelerate_enable:
