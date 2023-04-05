@@ -91,6 +91,7 @@ class ModelCompiler(Enum):
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
     TORCH_NEURON = "torch_neuron"
     TORCH_XLA = "torch_xla"
+    TORCH_DYNAMO = "torch_dynamo"
 
 
 class ModelCompressor(Enum):

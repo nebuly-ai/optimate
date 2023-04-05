@@ -14,12 +14,15 @@ from nebullvm.operations.inference_learners.onnx import (
 from nebullvm.operations.inference_learners.openvino import (
     PytorchOpenVinoInferenceLearner,
 )
-from nebullvm.operations.inference_learners.pytorch import (
-    PytorchBackendInferenceLearner,
-)
 from nebullvm.operations.inference_learners.tensor_rt import (
     PytorchTensorRTInferenceLearner,
     PytorchONNXTensorRTInferenceLearner,
+)
+from nebullvm.operations.inference_learners.torch_dynamo import (
+    TorchDynamoInferenceLearner,
+)
+from nebullvm.operations.inference_learners.torchscript import (
+    TorchScriptInferenceLearner,
 )
 from nebullvm.operations.inference_learners.tvm import (
     PytorchApacheTVMInferenceLearner,
@@ -30,6 +33,8 @@ from nebullvm.operations.optimizations.compilers.utils import (
 )
 
 from speedster import optimize_model, load_model
+
+from nebullvm.tools.utils import check_module_version
 
 
 def test_torch_ort():
@@ -111,7 +116,38 @@ def test_torch_torchscript():
     res_original = model(x)
     res_optimized = optimized_model(x)[0]
 
-    assert isinstance(optimized_model, PytorchBackendInferenceLearner)
+    assert isinstance(optimized_model, TorchScriptInferenceLearner)
+    assert torch.max(abs((res_original - res_optimized))) < 1e-2
+
+
+@pytest.mark.skipif(
+    not check_module_version(torch, min_version="2.0.0") or True,
+    reason="Torch version is not supported",
+)
+def test_torch_torch_dynamo():
+    model = models.resnet18()
+    input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]
+
+    # Run nebullvm optimization in one line of code
+    optimized_model = optimize_model(
+        model,
+        input_data=input_data,
+        ignore_compilers=[
+            compiler
+            for compiler in COMPILER_LIST
+            if compiler != "torch_dynamo"
+        ],
+        ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
+    )
+
+    # Try the optimized model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    x = torch.randn(1, 3, 256, 256, requires_grad=False).to(device)
+    model.to(device).eval()
+    res_original = model(x)
+    res_optimized = optimized_model(x)[0]
+
+    assert isinstance(optimized_model, TorchDynamoInferenceLearner)
     assert torch.max(abs((res_original - res_optimized))) < 1e-2
 
 

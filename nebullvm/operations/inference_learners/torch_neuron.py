@@ -1,7 +1,7 @@
-from nebullvm.operations.inference_learners.pytorch import (
-    PytorchBackendInferenceLearner,
+from nebullvm.operations.inference_learners.torchscript import (
+    TorchScriptInferenceLearner,
 )
 
 
-class TorchNeuronInferenceLearner(PytorchBackendInferenceLearner):
+class TorchNeuronInferenceLearner(TorchScriptInferenceLearner):
     name = "TorchNeuron"

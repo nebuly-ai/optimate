@@ -1,5 +1,5 @@
-from nebullvm.operations.optimizations.compilers.pytorch import (
-    PytorchBackendCompiler,
+from nebullvm.operations.optimizations.compilers.torchscript import (
+    TorchScriptCompiler,
 )
 from nebullvm.optional_modules.torch import (
     torch,
@@ -8,7 +8,7 @@ from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
 
 
-class TorchXLACompiler(PytorchBackendCompiler):
+class TorchXLACompiler(TorchScriptCompiler):
     supported_ops = {
         "cpu": [],
         "gpu": [],

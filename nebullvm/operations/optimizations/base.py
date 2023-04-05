@@ -11,7 +11,6 @@ from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
 )
 from nebullvm.operations.inference_learners.builders import (
-    PytorchBuildInferenceLearner,
     DeepSparseBuildInferenceLearner,
     IntelNeuralCompressorBuildInferenceLearner,
     PyTorchTensorRTBuildInferenceLearner,
@@ -24,6 +23,8 @@ from nebullvm.operations.inference_learners.builders import (
     TensorflowBuildInferenceLearner,
     TorchNeuronBuildInferenceLearner,
     TorchXLABuildInferenceLearner,
+    TorchDynamoBuildInferenceLearner,
+    TorchScriptBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import (
@@ -43,9 +44,6 @@ from nebullvm.operations.optimizations.compilers.onnxruntime import (
 from nebullvm.operations.optimizations.compilers.openvino import (
     OpenVINOCompiler,
 )
-from nebullvm.operations.optimizations.compilers.pytorch import (
-    PytorchBackendCompiler,
-)
 from nebullvm.operations.optimizations.compilers.tensor_rt import (
     PyTorchTensorRTCompiler,
     ONNXTensorRTCompiler,
@@ -54,11 +52,17 @@ from nebullvm.operations.optimizations.compilers.tensorflow import (
     TFLiteBackendCompiler,
     TensorflowBackendCompiler,
 )
+from nebullvm.operations.optimizations.compilers.torch_dynamo import (
+    TorchDynamoCompiler,
+)
 from nebullvm.operations.optimizations.compilers.torch_neuron import (
     TorchNeuronCompiler,
 )
 from nebullvm.operations.optimizations.compilers.torch_xla import (
     TorchXLACompiler,
+)
+from nebullvm.operations.optimizations.compilers.torchscript import (
+    TorchScriptCompiler,
 )
 from nebullvm.operations.optimizations.compilers.tvm import (
     PyTorchApacheTVMCompiler,
@@ -359,7 +363,7 @@ MULTI_FRAMEWORK_COMPILERS = {
 }
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
-    ModelCompiler.TORCHSCRIPT: PytorchBackendCompiler,
+    ModelCompiler.TORCHSCRIPT: TorchScriptCompiler,
     ModelCompiler.DEEPSPARSE: DeepSparseCompiler,
     ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorCompiler,
     ModelCompiler.TENSOR_RT_TORCH: PyTorchTensorRTCompiler,
@@ -372,12 +376,13 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
     ModelCompiler.XLA: TensorflowBackendCompiler,
     ModelCompiler.TORCH_NEURON: TorchNeuronCompiler,
     ModelCompiler.TORCH_XLA: TorchXLACompiler,
+    ModelCompiler.TORCH_DYNAMO: TorchDynamoCompiler,
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler, Type[BuildInferenceLearner]
 ] = {
-    ModelCompiler.TORCHSCRIPT: PytorchBuildInferenceLearner,
+    ModelCompiler.TORCHSCRIPT: TorchScriptBuildInferenceLearner,
     ModelCompiler.DEEPSPARSE: DeepSparseBuildInferenceLearner,
     ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorBuildInferenceLearner,  # noqa: E501
     ModelCompiler.TENSOR_RT_TORCH: PyTorchTensorRTBuildInferenceLearner,
@@ -390,4 +395,5 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler.XLA: TensorflowBuildInferenceLearner,
     ModelCompiler.TORCH_NEURON: TorchNeuronBuildInferenceLearner,
     ModelCompiler.TORCH_XLA: TorchXLABuildInferenceLearner,
+    ModelCompiler.TORCH_DYNAMO: TorchDynamoBuildInferenceLearner,
 }

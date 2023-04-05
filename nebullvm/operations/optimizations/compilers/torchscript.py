@@ -21,7 +21,7 @@ from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
-class PytorchBackendCompiler(Compiler):
+class TorchScriptCompiler(Compiler):
     supported_ops = {
         "cpu": [None, QuantizationType.STATIC, QuantizationType.DYNAMIC],
         "gpu": [

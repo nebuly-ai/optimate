@@ -11,6 +11,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     torch_neuron_is_available,
     torch_xla_is_available,
 )
+from nebullvm.optional_modules.torch import torch
 from nebullvm.optional_modules.utils import (
     torch_is_available,
     tensorflow_is_available,
@@ -21,6 +22,7 @@ from nebullvm.tools.base import (
     ModelCompiler,
     DeviceType,
 )
+from nebullvm.tools.utils import check_module_version
 
 
 class PytorchOptimizer(Optimizer):
@@ -53,6 +55,11 @@ class PytorchOptimizer(Optimizer):
                     )
             else:
                 compilers.append(ModelCompiler.TORCHSCRIPT)
+                if (
+                    check_module_version(torch, min_version="2.0.0") and False
+                ):  # Deactivated because save and load methods are
+                    # not implemented
+                    compilers.append(ModelCompiler.TORCH_DYNAMO)
                 if tvm_is_available():
                     compilers.append(ModelCompiler.APACHE_TVM_TORCH)
                 if bladedisc_is_available():
