@@ -6,7 +6,6 @@ from collections import deque, namedtuple
 import torch
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
-from torch.cuda.amp import GradScaler
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import Dataset
 
@@ -499,12 +498,6 @@ class RLTrainer(BaseTrainer):
         # Base Trainer Initialization:
         super().__init__(config)
         
-        # define the scaler needed for vanilla pytorch with mixed precision
-        if self.accelerate_enable or self.deepspeed_enable:
-            self.scaler = None
-        else:
-            self.scaler = GradScaler()
-        
     def ppo_loss(self,
                  actions_logits: torch.Tensor,
                  old_actions_log_probs: torch.Tensor,
@@ -869,7 +862,7 @@ class RLTrainer(BaseTrainer):
                     states_critic = tok_inputs_crt["input_ids"]
 
                     # move to device
-                    if self.config.critic.load_8bit is False:
+                    if not self.config.critic.load_8bit:
                         states_critic = states_critic.to(self.device)
                         states_actor = states_actor.to(self.device)
                         states_mask_actor = states_mask_actor.to(self.device)
@@ -949,7 +942,7 @@ class RLTrainer(BaseTrainer):
                         reward_mask = tokenized_responses["attention_mask"]
 
                         # move to device
-                        if self.config.reward.load_8bit is False:
+                        if not self.config.reward.load_8bit:
                             reward_sequence = reward_sequence.to(self.device)
                             reward_mask = reward_mask.to(self.device)
 

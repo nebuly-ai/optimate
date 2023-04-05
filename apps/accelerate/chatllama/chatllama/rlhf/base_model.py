@@ -21,6 +21,7 @@ from peft import (
     TaskType,
     prepare_model_for_int8_training,
 )
+from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
     AutoModel,
@@ -496,6 +497,12 @@ class BaseTrainer:
 
         self.setup_accelerate()
         self.setup_deepspeed()
+        
+        # define the scaler needed for vanilla pytorch with mixed precision
+        if self.accelerate_enable or self.deepspeed_enable:
+            self.scaler = None
+        else:
+            self.scaler = GradScaler()
 
         # clean the dataset
         if self.accelerate_enable or self.deepspeed_enable:

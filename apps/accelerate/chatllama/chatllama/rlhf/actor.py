@@ -5,7 +5,6 @@ from beartype import beartype
 from beartype.typing import Tuple
 from einops import rearrange
 from torch.utils.data import Dataset
-from torch.cuda.amp import GradScaler
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigActor
@@ -165,8 +164,7 @@ class ActorTrainer(BaseTrainer):
             training dataset
         validation_dataloader (torch.utils.data.DataLoader): Dataloader for the
             validation dataset
-        scaler (torch.cuda.amp.GradScaler): Scaler for the mixed precision
-            training
+            
     Methods:
         train: Train the actor model
         add_eos_token: Add the eos token to the end of the sequences
@@ -219,15 +217,6 @@ class ActorTrainer(BaseTrainer):
             self.validation_dataloader = self.create_dataloader(
                 self.eval_dataset, batch_size=config.batch_size
             )
-
-        # define the scaler needed for vanilla pytorch with mixed precision
-        if self.accelerate_enable or self.deepspeed_enable:
-            self.scaler = None
-        else:
-            if self.config.load_8bit:
-                self.scaler = None
-            else:
-                self.scaler = GradScaler()
 
     def add_eos_token(
         self, tokens: torch.Tensor, mask: torch.Tensor

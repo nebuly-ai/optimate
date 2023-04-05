@@ -3,7 +3,6 @@ import json
 
 import torch
 from beartype import beartype
-from torch.cuda.amp import GradScaler
 from torch.utils.data import Dataset
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
@@ -136,8 +135,6 @@ class RewardTrainer(BaseTrainer):
         train_dataloader (DataLoader): Dataloader for training
         validation_dataloader (DataLoader): Dataloader for validation
         scheduler (torch.optim.lr_scheduler): Scheduler for the optimizer
-        scaler (GradScaler): GradScaler to train the model using mixed
-            precision
 
     Methods:
         train: Train the reward model
@@ -197,15 +194,6 @@ class RewardTrainer(BaseTrainer):
             self.validation_dataloader = self.create_dataloader(
                 self.eval_dataset, batch_size=config.batch_size
             )
-
-        # define the scaler needed for vanilla pytorch with mixed precision
-        if self.accelerate_enable or self.deepspeed_enable:
-            self.scaler = None
-        else:
-            if self.config.load_8bit:
-                self.scaler = None
-            else:
-                self.scaler = GradScaler()
 
     def train(
         self,
@@ -276,7 +264,7 @@ class RewardTrainer(BaseTrainer):
                     input_mask = input_tokens["attention_mask"]
 
                     # move to device
-                    if self.config.load_8bit is False:
+                    if not self.config.load_8bit:
                         input_ids = input_ids.to(self.device)
                         input_mask = input_mask.to(self.device)
                         output = output.to(self.device)
