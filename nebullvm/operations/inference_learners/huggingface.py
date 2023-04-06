@@ -1,3 +1,4 @@
+from abc import ABC
 from collections import OrderedDict
 from pathlib import Path
 from typing import List, Any, Dict, Union
@@ -33,7 +34,9 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
             model.
     """
 
-    name = "HuggingFace"
+    @property
+    def name(self) -> str:
+        return self.core_inference_learner.name
 
     def __init__(
         self,
@@ -120,23 +123,16 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
         return inputs
 
 
-class DiffusionInferenceLearner(BaseInferenceLearner):
-    name = "StableDiffusion"
+class DiffusionInferenceLearner(BaseInferenceLearner, ABC):
+    @property
+    def name(self) -> str:
+        return self.pipeline.unet.name
 
     def __init__(self, pipeline: StableDiffusionPipeline):
         self.pipeline = pipeline
 
     def __call__(self, *args, **kwargs):
         return self.pipeline(*args, **kwargs)
-
-    def tensor2list(self, tensor: Any) -> List:
-        raise NotImplementedError()
-
-    def _read_file(self, input_file: str) -> Any:
-        raise NotImplementedError()
-
-    def _save_file(self, prediction: Any, output_file: str):
-        raise NotImplementedError()
 
     def run(self, *args, **kwargs) -> Any:
         self.pipeline(*args, **kwargs)
@@ -163,20 +159,3 @@ class DiffusionInferenceLearner(BaseInferenceLearner):
 
     def get_size(self):
         return 0  # TODO
-
-    def free_gpu_memory(self):
-        raise NotImplementedError()
-
-    def get_inputs_example(self):
-        raise NotImplementedError()
-
-    @property
-    def output_format(self):
-        return ".pt"
-
-    @property
-    def input_format(self):
-        return ".pt"
-
-    def list2tensor(self, listified_tensor: List) -> Any:
-        raise NotImplementedError()

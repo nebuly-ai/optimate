@@ -7,7 +7,9 @@ from nebullvm.operations.conversions.huggingface import convert_hf_model
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
 )
-from nebullvm.operations.inference_learners.huggingface import DiffusionInferenceLearner
+from nebullvm.operations.inference_learners.huggingface import (
+    DiffusionInferenceLearner,
+)
 from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import Device, DeviceType
@@ -16,7 +18,10 @@ from nebullvm.tools.diffusers import (
     preprocess_diffusers,
     postprocess_diffusers,
 )
-from nebullvm.tools.utils import is_huggingface_data
+from nebullvm.tools.utils import (
+    is_huggingface_data,
+    check_module_version,
+)
 
 
 class ModelAdapter(abc.ABC):
@@ -31,7 +36,9 @@ class ModelAdapter(abc.ABC):
         pass
 
     @abstractmethod
-    def adapt_inference_learner(self, inference_learner) -> BaseInferenceLearner:
+    def adapt_inference_learner(
+        self, inference_learner
+    ) -> BaseInferenceLearner:
         pass
 
 
@@ -50,6 +57,13 @@ class DiffusionAdapter(ModelAdapter):
         self.__df_data = None
 
     def __adapt(self):
+        if not check_module_version(torch, max_version="1.13.1+cu117"):
+            raise ValueError(
+                "Diffusion models are only supported in PyTorch "
+                "versions <= 1.13.1. Please downgrade your PyTorch "
+                "version and try again."
+            )
+
         model = copy.deepcopy(self.original_pipeline)
         model.get_unet_inputs = get_unet_inputs
         model.to(self.device.to_torch_format())

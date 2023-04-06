@@ -5,10 +5,10 @@ from typing import List, Callable, Union, Tuple, Any, Dict, Type
 from nebullvm.config import (
     ACTIVATION_METRIC_DROP_THS,
 )
+from nebullvm.core.models import OptimizedModel
 from nebullvm.operations.base import Operation
 from nebullvm.operations.inference_learners.base import (
     BuildInferenceLearner,
-    BaseInferenceLearner,
 )
 from nebullvm.operations.inference_learners.builders import (
     DeepSparseBuildInferenceLearner,
@@ -82,6 +82,7 @@ from nebullvm.tools.base import (
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
+from nebullvm.tools.utils import get_throughput
 
 
 class Optimizer(Operation, abc.ABC):
@@ -107,7 +108,7 @@ class Optimizer(Operation, abc.ABC):
         ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
         is_diffusion: bool = False,
-    ):
+    ) -> List[OptimizedModel]:
         self.source_dl_framework = source_dl_framework
 
         # TODO: implement and select compressors from hardware
@@ -144,6 +145,8 @@ class Optimizer(Operation, abc.ABC):
             ignore_compilers=ignore_compilers,
             is_diffusion=is_diffusion,
         )
+
+        return self.optimized_models
 
     @abc.abstractmethod
     def _select_compilers_from_hardware(self):
@@ -283,10 +286,26 @@ class Optimizer(Operation, abc.ABC):
                                         ignore_compilers.append(compiler)
 
                                     self.optimized_models.append(
-                                        (
-                                            inference_learner,
-                                            latency,
-                                            self.validity_check_op.measure_result,  # noqa: E501
+                                        OptimizedModel(
+                                            inference_learner=inference_learner,  # noqa: E501
+                                            metric_drop=self.validity_check_op.measure_result,  # noqa: E501
+                                            compiler=compiler,
+                                            technique=q_type.name
+                                            if q_type is not None
+                                            else "None",
+                                            latency_seconds=latency,
+                                            throughput=get_throughput(
+                                                latency,
+                                                # Normal models have batch
+                                                # size B, diffusion models
+                                                # have batch size 2B
+                                                model_params.batch_size
+                                                if not is_diffusion
+                                                else model_params.batch_size
+                                                / 2,
+                                            ),
+                                            size_mb=inference_learner.get_size()  # noqa: E501
+                                            / 1e6,
                                         )
                                     )
 
@@ -346,9 +365,6 @@ class Optimizer(Operation, abc.ABC):
                 key="optimizations",
                 value=optimization_info,
             )
-
-    def get_result(self) -> List[Tuple[BaseInferenceLearner, float, float]]:
-        return self.optimized_models
 
 
 MULTI_FRAMEWORK_COMPILERS = {

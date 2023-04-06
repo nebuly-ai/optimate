@@ -36,6 +36,14 @@ class OriginalModel:
 
 
 @dataclass
+class BenchmarkOriginalModelResult:
+    """The result of the LatencyOriginalModelMeasureOp"""
+
+    latency_seconds: float
+    model_outputs: Any
+
+
+@dataclass
 class OptimizeInferenceResult:
     """The result of the OptimizeInferenceOp"""
 
@@ -56,7 +64,8 @@ class OptimizeInferenceResult:
         if self.optimized_model.latency_seconds == 0:
             return -1
         return (
-            self.original_model.latency_seconds / self.optimized_model.latency_seconds
+            self.original_model.latency_seconds
+            / self.optimized_model.latency_seconds
         )
 
     @cached_property

@@ -1,4 +1,4 @@
-from nebullvm.operations.optimizations.base import Optimizer
+from nebullvm.operations.optimizations.optimizers.base import Optimizer
 from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
     bladedisc_is_available,

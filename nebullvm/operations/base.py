@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, Any, Union
+from typing import Dict, Union
 
 from loguru import logger
 
@@ -24,10 +24,6 @@ class Operation(abc.ABC):
 
     @abc.abstractmethod
     def execute(self, **kwargs):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def get_result(self) -> Any:
         raise NotImplementedError()
 
     @property

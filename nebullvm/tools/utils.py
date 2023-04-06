@@ -48,7 +48,7 @@ def get_model_size_mb(model: Any) -> float:
         size = os.stat(model).st_size
     elif isinstance(model, Path):
         size = os.path.getsize(model.as_posix())
-    elif isinstance(model, torch.Module):
+    elif isinstance(model, torch.nn.Module):
         size = sum(p.nelement() * p.element_size() for p in model.parameters())
     else:
         # we assume it is a tf_model
