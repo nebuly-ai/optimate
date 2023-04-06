@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
+from nebullvm.core.models import ModelParams, Device, DeviceType
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
-from nebullvm.tools.base import ModelParams, Device, DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.utils import gpu_is_available
 

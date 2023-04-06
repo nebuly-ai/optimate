@@ -1,6 +1,7 @@
 from typing import Union, List, Tuple
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.core.models import QuantizationType, DeviceType
 from nebullvm.operations.optimizations.compilers.base import Compiler
 
 from nebullvm.operations.optimizations.compilers.quantizations.pytorch import (
@@ -16,7 +17,6 @@ from nebullvm.optional_modules.torch import (
     GraphModule,
     symbolic_trace,
 )
-from nebullvm.tools.base import QuantizationType, DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 

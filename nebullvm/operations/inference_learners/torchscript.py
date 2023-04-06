@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Tuple, Union, Optional, List
 
+from nebullvm.core.models import Device, DeviceType, ModelParams
 from nebullvm.operations.inference_learners.base import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
@@ -12,7 +13,6 @@ from nebullvm.optional_modules.torch import (
     ScriptModule,
     GraphModule,
 )
-from nebullvm.tools.base import DeviceType, ModelParams, Device
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

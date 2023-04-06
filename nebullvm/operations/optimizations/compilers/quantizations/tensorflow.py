@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
+from nebullvm.core.models import QuantizationType
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.tools.base import QuantizationType
 
 
 def _quantize_dynamic(model: tf.Module):

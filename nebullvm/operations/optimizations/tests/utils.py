@@ -9,6 +9,14 @@ from tensorflow.keras import Model, layers
 from transformers import AlbertModel, AlbertTokenizer
 
 from nebullvm.config import TRAIN_TEST_SPLIT_RATIO, CONSTRAINED_METRIC_DROP_THS
+from nebullvm.core.models import (
+    DeepLearningFramework,
+    ModelParams,
+    DataType,
+    DeviceType,
+    Device,
+    QuantizationType,
+)
 from nebullvm.operations.conversions.huggingface import convert_hf_model
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
 from nebullvm.operations.measures.measures import (
@@ -16,14 +24,6 @@ from nebullvm.operations.measures.measures import (
     MetricDropMeasure,
 )
 from nebullvm.operations.measures.utils import compute_relative_difference
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    ModelParams,
-    Device,
-    QuantizationType,
-    DeviceType,
-    DataType,
-)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.utils import gpu_is_available, extract_info_from_data
@@ -270,13 +270,13 @@ def initialize_model(
 
     # Benchmark original model
     benchmark_orig_model_op = LatencyOriginalModelMeasure()
-    benchmark_orig_model_op.to(device).execute(
+    benchmark_res = benchmark_orig_model_op.to(device).execute(
         model=model,
         input_data=input_data.get_split("test"),
         dl_framework=output_library,
     )
 
-    model_outputs = benchmark_orig_model_op.get_result()[0]
+    model_outputs = benchmark_res.model_outputs
 
     if metric is not None:
         metric = compute_relative_difference

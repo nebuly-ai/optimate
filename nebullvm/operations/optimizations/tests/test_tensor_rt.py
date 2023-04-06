@@ -4,30 +4,30 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
+from nebullvm.core.models import (
+    Device,
+    DeviceType,
+    DeepLearningFramework,
+    QuantizationType,
+    ModelCompiler,
+)
 from nebullvm.operations.conversions.converters import PytorchConverter
 from nebullvm.operations.inference_learners.tensor_rt import (
     TENSOR_RT_INFERENCE_LEARNERS,
     PytorchTensorRTInferenceLearner,
 )
-from nebullvm.operations.optimizations.base import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
-)
 from nebullvm.operations.optimizations.compilers.tensor_rt import (
     ONNXTensorRTCompiler,
     PyTorchTensorRTCompiler,
+)
+from nebullvm.operations.optimizations.optimizers.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
 from nebullvm.operations.inference_learners.utils import load_model
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    QuantizationType,
-    DeviceType,
-    ModelCompiler,
-    Device,
-)
 from nebullvm.tools.utils import check_module_version
 
 device = Device(DeviceType.GPU)

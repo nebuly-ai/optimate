@@ -13,6 +13,13 @@ from nebullvm.config import (
     ONNX_FILENAMES,
     ONNX_PROVIDERS,
 )
+from nebullvm.core.models import (
+    QuantizationType,
+    Device,
+    DeviceType,
+    ModelParams,
+    DeepLearningFramework,
+)
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -27,13 +34,6 @@ from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    Device,
-    ModelParams,
-    QuantizationType,
-    DeviceType,
-)
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

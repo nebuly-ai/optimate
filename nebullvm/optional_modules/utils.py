@@ -1,6 +1,7 @@
 import cpuinfo
 from loguru import logger
 
+from nebullvm.core.models import Device, DeviceType
 from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
     onnxruntime_is_available,
@@ -13,7 +14,6 @@ from nebullvm.operations.optimizations.compilers.utils import (
     torch_neuron_is_available,
     torch_xla_is_available,
 )
-from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.utils import gpu_is_available, check_module_version
 
 

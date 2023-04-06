@@ -5,28 +5,28 @@ import cpuinfo
 import pytest
 import torch
 
+from nebullvm.core.models import (
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+    DeviceType,
+    ModelCompiler,
+)
 from nebullvm.operations.conversions.converters import PytorchConverter
 from nebullvm.operations.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
 )
-from nebullvm.operations.optimizations.base import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
-)
 from nebullvm.operations.optimizations.compilers.openvino import (
     OpenVINOCompiler,
+)
+from nebullvm.operations.optimizations.optimizers.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
 from nebullvm.operations.inference_learners.utils import load_model
-from nebullvm.tools.base import (
-    Device,
-    DeepLearningFramework,
-    QuantizationType,
-    ModelCompiler,
-    DeviceType,
-)
 
 
 @pytest.mark.parametrize(

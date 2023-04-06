@@ -2,12 +2,12 @@ from typing import List, Tuple
 
 import numpy as np
 
+from nebullvm.core.models import QuantizationType, ModelParams
 from nebullvm.optional_modules.tensor_rt import (
     tensorrt as trt,
     IInt8EntropyCalibrator2,
     polygraphy,
 )
-from nebullvm.tools.base import QuantizationType, ModelParams
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
 )

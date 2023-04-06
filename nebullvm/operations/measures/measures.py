@@ -3,7 +3,10 @@ from typing import List, Tuple, Any, Callable, Dict
 import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
-from nebullvm.core.models import BenchmarkOriginalModelResult
+from nebullvm.core.models import (
+    BenchmarkOriginalModelResult,
+    DeepLearningFramework,
+)
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.operations.measures.base import Measure
 from nebullvm.operations.measures.utils import (
@@ -12,7 +15,6 @@ from nebullvm.operations.measures.utils import (
     compute_onnx_latency,
     compute_relative_difference,
 )
-from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import run_onnx_model
 from nebullvm.tools.pytorch import run_torch_model

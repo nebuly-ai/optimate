@@ -4,17 +4,17 @@ import numpy as np
 from loguru import logger
 
 from nebullvm.config import ONNX_PROVIDERS
+from nebullvm.core.models import (
+    DeepLearningFramework,
+    Device,
+    DeviceType,
+    InputInfo,
+    DataType,
+)
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import (
-    InputInfo,
-    DataType,
-    DeepLearningFramework,
-    Device,
-    DeviceType,
-)
 
 
 def convert_to_numpy(tensor: Any):

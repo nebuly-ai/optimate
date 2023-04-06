@@ -14,12 +14,11 @@ from typing import (
 from loguru import logger
 from nebullvm import setup_logger
 from nebullvm.config import MIN_NUMBER
-from nebullvm.core.models import OptimizeInferenceResult
+from nebullvm.core.models import OptimizeInferenceResult, DeviceType
 from nebullvm.operations.base import Operation
 from nebullvm.operations.optimizations.optimize_inference import (
     OptimizeInferenceOp,
 )
-from nebullvm.tools.base import DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from tabulate import tabulate

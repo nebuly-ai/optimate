@@ -3,8 +3,8 @@ from typing import Union, List, Tuple, Any, Optional, Dict
 import numpy as np
 from loguru import logger
 
+from nebullvm.core.models import Device, DataType, InputInfo
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.tools.base import InputInfo, DataType, Device
 
 
 def get_output_info_tf(

@@ -5,7 +5,16 @@ from typing import List, Callable, Union, Tuple, Any, Dict, Type
 from nebullvm.config import (
     ACTIVATION_METRIC_DROP_THS,
 )
-from nebullvm.core.models import OptimizedModel
+from nebullvm.core.models import (
+    OptimizedModel,
+    OptimizationTime,
+    ModelParams,
+    ModelCompiler,
+    ModelCompressor,
+    DeepLearningFramework,
+    DeviceType,
+    QuantizationType,
+)
 from nebullvm.operations.base import Operation
 from nebullvm.operations.inference_learners.base import (
     BuildInferenceLearner,
@@ -71,15 +80,6 @@ from nebullvm.operations.optimizations.compilers.tvm import (
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import (
-    ModelCompiler,
-    QuantizationType,
-    OptimizationTime,
-    ModelParams,
-    DeepLearningFramework,
-    ModelCompressor,
-    DeviceType,
-)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.utils import get_throughput

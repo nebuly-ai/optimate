@@ -3,11 +3,15 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
+from nebullvm.core.models import (
+    DeviceType,
+    Device,
+    QuantizationType,
+    DeepLearningFramework,
+    ModelCompiler,
+)
 from nebullvm.operations.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
-)
-from nebullvm.operations.optimizations.base import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
     IntelNeuralCompressorCompiler,
@@ -15,18 +19,14 @@ from nebullvm.operations.optimizations.compilers.intel_neural_compressor import 
 from nebullvm.operations.optimizations.compilers.utils import (
     intel_neural_compressor_is_available,
 )
+from nebullvm.operations.optimizations.optimizers.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
+)
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
 from nebullvm.operations.inference_learners.utils import load_model
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    QuantizationType,
-    Device,
-    ModelCompiler,
-    DeviceType,
-)
 
 device = Device(DeviceType.CPU)
 

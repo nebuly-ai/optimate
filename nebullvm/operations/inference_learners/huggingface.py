@@ -126,7 +126,7 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
 class DiffusionInferenceLearner(BaseInferenceLearner, ABC):
     @property
     def name(self) -> str:
-        return self.pipeline.unet.name
+        return self.pipeline.unet.model.name
 
     def __init__(self, pipeline: StableDiffusionPipeline):
         self.pipeline = pipeline
@@ -158,4 +158,21 @@ class DiffusionInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     def get_size(self):
-        return 0  # TODO
+        self.pipeline.unet.model.get_size()
+
+    def free_gpu_memory(self):
+        raise self.pipeline.unet.model.free_gpu_memory()
+
+    def get_inputs_example(self):
+        raise NotImplementedError()
+
+    @property
+    def output_format(self):
+        return ".pt"
+
+    @property
+    def input_format(self):
+        return ".pt"
+
+    def list2tensor(self, listified_tensor: List) -> Any:
+        raise NotImplementedError()

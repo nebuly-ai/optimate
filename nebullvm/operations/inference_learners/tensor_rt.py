@@ -9,6 +9,12 @@ import numpy as np
 from loguru import logger
 
 from nebullvm.config import NVIDIA_FILENAMES
+from nebullvm.core.models import (
+    Device,
+    DeviceType,
+    ModelParams,
+    DeepLearningFramework,
+)
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -19,12 +25,6 @@ from nebullvm.operations.inference_learners.base import (
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt, polygraphy
 from nebullvm.optional_modules.torch import torch, ScriptModule
-from nebullvm.tools.base import (
-    DeviceType,
-    ModelParams,
-    DeepLearningFramework,
-    Device,
-)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
     MultiStageTransformation,

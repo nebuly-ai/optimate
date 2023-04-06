@@ -1,10 +1,10 @@
+from nebullvm.core.models import DeepLearningFramework
 from nebullvm.operations.conversions.converters import (
     PytorchConverter,
     TensorflowConverter,
     ONNXConverter,
     Converter,
 )
-from nebullvm.tools.base import DeepLearningFramework
 
 
 def get_conversion_op(framework: DeepLearningFramework) -> Converter:

@@ -3,27 +3,27 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
+from nebullvm.core.models import (
+    DeviceType,
+    Device,
+    DeepLearningFramework,
+    QuantizationType,
+    ModelCompiler,
+)
 from nebullvm.operations.inference_learners.torchscript import (
     TorchScriptInferenceLearner,
 )
-from nebullvm.operations.optimizations.base import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
-)
 from nebullvm.operations.optimizations.compilers.torchscript import (
     TorchScriptCompiler,
+)
+from nebullvm.operations.optimizations.optimizers.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
 from nebullvm.operations.inference_learners.utils import load_model
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    QuantizationType,
-    Device,
-    ModelCompiler,
-    DeviceType,
-)
 from nebullvm.tools.utils import gpu_is_available
 
 device = (

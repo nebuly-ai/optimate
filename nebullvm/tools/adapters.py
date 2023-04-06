@@ -3,6 +3,7 @@ import copy
 from abc import abstractmethod
 from typing import List, Any
 
+from nebullvm.core.models import Device, DeviceType
 from nebullvm.operations.conversions.huggingface import convert_hf_model
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
@@ -12,7 +13,6 @@ from nebullvm.operations.inference_learners.huggingface import (
 )
 from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.diffusers import (
     get_unet_inputs,
     preprocess_diffusers,
@@ -113,10 +113,11 @@ class DiffusionAdapter(ModelAdapter):
 
 
 class HuggingFaceAdapter(ModelAdapter):
-    def __init__(self, model: Any, data: List, device: Device):
+    def __init__(self, model: Any, data: List, device: Device, **kwargs):
         self.original_model = model
         self.original_data = data
         self.device = device
+        self.tokenizer_params = kwargs
         self.__adapted = False
         self.__hf_model = None
         self.__hf_data = None
@@ -137,6 +138,7 @@ class HuggingFaceAdapter(ModelAdapter):
             self.original_model,
             self.original_data,
             self.device,
+            **self.tokenizer_params,
         )
         self.__hf_model = model
         self.__hf_data = data

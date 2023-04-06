@@ -1,3 +1,8 @@
+from nebullvm.core.models import (
+    DeepLearningFramework,
+    DeviceType,
+    ModelCompiler,
+)
 from nebullvm.operations.optimizations.optimizers.base import Optimizer
 from nebullvm.operations.optimizations.compilers.utils import (
     tvm_is_available,
@@ -16,11 +21,6 @@ from nebullvm.optional_modules.utils import (
     torch_is_available,
     tensorflow_is_available,
     onnx_is_available,
-)
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    ModelCompiler,
-    DeviceType,
 )
 from nebullvm.tools.utils import check_module_version
 

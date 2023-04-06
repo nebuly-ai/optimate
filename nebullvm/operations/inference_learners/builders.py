@@ -1,6 +1,12 @@
 from pathlib import Path
 from typing import Union, Any
 
+from nebullvm.core.models import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    DeviceType,
+)
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
@@ -45,12 +51,6 @@ from nebullvm.optional_modules.torch import (
     torch,
 )
 from nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    ModelParams,
-    DeviceType,
-    QuantizationType,
-)
 from nebullvm.tools.onnx import get_input_names, get_output_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,

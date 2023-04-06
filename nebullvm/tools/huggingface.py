@@ -11,9 +11,9 @@ from typing import (
 
 import numpy as np
 
+from nebullvm.core.models import Device, DeviceType
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, Module
-from nebullvm.tools.base import Device, DeviceType
 
 try:
     from transformers import (

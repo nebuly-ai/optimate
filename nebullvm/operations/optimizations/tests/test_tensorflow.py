@@ -2,29 +2,29 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
+from nebullvm.core.models import (
+    DeepLearningFramework,
+    QuantizationType,
+    Device,
+    DeviceType,
+    ModelCompiler,
+)
 from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
-from nebullvm.operations.optimizations.base import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
-)
 from nebullvm.operations.optimizations.compilers.tensorflow import (
     TensorflowBackendCompiler,
     TFLiteBackendCompiler,
+)
+from nebullvm.operations.optimizations.optimizers.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
 from nebullvm.operations.inference_learners.utils import load_model
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    QuantizationType,
-    DeviceType,
-    ModelCompiler,
-    Device,
-)
 from nebullvm.tools.utils import gpu_is_available
 
 

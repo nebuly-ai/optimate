@@ -1,8 +1,8 @@
 import abc
 from typing import Any, Dict, List, Optional
 
+from nebullvm.core.models import QuantizationType
 from nebullvm.operations.base import Operation
-from nebullvm.tools.base import QuantizationType
 
 
 class Compiler(Operation, abc.ABC):

@@ -10,14 +10,10 @@ from typing import Union, Dict, Any, List, Optional
 import numpy as np
 
 from nebullvm.config import LEARNER_METADATA_FILENAME
+from nebullvm.core.models import ModelParams, Device, QuantizationType
 from nebullvm.operations.base import Operation
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import (
-    ModelParams,
-    Device,
-    QuantizationType,
-)
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import (
     create_model_inputs_torch,

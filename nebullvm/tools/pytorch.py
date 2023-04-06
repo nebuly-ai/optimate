@@ -3,8 +3,8 @@ from typing import List, Tuple, Optional, Dict, Union, Sequence
 
 from loguru import logger
 
+from nebullvm.core.models import Device, DataType, DeviceType, InputInfo
 from nebullvm.optional_modules.torch import torch, DataLoader
-from nebullvm.tools.base import DataType, InputInfo, Device, DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.diffusers import get_default_dynamic_info
 

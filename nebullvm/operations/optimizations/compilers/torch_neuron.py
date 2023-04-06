@@ -1,5 +1,6 @@
 from typing import List, Tuple
 
+from nebullvm.core.models import QuantizationType, ModelParams, DeviceType
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
@@ -9,7 +10,6 @@ from nebullvm.optional_modules.torch import (
     symbolic_trace,
 )
 from nebullvm.optional_modules.torch_neuron import torch_neuron
-from nebullvm.tools.base import QuantizationType, DeviceType, ModelParams
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 

@@ -4,6 +4,7 @@ from typing import Union, List, Tuple
 import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.core.models import QuantizationType
 from nebullvm.operations.optimizations.compilers.base import Compiler
 
 from nebullvm.operations.optimizations.compilers.quantizations.onnx import (
@@ -12,7 +13,6 @@ from nebullvm.operations.optimizations.compilers.quantizations.onnx import (
 from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
-from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 

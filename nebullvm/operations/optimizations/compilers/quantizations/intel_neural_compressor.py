@@ -4,12 +4,12 @@ from typing import Any
 
 import yaml
 
+from nebullvm.core.models import QuantizationType
 from nebullvm.optional_modules.neural_compressor import (
     MixedPrecision,
     Quantization,
 )
 from nebullvm.optional_modules.torch import DataLoader, Module, GraphModule
-from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager, PytorchDataset
 from nebullvm.tools.transformations import (
     MultiStageTransformation,

@@ -1,4 +1,4 @@
-from nebullvm.tools.base import ModelCompiler, Device, DeviceType
+from nebullvm.core.models import Device, ModelCompiler, DeviceType
 
 
 def onnxruntime_is_available() -> bool:

@@ -1,10 +1,10 @@
+from nebullvm.core.models import QuantizationType
 from nebullvm.operations.optimizations.compilers.torchscript import (
     TorchScriptCompiler,
 )
 from nebullvm.optional_modules.torch import (
     torch,
 )
-from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
 
 

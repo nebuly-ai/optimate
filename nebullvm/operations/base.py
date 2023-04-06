@@ -3,7 +3,7 @@ from typing import Dict, Union
 
 from loguru import logger
 
-from nebullvm.tools.base import Device, DeviceType
+from nebullvm.core.models import Device, DeviceType
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from nebullvm.tools.utils import check_device
 

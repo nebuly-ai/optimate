@@ -4,6 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Tuple, Union
 
+from nebullvm.core.models import Device, DeviceType, ModelParams
 from nebullvm.operations.inference_learners.base import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
@@ -11,7 +12,6 @@ from nebullvm.operations.inference_learners.base import (
 from nebullvm.optional_modules.torch import (
     torch,
 )
-from nebullvm.tools.base import DeviceType, ModelParams, Device
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

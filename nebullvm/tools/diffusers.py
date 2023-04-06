@@ -19,6 +19,7 @@
 
 from typing import Dict, Union, List, Optional, Any, Tuple
 
+from nebullvm.core.models import Device
 from nebullvm.optional_modules.diffusers import (
     DiffusionPipeline,
     UNet2DConditionModel,
@@ -31,7 +32,6 @@ from nebullvm.optional_modules.huggingface import CLIPTextModel, CLIPTokenizer
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensor_rt import fold_constants
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import Device
 
 
 @torch.no_grad()

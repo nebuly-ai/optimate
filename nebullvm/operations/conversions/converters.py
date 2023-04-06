@@ -2,13 +2,13 @@ import abc
 from pathlib import Path
 from typing import Optional, List, Union
 
+from nebullvm.core.models import DeviceType, DeepLearningFramework, ModelParams
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
 from nebullvm.operations.conversions.tensorflow import convert_tf_to_onnx
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import DeepLearningFramework, DeviceType, ModelParams
 from nebullvm.tools.data import DataManager
 
 

@@ -1,5 +1,6 @@
 from typing import Union, Any
 
+from nebullvm.core.models import ModelParams, QuantizationType
 from nebullvm.operations.optimizations.compilers.base import Compiler
 
 from nebullvm.optional_modules.torch import (
@@ -7,7 +8,6 @@ from nebullvm.optional_modules.torch import (
     Module,
     GraphModule,
 )
-from nebullvm.tools.base import QuantizationType, ModelParams
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 

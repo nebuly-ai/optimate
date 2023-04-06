@@ -7,13 +7,13 @@ from typing import Any
 import cpuinfo
 import psutil
 
+from nebullvm.core.models import DeviceType, Device
 from nebullvm.optional_modules.torch import Module
 from nebullvm.optional_modules.torch_xla import xm
 from nebullvm.optional_modules.utils import (
     torch_is_available,
     tensorflow_is_available,
 )
-from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.pytorch import torch_get_device_name
 from nebullvm.tools.tf import tensorflow_get_gpu_name
 

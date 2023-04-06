@@ -9,6 +9,11 @@ from nebullvm.core.models import (
     OriginalModel,
     OptimizedModel,
     BenchmarkOriginalModelResult,
+    ModelCompiler,
+    ModelCompressor,
+    OptimizationTime,
+    ModelParams,
+    DeepLearningFramework,
 )
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.utils import get_conversion_op
@@ -32,13 +37,6 @@ from nebullvm.tools.adapters import (
     ModelAdapter,
     DiffusionAdapter,
     HuggingFaceAdapter,
-)
-from nebullvm.tools.base import (
-    OptimizationTime,
-    ModelCompiler,
-    ModelCompressor,
-    DeepLearningFramework,
-    ModelParams,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.diffusers import (
@@ -105,6 +103,7 @@ class OptimizeInferenceOp(Operation):
         ignore_compilers: List[str] = None,
         ignore_compressors: List[str] = None,
         store_latencies: bool = False,
+        **kwargs,
     ) -> OptimizeInferenceResult:
 
         self._check_inputs(model, input_data)
@@ -148,7 +147,9 @@ class OptimizeInferenceOp(Operation):
             )
             model_adapter = DiffusionAdapter(model, data, self.device)
         elif is_huggingface_data(data[0]):
-            model_adapter = HuggingFaceAdapter(model, data, self.device)
+            model_adapter = HuggingFaceAdapter(
+                model, data, self.device, **kwargs
+            )
             if dynamic_info is None:
                 self.logger.warning(
                     "Dynamic shape info has not been provided for the "
@@ -225,6 +226,7 @@ class OptimizeInferenceOp(Operation):
 
             # Optimize models
             optimized_models: List[OptimizedModel] = []
+            is_diffusion = is_diffusion_model(model)
             for i, model in enumerate(conversion_op.get_result()):
                 optimized_models += self._optimize(
                     model=model,
@@ -239,7 +241,7 @@ class OptimizeInferenceOp(Operation):
                     source_dl_framework=dl_framework,
                     pipeline_idx=i + 1,
                     len_pipelines=len(conversion_op.get_result()),
-                    is_diffusion=is_diffusion_model(model),
+                    is_diffusion=is_diffusion,
                 )
 
         optimized_models.sort(key=lambda x: x.latency_seconds, reverse=False)

@@ -4,6 +4,7 @@ from typing import Union, Tuple, Dict, Type
 
 from loguru import logger
 
+from nebullvm.core.models import Device, ModelParams, DeepLearningFramework
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -19,11 +20,6 @@ from nebullvm.optional_modules.torch import (
     convert_fx,
     Module,
     GraphModule,
-)
-from nebullvm.tools.base import (
-    ModelParams,
-    DeepLearningFramework,
-    Device,
 )
 from nebullvm.tools.pytorch import (
     save_with_torch_fx,
