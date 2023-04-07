@@ -262,10 +262,9 @@ class OptimizeInferenceOp(Operation):
         lowest_latency = self._extract_lowest_latency_model(optimized_models)
 
         if model_adapter is not None:
-            lowest_latency.inference_learner = (
-                model_adapter.adapt_inference_learner(
-                    lowest_latency.inference_learner
-                )
+            original_model = model_adapter.adapt_original_model(original_model)
+            lowest_latency = model_adapter.adapt_inference_learner(
+                lowest_latency
             )
 
         return OptimizeInferenceResult(

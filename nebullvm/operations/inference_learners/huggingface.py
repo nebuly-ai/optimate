@@ -10,8 +10,10 @@ from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
 )
 from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
+from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.diffusers import postprocess_diffusers
 from nebullvm.tools.huggingface import restructure_output
+from nebullvm.tools.pytorch import get_torch_model_size
 
 
 class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
@@ -158,7 +160,17 @@ class DiffusionInferenceLearner(BaseInferenceLearner, ABC):
         )
 
     def get_size(self):
-        self.pipeline.unet.model.get_size()
+        (
+            self.pipeline.unet.model.get_size()
+            + sum(
+                [
+                    get_torch_model_size(v)
+                    for (k, v) in self.pipeline.__dict__.items()
+                    if isinstance(v, torch.nn.Module) and k != "unet"
+                ]
+            )
+            / 1e6
+        )
 
     def free_gpu_memory(self):
         raise self.pipeline.unet.model.free_gpu_memory()
