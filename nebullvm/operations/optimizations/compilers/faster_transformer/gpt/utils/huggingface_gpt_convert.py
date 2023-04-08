@@ -22,6 +22,7 @@ import configparser
 import os
 import sys
 
+from loguru import logger
 import numpy as np
 from transformers import GPT2Model  # transformers-4.10.0-py3
 
@@ -108,7 +109,7 @@ def split_and_convert_process(i, saved_dir, factor, key, args, val):
             split_vals[j].tofile(saved_path)
 
     else:
-        print("[ERROR] cannot find key '{}'".format(key))
+        logger.warning("[ERROR] cannot find key '{}'".format(key))
 
 
 def split_and_convert(args):
@@ -174,7 +175,7 @@ def main(
         with open(saved_dir + "/config.ini", "w") as configfile:
             config.write(configfile)
     except:  # noqa: E722
-        print("Fail to save the config in config.ini.")
+        logger.warning("Fail to save the config in config.ini.")
 
     np_weight_data_type = get_weight_data_type(weight_data_type)
 
@@ -305,9 +306,9 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    print("\n=============== Argument ===============")
+    logger.info("\n=============== Argument ===============")
     for key in vars(args):
-        print("{}: {}".format(key, vars(args)[key]))
-    print("========================================")
+        logger.info("{}: {}".format(key, vars(args)[key]))
+    logger.info("========================================")
 
     split_and_convert(args)

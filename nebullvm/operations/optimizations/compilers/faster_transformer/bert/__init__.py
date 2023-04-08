@@ -14,10 +14,6 @@ from nebullvm.operations.optimizations.compilers.utils import (
 from nebullvm.optional_modules.huggingface import BertModel as HFBertModel
 from nebullvm.optional_modules.torch import torch
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 default_lib_path = str(
     get_faster_transformer_repo_path()
@@ -60,7 +56,6 @@ def swap_model(
 ) -> FasterBertModel:
     # bert model need some custom code to call the custom encoder
     # so we need to use custom bert class
-    logger.info("Swapping bert model to use Faster Transformer")
     new_model = FasterBertModel(model.config)
     new_model.load_state_dict(model.state_dict())
     swap_bert_encoder(new_model, data_type, lib_path, remove_padding)
