@@ -13,24 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tempfile
-from typing import Optional, Iterable, Union, List, Tuple, Callable
 import os
+import tempfile
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
-from nebullvm.operations.optimizations.compilers.utils import (
-    get_faster_transformer_repo_path,
-)
-from nebullvm.optional_modules.torch import torch
-from nebullvm.optional_modules.huggingface import (
-    GPT2LMHeadModel,
-)
 from nebullvm.operations.optimizations.compilers.faster_transformer.gpt.utils import (  # noqa: E501
     gpt_decoder,
 )
 from nebullvm.operations.optimizations.compilers.faster_transformer.gpt.utils.huggingface_gpt_convert import (  # noqa: E501
     main as convert_huggingface_gpt_to_faster_transformer,
 )
-
+from nebullvm.operations.optimizations.compilers.utils import (
+    get_faster_transformer_repo_path,
+)
+from nebullvm.optional_modules.huggingface import GPT2LMHeadModel
+from nebullvm.optional_modules.torch import torch
 
 lib_path = default_lib_path = str(
     get_faster_transformer_repo_path()
