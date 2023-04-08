@@ -1,3 +1,4 @@
+# Based on: https://github.com/NVIDIA/FasterTransformer/blob/4402759e48f2340220638675f464b6ba1f79ac3c/examples/pytorch/bert/utils/modeling_bert.py  # noqa: E501
 # This file is mostly copied from the FasterTransformer repo
 # https://github.com/NVIDIA/FasterTransformer
 # Copyright (c) 2020-2023, NVIDIA CORPORATION.  All rights reserved.
@@ -16,10 +17,12 @@
 
 from typing import List, Optional
 
+from loguru import logger
+
 from nebullvm.optional_modules.torch import torch, torch_distributed as dist
 
-from transformers import BertConfig
-from transformers.models.bert.modeling_bert import (
+from nebullvm.optional_modules.huggingface import (
+    BertConfig,
     BertEmbeddings,
     BertEncoder,
     BertPooler,
@@ -53,13 +56,13 @@ class EncoderWeights(object):
             try:
                 dist.init_process_group(backend="mpi")
             except:  # noqa: E722
-                print(
+                logger.info(
                     "[INFO] WARNING: Exception occurred in "
                     "dist.init_process_group(backend='mpi')."
                     "Maybe the process group has been initialized somewhere else."  # noqa: E501
                 )
         else:
-            print("[INFO] MPI is not available in this PyTorch build.")
+            logger.info("[INFO] MPI is not available in this PyTorch build.")
             assert (
                 tensor_para_size == 1
             ), "[FATAL] MPI is required for tensor_para_size > 1."
@@ -873,7 +876,7 @@ class CustomEncoder(torch.nn.Module):
         self.layer_num = layer_num
         self.remove_padding = remove_padding
         self.int8_mode = int8_mode
-        print(f"lodding {path}")
+        logger.info(f"loading faster transformer library from {path}")
         torch.classes.load_library(path)
 
         weights_ = weights.listed_weights()
@@ -884,13 +887,13 @@ class CustomEncoder(torch.nn.Module):
             try:
                 dist.init_process_group(backend="mpi")
             except:  # noqa: E722
-                print(
+                logger.info(
                     "[INFO] WARNING: Exception occurred in"
                     "dist.init_process_group(backend='mpi')."
                     "Maybe the process group has been initialized somewhere else."  # noqa: E501
                 )
         else:
-            print("[INFO] MPI is not available in this PyTorch build.")
+            logger.info("[INFO] MPI is not available in this PyTorch build.")
             assert (
                 tensor_para_size == 1
             ), "[FATAL] MPI is required for tensor_para_size > 1."
