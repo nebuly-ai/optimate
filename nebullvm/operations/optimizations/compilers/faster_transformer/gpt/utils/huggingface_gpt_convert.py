@@ -19,14 +19,13 @@ Convert huggingface GPT model. Use https://huggingface.co/gpt2 as demo.
 
 import argparse
 import configparser
-
-# import multiprocessing
-import numpy as np
-import torch
-
 import os
 import sys
+
+import numpy as np
 from transformers import GPT2Model  # transformers-4.10.0-py3
+
+from nebullvm.optional_modules.torch import torch
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path + "/../../../..")

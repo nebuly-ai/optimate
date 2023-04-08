@@ -20,12 +20,12 @@ from typing import List, Literal, Optional, Union
 import os
 
 import numpy as np
-import torch
 
 from . import comm
 from . import profiler
 from .gpt import GptInitModelParameters
 
+from nebullvm.optional_modules.torch import torch
 
 PathLike = Union[str, Path]
 
