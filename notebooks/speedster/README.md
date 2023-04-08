@@ -5,6 +5,7 @@ This folder contains notebooks showing how to use the `Speedster` app to optimiz
 The following frameworks are supported:
 - PyTorch
 - HuggingFace
+- Diffusers
 - Tensorflow
 - ONNX
 

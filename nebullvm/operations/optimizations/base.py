@@ -7,7 +7,10 @@ from nebullvm.config import (
     CONSTRAINED_METRIC_DROP_THS,
 )
 from nebullvm.operations.base import Operation
-from nebullvm.operations.inference_learners.base import BuildInferenceLearner
+from nebullvm.operations.inference_learners.base import (
+    BuildInferenceLearner,
+    BaseInferenceLearner,
+)
 from nebullvm.operations.inference_learners.builders import (
     DeepSparseBuildInferenceLearner,
     FasterTransformerBuildInferenceLearner,
@@ -88,13 +91,14 @@ class Optimizer(Operation, abc.ABC):
         model: Any,
         input_data: DataManager,
         optimization_time: OptimizationTime,
-        metric_drop_ths: str,
+        metric_drop_ths: float,
         metric: Callable,
         model_params: ModelParams,
         model_outputs: List[Tuple[Any, ...]],
         ignore_compilers: List[ModelCompiler],
         ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
+        is_diffusion: bool = False,
     ):
         self.source_dl_framework = source_dl_framework
 
@@ -130,6 +134,7 @@ class Optimizer(Operation, abc.ABC):
             model_params=model_params,
             model_outputs=model_outputs,
             ignore_compilers=ignore_compilers,
+            is_diffusion=is_diffusion,
         )
 
     @abc.abstractmethod
@@ -174,11 +179,12 @@ class Optimizer(Operation, abc.ABC):
         model: Union[torch.nn.Module, tf.Module, str],
         input_data: DataManager,
         optimization_time: OptimizationTime,
-        metric_drop_ths: str,
+        metric_drop_ths: float,
         metric: Callable,
         model_params: ModelParams,
         model_outputs: List[Tuple[Any, ...]],
         ignore_compilers: List[ModelCompiler],
+        is_diffusion: bool = False,
     ):
 
         if metric_drop_ths is not None:
@@ -217,6 +223,7 @@ class Optimizer(Operation, abc.ABC):
                             quantization_type=q_type,
                             input_tfms=input_tfms,
                             onnx_output_path=tmp_dir,
+                            is_diffusion=is_diffusion,
                         )
 
                         compiled_model = compiler_op.get_result()
@@ -331,7 +338,7 @@ class Optimizer(Operation, abc.ABC):
                 value=optimization_info,
             )
 
-    def get_result(self) -> List:
+    def get_result(self) -> List[Tuple[BaseInferenceLearner, float, float]]:
         return self.optimized_models
 
 

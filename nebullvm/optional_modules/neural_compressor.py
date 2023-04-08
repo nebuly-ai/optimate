@@ -1,3 +1,5 @@
+from nebullvm.optional_modules.dummy import DummyClass
+
 try:
     import neural_compressor  # noqa F401
     from neural_compressor.adaptor.pytorch import (
@@ -11,7 +13,8 @@ try:
     )
 except ImportError:
     cfg_to_qconfig = cfgs_to_fx_cfgs = None
-    MixedPrecision = Quantization = Pruning = object
+    MixedPrecision = Quantization = Pruning = DummyClass
 except ValueError:
     # MacOS
-    MixedPrecision = Quantization = Pruning = object
+    cfg_to_qconfig = cfgs_to_fx_cfgs = None
+    MixedPrecision = Quantization = Pruning = DummyClass

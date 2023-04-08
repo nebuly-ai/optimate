@@ -1,7 +1,7 @@
+from nebullvm.optional_modules.dummy import DummyClass
+
 try:
-    from transformers import (
-        PreTrainedModel,
-    )
+    from transformers import PreTrainedModel, CLIPTextModel, CLIPTokenizer
     from transformers.tokenization_utils import PreTrainedTokenizer
     from transformers.models.bert.modeling_bert import (
         BertModel,
@@ -13,13 +13,15 @@ try:
     from transformers import BertConfig, GPT2Tokenizer, GPT2LMHeadModel
 except ImportError:
     # add placeholders for function definition
-    PreTrainedModel = None
-    PreTrainedTokenizer = None
-    BertModel = None
-    BertEmbeddings = None
-    BertEncoder = None
-    BertPooler = None
-    BertPreTrainedModel = None
-    BertConfig = None
-    GPT2Tokenizer = None
-    GPT2LMHeadModel = None
+    PreTrainedModel = DummyClass
+    CLIPTextModel = DummyClass
+    CLIPTokenizer = DummyClass
+    PreTrainedTokenizer = DummyClass
+    BertModel = DummyClass
+    BertEmbeddings = DummyClass
+    BertEncoder = DummyClass
+    BertPooler = DummyClass
+    BertPreTrainedModel = DummyClass
+    BertConfig = DummyClass
+    GPT2Tokenizer = DummyClass
+    GPT2LMHeadModel = DummyClass

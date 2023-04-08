@@ -2,9 +2,9 @@
 
 `Speedster` is an open-source module designed to speed up AI inference in just a few lines of code. The library automatically applies the best set of SOTA optimization techniques to achieve the maximum inference speed-up (latency, throughput, model size) physically possible on your hardware (single machine).
 
-`Speedster` makes it easy to combine optimization techniques across the whole software to hardware stack, delivering best in class speed-ups. If you like the idea, give us a star to support the project ⭐
+`Speedster` makes it easy to combine optimization techniques across the whole software-to-hardware stack, delivering best-in-class speed-ups. If you like the idea, give us a star to support the project ⭐
 
-![speedster_benchmarks](https://user-images.githubusercontent.com/42771598/212486740-431328f3-f1e5-47bf-b6c9-b6629399ad09.png)
+![speedster](https://user-images.githubusercontent.com/53374883/225599469-f1a626f0-c001-42bd-bc8b-ec0e966ddad6.png)
 
 The core `Speedster` workflow consists of 3 steps:
 
@@ -36,7 +36,7 @@ For more details on how to install Speedster, please visit our [Installation](h
 
 # Quick start
 
-Only one line of code - that’s what you need to accelerate your model! Find below your getting started guide for 4 different input model frameworks:
+Only one line of code - that’s what you need to accelerate your model! Find below your getting started guide for 5 different input model frameworks:
 
 <details>
 <summary>🔥 PyTorch </summary>
@@ -79,13 +79,13 @@ optimized_model = load_model("model_save_path")
 
 output = optimized_model(input_sample)
 ```
-For more details, please visit [Getting Started with PyTorch optimization](https://docs.nebuly.com/Speedster/getting_started/pytorch_getting_started/).
+For more details, please visit [Getting Started with PyTorch Optimization](https://docs.nebuly.com/Speedster/getting_started/pytorch_getting_started/).
     
 </details>
 <details>
-<summary>🤗 Huggingface Transformers </summary>
+<summary>🤗 Hugging Face Transformers </summary>
     
-In this section, we will learn about the 4 main steps needed to optimize 🤗 Huggingface Transformer models:
+In this section, we will learn about the 4 main steps needed to optimize 🤗 Hugging Face Transformer models:
 
 1) Input your model and data
 2) Run the optimization
@@ -98,7 +98,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
     from transformers import AlbertModel, AlbertTokenizer
     from speedster import optimize_model, save_model
 
-    #1a. Provide input model: Load Albert as example
+    #1a. Provide input model: Load Albert as an example
     model = AlbertModel.from_pretrained("albert-base-v1")
     tokenizer = AlbertTokenizer.from_pretrained("albert-base-v1")
 
@@ -141,7 +141,7 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
     from transformers import T5Tokenizer, T5ForConditionalGeneration
     from speedster import optimize_model, save_model
 
-    #1a. Provide input model: Load T5 as example
+    #1a. Provide input model: Load T5 as an example
     model = T5ForConditionalGeneration.from_pretrained("t5-small")
     tokenizer = T5Tokenizer.from_pretrained("t5-small") 
 
@@ -180,8 +180,72 @@ In this section, we will learn about the 4 main steps needed to optimize 🤗 Hu
     </details>
     
 </details>
+
 <details>
+<summary>🧨 Hugging Face Diffusers </summary>
+
+> :warning: In order to work properly, the diffusers optimization requires `CUDA>=12.0` and `tensorrt>=8.6.0`. For additional details, please look the docs [here](https://docs.nebuly.com/Speedster/getting_started/diffusers_getting_started/).
+
+In this section, we will learn about the 4 main steps needed to optimize Stable Diffusion models from the Diffusers library:
+
+1) Input your model and data
+2) Run the optimization
+3) Save your optimized model 
+4) Load and run your optimized model in production
+
+```python
+import torch
+from diffusers import StableDiffusionPipeline
+from speedster import optimize_model, save_model
+
+#1 Provide input model and data
+model_id = "CompVis/stable-diffusion-v1-4"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+if device == "cuda":
+    # On GPU we load by default the model in half precision, because it's faster and lighter.
+    pipe = StableDiffusionPipeline.from_pretrained(model_id, revision='fp16', torch_dtype=torch.float16)
+else:
+    pipe = StableDiffusionPipeline.from_pretrained(model_id)
+
+# Create some example input data
+input_data = [
+    "a photo of an astronaut riding a horse on mars",
+    "a monkey eating a banana in a forest",
+    "white car on a road surrounded by palm trees",
+    "a fridge full of bottles of beer",
+    "madara uchiha throwing asteroids against people"
+]
+
+#2 Run Speedster optimization
+optimized_model = optimize_model(
+    model=pipe,
+    input_data=input_data,
+    optimization_time="unconstrained",
+    ignore_compilers=["torch_tensor_rt", "tvm"],
+    metric_drop_ths=0.1,
+)
+
+#3 Save the optimized model
+save_model(optimized_model, "model_save_path")
+```
+
+Once the optimization is completed, start using the accelerated model (on steroids 🚀).
+
+```python
+#4 Load and run your PyTorch accelerated model in production
+from speedster import load_model
+
+optimized_model = load_model("model_save_path", pipe=pipe)
+
+test_prompt = "futuristic llama with a cyberpunk city on the background"
+output = optimized_model(test_prompt).images[0]
+```
+For more details, please visit [Getting Started with Stable Diffusion optimization](https://docs.nebuly.com/Speedster/getting_started/diffusers_getting_started/).
     
+</details>
+
+<details>
 <summary>🌊 TensorFlow/Keras </summary>
     
 In this section, we will learn about the 4 main steps needed to optimize TensorFlow/Keras models:
@@ -276,7 +340,8 @@ For more details, please visit [Getting Started with ONNX optimization](https://
 
 - [Installation](https://docs.nebuly.com/Speedster/installation/)
 - [Getting started with PyTorch optimization](https://docs.nebuly.com/Speedster/getting_started/pytorch_getting_started/)
-- [Getting started with HuggingFace optimization](https://docs.nebuly.com/Speedster/getting_started/hf_getting_started/)
+- [Getting started with Hugging Face optimization](https://docs.nebuly.com/Speedster/getting_started/hf_getting_started/)
+- [Getting started with Stable Diffusion optimization](https://docs.nebuly.com/Speedster/getting_started/diffusers_getting_started/)
 - [Getting started with TensorFlow optimization](https://docs.nebuly.com/Speedster/getting_started/tf_getting_started/)
 - [Getting started with ONNX optimization](https://docs.nebuly.com/Speedster/getting_started/onnx_getting_started/)
 - [Key concepts](https://docs.nebuly.com/Speedster/key_concepts/)
@@ -287,7 +352,7 @@ For more details, please visit [Getting Started with ONNX optimization](https://
 
 # **Key concepts**
 
-`Speedster`'s design reflects our mission to automatically master each and every existing AI acceleration techniques to deliver the **fastest AI ever**. As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that our community can benefit from it.
+`Speedster`'s design reflects our mission to automatically master each and every existing AI acceleration technique to deliver the **fastest AI ever**. As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that our community can benefit from it.
 
 `Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the software to hardware stack.
 
@@ -316,12 +381,12 @@ The **compiler stage** leverages the following open-source projects:
 
 
 # **Community**
-We’re developing `Speedster` for and together with our community, so plase get in touch on GitHub or Discord. 
+We’re developing `Speedster` for and together with our community, so please get in touch on GitHub or Discord. 
 
 • **[GitHub issues](https://github.com/nebuly-ai/nebullvm/issues)**: suggest new acceleration components, request new features, and report bugs and improvements.
 
 • **[Discord](https://discord.gg/RbeQMu886J)**: learn about AI acceleration, share exciting projects and hang out with our global community.
 
-The best way to get started is to pick a good-first issue. Please read our [contribution guidelines](https://docs.nebuly.com/contributions/) for a deep dive on how to best contribute to our project!
+The best way to get started is to pick a good-first issue. Please read our [contribution guidelines](https://docs.nebuly.com/contributions/) for a deep dive into how to best contribute to our project!
 
 Don't forget to leave a star ⭐ to support the project and happy acceleration 🚀

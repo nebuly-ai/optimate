@@ -29,6 +29,8 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
             model.
     """
 
+    name = "HuggingFace"
+
     def __init__(
         self,
         core_inference_learner: PytorchBaseInferenceLearner,

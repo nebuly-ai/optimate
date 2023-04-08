@@ -2,6 +2,12 @@
 
 This section contains all the available notebooks that show how to leverage Speedster to optimize ONNX models.
 
+## Notebooks:
+| Notebook                                                                                                                                           | Description                                                          |                                                                                                                                                                                                                            |
+|:---------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Accelerate ONNX Resnet50](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/onnx/Accelerate_ONNX_ResNet50_with_Speedster.ipynb) | Show how to optimize with Speedster a Resnet50 model in ONNX format. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/onnx/Accelerate_ONNX_ResNet50_with_Speedster.ipynb) |
+
+
 ## ONNX API quick view:
 
 ```python
@@ -32,8 +38,3 @@ x = np.random.randn(1, 3, 224, 224).astype(np.float32)
 
 res_optimized = optimized_model(x)
 ```
-
-## Notebooks:
-| Notebook                                                                                                                                | Description                                                          |                                                                                                                                                                                                                                                                                                             |
-|:----------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Accelerate ONNX Resnet50](https://github.com/nebuly-ai/nebullvm/blob/main/notebooks/speedster/onnx/Accelerate_ONNX_ResNet50_with_Speedster.ipynb) | Show how to optimize with Speedster a Resnet50 model in ONNX format. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nebuly-ai/nebullvm/blob/main/notebooks/speedster/onnx/Accelerate_ONNX_ResNet50_with_Speedster.ipynb) |

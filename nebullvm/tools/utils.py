@@ -29,15 +29,15 @@ from nebullvm.tools.base import (
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     extract_info_from_np_data,
-    get_output_sizes_onnx,
+    get_output_info_onnx,
 )
 from nebullvm.tools.pytorch import (
     extract_info_from_torch_data,
-    get_outputs_sizes_torch,
+    get_output_info_torch,
 )
 from nebullvm.tools.tf import (
     extract_info_from_tf_data,
-    get_outputs_sizes_tf,
+    get_output_info_tf,
 )
 
 
@@ -119,10 +119,11 @@ def check_input_data(input_data: Union[Iterable, Sequence]):
         assert isinstance(
             input_data[0][0][0], (np.ndarray, torch.Tensor, tf.Tensor)
         )
-        assert isinstance(
-            input_data[0][1],
-            (np.ndarray, torch.Tensor, tf.Tensor, int, float, type(None)),
-        )
+        if len(input_data[0]) > 1:
+            assert isinstance(
+                input_data[0][1],
+                (np.ndarray, torch.Tensor, tf.Tensor, int, float, type(None)),
+            )
     except:  # noqa E722
         return False
     else:
@@ -168,6 +169,7 @@ def extract_info_from_data(
     dl_framework: DeepLearningFramework,
     dynamic_info: Optional[Dict],
     device: Device,
+    is_diffusion: bool = False,
 ):
     check_dynamic_info_inputs(dynamic_info, input_data.get_list(1)[0])
     batch_size, input_sizes, input_types, dynamic_info = INFO_EXTRACTION_DICT[
@@ -177,6 +179,11 @@ def extract_info_from_data(
         input_data,
         dynamic_axis=dynamic_info,
         device=device,
+        is_diffusion=is_diffusion,
+    )
+
+    output_infos = OUTPUT_INFO_COMPUTATION_DICT[dl_framework](
+        model, input_data[0][0], device
     )
     model_params = ModelParams(
         batch_size=batch_size,
@@ -184,9 +191,8 @@ def extract_info_from_data(
             {"size": size, "dtype": dtype}
             for size, dtype in zip(input_sizes, input_types)
         ],
-        output_sizes=OUTPUT_SIZE_COMPUTATION_DICT[dl_framework](
-            model, input_data[0][0], device
-        ),
+        output_sizes=[info[0] for info in output_infos],
+        output_types=[info[1] for info in output_infos],
         dynamic_info=dynamic_info,
     )
     return model_params
@@ -240,14 +246,21 @@ def check_device(device: Optional[str]) -> Device:
     return device
 
 
+def get_gpu_compute_capability(gpu_idx: int) -> float:
+    compute_capability = subprocess.check_output(
+        ["nvidia-smi", "--query-gpu=compute_cap", "--format=csv,noheader"]
+    ).decode("utf-8")
+    return float(compute_capability.split("\n")[gpu_idx])
+
+
 INFO_EXTRACTION_DICT: Dict[DeepLearningFramework, Callable] = {
     DeepLearningFramework.PYTORCH: extract_info_from_torch_data,
     DeepLearningFramework.TENSORFLOW: extract_info_from_tf_data,
     DeepLearningFramework.NUMPY: extract_info_from_np_data,
 }
 
-OUTPUT_SIZE_COMPUTATION_DICT: Dict[DeepLearningFramework, Callable] = {
-    DeepLearningFramework.PYTORCH: get_outputs_sizes_torch,
-    DeepLearningFramework.TENSORFLOW: get_outputs_sizes_tf,
-    DeepLearningFramework.NUMPY: get_output_sizes_onnx,
+OUTPUT_INFO_COMPUTATION_DICT: Dict[DeepLearningFramework, Callable] = {
+    DeepLearningFramework.PYTORCH: get_output_info_torch,
+    DeepLearningFramework.TENSORFLOW: get_output_info_tf,
+    DeepLearningFramework.NUMPY: get_output_info_onnx,
 }

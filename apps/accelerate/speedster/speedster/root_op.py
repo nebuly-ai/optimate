@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import pickle
@@ -12,6 +13,7 @@ from typing import (
     Dict,
     Callable,
     List,
+    Tuple,
 )
 
 from loguru import logger
@@ -39,6 +41,7 @@ from nebullvm.operations.optimizations.optimizers import (
 from nebullvm.operations.optimizations.utils import (
     map_compilers_and_compressors,
 )
+from nebullvm.optional_modules.diffusers import diffusers, UNet2DConditionModel
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
 from nebullvm.optional_modules.utils import check_dependencies
@@ -51,6 +54,13 @@ from nebullvm.tools.base import (
     DeviceType,
 )
 from nebullvm.tools.data import DataManager
+from nebullvm.tools.diffusers import (
+    DiffusionUNetWrapper,
+    is_diffusion_model_pipe,
+    preprocess_diffusers,
+    postprocess_diffusers,
+    get_unet_inputs,
+)
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from nebullvm.tools.utils import (
     get_dl_framework,
@@ -72,7 +82,7 @@ from speedster.utils import (
 SPEEDSTER_FEEDBACK_COLLECTOR = FeedbackCollector(
     url="https://nebuly.cloud/v1/store_speedster_results",
     disable_telemetry_environ_var="SPEEDSTER_DISABLE_TELEMETRY",
-    app_version="0.2.1",
+    app_version="0.3.0",
 )
 
 
@@ -105,6 +115,7 @@ class SpeedsterRootOp(Operation):
         super().__init__()
 
         self.model = None
+        self.pipe = None
         self.data = None
         self.optimal_model = None
         self.conversion_op = None
@@ -190,6 +201,43 @@ class SpeedsterRootOp(Operation):
                         "depending on the framework used.\n"
                     )
 
+            needs_conversion_to_diffusers = False
+            is_diffusion = False
+            if is_diffusion_model_pipe(self.model):
+                self.logger.info(
+                    "The provided model is a diffusion model. "
+                    "Speedster will optimize the UNet part of the model."
+                )
+                self.pipe = copy.deepcopy(self.model)
+                self.model.get_unet_inputs = get_unet_inputs
+                self.model.to(self.device.to_torch_format())
+                self.data = [
+                    (
+                        tuple(
+                            d.reshape((1,)) if d.shape == torch.Size([]) else d
+                            for d in self.model.get_unet_inputs(
+                                self.model, prompt=prompt
+                            )
+                            if d is not None
+                        ),
+                        None,
+                    )
+                    for prompt in self.data
+                ]
+
+                self.model = preprocess_diffusers(self.model)
+                needs_conversion_to_diffusers = True
+                is_diffusion = True
+            elif isinstance(
+                model, (UNet2DConditionModel, DiffusionUNetWrapper)
+            ) or (
+                hasattr(model, "model")
+                and isinstance(
+                    model.model, UNet2DConditionModel
+                )
+            ):
+                is_diffusion = True
+
             needs_conversion_to_hf = False
             if is_huggingface_data(self.data[0]):
                 (
@@ -209,9 +257,9 @@ class SpeedsterRootOp(Operation):
                         "HuggingFace model. The resulting optimized model "
                         "will be usable only with a fixed input shape. "
                         "To optimize the model for dynamic shapes, please "
-                        "look here: https://nebuly.gitbook.io/nebuly/speeds"
-                        "ter/get-started/examples-of-api-options#using-dynamic"
-                        "-shape."
+                        "look here: https://nebuly.gitbook.io/nebuly/modules/"
+                        "speedster/how-to-guides"
+                        "#using-dynamic-shape."
                     )
 
             if not isinstance(self.data, DataManager):
@@ -248,6 +296,7 @@ class SpeedsterRootOp(Operation):
                 dl_framework=dl_framework,
                 dynamic_info=dynamic_info,
                 device=self.device,
+                is_diffusion=is_diffusion,
             )
 
             self.data.split(TRAIN_TEST_SPLIT_RATIO)
@@ -255,7 +304,7 @@ class SpeedsterRootOp(Operation):
             model_name = get_model_name(self.model)
             model_info = {
                 "model_name": model_name,
-                "model_size": read_model_size(model),
+                "model_size": read_model_size(self.model),
                 "framework": dl_framework.value,
             }
             self.feedback_collector.store_info(
@@ -302,7 +351,7 @@ class SpeedsterRootOp(Operation):
                         if isinstance(self.conversion_op.get_result()[0], str)
                         else _get_model_len(self.conversion_op.get_result()[0])
                     )
-                    for model in self.conversion_op.get_result():
+                    for i, model in enumerate(self.conversion_op.get_result()):
                         optimized_models += self._optimize(
                             model=model,
                             optimization_time=optimization_time,
@@ -312,6 +361,9 @@ class SpeedsterRootOp(Operation):
                             ignore_compilers=ignore_compilers,
                             ignore_compressors=ignore_compressors,
                             source_dl_framework=dl_framework,
+                            pipeline_idx=i + 1,
+                            len_pipelines=len(self.conversion_op.get_result()),
+                            is_diffusion=is_diffusion,
                         )
 
             optimized_models.sort(key=lambda x: x[1], reverse=False)
@@ -357,6 +409,14 @@ class SpeedsterRootOp(Operation):
                 self.feedback_collector.reset("model_id")
                 self.feedback_collector.reset("model_metadata")
 
+                # Normal models have batch size B, diffusion models
+                # have batch size 2B
+                batch_size = (
+                    model_params.batch_size
+                    if not is_diffusion
+                    else model_params.batch_size / 2
+                )
+
                 table = [
                     [
                         "backend",
@@ -372,9 +432,9 @@ class SpeedsterRootOp(Operation):
                     ],
                     [
                         "throughput",
-                        f"{(1 / orig_latency) * model_params.batch_size:.2f} "
+                        f"{(1 / orig_latency) * batch_size:.2f} " f"data/sec",
+                        f"{1 / optimized_models[0][1]* batch_size:.2f} "
                         f"data/sec",
-                        f"{1 / optimized_models[0][1]:.2f} data/sec",
                         f"{(1 / optimized_models[0][1]) / (1 / orig_latency):.2f}x",  # noqa: E501
                     ],
                     [
@@ -428,9 +488,8 @@ class SpeedsterRootOp(Operation):
                         f"{orig_latency / optimized_models[0][1]:.2f}x. "
                         f"If you want to get a faster optimized model, "
                         f"see the following link for some suggestions: "
-                        f"https://docs.nebuly.com/modules/speedster/getting-"
-                        f"started/run-the-optimization#acceleration-sugges"
-                        f"tions\n"
+                        f"https://docs.nebuly.com/Speedster/advanced_"
+                        f"options/#acceleration-suggestions\n"
                     )
 
                 self.logger.remove(handler_id)
@@ -447,6 +506,17 @@ class SpeedsterRootOp(Operation):
                         input_names=input_names,
                         output_type=output_type,
                     )
+                elif needs_conversion_to_diffusers:
+                    if self.device.type is DeviceType.GPU:
+                        self.pipe.to("cuda")
+                        try:
+                            self.pipe.enable_xformers_memory_efficient_attention()  # noqa: E501
+                        except Exception:
+                            pass
+                    self.optimal_model = postprocess_diffusers(
+                        optimized_models[0][0], self.pipe, self.device
+                    )
+
                 else:
                     self.optimal_model = optimized_models[0][0]
 
@@ -460,15 +530,30 @@ class SpeedsterRootOp(Operation):
         ignore_compilers: List[ModelCompiler],
         ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
-    ) -> List[BaseInferenceLearner]:
+        pipeline_idx: int,
+        len_pipelines: int,
+        is_diffusion: bool = False,
+    ) -> List[Tuple[BaseInferenceLearner, float, float]]:
         if self.orig_latency_measure_op.get_result() is not None:
             model_outputs = self.orig_latency_measure_op.get_result()[0]
             if isinstance(model, torch.nn.Module):
                 optimization_op = self.torch_optimization_op
+                self.logger.info(
+                    f"[{pipeline_idx}/{len_pipelines}] Running PyTorch "
+                    f"Optimization Pipeline"
+                )
             elif isinstance(model, tf.Module) and model is not None:
                 optimization_op = self.tensorflow_optimization_op
+                self.logger.info(
+                    f"[{pipeline_idx}/{len_pipelines}] Running TensorFlow "
+                    f"Optimization Pipeline"
+                )
             else:
                 optimization_op = self.onnx_optimization_op
+                self.logger.info(
+                    f"[{pipeline_idx}/{len_pipelines}] Running ONNX "
+                    f"Optimization Pipeline"
+                )
 
             optimization_op.to(self.device).execute(
                 model=model,
@@ -481,6 +566,7 @@ class SpeedsterRootOp(Operation):
                 ignore_compilers=ignore_compilers,
                 ignore_compressors=ignore_compressors,
                 source_dl_framework=source_dl_framework,
+                is_diffusion=is_diffusion,
             )
 
             optimized_models = optimization_op.get_result()

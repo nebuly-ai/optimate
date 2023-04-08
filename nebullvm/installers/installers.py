@@ -136,6 +136,22 @@ def install_torch_tensor_rt():
         "https://github.com/pytorch/TensorRT/releases/expanded_assets/v1.3.0",
     ]
     subprocess.run(cmd)
+    cuda_version = subprocess.check_output(["nvidia-smi"])
+    cuda_version = int(
+        cuda_version.decode("utf-8")
+        .split("\n")[2]
+        .split("|")[-2]
+        .split(":")[-1]
+        .strip()
+        .split(".")[0]
+    )
+    if cuda_version >= 12:
+        cmd = [
+            "pip3",
+            "install",
+            "tensorrt==8.6.0",
+        ]
+        subprocess.run(cmd)
 
     try:
         import torch_tensorrt  # noqa F401
@@ -209,7 +225,11 @@ def install_openvino(with_optimization: bool = True):
         )
 
     openvino_version = "openvino-dev" if with_optimization else "openvino"
-    cmd = ["pip3", "install", f"{openvino_version}>=2022.1.0"]
+    # If on windows
+    if _get_os() == "Windows":
+        cmd = ["pip3", "install", "--user", f"{openvino_version}>=2022.1.0"]
+    else:
+        cmd = ["pip3", "install", f"{openvino_version}>=2022.1.0"]
     subprocess.run(cmd)
 
     cmd = ["pip3", "install", "scipy>=1.7.3"]
@@ -269,6 +289,13 @@ def install_deepsparse():
 
     cmd = ["pip3", "install", "deepsparse"]
     subprocess.run(cmd)
+
+    try:
+        cmd = ["pip3", "install", "numpy>=1.22.0,<1.24.0"]
+        subprocess.run(cmd)
+    except Exception:
+        # For python 3.7 numpy 1.22.0 is not available
+        pass
 
     try:
         from deepsparse import compile_model, cpu  # noqa F401
@@ -462,10 +489,16 @@ class TensorflowInstaller(BaseInstaller):
     @staticmethod
     def install_framework():
         if _get_os() == "Darwin" and get_cpu_arch() == "arm":
-            cmd = ["conda", "install", "-y", "tensorflow>=2.7.0", "numpy<1.24"]
+            cmd = [
+                "conda",
+                "install",
+                "-y",
+                "tensorflow>=2.7.0, 2.12.0",
+                "numpy<1.24",
+            ]
             subprocess.run(cmd)
         else:
-            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0"]
+            cmd = ["pip3", "install", "--user", "tensorflow>=2.7.0, <2.12.0"]
             subprocess.run(cmd)
 
         try:
@@ -502,7 +535,7 @@ class ONNXInstaller(BaseInstaller):
             cmd = ["pip3", "install", "cmake"]
             subprocess.run(cmd)
 
-        cmd = ["pip3", "install", "onnx>=1.10.0"]
+        cmd = ["pip3", "install", "onnx>=1.10.0, <1.14.0"]
         subprocess.run(cmd)
 
         try:
@@ -534,6 +567,53 @@ class HuggingFaceInstaller(BaseInstaller):
 
         try:
             import transformers  # noqa F401
+        except ImportError:
+            return False
+
+        return True
+
+
+class DiffusersInstaller(BaseInstaller):
+    @staticmethod
+    def install_dependencies(include_framework: List[str]):
+        cmd = ["pip3", "install", "transformers"]
+        subprocess.run(cmd)
+
+        if gpu_is_available():
+            cmd = ["pip3", "install", "cuda-python"]
+            subprocess.run(cmd)
+
+            cmd = ["pip3", "install", "onnx>=1.10.0, <1.14.0"]
+            subprocess.run(cmd)
+
+            cmd = [
+                "pip3",
+                "install",
+                "onnx_graphsurgeon",
+                "--index-url",
+                "https://pypi.ngc.nvidia.com",
+            ]
+            subprocess.run(cmd)
+
+    @staticmethod
+    def check_framework():
+        try:
+            import diffusers  # noqa F401
+        except ImportError:
+            return False
+
+        if not check_module_version(diffusers, min_version="0.13.0"):
+            return False
+
+        return True
+
+    @staticmethod
+    def install_framework():
+        cmd = ["pip3", "install", "diffusers>=0.13.0, <=0.14.0"]
+        subprocess.run(cmd)
+
+        try:
+            import diffusers  # noqa F401
         except ImportError:
             return False
 

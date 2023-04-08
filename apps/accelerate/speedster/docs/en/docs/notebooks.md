@@ -2,7 +2,8 @@
 
 In this section you can find optimization notebooks for multiple DL input models:
 
-- HuggingFace 
+- HuggingFace
+- Diffusers
 - ONNX
 - Pytorch
 - Tensorflow

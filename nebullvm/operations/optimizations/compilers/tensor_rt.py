@@ -16,6 +16,7 @@ from nebullvm.operations.optimizations.compilers.quantizations.tensor_rt import 
 from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
+from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.optional_modules.torch_tensorrt import (
@@ -27,6 +28,7 @@ from nebullvm.tools.base import (
     ModelParams,
 )
 from nebullvm.tools.data import DataManager, PytorchDataset
+from nebullvm.tools.diffusers import UNet
 from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -235,7 +237,7 @@ class PyTorchTensorRTCompiler(TensorRTCompiler):
                 calibrator=calibrator
                 if quantization_type is QuantizationType.STATIC
                 else None,
-                workspace_size=1 << 30,
+                workspace_size=self.device.get_free_memory(),
                 device={
                     "device_type": torch_tensorrt.DeviceType.GPU,
                     "gpu_id": self.device.idx,
@@ -261,6 +263,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
     def __init__(self):
         super().__init__()
         self.model_orig = None
+        self.onnx_model_path = None
         self.simplify_model = True
 
     def execute(
@@ -271,6 +274,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         metric_drop_ths: float = None,
         quantization_type: QuantizationType = None,
         input_data: DataManager = None,
+        is_diffusion: bool = False,
         **kwargs,
     ):
         """Compile the input model using TensorRT Compiler from the
@@ -288,6 +292,8 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             quantization_type (QuantizationType, optional): The desired
                 quantization algorithm to be used. Default: None.
             input_data (DataManager): User defined data. Default: None
+            is_diffusion (bool): Whether the model is a diffusion model.
+                Default: False.
         """
 
         if quantization_type not in self.supported_ops[self.device.type.value]:
@@ -307,7 +313,7 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             QUANTIZATION_DATA_NUM
         )
 
-        if self.simplify_model:
+        if self.simplify_model and not is_diffusion:
             try:
                 import onnxsim  # noqa: F401
 
@@ -323,8 +329,8 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                     subprocess.run(cmd, stdout=subprocess.DEVNULL)
 
                 # First try with simplified model
-                onnx_model_path = simplified_model
-                assert os.path.isfile(onnx_model_path)
+                self.onnx_model_path = simplified_model
+                assert os.path.isfile(self.onnx_model_path)
             except Exception:
                 # Use original model
                 self.logger.warning(
@@ -332,10 +338,39 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
                     "Original ONNX model will be used to build "
                     "TensorRT engine"
                 )
-                onnx_model_path = str(model)
-                self.simplify_model = False
-        else:
-            onnx_model_path = str(model)
+                self.onnx_model_path = str(model)
+            self.simplify_model = False
+        elif self.onnx_model_path is None:
+            self.onnx_model_path = str(model)
+
+        if is_diffusion:
+            if quantization_type is None:
+                self.logger.warning(
+                    "Skipping float32 precision for Stable Diffusion, "
+                    "half precision will be used instead."
+                )
+                return
+            if quantization_type is QuantizationType.STATIC:
+                self.logger.warning(
+                    "Skipping static quantization for Stable Diffusion "
+                    "because for now it's not supported."
+                )
+                return
+
+        if self.simplify_model and is_diffusion:
+            optimized_model = str(Path(model).parent / "model_opt.onnx")
+            unet = UNet(hf_token=None)
+            opt_graph = unet.optimize(onnx.load(str(model)))
+            try:
+                onnx.save(opt_graph, optimized_model)
+            except Exception:
+                onnx.save(
+                    opt_graph, optimized_model, save_as_external_data=True
+                )
+            self.onnx_model_path = optimized_model
+            self.simplify_model = False
+        elif self.onnx_model_path is None:
+            self.onnx_model_path = str(model)
 
         # -- Build phase --
         nvidia_logger = trt.Logger(trt.Logger.ERROR)
@@ -347,6 +382,18 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
         # build the engine
         # TODO: setup config value for the class in a config file
         config = builder.create_builder_config()
+        try:
+            config.set_memory_pool_limit(
+                trt.MemoryPoolType.WORKSPACE, self.device.get_free_memory()
+            )
+        except AttributeError:
+            # The method set_memory_pool_limit is not available
+            # until TensorRT Release 8.4.1
+            self.logger.warning(
+                "Cannot call method set_memory_pool_limit for TensorRT. "
+                "because your version is lower than 8.4.1. "
+                "Please update TensorRT version."
+            )
 
         if quantization_type is not None:
             config = self._quantize_model(
@@ -360,14 +407,14 @@ class ONNXTensorRTCompiler(TensorRTCompiler):
             )
 
         self.compiled_model = self._compile_model(
-            onnx_model_path=str(onnx_model_path),
+            onnx_model_path=str(self.onnx_model_path),
             model_params=model_params,
             config=config,
             network=network,
             builder=builder,
             nvidia_logger=nvidia_logger,
         )
-        self.model_orig = onnx_model_path
+        self.model_orig = self.onnx_model_path
 
     def _compile_model(
         self,

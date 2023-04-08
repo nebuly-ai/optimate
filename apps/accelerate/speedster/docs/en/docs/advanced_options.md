@@ -13,6 +13,7 @@ In particular, we will overview:
 - [Selecting specific compilers/compressors](#select-specific-compilerscompressors)
 - [Using dynamic shape](#using-dynamic-shape)
 - [Enable TensorrtExecutionProvider for ONNXRuntime on GPU](#enable-tensorrtexecutionprovider-for-onnxruntime-on-gpu)
+- [Use TensorRT Plugins to boost Stable Diffusion optimization on GPU](#use-tensorrt-plugins-to-boost-stable-diffusion-optimization-on-gpu)
 - [Custom models](#custom-models)
 - [Store the performances of all the optimization techniques](#store-the-performances-of-all-the-optimization-techniques)
 - [Set number of threads](#set-number-of-threads)
@@ -50,6 +51,7 @@ Input data needed to test the optimization performances (latency, throughput, ac
 
 - [Getting started with PyTorch optimization](./getting_started/pytorch_getting_started.md#1-input-model-and-data)
 - [Getting started with 🤗 HuggingFace optimization](./getting_started/hf_getting_started.md#1-input-model-and-data)
+- [Getting started with Stable Diffusion optimization](./getting_started/diffusers_getting_started.md#1-input-model-and-data)
 - [Getting started with TensorFlow/Keras optimization](./getting_started/tf_getting_started.md#1-input-model-and-data)
 - [Getting started with ONNX optimization](./getting_started/onnx_getting_started.md#1-input-model-and-data)
 
@@ -261,6 +263,12 @@ If you installed TensorRT through the nebullvm auto_installer, you can do it by 
 ```bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/<PATH_TO_PYTHON_FOLDER>/site-packages/tensorrt"
 ```
+
+## Use TensorRT Plugins to boost Stable Diffusion optimization on GPU
+
+To achieve the best results on GPU for Stable diffusion models, we have to activate the TensorRT Plugins. Speedster supports their usage on Stable Diffusion models from version 0.9.0, you can see this guide to set them up: 
+[Setup TensorRT Plugins](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/diffusers#setup-tensorrt-plugins-optional)
+
 
 ## Custom models
 

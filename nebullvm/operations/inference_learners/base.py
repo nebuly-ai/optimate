@@ -47,6 +47,11 @@ class BaseInferenceLearner(ABC):
     device: Device = None
     quantization_type: QuantizationType = None
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """The name of the InferenceLearner"""
+
     def __post_init__(self, input_data):
         if self.input_tfms is not None and len(self.input_tfms) < 0:
             self.input_tfms = None
