@@ -329,19 +329,11 @@ def install_faster_transformer(
 
     Args:
         working_dir (str, optional): The directory where the FasterTransformer
-        repo will be cloned and installed.
+        repo will be cloned and installed. Default: None
     """
     if not gpu_is_available():
         return False
     path = Path(__file__).parent
-    # install pre-requisites
-    # TODO: use a different script
-    # installation_file_prerequisites = str(
-    # path / "install_tvm_prerequisites.sh")
-    # subprocess.run(
-    #    ["bash", installation_file_prerequisites],
-    #    cwd=working_dir or Path.home(),
-    # )
     # install faster transformer
     try:
         import torch
@@ -362,7 +354,6 @@ def install_faster_transformer(
         env=env_dict,
     )
     # check result
-    # TODO: use a script to check if the installation was successful
     if result.returncode != 0:
         return False
     return True
