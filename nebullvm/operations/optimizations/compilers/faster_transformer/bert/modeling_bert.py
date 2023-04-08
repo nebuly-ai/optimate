@@ -1001,7 +1001,7 @@ class HuggingFaceEncoder(torch.nn.Module):
         return output
 
 
-# coding=utf-8
+# Based on: https://github.com/NVIDIA/FasterTransformer/blob/4402759e48f2340220638675f464b6ba1f79ac3c/examples/pytorch/bert/utils/modeling_bert.py # noqa: E501
 # Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
 # Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team. # noqa: E501
 #

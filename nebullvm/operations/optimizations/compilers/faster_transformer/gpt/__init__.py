@@ -1,3 +1,4 @@
+# Based on: https://github.com/NVIDIA/FasterTransformer/blob/4402759e48f2340220638675f464b6ba1f79ac3c/examples/pytorch/gpt/gpt_summarization.py # noqa: E501
 # Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +22,6 @@ from nebullvm.operations.optimizations.compilers.utils import (
 )
 from nebullvm.optional_modules.torch import torch
 from nebullvm.optional_modules.huggingface import (
-    GPT2Tokenizer,
     GPT2LMHeadModel,
 )
 from nebullvm.operations.optimizations.compilers.faster_transformer.gpt.utils import (  # noqa: E501
@@ -224,10 +224,11 @@ def convert_gpt2_lm_head_model(
     return FasterTransformerGPT2Wrapper(gpt, model.config)
 
 
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-tokenizer.pad_token = tokenizer.eos_token
-model = hf_model = GPT2LMHeadModel.from_pretrained("gpt2").to("cuda").eval()
-hf_config = hf_model.config.to_dict()
+# from transformers import GPT2LMHeadModel, GPT2Tokenizer
+# tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+# tokenizer.pad_token = tokenizer.eos_token
+# model = hf_model = GPT2LMHeadModel.from_pretrained("gpt2").to("cuda").eval()
+# hf_config = hf_model.config.to_dict()
 
 
 # model = GPT2LMHeadModel.from_pretrained("gpt2")

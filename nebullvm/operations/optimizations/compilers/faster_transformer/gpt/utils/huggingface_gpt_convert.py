@@ -1,3 +1,4 @@
+# Based on https://github.com/NVIDIA/FasterTransformer/blob/4402759e48f2340220638675f464b6ba1f79ac3c/examples/pytorch/gpt/utils/huggingface_gpt_convert.py # noqa: E501
 # Copyright (c) 2021-2023, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
