@@ -26,7 +26,7 @@ SCALE_RESERVE_NUM = 21
 
 
 def checkpoint_quantization(
-    init_dict, sparse, ths_path="./lib/libth_transformer.so", verbose=True
+    init_dict, sparse, ths_path="./lib/libth_transformer.so"
 ):
     logger.info("Quantizing checkpoint ...")
     torch.classes.load_library(ths_path)
@@ -45,9 +45,6 @@ def checkpoint_quantization(
                     + TRT_FUSED_MHA_AMAX_NUM
                     + SCALE_RESERVE_NUM
                 )
-                if verbose:
-                    logger.info("amaxTotalNum", amaxTotalNum)
-                    logger.info("Hidden size:", tensor_value.size(1))
             tmp = regex.findall(name)
             if len(tmp) < 1:
                 continue
@@ -214,12 +211,6 @@ def checkpoint_quantization(
             amax_id += 1
             amaxList[amax_id] = 127.0 / amax
             amax_id += 1
-            # if verbose:
-            #     logger.info(i, amax_name)
-            #     logger.info('quant_max:', quant_max)
-            #     logger.info('amax:', amax)
-        if verbose:
-            logger.info("done process layer_{} activation amax".format(i))
 
         # kernel amax starts from ACTIVATION_AMAX_NUM
         assert amax_id == 64
@@ -260,11 +251,6 @@ def checkpoint_quantization(
             for e in quant_max_processed:
                 amaxList[amax_id] = e
                 amax_id += 1
-            # if verbose:
-            #     logger.info(i, kernel_name)
-            #     logger.info('kernel:', kernel)
-            #     logger.info('quant_max2:', quant_max2)
-            #     logger.info('quant_max_processed_:', quant_max_processed)
 
         # for int8O gemm deQuant
         for j in range(INT8O_GEMM_NUM):
@@ -289,8 +275,5 @@ def checkpoint_quantization(
         init_dict["bert.encoder.layer.{}.amaxList".format(i)] = torch.tensor(
             amaxList, dtype=torch.float32
         )
-        if verbose:
-            logger.info("done process layer_{} kernel weight".format(i))
-
     logger.info("Quantizing checkpoint done.")
     return init_dict
