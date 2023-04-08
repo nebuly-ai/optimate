@@ -15,12 +15,15 @@
 import tempfile
 from typing import Optional, Iterable, Union, List, Tuple, Callable
 import os
+
 from nebullvm.operations.optimizations.compilers.utils import (
     get_faster_transformer_repo_path,
 )
-
-import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from nebullvm.optional_modules.torch import torch
+from nebullvm.optional_modules.huggingface import (
+    GPT2Tokenizer,
+    GPT2LMHeadModel,
+)
 from nebullvm.operations.optimizations.compilers.faster_transformer.gpt.utils import (  # noqa: E501
     gpt_decoder,
 )

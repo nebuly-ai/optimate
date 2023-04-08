@@ -10,7 +10,7 @@ try:
         BertPooler,
         BertPreTrainedModel,
     )
-    from transformers import BertConfig
+    from transformers import BertConfig, GPT2Tokenizer, GPT2LMHeadModel
 except ImportError:
     # add placeholders for function definition
     PreTrainedModel = None
@@ -21,3 +21,5 @@ except ImportError:
     BertPooler = None
     BertPreTrainedModel = None
     BertConfig = None
+    GPT2Tokenizer = None
+    GPT2LMHeadModel = None
