@@ -14,12 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
-
 from typing import List, Optional
 
-import torch
-import torch.distributed as dist
+from nebullvm.optional_modules.torch import torch, torch_distributed as dist
 
 from transformers import BertConfig
 from transformers.models.bert.modeling_bert import (

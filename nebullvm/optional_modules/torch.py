@@ -12,6 +12,7 @@ try:
     from torch.ao.quantization.stubs import QuantStub, DeQuantStub
     from torch.fx import symbolic_trace
     from torch.quantization import default_dynamic_qconfig
+    import torch.distributed as torch_distributed
 except ImportError:
 
     class Tensor:
@@ -45,3 +46,4 @@ except ImportError:
     QuantStub = (
         DeQuantStub
     ) = default_dynamic_qconfig = prepare_fx = convert_fx = None
+    torch_distributed = None

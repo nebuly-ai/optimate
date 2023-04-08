@@ -1,7 +1,5 @@
-# %%
 import os
 
-import torch
 
 from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (  # noqa: E501
     BertModel as FasterBertModel,
@@ -13,7 +11,8 @@ from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modelin
 from nebullvm.operations.optimizations.compilers.utils import (
     get_faster_transformer_repo_path,
 )
-from transformers.models.bert.modeling_bert import BertModel as HFBertModel
+from nebullvm.optional_modules.huggingface import BertModel as HFBertModel
+from nebullvm.optional_modules.torch import torch
 
 import logging
 

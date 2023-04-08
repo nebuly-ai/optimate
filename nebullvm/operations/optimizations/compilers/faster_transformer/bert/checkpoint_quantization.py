@@ -15,7 +15,9 @@
 import re
 
 import numpy as np
-import torch
+from loguru import logger
+
+from nebullvm.optional_modules.torch import torch
 
 ACTIVATION_AMAX_NUM = 72
 INT8O_GEMM_NUM = 8
@@ -26,7 +28,7 @@ SCALE_RESERVE_NUM = 21
 def checkpoint_quantization(
     init_dict, sparse, ths_path="./lib/libth_transformer.so", verbose=True
 ):
-    print("Quantizing checkpoint ...")
+    logger.info("Quantizing checkpoint ...")
     torch.classes.load_library(ths_path)
     weight_quantize = torch.ops.fastertransformer.weight_quantize
 
@@ -44,8 +46,8 @@ def checkpoint_quantization(
                     + SCALE_RESERVE_NUM
                 )
                 if verbose:
-                    print("amaxTotalNum", amaxTotalNum)
-                    print("Hidden size:", tensor_value.size(1))
+                    logger.info("amaxTotalNum", amaxTotalNum)
+                    logger.info("Hidden size:", tensor_value.size(1))
             tmp = regex.findall(name)
             if len(tmp) < 1:
                 continue
@@ -213,11 +215,11 @@ def checkpoint_quantization(
             amaxList[amax_id] = 127.0 / amax
             amax_id += 1
             # if verbose:
-            #     print(i, amax_name)
-            #     print('quant_max:', quant_max)
-            #     print('amax:', amax)
+            #     logger.info(i, amax_name)
+            #     logger.info('quant_max:', quant_max)
+            #     logger.info('amax:', amax)
         if verbose:
-            print("done process layer_{} activation amax".format(i))
+            logger.info("done process layer_{} activation amax".format(i))
 
         # kernel amax starts from ACTIVATION_AMAX_NUM
         assert amax_id == 64
@@ -259,10 +261,10 @@ def checkpoint_quantization(
                 amaxList[amax_id] = e
                 amax_id += 1
             # if verbose:
-            #     print(i, kernel_name)
-            #     print('kernel:', kernel)
-            #     print('quant_max2:', quant_max2)
-            #     print('quant_max_processed_:', quant_max_processed)
+            #     logger.info(i, kernel_name)
+            #     logger.info('kernel:', kernel)
+            #     logger.info('quant_max2:', quant_max2)
+            #     logger.info('quant_max_processed_:', quant_max_processed)
 
         # for int8O gemm deQuant
         for j in range(INT8O_GEMM_NUM):
@@ -288,7 +290,7 @@ def checkpoint_quantization(
             amaxList, dtype=torch.float32
         )
         if verbose:
-            print("done process layer_{} kernel weight".format(i))
+            logger.info("done process layer_{} kernel weight".format(i))
 
-    print("Quantizing checkpoint done.")
+    logger.info("Quantizing checkpoint done.")
     return init_dict

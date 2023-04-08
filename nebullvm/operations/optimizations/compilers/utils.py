@@ -1,5 +1,6 @@
-from nebullvm.tools.base import ModelCompiler, Device, DeviceType
 from pathlib import Path
+
+from nebullvm.tools.base import ModelCompiler, Device, DeviceType
 
 import nebullvm
 
