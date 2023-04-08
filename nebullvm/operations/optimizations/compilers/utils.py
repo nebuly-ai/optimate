@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from nebullvm.tools.base import ModelCompiler, Device, DeviceType
-
 import nebullvm
+from nebullvm.tools.base import Device, DeviceType, ModelCompiler
 
 
 def onnxruntime_is_available() -> bool:
