@@ -3,7 +3,7 @@ from nebullvm.optional_modules.torch import torch
 
 VERSION = "0.9.1"
 LEARNER_METADATA_FILENAME = "metadata.json"
-ONNX_OPSET_VERSION = 18
+ONNX_OPSET_VERSION = 13
 NEBULLVM_DEBUG_FILE = "nebullvm_debug.json"
 
 AUTO_TVM_TUNING_OPTION = {
