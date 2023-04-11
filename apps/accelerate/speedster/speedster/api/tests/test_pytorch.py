@@ -155,6 +155,10 @@ def test_torch_torch_dynamo():
     not torch.cuda.is_available(),
     reason="Skip because cuda is not available.",
 )
+@pytest.mark.skipif(
+    not check_module_version(torch, max_version="1.13.1+cu117"),
+    reason="Skip because torch version is not supported.",
+)
 def test_torch_tensorrt():
     model = models.resnet18()
     input_data = [((torch.randn(1, 3, 256, 256),), 0) for i in range(100)]

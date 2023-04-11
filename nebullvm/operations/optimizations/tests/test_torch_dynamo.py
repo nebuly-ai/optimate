@@ -1,3 +1,4 @@
+import platform
 from tempfile import TemporaryDirectory
 
 import pytest
@@ -145,6 +146,10 @@ def run_test_torch_dynamo(
 @pytest.mark.skipif(
     not check_module_version(torch, min_version="2.0.0"),
     reason="Torch version is not supported",
+)
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="Torch compile() is not currently supported on windows",
 )
 def test_torch_dynamo_fp32(
     output_library: DeepLearningFramework,

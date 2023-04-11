@@ -1,3 +1,5 @@
+import platform
+
 from nebullvm.core.models import (
     DeepLearningFramework,
     DeviceType,
@@ -56,7 +58,9 @@ class PytorchOptimizer(Optimizer):
             else:
                 compilers.append(ModelCompiler.TORCHSCRIPT)
                 if (
-                    check_module_version(torch, min_version="2.0.0") and False
+                    check_module_version(torch, min_version="2.0.0")
+                    and platform.system() != "Windows"
+                    and False
                 ):  # Deactivated because save and load methods are
                     # not implemented
                     compilers.append(ModelCompiler.TORCH_DYNAMO)

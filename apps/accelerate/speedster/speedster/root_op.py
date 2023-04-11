@@ -150,6 +150,9 @@ class SpeedsterRootOp(Operation):
             **kwargs,
         )
 
+        if result.optimized_model is None:
+            return None
+
         opt_metric_drop = (
             f"{result.metric_drop:.4f}"
             if result.metric_drop > MIN_NUMBER

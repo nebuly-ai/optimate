@@ -298,7 +298,7 @@ def _set_device(
     return device
 
 
-def check_device(device: Optional[str]) -> Device:
+def check_device(device: Optional[str] = None) -> Device:
     if device is None:
         if gpu_is_available():
             device = Device(DeviceType.GPU)

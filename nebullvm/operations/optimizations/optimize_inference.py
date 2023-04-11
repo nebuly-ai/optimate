@@ -254,8 +254,8 @@ class OptimizeInferenceOp(Operation):
         if no_optimized_models or no_inference_learners:
             self.logger.warning(
                 "No optimized model has been created. This is likely "
-                "due to a bug in Speedster. Please open an issue and "
-                "report in details your use case."
+                "due to a bug during optimization. Please open an issue "
+                "and report in details your use case."
             )
 
         # Extract lowest-latency model
