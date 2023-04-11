@@ -48,7 +48,7 @@ First, let’s get the artifacts for running ChatLLaMA. The artifacts contain:
 
 - [`config.yaml`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/config.yaml): config file for model and data set. This allows you to 1) select the model you prefer (LLaMA, OPT, BLOOM, etc) 2) change all the hyperparameters of the training process;
 - [`ds_config.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/ds_config.json): config file to define DeepSpeed training parameters;
-- [`peft_config.yaml`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/peft_config.yaml): config file to define PEFT parameters; PEFT is used for efficient training with HuggingFace models. It can be used for setting the LoRA parameters as rank and precision.
+- [`peft_config.yaml`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/config/peft_config.yaml): config file to define PEFT parameters; PEFT is used for efficient training with Hugging Face models. It can be used for setting the LoRA parameters as rank and precision.
 
 - [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json): synthetic data generation templates that can be used to personalize the creation of the dataset. The templates are used for feeding LLMs during the data generation. Note that the [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json) file contains a dictionary having as *keys* the training steps (`actor`, `reward`, `rlhf`) and as *values* a string containing the personalization requests of the user. For more details see the [dataset preparation](#dataset-preparation) section;
 - [`main.py`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/main.py): file to train the model.
@@ -256,7 +256,7 @@ ChatLLaMA supports 4 different options to prepare the `actor_training_data`:
 
   Where: 
 
-  - `<dataset_name>` could be "SHP" or "ARLHF" for the StanfordNLP/SHP dataset or ARLHF for the Anthropic/hh-rlhf dataset respectively;
+  - `<dataset_name>` could be "SHP" for the StanfordNLP/SHP dataset or "ARLHF" for the Anthropic/hh-rlhf dataset;
   - `<path_to_folder_for_download>` is the folder path to where the datasets are going to be created;
   - `<N>` is the number of samples of which the reward_dataset.json is composed.
   </details>
