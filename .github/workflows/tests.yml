@@ -123,6 +123,6 @@ jobs:
       - name: Run components tests
         run: |
           cd nebullvm
-          pytest --ignore=nebullvm/core
+          pytest
           cd ../
 
