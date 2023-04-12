@@ -114,8 +114,7 @@ You can train the 3 models in separate steps:
 - Training the Actor with reinforcement learning.
 
     ```bash
-    python artifacts/
-    artifacts/config/config.yaml --type RL
+    python artifacts/main.py artifacts/config/config.yaml --type RL
     ```
 
 
