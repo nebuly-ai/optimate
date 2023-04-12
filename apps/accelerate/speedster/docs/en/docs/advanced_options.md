@@ -126,9 +126,11 @@ If the speedup you obtained with the first optimization with `Speedster` is not 
 - Verify that your device is supported by your version of speedster: see [Supported hardware](hardware.md)
 - Try to accelerate your model on a different hardware or consider using the CloudSurfer module to automatically understand which is the best hardware for your model: see [CloudSurfer](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/cloud_surfer) module.
 
-## Selecting which device to use: CPU and GPU
+## Selecting which device to use: CPU, GPU and other accelerators.
 
-The parameter `device` allows to select which device we want to use for inference. By default, `Speedster` will use the gpu if available on the machine, otherwise it will use cpu. If we are running on a machine with a gpu available and we want to optimize the model for cpu inference, we can use:
+Speedster currently supports the following devices: `CPUs`, `GPUs`, `TPUs` and `AWS Inferentia chips`.
+
+The parameter `device` allows to select which device we want to use for inference. By default, `Speedster` will use the accelerator if available on the machine, otherwise it will use cpu. If we are running on a machine with an available accelerator and we want to optimize the model for cpu inference, we can use:
 
 ```python
 from speedster import optimize_model
@@ -145,6 +147,20 @@ from speedster import optimize_model
 
 optimized_model = optimize_model(
   model, input_data=input_data, device="cuda:1"  # also device="gpu:1" is supported
+)
+```
+
+The same applies also for TPUs and AWS Inferentia chips: 
+
+```python
+from speedster import optimize_model
+
+optimized_model = optimize_model(
+  model, input_data=input_data, device="tpu:1"  # use tpu #1
+)
+
+optimized_model = optimize_model(
+  model, input_data=input_data, device="neuron:1"  # use Inferentia chip #1
 )
 ```
 

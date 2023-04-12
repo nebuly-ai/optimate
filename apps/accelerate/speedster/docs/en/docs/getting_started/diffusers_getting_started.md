@@ -8,7 +8,7 @@ In this section, we will learn about the 4 main steps needed to optimize Stable 
 5. [Load and run your optimized model in production](#5-load-and-run-your-optimized-model-in-production)
 
 ## 1) Environment Setup (GPU only)
-In order to optimize a Stable Diffusion model, you have to ensure that your environment is correctly set up according to these requirements: `CUDA>=12.0`, `tensorrt>=8.6.0` and `torch<=1.13.1``.
+In order to optimize a Stable Diffusion model, you have to ensure that your environment is correctly set up according to these requirements: `CUDA>=12.0`, `tensorrt>=8.6.0` and `torch<=1.13.1`.
 
 From TensorRT 8.6, all the tensorrt pre-built wheels released by nvidia support only `CUDA>=12.0`. Speedster will install `tensorrt>=8.6.0` automatically in the auto-installer only if it detects CUDA>=12.0, otherwise it will install `tensorrt==8.5.3.1`. In that case, you will have to upgrade your CUDA version and then to upgarde tensorrt to 8.6.0 or above.
 
