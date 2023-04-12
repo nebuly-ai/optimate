@@ -555,6 +555,7 @@ class RLTrainer:
         # deepspeed initialization
         self.actor_model_engine = None
         self.critic_model_engine = None
+        self.is_deepspeed_init = None
 
         if self.config.actor.deepspeed_enable or self.config.critic.deepspeed_enable:
             deepspeed.init_distributed("nccl")
