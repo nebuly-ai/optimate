@@ -519,6 +519,8 @@ class RLTrainer(BaseTrainer):
         
         """
         
+        import time
+        
         # get hyperparameters
         actor_eps_clip = self.config.trainer.actor_eps_clip
         critic_eps_clip = self.config.trainer.critic_eps_clip
@@ -545,22 +547,28 @@ class RLTrainer(BaseTrainer):
 
         # compute policy loss
         if check_model_family(self.config.actor, self.config.critic):
+            
             # compute discounted rewards as in TRL
             gamma = self.config.trainer.gamma_discounted
             discounted_rewards = torch.zeros_like(old_values)
+            gamma_power = torch.arange(
+                0, discounted_rewards.shape[1],
+                device = rewards.device,
+                dtype = rewards.dtype
+                )
+            gamma_vect = gamma ** gamma_power
             for i in range(discounted_rewards.shape[1]):
-                for j in range(i, discounted_rewards.shape[1]):
-                    discounted_rewards[:, i] += (
-                        gamma ** (j - i) * rewards[:, j]
+                discounted_rewards[:, i] = torch.matmul(
+                    rewards[:, i:],
+                    gamma_vect[:rewards[:, i:].shape[1]]
                     )
-
+            
             advantages = (
                 discounted_rewards - old_values
             )  # TRL has opposite sign for old values
             advantages = (advantages - advantages.mean(dim=-1)) / (
                 advantages.std() + self.eps
             )
-
             surr1 = advantages * ratios
         else:
             advantages = rewards - old_values[:, -1]
@@ -570,6 +578,7 @@ class RLTrainer(BaseTrainer):
             torch.clamp(ratios, 1 - actor_eps_clip, 1 + actor_eps_clip)
             * advantages
         )
+
         policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
         policy_loss = policy_loss.mean()
         policy_loss = policy_loss + kl_div_loss
@@ -684,7 +693,6 @@ class RLTrainer(BaseTrainer):
                             action_len_actor.item(),
                             action_len_critic.item(),
                         )
-                    
                 # compute the loss
                 if self.accelerate_enable or self.deepspeed_enable:
                     (
