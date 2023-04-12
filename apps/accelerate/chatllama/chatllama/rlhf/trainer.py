@@ -1062,12 +1062,13 @@ class RLTrainer(BaseTrainer):
                     cnt_learn_iter += 1
 
                     # TODO fix log saving in deepspeed multi GPU training
-                    self.conversation_log.save()
+                    # self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
                 self.save_checkpoint(
-                    current_episode=episode, max_episode=num_episodes
+                    current_epoch = episode,
+                    max_epochs = num_episodes,
                 )
 
                 # TODO fix log saving in deepspeed multi GPU training
