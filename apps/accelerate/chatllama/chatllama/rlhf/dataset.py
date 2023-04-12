@@ -380,6 +380,7 @@ class AnthropicRLHFDataset(BaseDataset):
             # conversation
             previous_convers = previous_convers.rstrip("\n")
             user_input = previous_convers + "\n\n##\n\n"
+            user_input = user_input.lstrip("\n")
             completion = "Assistant: " + split_answer[-1]
 
             conv = {
@@ -462,8 +463,8 @@ class SelfInstructDataset(BaseDataset):
         def reformat_shard(shard_data):
             rshard = [
                 {
-                    "user_input": shard_data["prompt"][i],
-                    "completion": shard_data["completion"][i],
+                    "user_input": "Human: " + shard_data["prompt"][i],
+                    "completion": "Assistant: " + shard_data["completion"][i],
                 }
                 for i in range(len(shard_data["prompt"]))
             ]
