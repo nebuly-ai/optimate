@@ -30,6 +30,7 @@ from nebullvm.tools.pytorch import get_torch_model_size
 from nebullvm.tools.utils import (
     is_huggingface_data,
     check_module_version,
+    get_throughput,
 )
 
 
@@ -150,7 +151,9 @@ class DiffusionAdapter(ModelAdapter):
         )
         logger.info("Benchmarking optimized pipeline...")
         optimized_model.latency_seconds = self.__benchmark_pipeline(pipe)
-        optimized_model.throughput = 1 / optimized_model.latency_seconds
+        optimized_model.throughput = get_throughput(
+            optimized_model.latency_seconds
+        )
         optimized_model.inference_learner = DiffusionInferenceLearner(pipe)
         optimized_model.size_mb += (
             sum(
@@ -171,7 +174,9 @@ class DiffusionAdapter(ModelAdapter):
         pipe.to(self.device.to_torch_format())
         logger.info("Benchmarking original pipeline...")
         original_model.latency_seconds = self.__benchmark_pipeline(pipe)
-        original_model.throughput = 1 / original_model.latency_seconds
+        original_model.throughput = get_throughput(
+            original_model.latency_seconds
+        )
         original_model.size_mb += (
             sum(
                 [

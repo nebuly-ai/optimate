@@ -110,7 +110,7 @@ class HardwareSetup:
     cpu: str
     operating_system: str
     memory_gb: int
-    gpu: Optional[str] = None
+    accelerator: Optional[str] = None
 
 
 @dataclass

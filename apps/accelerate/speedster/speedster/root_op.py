@@ -23,13 +23,12 @@ from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from tabulate import tabulate
 
-from speedster.utils import (
+from nebullvm.tools.hardware_utils import get_hw_setup
+from nebullvm.tools.utils import (
+    get_model_size_mb,
     get_model_name,
-    read_model_size,
     generate_model_id,
-    get_hw_info,
 )
-
 
 SPEEDSTER_FEEDBACK_COLLECTOR = FeedbackCollector(
     url="https://nebuly.cloud/v1/store_speedster_results",
@@ -77,17 +76,17 @@ class SpeedsterRootOp(Operation):
         model_name = get_model_name(model_orig)
         model_info = {
             "model_name": model_name,
-            "model_size": read_model_size(model_orig),
+            "model_size": f"{get_model_size_mb(model_orig)} MB",
             "framework": optimization_result.original_model.framework.value,
         }
         self.feedback_collector.store_info(
-            key="model_id", value=generate_model_id(model_name)
+            key="model_id", value=generate_model_id(model_orig)
         )
         self.feedback_collector.store_info(
             key="model_metadata", value=model_info
         )
         self.feedback_collector.store_info(
-            key="hardware_setup", value=get_hw_info(self.device)
+            key="hardware_setup", value=get_hw_setup(self.device).__dict__
         )
         optimizations = self.feedback_collector.get("optimizations")
         original_model_dict = {
@@ -209,8 +208,12 @@ class SpeedsterRootOp(Operation):
         handler_id = self.logger.add(
             sys.stdout, format="<level>{message}</level>"
         )
-        hw_info = get_hw_info(self.device)
-        hw_name = hw_info[self.device.type.name.lower()]
+        hw_info = get_hw_setup(self.device)
+        hw_name = (
+            hw_info.cpu
+            if self.device.type is DeviceType.CPU
+            else hw_info.accelerator
+        )
         self.logger.info(
             (
                 f"\n[Speedster results on {hw_name}]\n"

@@ -70,7 +70,7 @@ def generate_model_id(model: Any) -> str:
     return f"{str(uuid.uuid4())}_{hash(model_name)}"
 
 
-def get_throughput(latency: float, batch_size: int) -> float:
+def get_throughput(latency: float, batch_size: int = 1) -> float:
     if latency == 0:
         return -1
     return (1 / latency) * batch_size
