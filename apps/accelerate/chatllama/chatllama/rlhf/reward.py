@@ -351,7 +351,12 @@ class RewardTrainer(BaseTrainer):
 
                 # checkpoints saving
                 if cnt_checkpoints % checkpoint_steps == 0:
-                    self.save_checkpoint(epoch, i, epochs, n_iter)
+                    self.save_checkpoint(
+                        current_epoch = epoch,
+                        max_epochs = epochs,
+                        current_step = i,
+                        max_steps = n_iter,
+                        )
                     cnt_checkpoints = 1
                 else:
                     cnt_checkpoints += 1

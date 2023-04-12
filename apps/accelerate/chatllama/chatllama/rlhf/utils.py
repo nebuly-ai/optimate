@@ -138,6 +138,19 @@ class LogMessages(Singleton):
                 logger.success(f"[Rank {self.local_rank}] {text}")
         else:
             logger.success(text)
+            
+    def debug(self, text: str):
+        """Log debug message
+        
+        Args:
+            text (str): debug message to log
+        """
+        
+        if self.is_multi_gpu:
+            if self.local_rank == self.log_rank:
+                logger.debug(f"[Rank {self.local_rank}] {text}")
+        else:
+            logger.debug(text)
 
 
 # To control logging level for various modules used in the application:
