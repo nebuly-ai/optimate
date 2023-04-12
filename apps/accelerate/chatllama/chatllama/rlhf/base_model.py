@@ -715,7 +715,7 @@ class BaseTrainer:
                 os.remove(path)
 
         # if deepspeed is enabled
-        if self.config.deepspeed_enable:
+        if self.deepspeed_enable:
 
             # create client state dictonary
             if current_step is None:
@@ -738,28 +738,28 @@ class BaseTrainer:
                 if self.accelerate_enable:
                     self.accelerator.save(
                         {
-                            "model": self.model.module.actor.state_dict(),
-                            "critic": self.model.module.critic.state_dict(),
-                            "optimizer": self.scheduler.state_dict(),
-                            "scheduler": self.optimizer.state_dict(),
+                            "model": self.actorcritic.module.actor.state_dict(),
+                            "critic": self.actorcritic.module.critic.state_dict(),
+                            "optimizer": self.optimizer.state_dict(),
+                            "scheduler": self.scheduler.state_dict(),
                             "training_stats": self.training_stats,
                             "episode": current_epoch,
-                            "lora_peft": self.model.module.actor.is_lora_peft_applied,  # noqa 501
-                            "critic_lora_peft": self.model.module.critic.is_lora_peft_applied,  # noqa 501
+                            "lora_peft": self.actorcritic.module.actor.is_lora_peft_applied,  # noqa 501
+                            "critic_lora_peft": self.actorcritic.module.critic.is_lora_peft_applied,  # noqa 501
                         },
                         path,
                     )
                 else:
                     torch.save(
                         {
-                            "model": self.model.actor.state_dict(),
-                            "critic": self.model.critic.state_dict(),
-                            "optimizer": self.scheduler.state_dict(),
-                            "scheduler": self.optimizer.state_dict(),
+                            "model": self.actorcritic.actor.state_dict(),
+                            "critic": self.actorcritic.critic.state_dict(),
+                            "optimizer": self.optimizer.state_dict(),
+                            "scheduler": self.scheduler.state_dict(),
                             "training_stats": self.training_stats,
                             "episode": current_epoch,
-                            "lora_peft": self.model.actor.is_lora_peft_applied,
-                            "critic_lora_peft": self.model.critic.is_lora_peft_applied,  # noqa 501
+                            "lora_peft": self.actorcritic.actor.is_lora_peft_applied, # noqa 501
+                            "critic_lora_peft": self.actorcritic.critic.is_lora_peft_applied,  # noqa 501
                         },
                         path,
                     )
@@ -791,6 +791,21 @@ class BaseTrainer:
                         },
                         path,
                     )
+            
+            # remove old checkpoints
+            if isinstance(self.config, Config):
+                ModelLoader.delete_old_checkpoints(
+                model_folder=model_folder,
+                model_name=model_name,
+                n_ckp_to_keep=self.config.trainer.n_checkpoints_to_keep,
+            )
+            else:
+                ModelLoader.delete_old_checkpoints(
+                model_folder=model_folder,
+                model_name=model_name,
+                n_ckp_to_keep=self.config.n_checkpoints_to_keep,
+            )
+                
             my_logger.success(f"Checkpoint saved at {path}")
 
     @beartype
@@ -818,7 +833,7 @@ class BaseTrainer:
             my_logger.info("Loading ...")
 
             # if deepspeed is enabled
-            if self.config.deepspeed_enable:
+            if self.deepspeed_enable:
 
                 # try to load the checkpoint
                 try:

@@ -40,6 +40,7 @@ class ConfigReward:
             the reward model trainig.
         checkpoint_name (Optional[str]): Name of the checkpoint. Default to
             None.
+        n_checkpoints_to_keep (Optional[int]): Number of checkpoints to keep
         lr (Optional[float]): Learning rate for the reward model. Default to
             None. To be specified only for the reward model distillation.
         llm_enable (bool): Enable reward model distillation. Default to True.
@@ -74,6 +75,7 @@ class ConfigReward:
     epochs: Optional[int] = None
     iteration_per_print: Optional[int] = None
     checkpoint_steps: Optional[int] = None
+    n_checkpoints_to_keep: Optional[int] = None
     checkpoint_name: Optional[str] = None
     lr: Optional[float] = None
     llm_enable: Optional[bool] = False
@@ -211,6 +213,7 @@ class ConfigTrainer:
             Default to False.
         deepspeed_config_path (str): Path to the deepspeed config file.
         accelerate_enable (bool): Enable accelerate for rl training
+        n_checkpoints_to_keep (int): Number of checkpoints to keep
         checkpoint_name (Optional[str]): Name of the checkpoint. Default to
             None.
         device_type (str): Device type to be used for the rl training
@@ -234,8 +237,8 @@ class ConfigTrainer:
     deepspeed_enable: bool
     deepspeed_config_path: Optional[str]
     accelerate_enable: bool
+    n_checkpoints_to_keep: int
     checkpoint_name: Optional[str] = None
-    debug: bool = False
     device_type: str = "cuda"
 
 
@@ -303,22 +306,18 @@ class Config:
 
         # Trainer Config
         trainer_dict["device"] = device
-        trainer_dict["debug"] = debug
         trainer_dict["device_type"] = device_type
         self.trainer = ConfigTrainer(**trainer_dict)
         # Actor Config
         actor_dict["device"] = device
-        actor_dict["debug"] = debug
         actor_dict["device_type"] = device_type
         self.actor = ConfigActor(**actor_dict)
         # Critic Config
         critic_dict["device"] = device
-        critic_dict["debug"] = debug
         critic_dict["device_type"] = device_type
         self.critic = ConfigCritic(**critic_dict)
         self.critic.is_reward = False
         # Reward Config
         reward_dict["device"] = device
-        reward_dict["debug"] = debug
         reward_dict["device_type"] = device_type
         self.reward = ConfigReward(**reward_dict)

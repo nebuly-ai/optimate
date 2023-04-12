@@ -1072,7 +1072,7 @@ class RLTrainer(BaseTrainer):
                 )
 
                 # TODO fix log saving in deepspeed multi GPU training
-                self.conversation_log.save()
+                # self.conversation_log.save()
 
         # save the models
         if self.accelerate_enable:

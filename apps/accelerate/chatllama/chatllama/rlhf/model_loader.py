@@ -10,14 +10,14 @@ from chatllama.rlhf.config import (
     ConfigReward,
 )
 from chatllama.rlhf.model_list import hf_models
-from chatllama.rlhf.utils import LogMessages
+from chatllama.rlhf.utils import my_logger
 
 ConfigType = Union[Config, ConfigActor, ConfigCritic, ConfigReward]
 
 
+
 class ModelLoader:
     """Class to load and save models and their checkpoints during training."""
-    logger = LogMessages()
 
     def __init__(
         self,
@@ -96,7 +96,7 @@ class ModelLoader:
         elif isinstance(config, Config):
             return config.actor.model_folder
         else:
-            raise cls.logger.error(
+            raise my_logger.error(
                 ValueError,
                 "Config type not recognized during saving or loading"
             )
@@ -127,7 +127,7 @@ class ModelLoader:
         if model_name in hf_models:
             return os.path.split(model_name)[-1]
         if model_name is None:
-            raise cls.logger.error(
+            raise my_logger.error(
                 ValueError,
                 "Model name not found"
                 )
@@ -159,6 +159,7 @@ class ModelLoader:
             if len(checkpoints) > n_ckp_to_keep:
                 for c in checkpoints[:-n_ckp_to_keep]:
                     checkpoint_path = os.path.join(model_folder, c)
+                    my_logger.info(f"Deleting {checkpoint_path}")
                     os.remove(checkpoint_path)
 
     @classmethod
@@ -221,7 +222,7 @@ class ModelLoader:
         # Make the path if not exists
         if os.path.exists(model_folder) is False:
             os.makedirs(model_folder)
-            cls.logger.info(
+            my_logger.info(
                 f"Model folder does not exist. Creating it: {model_folder}"
                 )
 
@@ -314,17 +315,17 @@ class ModelLoader:
             if is_checkpoint:
                 checkpoint_name = ModelLoader.get_checkpoint_name(config)
                 if checkpoint_name is not None:
-                    cls.logger.info(
+                    my_logger.info(
                         f"No checkpoint found at {model_folder} "
                         f"with name {config.checkpoint_name}"
                     )
                 else:
-                    cls.logger.info(
+                    my_logger.info(
                         f"No previous checkpoint found at "
                         f"{model_folder} for {model_name}"
                     )
             else:
-                cls.logger.info(
+                my_logger.info(
                     f"No previous model found at "
                     f"{model_folder} for model {model_name}"
                 )
@@ -335,15 +336,15 @@ class ModelLoader:
                 if "_step_" in path:
                     epoch = int(path.split("_epoch_")[-1].split("_")[0])
                     step = int(path.split("_step_")[-1].split(".")[0])
-                    cls.logger.info(
+                    my_logger.info(
                         f"Found checkpoint for epoch {epoch + 1},"
                         f" step {step + 1}..."
                     )
                 else:
                     epoch = int(path.split("_epoch_")[-1].split(".")[0])
-                    cls.logger.info(f"Found checkpoint for epoch {epoch + 1} ...")
+                    my_logger.info(f"Found checkpoint for epoch {epoch + 1} ...")
             else:
-                cls.logger.info(f"Found model at {path}")
+                my_logger.info(f"Found model at {path}")
         return path
 
     @classmethod
@@ -353,7 +354,7 @@ class ModelLoader:
         """
         
         if config.is_reward is True:
-            raise cls.logger.error(
+            raise my_logger.error(
                 "The config should work for the Critic model,"
                 "but the config seems to be for the Reward model"
             )
@@ -362,16 +363,16 @@ class ModelLoader:
         path = ModelLoader.check_model_path(config)
         _, _, critic_path = ModelLoader.get_model_path(config)
         if path is None:
-            cls.logger.info("Initializing Critic from Reward model...")
+            my_logger.info("Initializing Critic from Reward model...")
             config.is_reward = True
             path = ModelLoader.check_model_path(config)
             if path is not None:
                 _, _, reward_path = ModelLoader.get_model_path(config)
                 # copy the file in reward_path to critic_path
                 shutil.copy(reward_path, critic_path)
-                cls.logger.success(
+                my_logger.success(
                     "Critic Model initialized from Reward model"
                     )
             else:
-                cls.logger.warning("Critic Model remains uninitialized")
+                my_logger.warning("Critic Model remains uninitialized")
         config.is_reward = False
