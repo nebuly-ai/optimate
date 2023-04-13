@@ -6,14 +6,13 @@ The user guide here shows more advanced workflows and how to use the library in 
 
 In particular, we will overview:
 
-- [`optimize_model`](#optimize_model-api) API
+- [`optimize_model`](#optimizemodel-api) API
 - [Acceleration suggestions](#acceleration-suggestions)
-- [Selecting which device](#selecting-which-device-to-use-cpu-and-gpu) to use for the optimization: CPU and GPU
-- [Optimization Time: constrained vs unconstrained](#optimization-time-constrained-vs-unconstrained)
+- [Selecting which device](#selecting-which-device-to-use--cpu-gpu-and-other-accelerators) to use: CPU, GPU and other accelerators
+- [Optimization Time: constrained vs unconstrained](#optimization-time--constrained-vs-unconstrained)
 - [Selecting specific compilers/compressors](#select-specific-compilerscompressors)
 - [Using dynamic shape](#using-dynamic-shape)
 - [Enable TensorrtExecutionProvider for ONNXRuntime on GPU](#enable-tensorrtexecutionprovider-for-onnxruntime-on-gpu)
-- [Use TensorRT Plugins to boost Stable Diffusion optimization on GPU](#use-tensorrt-plugins-to-boost-stable-diffusion-optimization-on-gpu)
 - [Custom models](#custom-models)
 - [Store the performances of all the optimization techniques](#store-the-performances-of-all-the-optimization-techniques)
 - [Set number of threads](#set-number-of-threads)
@@ -177,7 +176,14 @@ We defined two scenarios:
 
 ##  Select specific compilers/compressors
 
-The `optimize_model` functions accepts also the parameters `ignore_compilers` and `ignore_compressors`, which allow to skip specific compilers or compressors. For example, if we want to skip the `tvm` and `bladedisc` optimizers, we could write:
+The `optimize_model` functions accepts also the parameters `ignore_compilers` and `ignore_compressors`, which allow to skip specific compilers or compressors. 
+The full list of available options is the following:
+- _ignore_compilers_: `deepsparse`, `tensor_rt`, `torch_tensor_rt`, `onnx_tensor_rt`, `torchscript`, `onnxruntime`, `tflite`, `tvm`, `onnx_tvm`, `torch_tvm`, `bladedisc`, `openvino`, `intel_neural_compressor`, `torch_xla`, `torch_neuron`.
+- _ignore_compressors_: `sparseml`, `intel_pruning`.
+
+Some compilers, such as tensor RT, are available for both PyTorch and ONNX backends. For this reason in the list of compilers we have `tensor_rt` which skips both the PyTorch and ONNX pipelines, and `torch_tensor_rt` and `onnx_tensor_rt` which skip only the PyTorch and ONNX pipelines respectively.
+
+If we want to skip the `tvm` and `bladedisc` optimizers, we could write:
 
 ```python
 from speedster import optimize_model
@@ -187,28 +193,6 @@ optimized_model = optimize_model(
     input_data=input_data, 
     ignore_compilers=["tvm", "bladedisc"]
 )
-
-# You can find the list of all compilers and compressors below
-# COMPILER_LIST = [
-#     "deepsparse",
-#     "tensor_rt",  # Skips all the tensor RT pipelines
-#     "torch_tensor_rt",  # Skips only the tensor RT pipeline for PyTorch
-#     "onnx_tensor_rt",  # Skips only the tensor RT pipeline for ONNX
-#     "torchscript",
-#     "onnxruntime",
-#     "tflite",
-#     "tvm",  # Skips all the TVM pipelines
-#     "onnx_tvm",  # Skips only the TVM pipeline for ONNX
-#     "torch_tvm",  # Skips only the TVM pipeline for PyTorch
-#     "openvino",
-#     "bladedisc",
-#     "intel_neural_compressor",
-# ]
-# 
-# COMPRESSOR_LIST = [
-#     "sparseml",
-#     "intel_pruning",
-# ]
 ```
 
 ## Using dynamic shape
@@ -279,12 +263,6 @@ If you installed TensorRT through the nebullvm auto_installer, you can do it by 
 ```bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/<PATH_TO_PYTHON_FOLDER>/site-packages/tensorrt"
 ```
-
-## Use TensorRT Plugins to boost Stable Diffusion optimization on GPU
-
-To achieve the best results on GPU for Stable diffusion models, we have to activate the TensorRT Plugins. Speedster supports their usage on Stable Diffusion models from version 0.9.0, you can see this guide to set them up: 
-[Setup TensorRT Plugins](https://github.com/nebuly-ai/nebullvm/tree/main/notebooks/speedster/diffusers#setup-tensorrt-plugins-optional)
-
 
 ## Custom models
 
