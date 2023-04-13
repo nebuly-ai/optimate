@@ -20,19 +20,25 @@ class TestCheckDevice(unittest.TestCase):
         self.assertEqual(device.idx, 0)
 
     @patch("nebullvm.tools.utils.gpu_is_available", return_value=True)
-    def test_device_is_none_gpu_is_available(self, _):
+    @patch("nebullvm.tools.utils.neuron_is_available", return_value=False)
+    @patch("nebullvm.tools.utils.tpu_is_available", return_value=False)
+    def test_device_is_none_gpu_is_available(self, *_):
         device = utils.check_device()
         self.assertEqual(DeviceType.GPU, device.type)
         self.assertEqual(device.idx, 0)
 
     @patch("nebullvm.tools.utils.tpu_is_available", return_value=True)
-    def test_device_is_none_tpu_is_available(self, _):
+    @patch("nebullvm.tools.utils.gpu_is_available", return_value=False)
+    @patch("nebullvm.tools.utils.neuron_is_available", return_value=False)
+    def test_device_is_none_tpu_is_available(self, *_):
         device = utils.check_device()
         self.assertEqual(DeviceType.TPU, device.type)
         self.assertEqual(device.idx, 0)
 
     @patch("nebullvm.tools.utils.neuron_is_available", return_value=True)
-    def test_device_is_none_neuron_is_available(self, _):
+    @patch("nebullvm.tools.utils.gpu_is_available", return_value=False)
+    @patch("nebullvm.tools.utils.tpu_is_available", return_value=False)
+    def test_device_is_none_neuron_is_available(self, *_):
         device = utils.check_device()
         self.assertEqual(DeviceType.NEURON, device.type)
         self.assertEqual(device.idx, 0)
