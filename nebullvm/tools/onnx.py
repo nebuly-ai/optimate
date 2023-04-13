@@ -58,7 +58,7 @@ def run_onnx_model(
 ) -> List[np.ndarray]:
     from nebullvm.optional_modules.onnxruntime import onnxruntime as ort
 
-    if device.type is DeviceType.GPU:
+    if device.type is DeviceType.GPU and len(ONNX_PROVIDERS["cuda"]) == 3:
         ONNX_PROVIDERS["cuda"][1] = (
             "CUDAExecutionProvider",
             {

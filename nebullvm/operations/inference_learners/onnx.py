@@ -162,7 +162,10 @@ class ONNXInferenceLearner(BaseInferenceLearner, ABC):
         self._is_gpu_ready = False
 
     def set_model_on_gpu(self):
-        if self.device.type is DeviceType.GPU:
+        if (
+            self.device.type is DeviceType.GPU
+            and len(ONNX_PROVIDERS["cuda"]) == 3
+        ):
             ONNX_PROVIDERS["cuda"][1] = (
                 "CUDAExecutionProvider",
                 {

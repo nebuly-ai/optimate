@@ -122,7 +122,7 @@ def compute_onnx_latency(
     input_names = get_input_names(model)
     output_names = get_output_names(model)
 
-    if device.type is DeviceType.GPU:
+    if device.type is DeviceType.GPU and len(ONNX_PROVIDERS["cuda"]) == 3:
         ONNX_PROVIDERS["cuda"][1] = (
             "CUDAExecutionProvider",
             {
