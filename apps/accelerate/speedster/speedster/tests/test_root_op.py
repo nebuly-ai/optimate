@@ -1,5 +1,6 @@
-from apps.accelerate.speedster.speedster.root_op import SpeedsterRootOp
 from nebullvm.core.models import OptimizeInferenceResult
+
+from speedster.root_op import SpeedsterRootOp
 
 
 def test_root_op_no_optim_model(mocker):
