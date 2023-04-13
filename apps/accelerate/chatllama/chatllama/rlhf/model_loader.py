@@ -213,7 +213,7 @@ class ModelLoader:
 
         # Make the path if not exists
         if os.path.exists(model_folder) is False:
-            os.makedirs(model_folder)
+            os.makedirs(model_folder, exist_ok=True)
             print(f"Model folder does not exist. Creating it: {model_folder}")
 
         # Create the model name
