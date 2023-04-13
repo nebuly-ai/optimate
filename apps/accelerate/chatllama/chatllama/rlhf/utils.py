@@ -427,10 +427,11 @@ class ConversationLog:
     def save(self):
         """Save the conversation log"""
         my_logger.info("Saving conversations log")
-        if os.path.exists(self.path):
-            with open(self.path, "r") as f:
-                conversation = json.load(f)
-            self.conversation.extend(conversation)
+        # load previous conversations - commented out
+        # if os.path.exists(self.path):
+        #     with open(self.path, "r") as f:
+        #         conversation = json.load(f)
+        #     self.conversation.extend(conversation)
         self.conversation = sorted(
             self.conversation, key=lambda x: float(x["learn_counter"])
         )

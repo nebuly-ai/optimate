@@ -234,11 +234,11 @@ class ModelLoader:
         # just return the simple model name
         if is_checkpoint and current_epoch is not None:
             # number of characters to store the checkpoints
-            n_char = max(len(str(max_epochs)), len(str(max_steps)))
+            n_char = max(len(str(max_epochs)), len(str(max_steps))) + 1
             # create the string epoch such that it is always the same length
             # equalt to n_char (i.e. 00000001) necessary for sorting
             string_epoch = str(current_epoch)
-            string_epoch = "0" * (n_char - len(string_epoch)) + string_epoch
+            string_epoch = "0" * (n_char - len(string_epoch)) + string_epoch 
             string_epoch = f"_epoch_{string_epoch}"
             if current_step is not None:
                 string_step = str(current_step)

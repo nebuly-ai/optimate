@@ -562,13 +562,13 @@ class RLTrainer(BaseTrainer):
                     rewards[:, i:],
                     gamma_vect[:rewards[:, i:].shape[1]]
                     )
-            
             advantages = (
                 discounted_rewards - old_values
             )  # TRL has opposite sign for old values
-            advantages = (advantages - advantages.mean(dim=-1)) / (
-                advantages.std() + self.eps
-            )
+            if advantages.std() > self.eps:
+                advantages = (advantages - advantages.mean(dim=-1)) / (
+                    advantages.std() + self.eps
+                )
             surr1 = advantages * ratios
         else:
             advantages = rewards - old_values[:, -1]
@@ -579,7 +579,7 @@ class RLTrainer(BaseTrainer):
             * advantages
         )
 
-        policy_loss = -torch.min(surr1, surr2) - beta_s * entropies
+        policy_loss = - torch.min(surr1, surr2) - beta_s * entropies
         policy_loss = policy_loss.mean()
         policy_loss = policy_loss + kl_div_loss
 
@@ -603,10 +603,39 @@ class RLTrainer(BaseTrainer):
                         "KL div Loss is nan",
                     )
                 else:
-                    raise my_logger.error(
-                        ValueError,
-                        "Policy Loss is nan",
-                    )
+                    if torch.isnan(entropies.mean()):
+                        raise my_logger.error(
+                            ValueError,
+                            "Entropies Loss is nan",
+                        )
+                    elif (torch.isnan(surr1.mean()) or 
+                        torch.isnan(surr2.mean())):
+                        if torch.isnan(advantages.mean()):
+                            if torch.isnan(rewards.mean()):
+                                raise my_logger.error(
+                                    ValueError,
+                                    "Rewards are nan",
+                                )
+                            elif torch.isnan(old_values.mean()):
+                                raise my_logger.error(
+                                    ValueError,
+                                    "Old Values are nan",
+                                )
+                            elif torch.isnan(gamma_vect.mean()):
+                                raise my_logger.error(
+                                    ValueError,
+                                    "Gamma Vector is nan",
+                                )
+                            else:
+                                raise my_logger.error(
+                                    ValueError,
+                                    "Advantages are nan",
+                                )
+                        elif torch.isnan(ratios.mean()):
+                            raise my_logger.error(
+                                ValueError,
+                                "Ratios are nan",
+                            )
             else:
                 raise my_logger.error(
                     ValueError,
@@ -1062,7 +1091,7 @@ class RLTrainer(BaseTrainer):
                     cnt_learn_iter += 1
 
                     # TODO fix log saving in deepspeed multi GPU training
-                    # self.conversation_log.save()
+                    self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
@@ -1072,7 +1101,7 @@ class RLTrainer(BaseTrainer):
                 )
 
                 # TODO fix log saving in deepspeed multi GPU training
-                # self.conversation_log.save()
+                self.conversation_log.save()
 
         # save the models
         if self.accelerate_enable:

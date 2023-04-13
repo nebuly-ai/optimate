@@ -1,5 +1,6 @@
 import json
 import os
+import random
 
 import numpy as np
 from beartype.typing import Dict, List, Union
@@ -61,11 +62,15 @@ class BaseDataset:
 
         # shuffle
         if shuffle is True:
+            # keep the first 128 sorted so that for batch <= 128
+            # the out-of-memory error occurs only in the first batch iteration
+            # (i.e. is the worst case scenario)
+            keep_sorted = 128
             conversations = (
-                conversations[:10]
+                conversations[:keep_sorted]
                 + np.random.choice(
-                    conversations[10:],
-                    size=len(conversations[10:]),
+                    conversations[keep_sorted:],
+                    size=len(conversations[keep_sorted:]),
                     replace=False,
                 ).tolist()
             )
@@ -108,6 +113,7 @@ class BaseDataset:
         Args:
             config (Config): config object
         """
+
 
         if isinstance(config, Config):
             my_logger.info("Start cleaning the dataset for RLHF")
@@ -167,8 +173,20 @@ class BaseDataset:
                     reverse=True,
                     shuffle=False,
                 )
-
+                
+            # save orginal length of dataset
             old_len = len(conversations)
+                
+            # for reward dataset first remove examples that do not have
+            # the scores - these check avoids errors in the training 
+            # of the reward model when the score is None
+            if isinstance(config, ConfigReward):
+                cnt = 0
+                while cnt < len(conversations):
+                    if conversations[cnt]["score"] is None:
+                        conversations.pop(cnt)
+                    cnt = cnt + 1
+
             # remove too long examples
             # since datasets are ordered by the length
             # we can remove the first elements until we find
@@ -223,7 +241,8 @@ class BaseDataset:
                     else:
                         break
 
-            # if the number of examples has changed
+            # if the number of examples has changed print the cleaning
+            # stats
             if len(conversations) != old_len:
                 my_logger.info(
                     f"Number of examples before cleaning:  {old_len}"
@@ -231,9 +250,6 @@ class BaseDataset:
                 my_logger.info(
                     f"Number of examples after cleaning: {len(conversations)}"
                 )
-
-                # remove the old dataset
-                # os.remove(dataset_path)
 
                 # save the new dataset
                 with open(dataset_path, "w") as f:
@@ -247,6 +263,142 @@ class BaseDataset:
                 f"Dataset not found at {dataset_path}"
                 f" Skipping cleaning of the dataset"
             )
+            
+    @staticmethod
+    def augment_reward_dataset(
+        reward_conv: List[Dict],
+        ):
+        """
+        Augment the reward dataset with negative examples
+        
+        Args:
+            reward_conv (List[Dict]): list of reward conversations
+        """
+        
+        # shuffle question and answer to generate wrong answers and assing
+        # a low score to them - 20% of the dataset
+        percentage = 20
+        n = int(len(reward_conv) * percentage / 100 / 2)
+        data_shuffle = []
+        for i in range(n):
+            sample = random.choice(reward_conv)
+            sample2 = random.choice(reward_conv)
+            new_sample1 = {"score": 1,
+                        "user_input": sample2["user_input"],
+                        "completion": sample["completion"]}
+            new_sample2 = {"score": 1,
+                        "user_input": sample["user_input"], 
+                        "completion": sample2["completion"]}
+            data_shuffle.append(new_sample1)
+            data_shuffle.append(new_sample2)
+
+        # Create blank answers and assing a low score to them 
+        # 10% of the dataset
+        percentage = 10
+        n = int(len(reward_conv) * percentage / 100 / 2)
+        data_blank = []
+        for i in range(n):
+            sample = random.choice(reward_conv)
+            new_sample = {"score": 0.5,
+                        "user_input": sample["user_input"],
+                        "completion": ""}
+            data_blank.append(new_sample)
+            new_sample = {"score": 0.5,
+                        "user_input": sample["completion"],
+                        "completion": "Assistant:",
+                        }
+            data_blank.append(new_sample)
+        
+        # swap words in the original completion and assing a low score to them
+        # 10% of the dataset
+        percentage = 20
+        n = int(len(reward_conv) * percentage / 100)
+        data_swap = []
+        for i in range(n):
+            sample = random.choice(reward_conv)
+            # swap words order in the completion
+            completion = sample["completion"].split(" ")
+            # generate list from 0 to len(completion)
+            idx = list(range(len(completion)))
+            random.shuffle(idx)
+            completion = [completion[i] for i in idx]
+            completion = " ".join(completion)
+            # add spaces back in the completion creating a string from the list
+            new_sample = {
+                "score": 0.5,
+                "user_input": sample["user_input"],
+                "completion": completion
+                }
+            data_swap.append(new_sample)
+            
+        # add all the augmented data to the reward_conv
+        reward_conv.extend(data_shuffle)
+        reward_conv.extend(data_blank)
+        reward_conv.extend(data_swap)
+        
+        return reward_conv
+            
+            
+    @staticmethod
+    def generate_datasets(
+        conversations: List[Dict],
+        dataset_folder: str,
+        reward_dataset_size: int,
+        ):
+        """ Generate the datasets for actor reward and rl trainings
+        
+        Args:
+            conversations (List[Dict]): list of conversations
+            dataset_folder (str): path to the folder where to save the datasets
+            reward_dataset_size (int): size of the reward dataset
+        """
+        
+        # split conversation list in 80 / 20  in two seperate lists
+        actor_conv = conversations[:int(len(conversations) * 0.8)]
+        rl_conv = conversations[int(len(conversations) * 0.8):]
+        
+        # augment rl_conv with 10% of its size from actor_conv
+        rl_conv.extend(actor_conv[:int(len(rl_conv) * 0.1)])
+        
+        # create reward_conv sampling randomly from rl_conv reward_dataset_size
+        # samples
+        reward_conv = random.sample(rl_conv, reward_dataset_size)
+        
+        # augment reward datasets with wrong completions to create negative 
+        # examples
+        reward_conv = BaseDataset.augment_reward_dataset(reward_conv)
+        
+        # sort the lists
+        actor_conv = BaseDataset.sort_conversation(
+            actor_conv,
+            only_input=False,
+            reverse=True,
+            shuffle=True,
+        )
+        rl_conv = BaseDataset.sort_conversation(
+            rl_conv,
+            only_input=True,
+            reverse=True,
+            shuffle=True,
+        )
+        reward_conv = BaseDataset.sort_conversation(
+            reward_conv,
+            only_input=False,
+            reverse=True,
+            shuffle=True,
+        )
+        
+        # save actor training data
+        with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
+            json.dump(actor_conv, f, indent=4)
+            
+         # save actor training data
+        with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
+            json.dump(rl_conv, f, indent=4) 
+            
+         # save actor training data
+        with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
+            json.dump(reward_conv, f, indent=4)  
 
 
 class StanfordNLPSHPDataset(BaseDataset):
@@ -295,7 +447,7 @@ class StanfordNLPSHPDataset(BaseDataset):
         return conversations
 
     def save_dataset(
-        self, dataset_folder: str, number_of_samples: int, reverse: bool = True
+        self, dataset_folder: str, number_of_samples: int,
     ) -> None:
         """Save the dataset in the format required by RLHF
 
@@ -314,32 +466,11 @@ class StanfordNLPSHPDataset(BaseDataset):
         conversations = self.reformat_dataset(self.dataset["train"])
         conversations.extend(self.reformat_dataset(self.dataset["test"]))
 
-        # sort conversations by length of user_input + completion
-        conversations = self.sort_conversation(conversations, reverse=reverse)
-
-        # save actor training data
-        with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
-
-        # take N samples and sort them
-        conversations = self.take_n_samples(conversations, number_of_samples)
-        conversations = self.sort_conversation(conversations, reverse=reverse)
-
-        # save reward training data
-        with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
-
-        # take the validation dataset for rlhf
-        conversations = self.reformat_dataset(self.dataset["validation"])
-        # sort the validation dataset
-        conversations = self.sort_conversation(
+        self.generate_datasets(
             conversations,
-            only_input=True,
-            reverse=reverse,
+            dataset_folder,
+            number_of_samples,
         )
-        # save rlhf training data
-        with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
 
         my_logger.success("Generation Completed")
 
@@ -410,31 +541,13 @@ class AnthropicRLHFDataset(BaseDataset):
 
         # generate actor and reward dataset
         conversations = self.reformat_dataset(self.dataset["train"])
-        conversations = self.sort_conversation(conversations, reverse=reverse)
+        conversations.extend(self.reformat_dataset(self.dataset["test"]))
 
-        # save actor training data
-        with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
-
-        # sample N number of index from 0 to len(conversations)
-        conversations = self.take_n_samples(conversations, number_of_samples)
-        conversations = self.sort_conversation(conversations, reverse=reverse)
-
-        # save reward training data
-        with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
-
-        # rlhf dataset
-        conversations = self.reformat_dataset(self.dataset["test"])
-
-        # sort conversations by length of user_input
-        conversations = self.sort_conversation(
-            conversations, only_input=True, reverse=reverse
+        self.generate_datasets(
+            conversations,
+            dataset_folder,
+            number_of_samples
         )
-
-        # save rlhf training data
-        with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
 
         my_logger.success("Generation Completed")
 
@@ -503,37 +616,12 @@ class SelfInstructDataset(BaseDataset):
 
         my_logger.info("Generate datasets for RLHF")
 
-        # divide train data in two chunks
-        data = self.reformat_dataset(self.dataset["train"])
-        slice_index = int(len(data) * 0.9)
-        data1 = data[:slice_index]
-        data2 = data[slice_index:]
-
-        # generate actor and reward dataset
-        conversations = self.sort_conversation(data1, reverse=reverse)
-
-        # save actor training data
-        with open(f"{dataset_folder}/actor_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
-
-        # sample N number of index from 0 to len(conversations)
-        conversations = self.take_n_samples(conversations, number_of_samples)
-        conversations = self.sort_conversation(conversations, reverse=reverse)
-
-        # save reward training data
-        with open(f"{dataset_folder}/reward_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
-
-        # rlhf dataset
-        conversations = data2
-
-        # sort conversations by length of user_input
-        conversations = self.sort_conversation(
-            conversations, only_input=True, reverse=reverse
+        conversations = self.reformat_dataset(self.dataset["train"])
+        
+        self.generate_datasets(
+            conversations,
+            dataset_folder,
+            number_of_samples
         )
-
-        # save rlhf training data
-        with open(f"{dataset_folder}/rlhf_training_data.json", "w") as f:
-            json.dump(conversations, f, indent=4)
-
+        
         my_logger.success("Generation Completed")

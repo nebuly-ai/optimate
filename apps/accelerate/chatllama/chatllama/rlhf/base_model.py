@@ -486,7 +486,7 @@ class BaseTrainer:
         self.trainig_stats = self.setup_training_stats()
 
         # eps for numerical stability
-        self.eps = 1e-8
+        self.eps = 1e-6
 
         # attributes for deepspeed and accelerate
         self.accelerator = None
@@ -874,10 +874,6 @@ class BaseTrainer:
                     )
                     return 0, 0
 
-                # load optimizer and scheduler state
-                self.optimizer.load_state_dict(checkpoint["optimizer"])
-                self.scheduler.load_state_dict(checkpoint["scheduler"])
-
                 # load model and epochs
                 if isinstance(self.config, Config):
                     # ActorCritic Trainer
@@ -886,7 +882,7 @@ class BaseTrainer:
                     if "lora_peft" in checkpoint:
                         if (
                             checkpoint["lora_peft"]
-                            != self.model.actor.is_lora_peft_applied
+                            != self.actorcritic.actor.is_lora_peft_applied
                         ):
                             my_logger.warning(
                                 (
@@ -896,10 +892,11 @@ class BaseTrainer:
                                 )
                             )
                             return 0, 0
+                        
                     if "critic_lora_peft" in checkpoint:
                         if (
                             checkpoint["critic_lora_peft"]
-                            != self.model.critic.is_lora_peft_applied
+                            != self.actorcritic.critic.is_lora_peft_applied
                         ):
                             my_logger.warning(
                                 (
@@ -910,13 +907,17 @@ class BaseTrainer:
                             )
                             return 0, 0
 
-                    self.model.actor.load_state_dict(checkpoint["model"])
-                    self.model.critic.load_state_dict(checkpoint["critic"])
+                    self.actorcritic.actor.load_state_dict(checkpoint["model"])
+                    self.actorcritic.critic.load_state_dict(checkpoint["critic"])
                     episode = checkpoint["episode"]
                     my_logger.success(f"Checkpoint loaded from {path}")
                     return episode, 0
                 else:
                     # Actor and Reward Trainer
+                    
+                    # load optimizer and scheduler state
+                    self.optimizer.load_state_dict(checkpoint["optimizer"])
+                    self.scheduler.load_state_dict(checkpoint["scheduler"])
 
                     # first check for lora_peft compatibility
                     if "lora_peft" in checkpoint:
