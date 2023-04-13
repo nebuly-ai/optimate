@@ -1,6 +1,5 @@
 import os
 
-
 from nebullvm.operations.optimizations.compilers.faster_transformer.bert.modeling_bert import (  # noqa: E501
     BertModel as FasterBertModel,
 )
