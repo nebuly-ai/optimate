@@ -499,7 +499,7 @@ class BaseTrainer:
 
         self.setup_accelerate()
         self.setup_deepspeed()
-        
+
         # define the scaler needed for vanilla pytorch with mixed precision
         if self.accelerate_enable or self.deepspeed_enable:
             self.scaler = None
@@ -738,8 +738,8 @@ class BaseTrainer:
                 if self.accelerate_enable:
                     self.accelerator.save(
                         {
-                            "model": self.actorcritic.module.actor.state_dict(),
-                            "critic": self.actorcritic.module.critic.state_dict(),
+                            "model": self.actorcritic.module.actor.state_dict(),  # noqa 501
+                            "critic": self.actorcritic.module.critic.state_dict(),  # noqa 501
                             "optimizer": self.optimizer.state_dict(),
                             "scheduler": self.scheduler.state_dict(),
                             "training_stats": self.training_stats,
@@ -758,7 +758,7 @@ class BaseTrainer:
                             "scheduler": self.scheduler.state_dict(),
                             "training_stats": self.training_stats,
                             "episode": current_epoch,
-                            "lora_peft": self.actorcritic.actor.is_lora_peft_applied, # noqa 501
+                            "lora_peft": self.actorcritic.actor.is_lora_peft_applied,  # noqa 501
                             "critic_lora_peft": self.actorcritic.critic.is_lora_peft_applied,  # noqa 501
                         },
                         path,
@@ -791,21 +791,21 @@ class BaseTrainer:
                         },
                         path,
                     )
-            
+
             # remove old checkpoints
             if isinstance(self.config, Config):
                 ModelLoader.delete_old_checkpoints(
-                model_folder=model_folder,
-                model_name=model_name,
-                n_ckp_to_keep=self.config.trainer.n_checkpoints_to_keep,
-            )
+                    model_folder=model_folder,
+                    model_name=model_name,
+                    n_ckp_to_keep=self.config.trainer.n_checkpoints_to_keep,
+                )
             else:
                 ModelLoader.delete_old_checkpoints(
-                model_folder=model_folder,
-                model_name=model_name,
-                n_ckp_to_keep=self.config.n_checkpoints_to_keep,
-            )
-                
+                    model_folder=model_folder,
+                    model_name=model_name,
+                    n_ckp_to_keep=self.config.n_checkpoints_to_keep,
+                )
+
             my_logger.success(f"Checkpoint saved at {path}")
 
     @beartype
@@ -892,7 +892,7 @@ class BaseTrainer:
                                 )
                             )
                             return 0, 0
-                        
+
                     if "critic_lora_peft" in checkpoint:
                         if (
                             checkpoint["critic_lora_peft"]
@@ -908,13 +908,15 @@ class BaseTrainer:
                             return 0, 0
 
                     self.actorcritic.actor.load_state_dict(checkpoint["model"])
-                    self.actorcritic.critic.load_state_dict(checkpoint["critic"])
+                    self.actorcritic.critic.load_state_dict(
+                        checkpoint["critic"]
+                    )
                     episode = checkpoint["episode"]
                     my_logger.success(f"Checkpoint loaded from {path}")
                     return episode, 0
                 else:
                     # Actor and Reward Trainer
-                    
+
                     # load optimizer and scheduler state
                     self.optimizer.load_state_dict(checkpoint["optimizer"])
                     self.scheduler.load_state_dict(checkpoint["scheduler"])

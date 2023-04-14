@@ -7,7 +7,6 @@ from einops import rearrange
 from torch.utils.data import Dataset
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
-from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
@@ -165,7 +164,7 @@ class ActorTrainer(BaseTrainer):
             training dataset
         validation_dataloader (torch.utils.data.DataLoader): Dataloader for the
             validation dataset
-            
+
     Methods:
         train: Train the actor model
         add_eos_token: Add the eos token to the end of the sequences
@@ -179,14 +178,12 @@ class ActorTrainer(BaseTrainer):
 
         # load the model
         self.model = ActorModel(config)
-        self.model = ActorModel(config)
 
         # define loss function
         self.loss_function = torch.nn.CrossEntropyLoss()
 
         # define optimizer
         self.optimizer = torch.optim.AdamW(
-            self.model.parameters(), lr=config.lr, weight_decay=1e-5
             self.model.parameters(), lr=config.lr, weight_decay=1e-5
         )
 
@@ -380,11 +377,11 @@ class ActorTrainer(BaseTrainer):
                         loss = self.loss_function(est_output, training_output)
 
                 # backward pass
-                if self.config.deepspeed_enable:
+                if self.deepspeed_enable:
                     # deepspeed
                     self.model_engine.backward(loss)
                     self.model_engine.step()
-                elif self.config.accelerate_enable:
+                elif self.accelerate_enable:
                     # accelerate
                     self.optimizer.zero_grad()
                     self.accelerator.backward(loss)
@@ -417,11 +414,11 @@ class ActorTrainer(BaseTrainer):
                 # save checkpoint periodically
                 if cnt_checkpoint % checkpoint_steps == 0:
                     self.save_checkpoint(
-                        current_epoch = epoch,
-                        max_epochs = epochs,
-                        current_step = i,
-                        max_steps = n_iter,
-                        )
+                        current_epoch=epoch,
+                        max_epochs=epochs,
+                        current_step=i,
+                        max_steps=n_iter,
+                    )
                     self.training_stats.save()
                     cnt_checkpoint = 1
                 else:
@@ -430,12 +427,10 @@ class ActorTrainer(BaseTrainer):
             # Validation
             if self.validation_flag:
                 self.model.eval()
-                self.model.eval()
                 with torch.no_grad():
                     for i, input_text in enumerate(self.validation_dataloader):
 
                         # tokenize input
-                        input_tokenized = self.model.tokenizer(
                         input_tokenized = self.model.tokenizer(
                             input_text, return_tensors="pt", padding=True
                         )

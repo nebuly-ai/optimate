@@ -6,7 +6,6 @@ from beartype import beartype
 from torch.utils.data import Dataset
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
-from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.utils import my_logger
 
@@ -48,12 +47,6 @@ class RewardModel(BaseModel):
         )
 
         rewards = self.head(output.last_hidden_state)
-        if self.config.debug:
-            print("RewardModel.forward")
-            print("output_sequence.shape", output_sequence.shape)
-            print("output_sequence", output_sequence)
-            print("reward.shape", rewards.shape)
-            print("reward", rewards)
         return rewards
 
     @beartype
@@ -123,7 +116,6 @@ class RewardDataset(Dataset):
 
 
 class RewardTrainer(BaseTrainer):
-class RewardTrainer(BaseTrainer):
     """Class to train the reward model
 
     Args:
@@ -160,11 +152,9 @@ class RewardTrainer(BaseTrainer):
 
         # load the model
         self.model = RewardModel(config)
-        self.model = RewardModel(config)
 
         # optimizer
         self.optimizer = torch.optim.AdamW(
-            self.model.parameters(), lr=config.lr
             self.model.parameters(), lr=config.lr
         )
 
@@ -236,7 +226,6 @@ class RewardTrainer(BaseTrainer):
 
         # traing loop
         for epoch in range(start_epoch, epochs):
-            self.model.train()
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
 
@@ -361,11 +350,11 @@ class RewardTrainer(BaseTrainer):
                 # checkpoints saving
                 if cnt_checkpoints % checkpoint_steps == 0:
                     self.save_checkpoint(
-                        current_epoch = epoch,
-                        max_epochs = epochs,
-                        current_step = i,
-                        max_steps = n_iter,
-                        )
+                        current_epoch=epoch,
+                        max_epochs=epochs,
+                        current_step=i,
+                        max_steps=n_iter,
+                    )
                     cnt_checkpoints = 1
                 else:
                     cnt_checkpoints += 1
@@ -373,14 +362,12 @@ class RewardTrainer(BaseTrainer):
             # Validation
             if self.validation_flag:
                 self.model.eval()
-                self.model.eval()
                 with torch.no_grad():
                     for i, (text, score) in enumerate(
                         self.validation_dataloader
                     ):
 
                         # tokenize inputs
-                        input_tokens = self.model.tokenizer(
                         input_tokens = self.model.tokenizer(
                             text, return_tensors="pt", padding=True
                         )
@@ -393,14 +380,12 @@ class RewardTrainer(BaseTrainer):
 
                         # forward pass
                         est_output = self.model.get_reward(
-                        est_output = self.model.get_reward(
                             input_tokens["input_ids"],
                             input_tokens["attention_mask"],
                         )
 
                         # compute loss
                         loss = self.loss_function(est_output, output)
-                        self.append_training_stats(validation_loss=loss.item())
                         self.append_training_stats(validation_loss=loss.item())
 
                         # print progress

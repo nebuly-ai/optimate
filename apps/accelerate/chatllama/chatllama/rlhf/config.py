@@ -57,7 +57,6 @@ class ConfigReward:
             Default to None.
         is_reward (bool): True if the model is a reward model. Default to True.
         accelerate_enable (bool): Enable accelerate for the reward model
-        debug (bool): enable prints for Debugging
         device_type (str): Device type to be used for the reward model
     """
 
@@ -89,7 +88,6 @@ class ConfigReward:
     is_reward: bool = True
     accelerate_enable: bool = False
 
-    debug: bool = False
     device_type: str = "cuda"
 
 
@@ -138,7 +136,6 @@ class ConfigActor:
             None.
         peft_enable (bool): Enable peft for the actor
         peft_config_path (str): Path to the peft config file.
-        debug (bool): Enable prints for debugging
         device_type (str): Device type to be used for the actor
 
     """
@@ -172,7 +169,6 @@ class ConfigActor:
     peft_enable: bool
     peft_config_path: str
     checkpoint_name: Optional[str] = None
-    debug: bool = False
     device_type: str = "cuda"
 
 
