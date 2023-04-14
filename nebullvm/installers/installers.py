@@ -534,7 +534,7 @@ class HuggingFaceInstaller(BaseInstaller):
 
     @staticmethod
     def install_framework():
-        cmd = ["pip3", "install", "transformers"]
+        cmd = ["pip3", "install", "transformers<=4.28.0"]
         subprocess.run(cmd)
 
         try:
@@ -548,7 +548,7 @@ class HuggingFaceInstaller(BaseInstaller):
 class DiffusersInstaller(BaseInstaller):
     @staticmethod
     def install_dependencies(include_framework: List[str]):
-        cmd = ["pip3", "install", "transformers"]
+        cmd = ["pip3", "install", "transformers<=4.28.0"]
         subprocess.run(cmd)
 
         if gpu_is_available():
