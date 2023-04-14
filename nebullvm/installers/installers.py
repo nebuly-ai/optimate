@@ -12,7 +12,6 @@ from loguru import logger
 from nebullvm.config import LIBRARIES_GPU
 from nebullvm.operations.optimizations.compilers.utils import (
     deepsparse_is_available,
-    faster_transformer_is_available,
     get_faster_transformer_repo_path,
     intel_neural_compressor_is_available,
     openvino_is_available,
@@ -626,7 +625,7 @@ COMPILER_INSTALLERS = {
     "torch_tensor_rt": install_torch_tensor_rt,
     "deepsparse": install_deepsparse,
     "intel_neural_compressor": install_intel_neural_compressor,
-    "faster_transformer": install_faster_transformer,
+    #"faster_transformer": install_faster_transformer,
 }
 
 COMPILERS_AVAILABLE = {
@@ -635,5 +634,5 @@ COMPILERS_AVAILABLE = {
     "torch_tensor_rt": torch_tensorrt_is_available,
     "deepsparse": deepsparse_is_available,
     "intel_neural_compressor": intel_neural_compressor_is_available,
-    "faster_transformer": faster_transformer_is_available,
+    #"faster_transformer": faster_transformer_is_available,
 }

@@ -35,8 +35,6 @@ class PytorchOptimizer(Optimizer):
                 compilers.append(ModelCompiler.APACHE_TVM_TORCH)
             if bladedisc_is_available():
                 compilers.append(ModelCompiler.BLADEDISC)
-            if faster_transformer_is_available():
-                compilers.append(ModelCompiler.FASTER_TRANSFORMER)
 
             if self.device.type is DeviceType.CPU:
                 if deepsparse_is_available():
@@ -46,6 +44,8 @@ class PytorchOptimizer(Optimizer):
             elif self.device.type is DeviceType.GPU:
                 if torch_tensorrt_is_available():
                     compilers.append(ModelCompiler.TENSOR_RT_TORCH)
+                if faster_transformer_is_available():
+                    compilers.append(ModelCompiler.FASTER_TRANSFORMER)
         return compilers
 
 

@@ -71,6 +71,7 @@ COMPILER_LIST = [
     "openvino",
     "bladedisc",
     "intel_neural_compressor",
+    "faster_transformer",
 ]
 
 COMPRESSOR_LIST = [
