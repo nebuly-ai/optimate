@@ -92,7 +92,7 @@ TENSORFLOW_MODULES = []
 HUGGING_FACE_MODULES = []
 DIFFUSERS_MODULES = []
 
-LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt"]
+LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt", "faster_transformer"]
 
 MIN_NUMBER = 1e-4
 DEFAULT_METRIC_DROP_THS = 1e-3
