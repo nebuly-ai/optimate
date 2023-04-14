@@ -4,8 +4,11 @@ import random
 from collections import deque, namedtuple
 
 import torch
+import torch.distributed as dist
+from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
+from deepspeed.runtime.engine import DeepSpeedEngine
 from torch.utils.data import DataLoader, Dataset
 
 from chatllama.rlhf.actor import ActorModel
@@ -162,6 +165,49 @@ class ActorCritic(BaseModel):
 
         # now load the critic
         self.critic = CriticModel(config.critic)
+
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path.
+        This method is not implemented since it relies on actor and critic
+        __init__ methods to perform the loading from their respective paths
+        then loaded.
+
+        """
+        pass
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path
+        This method is implemented to save the actor model as result of RLHF
+        in the folder actor_rl instead of actor.save() method that saves it
+        in the actor folder.
+        """
+        # get the path to save the actor
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+        )
+
+        # save the model
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"state_dict": self.actor.model.state_dict()},
+            path,
+        )
+
+        # get the path to save the critic model
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config.critic,
+            is_checkpoint=False,
+        )
+
+        # save the model
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"state_dict": self.critic.model.state_dict()},
+            path,
+        )
 
     @beartype
     def forward(
@@ -357,7 +403,6 @@ class ExperienceDataset(Dataset):
     ) -> None:
         super().__init__()
         self.data = list(memories)
-        self.device = device
 
     def __len__(
         self,
@@ -367,15 +412,15 @@ class ExperienceDataset(Dataset):
     def __getitem__(self, idx) -> Tuple:
         # return the idx-th memory element as a tuple of tensors on the device
         item = (
-            self.data[idx].states_actor.to(self.device),
-            self.data[idx].actions.to(self.device),
-            self.data[idx].values.to(self.device),
-            self.data[idx].rewards.to(self.device),
-            self.data[idx].actions_log_probs.to(self.device),
-            self.data[idx].sequences_actor.to(self.device),
-            self.data[idx].sequences_mask_actor.to(self.device),
-            self.data[idx].sequences_critic.to(self.device),
-            self.data[idx].sequences_mask_critic.to(self.device),
+            self.data[idx].states_actor,
+            self.data[idx].actions,
+            self.data[idx].values,
+            self.data[idx].rewards,
+            self.data[idx].actions_log_probs,
+            self.data[idx].sequences_actor,
+            self.data[idx].sequences_mask_actor,
+            self.data[idx].sequences_critic,
+            self.data[idx].sequences_mask_critic,
             int(self.data[idx].action_len_actor),
             int(self.data[idx].action_len_critic),
         )
@@ -503,6 +548,218 @@ class RLTrainer(BaseTrainer):
             config.actor, config.reward
         )
 
+        # eps
+        self.eps = 1e-8
+
+        # deepspeed initialization
+        self.actor_model_engine = None
+        self.critic_model_engine = None
+        self.is_deepspeed_init = None
+
+        if (
+            self.config.actor.deepspeed_enable
+            or self.config.critic.deepspeed_enable
+            or self.config.critic.deepspeed_enable
+        ):
+            deepspeed.init_distributed("nccl")
+            self.is_deepspeed_init = True
+            os.environ["TOKENIZERS_PARALLELISM"] = "False"
+
+        else:
+            self.is_deepspeed_init = False
+
+        if self.config.actor.deepspeed_enable:
+            (
+                self.actor_model_engine,
+                self.actorcritic.actor,
+                self.actor_optimizer,
+            ) = self.initialize_deepspeed_model(
+                config=self.config.actor, model=self.actorcritic.actor
+            )
+
+        if self.config.critic.deepspeed_enable:
+            (
+                self.critic_model_engine,
+                self.actorcritic.critic,
+                self.critic_optimizer,
+            ) = self.initialize_deepspeed_model(
+                config=self.config.critic, model=self.actorcritic.critic
+            )
+
+        if self.config.reward.deepspeed_enable:
+            (
+                _,
+                self.reward,
+                _,
+            ) = self.initialize_deepspeed_model(
+                config=self.config.reward, model=self.reward
+            )
+
+    @staticmethod
+    def initialize_deepspeed_model(
+            config: Union[ConfigActor, ConfigCritic, ConfigReward],
+            model: torch.nn.Module,
+    ):
+
+        if config.deepspeed_config_path is None:
+            raise ValueError("DeepSpeed config path is None, but deepspeed is enabled")
+        if os.path.exists(config.deepspeed_config_path) is False:
+            raise ValueError(
+                f"DeepSpeed config path"
+                f"{config.deepspeed_config_path}"
+                f"does not exist"
+            )
+        (model_engine, ds_optimizer, _, _,) = deepspeed.initialize(
+            args=None,
+            model=model,
+            model_parameters=model.parameters(),
+            config=config.deepspeed_config_path,
+        )
+        # model_engine.module has to be returned to make custom methods
+        # of Module accessible
+        return model_engine, model_engine.module, ds_optimizer
+
+    @beartype
+    def save_checkpoint(
+        self,
+        current_episode: int,
+        max_episode: int,
+    ) -> None:
+
+        print(f"Saving checkpoint for episode {current_episode+1}..")
+
+        # get the path to save the checkpoint for the critic
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config.critic,
+            is_checkpoint=True,
+            current_epoch=current_episode,
+            max_epochs=max_episode,
+            max_steps=0,
+        )
+
+        # if the checkpoint already exists remove it
+        if os.path.exists(path):
+            os.remove(path)
+
+        # save the checkpoint
+        torch.save(
+            {
+                "episode": current_episode,
+                "critic_state_dict": self.actorcritic.critic.state_dict(),
+                "critic_optim_state_dict": self.critic_optimizer.state_dict(),
+            },
+            path,
+        )
+
+        # get the path to save the checkpoint for the actor
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=current_episode,
+            max_epochs=max_episode,
+            max_steps=0,
+        )
+
+        # if the checkpoint already exists remove it
+        if os.path.exists(path):
+            os.remove(path)
+
+        # save the checkpoint
+        torch.save(
+            {
+                "episode": current_episode,
+                "actor_state_dict": self.actorcritic.actor.state_dict(),
+                "actor_optim_state_dict": self.actor_optimizer.state_dict(),
+                "training_stats": self.training_stats,
+            },
+            path,
+        )
+
+    @beartype
+    def load_checkpoint(
+        self,
+    ) -> int:
+
+        critic_episode = -1
+        actor_episode = -1
+
+        # check if there are some checkpoint for the critic
+        print("Looking for checkpoints...")
+        path = ModelLoader.check_model_path(
+            config=self.config.critic,
+            is_checkpoint=True,
+            current_epoch=None,
+        )
+
+        # if there are checkpoint
+        if path is not None:
+
+            # load the critic checkpoint
+            print("Loading ...")
+            try:
+                checkpoint = torch.load(path)
+            except Exception:
+                print(
+                    "Checkpoint of critic corrupted!"
+                    "Try to remove the last checkpoint."
+                    "Now Starting from episode 0"
+                )
+                return 0
+
+            # load checkpoint into model
+            critic_episode = checkpoint["episode"]
+            self.actorcritic.critic.load_state_dict(
+                checkpoint["critic_state_dict"]
+            )
+            self.critic_optimizer.load_state_dict(
+                checkpoint["critic_optim_state_dict"]
+            )
+
+        # check if there are checkpoints for the actor
+        print("Looking for checkpoints...")
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=True,
+            current_epoch=None,
+        )
+
+        # if there are some checkpoints
+        if path is not None:
+
+            # load the actor checkpoint
+            print("Loading ...")
+            try:
+                checkpoint = torch.load(path)
+            except Exception:
+                print(
+                    "Checkpoint of actor corrupted!"
+                    "Try to remove the last checkpoint."
+                    "Now Starting from episode 0"
+                )
+                return 0
+
+            # load checkpoint into the model
+            actor_episode = checkpoint["episode"]
+            self.actorcritic.actor.load_state_dict(
+                checkpoint["actor_state_dict"]
+            )
+            self.actor_optimizer.load_state_dict(
+                checkpoint["actor_optim_state_dict"]
+            )
+            self.training_stats = checkpoint["training_stats"]
+
+        # check if there are some discrepancies between the checkpoints
+        if critic_episode == actor_episode:
+            # all ok start from next episode
+            return critic_episode + 1
+        else:
+            print(
+                f"There are some discrepancies between the checkpoints"
+                f"of actor and critic \nactor episode: {actor_episode}"
+                f"\n critic episode: {critic_episode}\n"
+            )
+            return min(critic_episode, actor_episode) + 1
+
     @beartype
     def learn(self, memories: Deque[Memory]) -> None:
         """Train the agent-critic model using RL:
@@ -518,42 +775,133 @@ class RLTrainer(BaseTrainer):
         critic_eps_clip = self.config.trainer.critic_eps_clip
         beta_s = self.config.trainer.beta_s
         batch_size = self.config.trainer.batch_size
-        device = self.config.trainer.device
-
-        # create dataset from memories
-        self.train_dataset = ExperienceDataset(memories, device)
-        self.train_dataloader = DataLoader(self.train_dataset, batch_size=batch_size)
-
-        # initialize scheduler 
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            self.optimizer.actor,
-            T_0=len(self.train_dataset) // batch_size,
-            T_mult=1,
-            eta_min=self.config.trainer.actor_lr * 0.1,
+        device = (
+            torch.device(f"cuda:{dist.get_rank()}")
+            if self.is_deepspeed_init
+            else self.config.trainer.device
         )
 
-        # setup deepspeed
-        self.setup_deepspeed()
-        
-        # setup accelerate
-        self.setup_accelerate()
+        # create dataset from memories
+        dataset = ExperienceDataset(memories, device)
+        dataloader = DataLoader(dataset, batch_size=batch_size)
+
+        # initialize scheduler for actor
+        actor_lr = self.config.trainer.actor_lr
+        self.actor_scheduler = CosineAnnealingWarmRestarts(
+            self.actor_optimizer, T_0=len(dataset), eta_min=actor_lr * 0.1
+        )
+
+        # initialize scheduler for critic
+        critic_lr = self.config.trainer.critic_lr
+        self.critic_scheduler = CosineAnnealingWarmRestarts(
+            self.critic_optimizer, T_0=len(dataset), eta_min=critic_lr * 0.1
+        )
+
+        # initialize deepspeed for actor
+        if self.config.actor.deepspeed_enable:
+            if self.config.actor.deepspeed_config_path is None:
+                raise ValueError(
+                    "DeepSpeed config path is None, but deepspeed is enabled"
+                )
+            if (
+                os.path.exists(self.config.actor.deepspeed_config_path)
+                is False
+            ):
+                raise ValueError(
+                    f"DeepSpeed config path"
+                    f"{self.config.actor.deepspeed_config_path}"
+                    f"does not exist"
+                )
+            (
+                actor_model_engine,
+                self.actor_optimizer,
+                self.dataloader,
+                _,
+            ) = deepspeed.initialize(
+                args=None,
+                model=self.actorcritic.actor,
+                model_parameters=self.actorcritic.actor.parameters(),
+                training_data=dataloader,
+                config=self.config.actor.deepspeed_config_path,
+            )
+            self.actorcritic.actor = actor_model_engine
+
+        # initialize deepspeed for critic
+        if self.config.critic.deepspeed_enable:
+            if self.config.critic.deepspeed_config_path is None:
+                raise ValueError(
+                    "DeepSpeed config path is None, but deepspeed is enabled"
+                )
+            if (
+                os.path.exists(self.config.critic.deepspeed_config_path)
+                is False
+            ):
+                raise ValueError(
+                    f"DeepSpeed config path"
+                    f"{self.config.critic.deepspeed_config_path}"
+                    f"does not exist"
+                )
+            (
+                critic_model_engine,
+                self.critic_optimizer,
+                _,
+                _,
+            ) = deepspeed.initialize(
+                args=None,
+                model=self.actorcritic.critic,
+                model_parameters=self.actorcritic.critic.parameters(),
+                config=self.config.critic.deepspeed_config_path,
+            )
+            self.actorcritic.critic = critic_model_engine
+
+        # initialize actor accelerate
+        if self.config.actor.accelerate_enable is True:
+            actor_accelerator = Accelerator()
+            (
+                actor_model,
+                self.actor_optimizer,
+                self.train_dataloader,
+                self.actor_scheduler,
+            ) = actor_accelerator.prepare(
+                self.actorcritic.actor,
+                self.actor_optimizer,
+                self.train_dataloader,
+                self.actor_scheduler,
+            )
+            self.actorcritic.actor = actor_model
+
+        # initialize critic accelerate
+        if self.config.critic.accelerate_enable is True:
+            critic_accelerator = Accelerator()
+            (
+                critic_model,
+                self.critic_optimizer,
+                self.critic_scheduler,
+            ) = critic_accelerator.prepare(
+                self.actorcritic.critic,
+                self.critic_optimizer,
+                self.critic_scheduler,
+            )
+            self.actorcritic.critic = critic_model
 
         # train agent-critic
         self.actorcritic.train()
         for epoch in range(epochs):
-            for k, (
-                states_actor,
-                old_actions,
-                old_values,
-                rewards,
-                old_actions_log_probs,
-                sequences_actor,
-                sequences_mask_actor,
-                sequences_critic,
-                sequences_mask_critic,
-                action_len_actor,
-                action_len_critic,
-            ) in enumerate(self.train_dataloader):
+            for k, batch in enumerate(dataloader):
+
+                (
+                    states_actor,
+                    old_actions,
+                    old_values,
+                    rewards,
+                    old_actions_log_probs,
+                    sequences_actor,
+                    sequences_mask_actor,
+                    sequences_critic,
+                    sequences_mask_critic,
+                    action_len_actor,
+                    action_len_critic,
+                ) = [tensor.to(device) for tensor in batch]
 
                 if self.debug:
                     print(
@@ -642,6 +990,21 @@ class RLTrainer(BaseTrainer):
                 if torch.isnan(policy_loss):
                     raise ValueError("Policy Loss is nan")
 
+                # update actor with loss
+                if self.config.actor.deepspeed_enable:
+                    actor_model_engine.backward(loss)
+                    actor_model_engine.step()
+                elif self.config.actor.accelerate_enable:
+                    self.actor_optimizer.zero_grad()
+                    actor_accelerator.backward(loss)
+                    self.actor_optimizer.step()
+                    self.actor_scheduler.step()
+                else:
+                    self.actor_optimizer.zero_grad()
+                    loss.backward()
+                    self.actor_optimizer.step()
+                    self.actor_scheduler.step()
+
                 # compute value loss
                 # the loss is the distance between the rewards and the values
                 # I want this distance to be small so that values are
@@ -657,22 +1020,16 @@ class RLTrainer(BaseTrainer):
 
                 if torch.isnan(value_loss):
                     raise ValueError("Value loss is nan")
-                
-                # Sum the two losses
-                loss = policy_loss + value_loss
 
-                # backward pass
-                if self.deepspeed_enable:
-                    # DeepSpeed backward pass
-                    self.model_engine.backward(loss)
-                    self.model_engine.step()
-                    
-                elif self.accelerate_enable:
-                    # Accelerate backward pass
-                    self.optimizer.zero_grad()
-                    self.accelerator.backward(loss)
-                    self.optimizer.step()
-                    self.scheduler.step()
+                # upate critic
+                if self.config.critic.deepspeed_enable:
+                    critic_model_engine.backward(value_loss)
+                    critic_model_engine.step()
+                elif self.config.critic.accelerate_enable:
+                    self.critic_optimizer.zero_grad()
+                    critic_accelerator.backward(loss)
+                    self.critic_optimizer.step()
+                    self.critic_scheduler.step()
                 else:
                     # PyTorch backward pass
                     self.optimizer.zero_grad()
@@ -710,7 +1067,11 @@ class RLTrainer(BaseTrainer):
         update_timesteps = self.config.trainer.update_timesteps
         batch_size = self.config.trainer.batch_size
         checkpoint_steps = self.config.trainer.checkpoint_steps
-        device = self.config.trainer.device
+        device = (
+            torch.device(f"cuda:{dist.get_rank()}")
+            if self.is_deepspeed_init
+            else self.config.trainer.device
+        )
 
         # number of elements that the memories should contain when learning
         number_of_memories_per_learn_iteration = (
@@ -883,7 +1244,8 @@ class RLTrainer(BaseTrainer):
                     cnt_timesteps != 0
                 ):
                     print("len memories", len(memories))
-                    # self.conversation_log.show(cnt_learn_iter)
+                    if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                        self.conversation_log.save()
                     self.learn(memories)
                     mean_reward = sum([m.rewards[-1] for m in memories]) / len(
                         memories
@@ -892,15 +1254,23 @@ class RLTrainer(BaseTrainer):
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
-                    self.conversation_log.save()
+                    if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                        self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
                 self.save_checkpoint(
                     current_episode=episode, max_episode=num_episodes
                 )
-                self.conversation_log.save()
+                if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                    self.conversation_log.save()
 
         # save the models
-        self.actorcritic.save()
+        if self.is_deepspeed_init:
+            self.actorcritic.save_deepspeed(self.actor_model_engine, self.config)
+            self.actorcritic.save_deepspeed(
+                self.critic_model_engine, self.config.critic
+            )
+        else:
+            self.actorcritic.save()
         print("End RL Training")

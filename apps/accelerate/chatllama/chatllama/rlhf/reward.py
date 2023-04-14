@@ -21,7 +21,106 @@ class RewardModel(BaseModel):
     """
 
     def __init__(self, config: ConfigReward) -> None:
-        super().__init__(config)
+        super().__init__()
+
+        # store config
+        self.config = config
+
+        # initialize the self.model
+        head_hidden_size = config.model_head_hidden_size
+        if config.model in hf_models:
+            self.tokenizer = self.load_tokenizer(config)
+            self.model = AutoModel.from_pretrained(config.model)
+            head_dim = self.model.config.hidden_size
+            if config.model.startswith("gpt2"):
+                head_dim = self.model.config.n_embd
+            self.head = torch.nn.Sequential(
+                torch.nn.Linear(head_dim, head_hidden_size),
+                torch.nn.ReLU(),
+                torch.nn.Linear(head_hidden_size, 1),
+                Rearrange("... 1 -> ..."),
+            )
+        else:
+            raise ValueError(f"Model {config.model} not supported")
+
+        # load the model
+        self.load()
+
+        # freeze model parameters (only train the head)
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # move model to device
+        self.model.to(config.device)
+        self.head.to(config.device)
+
+    @staticmethod
+    def load_tokenizer(config: ConfigReward):
+        # load tokenizer from HF
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.model,
+            padding_side="left",
+            padding=True,
+            truncation=True,
+            model_max_length=config.max_sequence_length,
+        )
+
+        # add eos token if not present
+        if tokenizer.eos_token is None:
+            tokenizer.eos_token = "</s>"
+            tokenizer.eos_token_id = 2  # OPT  eos token id
+
+        # add pad token if not present
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+        return tokenizer
+
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path"""
+        # look for a pretrained model
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+
+        # check if the model exists
+        if path is not None:
+
+            # load the model from the path
+            print("Loading ...")
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict.get("state_dict") or model_dict.get("model"))
+            self.head.load_state_dict(model_dict["head"])
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path"""
+        # get the path to save the model
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+
+        # save the model
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"model": self.model.state_dict(), "head": self.head.state_dict()},
+            path,
+        )
+
+    @beartype
+    def parameters(
+        self,
+    ) -> Iterable[torch.nn.Parameter]:
+        """Return the parameters of the reward model"""
+        for p in self.model.parameters():
+            yield p
+        for p in self.head.parameters():
+            yield p
 
     @beartype
     def forward(
@@ -103,7 +202,11 @@ class RewardDataset(Dataset):
     def __getitem__(self, idx: int):
         user_input = self.data[idx]["user_input"]
         completion = self.data[idx]["completion"]
-        score = float(self.data[idx]["score"])
+        if self.data[idx]["score"]:
+            score = float(self.data[idx]["score"])
+        else:
+            score = 2.5
+
         item = (user_input + completion, score)
         return item
 

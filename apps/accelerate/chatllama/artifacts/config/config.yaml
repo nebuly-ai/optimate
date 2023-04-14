@@ -73,7 +73,7 @@ actor_config:
   # accelerate settings
   accelerate_enable: False
   # use_peft - the parameters of PEFT can be modified in the peft_config.yaml
-  peft_enable: True
+  peft_enable: False
   peft_config_path: "./artifacts/config/peft_config.yaml"
 
 reward_config:

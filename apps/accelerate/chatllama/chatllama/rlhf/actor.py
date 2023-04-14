@@ -23,7 +23,140 @@ class ActorModel(BaseModel):
     """
 
     def __init__(self, config: ConfigActor) -> None:
-        super().__init__(config)
+        super().__init__()
+
+        # save config
+        self.config = config
+
+        # initialize the self.model
+        if config.model in llama_models:
+            # llama module might not be present when HF models are used
+            from chatllama.llama_model import (
+                load_model,
+                setup_model_parallel,
+            )  # noqa
+
+            local_rank, world_size = setup_model_parallel()
+
+            # use load_model_test for testing
+            self.model, self.tokenizer = load_model(
+                ckpt_dir=config.model_folder,
+                tokenizer_path=config.tokenizer_path,
+                local_rank=local_rank,
+                world_size=world_size,
+                froze_embeddings=config.froze_embeddings,
+                use_fairscale=config.use_fairscale,
+                max_batch_size=config.batch_size,
+            )
+        elif config.model in hf_models_causal_lm:
+            self.tokenizer = self.load_tokenizer(config)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                config.model,
+            )
+
+            # Setup PEFT model
+            if config.peft_enable:
+
+                # check that the peft config exist
+                if os.path.exists(config.peft_config_path):
+                    # Read the peft config from yaml
+                    with open(config.peft_config_path, "r") as c:
+                        config_peft = yaml.safe_load(c)
+                else:
+                    raise ValueError(
+                        f"PEFT config {config.peft_config_path} not found"
+                    )
+
+                print(config_peft)
+                # define lora config for peft
+                peft_config = LoraConfig(
+                    task_type=TaskType.CAUSAL_LM, **config_peft
+                )
+
+                # create peft model
+                self.model = get_peft_model(
+                    model=self.model,
+                    peft_config=peft_config,
+                )
+
+            self.model.to(config.device)
+
+        else:
+            raise ValueError(f"Model {config.model} not supported")
+
+        # load the model from model_folder
+        self.load()
+
+    @beartype
+    def load(self) -> None:
+        """Load the model from the path"""
+        # check if there is a model to load
+        path = ModelLoader.check_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+
+        # if there is a model to load
+        if path is not None:
+
+            # load the model
+            print("Loading ...")
+            model_dict = torch.load(path)
+            self.model.load_state_dict(model_dict.get("state_dict") or model_dict.get("model"))
+
+    @beartype
+    def save(self) -> None:
+        """Save the model to the path"""
+        # get the path to save the model
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=self.config,
+            is_checkpoint=False,
+            current_epoch=None,
+        )
+
+        # save the model
+        print(f"Saving model to {path} ...")
+        torch.save(
+            {"state_dict": self.model.state_dict()},
+            path,
+        )
+
+    @staticmethod
+    def load_tokenizer(config: ConfigActor):
+        """Load the tokenizer from the model name"""
+        if config.model in hf_models:
+            # load the tokenizer from HF
+            tokenizer = AutoTokenizer.from_pretrained(
+                config.model,
+                padding_side="left",
+                padding=True,
+                truncation=True,
+                model_max_length=config.max_sequence_length,
+            )
+
+            # add eos token if not present
+            if tokenizer.eos_token is None:
+                tokenizer.eos_token = "</s>"
+                tokenizer.eos_token_id = 2  # OPT eos-token-id
+
+            # add pad token if not present
+            if tokenizer.pad_token is None:
+                tokenizer.pad_token = tokenizer.eos_token
+                tokenizer.pad_token_id = tokenizer.eos_token_id
+        elif config.model in llama_models:
+
+            # llama module might not be present when HF models are used
+            from chatllama.llama_model import (
+                load_tokenizer,
+            )  # noqa
+
+            tokenizer = load_tokenizer(config.tokenizer_path)
+        return tokenizer
+
+    def parameters(self):
+        """Return the parameters of the model"""
+        return self.model.parameters()
 
     @beartype
     def forward(

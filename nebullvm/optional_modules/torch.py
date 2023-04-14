@@ -25,6 +25,8 @@ except ImportError:
         Tensor = DummyClass
         dtype = DummyClass
         nn = nn
+        Generator = DummyClass
+        FloatTensor = DummyClass
 
         @staticmethod
         def no_grad():

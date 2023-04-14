@@ -15,6 +15,7 @@ REQUIREMENTS = [
     "datasets",
     "openai",
     "plotly",
+    "peft"
 ]
 
 this_directory = Path(__file__).parent
