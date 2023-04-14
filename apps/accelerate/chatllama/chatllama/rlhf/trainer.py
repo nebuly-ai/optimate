@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 
 from chatllama.rlhf.actor import ActorModel
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
+from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import (
     Config,
     ConfigActor,
@@ -136,6 +137,7 @@ def check_model_family(config1: ConfigType, config2: ConfigType) -> bool:
 
 
 class ActorCritic(BaseModel):
+class ActorCritic(BaseModel):
     """Actor Critic class stores both the actor and the critic models
     and it generates values and action for given sequences during the training
     of the actor.
@@ -156,12 +158,16 @@ class ActorCritic(BaseModel):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
+        super().__init__(config)
 
+        # load the actor
         # load the actor
         self.actor = ActorModel(config.actor)
 
         # check if critic must be initialized from reward model
         ModelLoader.init_critic_from_reward(config.critic)
+
+        # now load the critic
 
         # now load the critic
         self.critic = CriticModel(config.critic)
@@ -484,6 +490,7 @@ class RLTrainer(BaseTrainer):
         # initialize reward model
         self.reward = RewardModel(config.reward)
 
+        # initialize class to store conversations logs
         # initialize class to store conversations logs
         model_folder, _, _ = ModelLoader.get_model_path(
             config,
@@ -826,6 +833,7 @@ class RLTrainer(BaseTrainer):
         memories = deque([])
 
         # load checkpoint
+        start_episode, _ = self.load_checkpoint()
         start_episode, _ = self.load_checkpoint()
 
         # if it is a new training from the start clear the conversation log

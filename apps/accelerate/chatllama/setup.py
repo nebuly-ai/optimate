@@ -18,6 +18,7 @@ REQUIREMENTS = [
     "datasets",
     "openai",
     "plotly",
+    "peft"
 ]
 
 this_directory = Path(__file__).parent
@@ -25,7 +26,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf8")
 
 setup(
     name="chatllama-py",
-    version="0.0.4",
+    version="0.0.3",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     long_description=long_description,

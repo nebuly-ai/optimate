@@ -6,6 +6,7 @@ from beartype import beartype
 from torch.utils.data import Dataset
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
+from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigReward
 from chatllama.rlhf.utils import my_logger
 
@@ -107,7 +108,11 @@ class RewardDataset(Dataset):
     def __getitem__(self, idx: int):
         user_input = self.data[idx]["user_input"]
         completion = self.data[idx]["completion"]
-        score = float(self.data[idx]["score"])
+        if self.data[idx]["score"]:
+            score = float(self.data[idx]["score"])
+        else:
+            score = 2.5
+
         item = (user_input + completion, score)
         return item
 
@@ -117,6 +122,7 @@ class RewardDataset(Dataset):
         return len(self.data)
 
 
+class RewardTrainer(BaseTrainer):
 class RewardTrainer(BaseTrainer):
     """Class to train the reward model
 
@@ -154,9 +160,11 @@ class RewardTrainer(BaseTrainer):
 
         # load the model
         self.model = RewardModel(config)
+        self.model = RewardModel(config)
 
         # optimizer
         self.optimizer = torch.optim.AdamW(
+            self.model.parameters(), lr=config.lr
             self.model.parameters(), lr=config.lr
         )
 
@@ -228,6 +236,7 @@ class RewardTrainer(BaseTrainer):
 
         # traing loop
         for epoch in range(start_epoch, epochs):
+            self.model.train()
             self.model.train()
             for i, inputs in enumerate(self.train_dataloader):
 
@@ -364,12 +373,14 @@ class RewardTrainer(BaseTrainer):
             # Validation
             if self.validation_flag:
                 self.model.eval()
+                self.model.eval()
                 with torch.no_grad():
                     for i, (text, score) in enumerate(
                         self.validation_dataloader
                     ):
 
                         # tokenize inputs
+                        input_tokens = self.model.tokenizer(
                         input_tokens = self.model.tokenizer(
                             text, return_tensors="pt", padding=True
                         )
@@ -382,12 +393,14 @@ class RewardTrainer(BaseTrainer):
 
                         # forward pass
                         est_output = self.model.get_reward(
+                        est_output = self.model.get_reward(
                             input_tokens["input_ids"],
                             input_tokens["attention_mask"],
                         )
 
                         # compute loss
                         loss = self.loss_function(est_output, output)
+                        self.append_training_stats(validation_loss=loss.item())
                         self.append_training_stats(validation_loss=loss.item())
 
                         # print progress

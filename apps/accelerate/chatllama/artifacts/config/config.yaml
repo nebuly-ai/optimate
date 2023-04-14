@@ -14,10 +14,10 @@ trainer_config:
   # number of episodes and generation performed for each episode
   # in the train() method
   num_episodes: 100
-  max_timesteps: 1
+  max_timesteps: 4
   # number of timesteps after which the learn() method is called 
   # (to update the weights)
-  update_timesteps: 1
+  update_timesteps: 4
   # number of example sampled at each timestep
   num_examples: 32
   # batch and epochs for the training

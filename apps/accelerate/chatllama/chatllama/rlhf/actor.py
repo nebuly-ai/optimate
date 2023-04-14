@@ -7,6 +7,7 @@ from einops import rearrange
 from torch.utils.data import Dataset
 
 from chatllama.rlhf.base_model import BaseModel, BaseTrainer
+from chatllama.rlhf.base_model import BaseModel, BaseTrainer
 from chatllama.rlhf.config import ConfigActor
 from chatllama.rlhf.model_list import (
     hf_models_causal_lm,
@@ -178,12 +179,14 @@ class ActorTrainer(BaseTrainer):
 
         # load the model
         self.model = ActorModel(config)
+        self.model = ActorModel(config)
 
         # define loss function
         self.loss_function = torch.nn.CrossEntropyLoss()
 
         # define optimizer
         self.optimizer = torch.optim.AdamW(
+            self.model.parameters(), lr=config.lr, weight_decay=1e-5
             self.model.parameters(), lr=config.lr, weight_decay=1e-5
         )
 
@@ -427,10 +430,12 @@ class ActorTrainer(BaseTrainer):
             # Validation
             if self.validation_flag:
                 self.model.eval()
+                self.model.eval()
                 with torch.no_grad():
                     for i, input_text in enumerate(self.validation_dataloader):
 
                         # tokenize input
+                        input_tokenized = self.model.tokenizer(
                         input_tokenized = self.model.tokenizer(
                             input_text, return_tensors="pt", padding=True
                         )
