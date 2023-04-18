@@ -186,7 +186,7 @@ After optimizing the model, you may decide to deploy it to production. Note that
 
 ## Set up Speedster on custom DL devices
 
-From version `0.9.2`, Speedster supports optimization of PyTorch models on `Google TPUs` and `AWS Inferentia` chips. 
+From version `0.10.0`, Speedster supports optimization of PyTorch models on `Google TPUs` and `AWS Inferentia` chips. 
 For these devices, the user must ensure that the required libraries are installed on the machine. 
 The following sections describe how to install the required libraries for each device.
 
