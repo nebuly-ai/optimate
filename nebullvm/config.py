@@ -71,6 +71,7 @@ COMPILER_LIST = [
     "openvino",
     "bladedisc",
     "intel_neural_compressor",
+    "faster_transformer",
 ]
 
 COMPRESSOR_LIST = [
@@ -85,13 +86,14 @@ TORCH_MODULES = [
     "intel_neural_compressor",
     "tensor_rt",
     "torch_tensor_rt",
+    "faster_transformer",
 ]
 
 TENSORFLOW_MODULES = []
 HUGGING_FACE_MODULES = []
 DIFFUSERS_MODULES = []
 
-LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt"]
+LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt", "faster_transformer"]
 
 MIN_NUMBER = 1e-4
 DEFAULT_METRIC_DROP_THS = 1e-3

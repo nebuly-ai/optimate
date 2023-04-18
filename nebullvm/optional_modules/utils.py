@@ -2,14 +2,15 @@ import cpuinfo
 from loguru import logger
 
 from nebullvm.operations.optimizations.compilers.utils import (
-    tvm_is_available,
-    onnxruntime_is_available,
-    tensorrt_is_available,
-    openvino_is_available,
     bladedisc_is_available,
     deepsparse_is_available,
+    faster_transformer_is_available,
     intel_neural_compressor_is_available,
+    onnxruntime_is_available,
+    openvino_is_available,
+    tensorrt_is_available,
     torch_tensorrt_is_available,
+    tvm_is_available,
 )
 from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.utils import gpu_is_available, check_module_version
@@ -131,6 +132,8 @@ def check_dependencies(device: Device):
         missing_suggested_compilers.append("onnxruntime")
     elif not _onnxmltools_is_available():
         missing_dependencies.append("onnxmltools")
+    if not faster_transformer_is_available():
+        missing_optional_compilers.append("faster_transformer")
     if device.type is DeviceType.GPU:
         if not tensorrt_is_available():
             missing_suggested_compilers.append("tensorrt")

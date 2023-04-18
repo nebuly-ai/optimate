@@ -14,6 +14,7 @@ try:
     from torch.ao.quantization.stubs import QuantStub, DeQuantStub
     from torch.fx import symbolic_trace
     from torch.quantization import default_dynamic_qconfig
+    import torch.distributed as torch_distributed
 except ImportError:
 
     class nn:
@@ -46,3 +47,4 @@ except ImportError:
     default_dynamic_qconfig = prepare_fx = convert_fx = None
     Generator = DummyClass
     FloatTensor = DummyClass
+    torch_distributed = None

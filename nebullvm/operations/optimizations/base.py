@@ -1,10 +1,10 @@
 import abc
 from tempfile import TemporaryDirectory
-from typing import List, Callable, Union, Tuple, Any, Dict, Type
+from typing import Any, Callable, Dict, List, Tuple, Type, Union
 
 from nebullvm.config import (
-    CONSTRAINED_METRIC_DROP_THS,
     ACTIVATION_METRIC_DROP_THS,
+    CONSTRAINED_METRIC_DROP_THS,
 )
 from nebullvm.operations.base import Operation
 from nebullvm.operations.inference_learners.base import (
@@ -12,26 +12,30 @@ from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
 )
 from nebullvm.operations.inference_learners.builders import (
-    PytorchBuildInferenceLearner,
     DeepSparseBuildInferenceLearner,
+    FasterTransformerBuildInferenceLearner,
     IntelNeuralCompressorBuildInferenceLearner,
-    PyTorchTensorRTBuildInferenceLearner,
-    ONNXTensorRTBuildInferenceLearner,
-    PyTorchApacheTVMBuildInferenceLearner,
     ONNXApacheTVMBuildInferenceLearner,
     ONNXBuildInferenceLearner,
+    ONNXTensorRTBuildInferenceLearner,
     OpenVINOBuildInferenceLearner,
-    TFLiteBuildInferenceLearner,
+    PyTorchApacheTVMBuildInferenceLearner,
+    PytorchBuildInferenceLearner,
+    PyTorchTensorRTBuildInferenceLearner,
     TensorflowBuildInferenceLearner,
+    TFLiteBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import (
-    compute_relative_difference,
     compute_optimized_running_time,
+    compute_relative_difference,
 )
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.deepsparse import (
     DeepSparseCompiler,
+)
+from nebullvm.operations.optimizations.compilers.faster_transformer import (
+    FasterTransformerCompiler,
 )
 from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
     IntelNeuralCompressorCompiler,
@@ -46,27 +50,26 @@ from nebullvm.operations.optimizations.compilers.pytorch import (
     PytorchBackendCompiler,
 )
 from nebullvm.operations.optimizations.compilers.tensor_rt import (
-    PyTorchTensorRTCompiler,
     ONNXTensorRTCompiler,
+    PyTorchTensorRTCompiler,
 )
 from nebullvm.operations.optimizations.compilers.tensorflow import (
-    TFLiteBackendCompiler,
     TensorflowBackendCompiler,
+    TFLiteBackendCompiler,
 )
 from nebullvm.operations.optimizations.compilers.tvm import (
-    PyTorchApacheTVMCompiler,
     ONNXApacheTVMCompiler,
+    PyTorchApacheTVMCompiler,
 )
-
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.base import (
-    ModelCompiler,
-    QuantizationType,
-    OptimizationTime,
-    ModelParams,
     DeepLearningFramework,
+    ModelCompiler,
     ModelCompressor,
+    ModelParams,
+    OptimizationTime,
+    QuantizationType,
     DeviceType,
 )
 from nebullvm.tools.data import DataManager
@@ -362,6 +365,7 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
     ModelCompiler.OPENVINO: OpenVINOCompiler,
     ModelCompiler.TFLITE: TFLiteBackendCompiler,
     ModelCompiler.XLA: TensorflowBackendCompiler,
+    ModelCompiler.FASTER_TRANSFORMER: FasterTransformerCompiler,
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
@@ -378,4 +382,5 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler.OPENVINO: OpenVINOBuildInferenceLearner,
     ModelCompiler.TFLITE: TFLiteBuildInferenceLearner,
     ModelCompiler.XLA: TensorflowBuildInferenceLearner,
+    ModelCompiler.FASTER_TRANSFORMER: FasterTransformerBuildInferenceLearner,
 }

@@ -1,9 +1,12 @@
 from pathlib import Path
-from typing import Union, Any
+from typing import Any, Union
 
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
+)
+from nebullvm.operations.inference_learners.faster_transformer import (
+    FasterTransformerInferenceLearner,
 )
 from nebullvm.operations.inference_learners.neural_compressor import (
     PytorchNeuralCompressorInferenceLearner,
@@ -16,16 +19,16 @@ from nebullvm.operations.inference_learners.pytorch import (
     PytorchBackendInferenceLearner,
 )
 from nebullvm.operations.inference_learners.tensor_rt import (
-    PytorchTensorRTInferenceLearner,
     TENSOR_RT_INFERENCE_LEARNERS,
+    PytorchTensorRTInferenceLearner,
 )
 from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
 from nebullvm.operations.inference_learners.tvm import (
-    PytorchApacheTVMInferenceLearner,
     APACHE_TVM_INFERENCE_LEARNERS,
+    PytorchApacheTVMInferenceLearner,
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
@@ -288,5 +291,21 @@ class ONNXApacheTVMBuildInferenceLearner(BuildInferenceLearner):
             input_names=input_names,
             lib=model,
             target=target_device,
+            device=self.device,
+        )
+
+
+class FasterTransformerBuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: ScriptModule,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = FasterTransformerInferenceLearner(
+            torch_model=model,
+            network_parameters=model_params,
+            input_tfms=input_tfms,
             device=self.device,
         )

@@ -1,7 +1,7 @@
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, List, Union, Dict
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -87,6 +87,7 @@ class ModelCompiler(Enum):
     TFLITE = "tflite"
     BLADEDISC = "bladedisc"
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
+    FASTER_TRANSFORMER = "faster_transformer"
 
 
 class ModelCompressor(Enum):

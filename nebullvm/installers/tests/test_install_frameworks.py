@@ -174,6 +174,7 @@ def test_install_huggingface_torch_compilers_all():
 
     assert compiler_list == [
         "deepsparse",
+        "faster_transformer",
         "intel_neural_compressor",
         "tensor_rt",
         "torch_tensor_rt",
@@ -190,6 +191,7 @@ def test_install_torch_compilers_all():
 
     assert compiler_list == [
         "deepsparse",
+        "faster_transformer",
         "intel_neural_compressor",
         "tensor_rt",
         "torch_tensor_rt",
@@ -228,6 +230,7 @@ def test_install_torch_onnx_compilers_all():
 
     assert compiler_list == [
         "deepsparse",
+        "faster_transformer",
         "intel_neural_compressor",
         "openvino",
         "tensor_rt",
