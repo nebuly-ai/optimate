@@ -223,7 +223,11 @@ class RewardDataset(Dataset):
     def __getitem__(self, idx: int):
         user_input = self.data[idx]["user_input"]
         completion = self.data[idx]["completion"]
-        score = float(self.data[idx]["score"])
+        if self.data[idx]["score"]:
+            score = float(self.data[idx]["score"])
+        else:
+            score = 2.5
+
         item = (user_input + completion, score)
         return item
 

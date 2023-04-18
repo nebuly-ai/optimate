@@ -9,6 +9,7 @@ import torch.distributed as dist
 from accelerate import Accelerator
 from beartype import beartype
 from beartype.typing import Deque, List, Tuple, Union
+from deepspeed.runtime.engine import DeepSpeedEngine
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
@@ -217,6 +218,29 @@ class ActorCritic(torch.nn.Module):
                 "head": self.critic.head.state_dict(),
             },
             path,
+        )
+
+    def save_deepspeed(
+        self,
+        model_engine: DeepSpeedEngine,
+        config: ConfigType,
+        client_state: dict = None,
+    ):
+        """Save the deepspeed model_engine to the path
+        This method is implemented to save the actor model as result of RLHF
+        in the folder actor_rl instead of actor.save() method that saves it
+        in the actor folder. Same goes for the critic model.
+        """
+        # get the path to save the actor
+        model_folder, model_name, path = ModelLoader.get_model_path(
+            config=config,
+            is_checkpoint=False,
+        )
+
+        # save the model
+        print(f"Saving model to {path} ...")
+        model_engine.save_checkpoint(
+            save_dir=path, client_state=client_state if client_state else {}
         )
 
     @beartype
@@ -557,10 +581,17 @@ class RLTrainer:
         self.critic_model_engine = None
         self.is_deepspeed_init = None
 
-        if self.config.actor.deepspeed_enable or self.config.critic.deepspeed_enable:
+        if (
+            self.config.actor.deepspeed_enable
+            or self.config.critic.deepspeed_enable
+            or self.config.critic.deepspeed_enable
+        ):
             deepspeed.init_distributed("nccl")
             self.is_deepspeed_init = True
             os.environ["TOKENIZERS_PARALLELISM"] = "False"
+
+        else:
+            self.is_deepspeed_init = False
 
         if self.config.actor.deepspeed_enable:
             (
@@ -631,19 +662,29 @@ class RLTrainer:
             max_steps=0,
         )
 
-        # if the checkpoint already exists remove it
-        if os.path.exists(path):
+        # if the checkpoint already exists remove it.
+        # Deepspeed checkpoints are already directories and will be overwritten
+        if os.path.exists(path) and not self.is_deepspeed_init:
             os.remove(path)
 
         # save the checkpoint
-        torch.save(
-            {
-                "episode": current_episode,
-                "critic_state_dict": self.actorcritic.critic.state_dict(),
-                "critic_optim_state_dict": self.critic_optimizer.state_dict(),
-            },
-            path,
-        )
+        actor_checkpoint_dict = {
+            "episode": current_episode,
+            "critic_state_dict": self.actorcritic.critic.state_dict(),
+            "critic_optim_state_dict": self.critic_optimizer.state_dict(),
+        }
+
+        if self.config.actor.deepspeed_enable:
+            # The model and optimizer state dicts are actually already saved
+            # In the deepspeed model engine. But to make sure no depending
+            # methods fail, the states are included in actor_checkpoint_dict.
+            # ATTENTION: If you use deepspeed zero optimization, the client_state
+            # will not be saved
+            self.actor_model_engine.save_checkpoint(
+                save_dir=path, client_state=actor_checkpoint_dict
+            )
+        else:
+            torch.save(actor_checkpoint_dict, path)
 
         # get the path to save the checkpoint for the actor
         model_folder, model_name, path = ModelLoader.get_model_path(
@@ -654,20 +695,30 @@ class RLTrainer:
             max_steps=0,
         )
 
-        # if the checkpoint already exists remove it
-        if os.path.exists(path):
+        # if the checkpoint already exists remove it.
+        # Deepspeed checkpoints are already directories and will be overwritten
+        if os.path.exists(path) and not self.is_deepspeed_init:
             os.remove(path)
 
         # save the checkpoint
-        torch.save(
-            {
-                "episode": current_episode,
-                "actor_state_dict": self.actorcritic.actor.state_dict(),
-                "actor_optim_state_dict": self.actor_optimizer.state_dict(),
-                "training_stats": self.training_stats,
-            },
-            path,
-        )
+        critic_checkpoint_dict = {
+            "episode": current_episode,
+            "actor_state_dict": self.actorcritic.actor.state_dict(),
+            "actor_optim_state_dict": self.actor_optimizer.state_dict(),
+            "training_stats": self.training_stats,
+        }
+
+        if self.config.critic.deepspeed_enable:
+            # The model and optimizer state dicts are actually already saved
+            # In the deepspeed model engine. But to make sure no depending
+            # methods fail, the states are included in critic_checkpoint_dict.
+            # ATTENTION: If you use deepspeed zero optimization, the client_state
+            # will not be saved
+            self.critic_model_engine.save_checkpoint(
+                save_dir=path, client_state=critic_checkpoint_dict
+            )
+        else:
+            torch.save(critic_checkpoint_dict, path)
 
     @beartype
     def load_checkpoint(
@@ -1192,7 +1243,8 @@ class RLTrainer:
                     cnt_timesteps != 0
                 ):
                     print("len memories", len(memories))
-                    # self.conversation_log.show(cnt_learn_iter)
+                    if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                        self.conversation_log.save()
                     self.learn(memories)
                     mean_reward = sum([m.rewards[-1] for m in memories]) / len(
                         memories
@@ -1201,17 +1253,23 @@ class RLTrainer:
                     memories.clear()
                     cnt_timesteps = 0
                     cnt_learn_iter += 1
-                    # TODO fix log saving in deepspeed multi GPU training
-                    # self.conversation_log.save()
+                    if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                        self.conversation_log.save()
 
             # save checkpoints
             if (episode % checkpoint_steps == 0) and (episode != 0):
                 self.save_checkpoint(
                     current_episode=episode, max_episode=num_episodes
                 )
-                # TODO fix log saving in deepspeed multi GPU training
-                # self.conversation_log.save()
+                if not self.is_deepspeed_init or (dist.get_rank() == 0):
+                    self.conversation_log.save()
 
         # save the models
-        self.actorcritic.save()
+        if self.is_deepspeed_init:
+            self.actorcritic.save_deepspeed(self.actor_model_engine, self.config)
+            self.actorcritic.save_deepspeed(
+                self.critic_model_engine, self.config.critic
+            )
+        else:
+            self.actorcritic.save()
         print("End RL Training")
