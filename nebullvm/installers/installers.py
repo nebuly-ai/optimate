@@ -9,21 +9,17 @@ from typing import List
 import cpuinfo
 from loguru import logger
 
-from nebullvm.config import (
-    LIBRARIES_GPU,
-)
+from nebullvm.config import LIBRARIES_GPU
 from nebullvm.operations.optimizations.compilers.utils import (
+    deepsparse_is_available,
+    get_faster_transformer_repo_path,
+    intel_neural_compressor_is_available,
     openvino_is_available,
     tensorrt_is_available,
     torch_tensorrt_is_available,
-    deepsparse_is_available,
-    intel_neural_compressor_is_available,
 )
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.utils import (
-    gpu_is_available,
-    check_module_version,
-)
+from nebullvm.tools.utils import check_module_version, gpu_is_available
 
 
 def get_cpu_arch():
@@ -236,10 +232,10 @@ def install_openvino(with_optimization: bool = True):
 
     try:
         from openvino.runtime import (  # noqa F401
-            Core,
-            Model,
             CompiledModel,
+            Core,
             InferRequest,
+            Model,
         )
     except ImportError:
         return False
@@ -341,6 +337,47 @@ def install_onnx_simplifier():
     except ImportError:
         return False
 
+    return True
+
+
+def install_faster_transformer(
+    working_dir: str = None,
+):
+    """Helper function for installing FasterTransformer.
+    https://github.com/NVIDIA/FasterTransformer
+
+    This function needs some prerequisites for running, as a valid `git`
+    installation and having MacOS or a Linux-distribution as OS.
+
+    Args:
+        working_dir (str, optional): The directory where the FasterTransformer
+        repo will be cloned and installed. Default: None
+    """
+    if not gpu_is_available():
+        return False
+    path = Path(__file__).parent
+    # install faster transformer
+    try:
+        import torch
+
+        CP = compute_capability = torch.cuda.get_device_capability()
+        assert len(compute_capability) == 2
+    except (ImportError, AssertionError):
+        return False
+    installation_file = str(path / "install_fastertransformer.sh")
+    env_dict = {
+        "COMPUTE_CAPABILITY": f"{CP[0]}{CP[1]}",
+        **dict(os.environ.copy()),
+    }
+
+    result = subprocess.run(
+        ["bash", installation_file],
+        cwd=get_faster_transformer_repo_path().parent,
+        env=env_dict,
+    )
+    # check result
+    if result.returncode != 0:
+        return False
     return True
 
 
@@ -598,6 +635,7 @@ COMPILER_INSTALLERS = {
     "torch_tensor_rt": install_torch_tensor_rt,
     "deepsparse": install_deepsparse,
     "intel_neural_compressor": install_intel_neural_compressor,
+    # "faster_transformer": install_faster_transformer,
 }
 
 COMPILERS_AVAILABLE = {
@@ -606,4 +644,5 @@ COMPILERS_AVAILABLE = {
     "torch_tensor_rt": torch_tensorrt_is_available,
     "deepsparse": deepsparse_is_available,
     "intel_neural_compressor": intel_neural_compressor_is_available,
+    # "faster_transformer": faster_transformer_is_available,
 }

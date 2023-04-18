@@ -17,6 +17,7 @@ from nebullvm.operations.optimizations.compilers.utils import (
     openvino_is_available,
     torch_neuron_is_available,
     torch_xla_is_available,
+    faster_transformer_is_available,
 )
 from nebullvm.optional_modules.torch import torch
 from nebullvm.optional_modules.utils import (
@@ -77,6 +78,8 @@ class PytorchOptimizer(Optimizer):
                 elif self.device.type is DeviceType.GPU:
                     if torch_tensorrt_is_available():
                         compilers.append(ModelCompiler.TENSOR_RT_TORCH)
+                    if faster_transformer_is_available():
+                        compilers.append(ModelCompiler.FASTER_TRANSFORMER)
         return compilers
 
 

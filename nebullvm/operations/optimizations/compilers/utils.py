@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import nebullvm
 from nebullvm.core.models import Device, ModelCompiler, DeviceType
 
 
@@ -31,8 +34,8 @@ def bladedisc_is_available() -> bool:
 
 def tensorrt_is_available() -> bool:
     try:
-        import tensorrt  # noqa F401
         import polygraphy  # noqa F401
+        import tensorrt  # noqa F401
 
         return True
     except ImportError:
@@ -91,6 +94,18 @@ def torch_neuron_is_available():
         return True
     except ImportError:
         return False
+
+
+def get_faster_transformer_repo_path() -> Path:
+    return Path(nebullvm.__file__).parent.joinpath("FasterTransformer")
+
+
+def faster_transformer_is_available() -> bool:
+    return (
+        get_faster_transformer_repo_path()
+        .parent.joinpath("FasterTransformer_build_success")
+        .exists()
+    )
 
 
 def select_compilers_from_hardware_onnx(device: Device):
