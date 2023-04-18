@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Union
 
+from nebullvm.core.models import QuantizationType
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.quantizations.intel_neural_compressor import (  # noqa: E501
     quantize_neural_compressor,
@@ -9,7 +10,6 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.torch import Module
-from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 

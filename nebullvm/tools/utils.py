@@ -1,5 +1,7 @@
+import os
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 from types import ModuleType
 from typing import (
@@ -18,14 +20,14 @@ import numpy as np
 from loguru import logger
 from packaging import version
 
-from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import (
+from nebullvm.core.models import (
     DeepLearningFramework,
     Device,
     ModelParams,
     DeviceType,
 )
+from nebullvm.optional_modules.tensorflow import tensorflow as tf
+from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     extract_info_from_np_data,
@@ -39,6 +41,39 @@ from nebullvm.tools.tf import (
     extract_info_from_tf_data,
     get_output_info_tf,
 )
+
+
+def get_model_size_mb(model: Any) -> float:
+    if isinstance(model, str):
+        size = os.stat(model).st_size
+    elif isinstance(model, Path):
+        size = os.path.getsize(model.as_posix())
+    elif isinstance(model, torch.nn.Module):
+        size = sum(p.nelement() * p.element_size() for p in model.parameters())
+    else:
+        # we assume it is a tf_model
+        # assuming full precision 32 bit
+        size = model.count_params() * 4
+    return round(size * 1e-6, 2)
+
+
+def get_model_name(model: Any) -> str:
+    if isinstance(model, str):
+        return model
+    if isinstance(model, Path):
+        return model.as_posix()
+    return model.__class__.__name__
+
+
+def generate_model_id(model: Any) -> str:
+    model_name = get_model_name(model)
+    return f"{str(uuid.uuid4())}_{hash(model_name)}"
+
+
+def get_throughput(latency: float, batch_size: int = 1) -> float:
+    if latency == 0:
+        return -1
+    return (1 / latency) * batch_size
 
 
 def ifnone(target, new_value):
@@ -67,6 +102,25 @@ def gpu_is_available():
     try:
         subprocess.check_output("nvidia-smi")
         return True
+    except Exception:
+        return False
+
+
+def neuron_is_available():
+    try:
+        subprocess.check_output("neuron-ls")
+        return True
+    except Exception:
+        return False
+
+
+def tpu_is_available():
+    # Check if a tpu is available
+    try:
+        import torch_xla
+        import torch_xla.core.xla_model as xm
+
+        return xm.xla_device_hw(torch_xla.core.xla_model.xla_device()) == "TPU"
     except Exception:
         return False
 
@@ -217,29 +271,62 @@ def is_dict_type(data_sample: Any):
         return True
 
 
-def check_device(device: Optional[str]) -> Device:
+def _get_idx(device: str) -> int:
+    device_info = device.split(":")
+    if len(device_info) == 2 and device_info[1].isdigit():
+        idx = int(device_info[1])
+    else:
+        idx = 0
+    return idx
+
+
+def _set_device(
+    accelerator_is_available: bool, device_type: DeviceType, idx: int
+) -> Device:
+    if not accelerator_is_available:
+        logger.warning(
+            f"Selected {device_type.name} device but no available "
+            f"{device_type.name} found on this platform. CPU will "
+            f"be used instead. Please make sure that the "
+            f"{device_type.name} is installed and can be used by your "
+            "framework."
+        )
+        device = Device(DeviceType.CPU)
+    else:
+        device = Device(device_type, idx=idx)
+
+    return device
+
+
+def check_device(device: Optional[str] = None) -> Device:
     if device is None:
         if gpu_is_available():
             device = Device(DeviceType.GPU)
+        elif neuron_is_available():
+            device = Device(DeviceType.NEURON)
+        elif tpu_is_available():
+            device = Device(DeviceType.TPU)
         else:
             device = Device(DeviceType.CPU)
     else:
         if any(x in device.lower() for x in ["cuda", "gpu"]):
-            device_info = device.split(":")
-            if len(device_info) == 2 and device_info[1].isdigit():
-                idx = int(device_info[1])
-            else:
-                idx = 0
-            if not gpu_is_available():
-                logger.warning(
-                    "Selected GPU device but no available GPU found on this "
-                    "platform. CPU will be used instead. Please make sure "
-                    "that the gpu is installed and can be used by your "
-                    "framework."
-                )
-                device = Device(DeviceType.CPU)
-            else:
-                device = Device(DeviceType.GPU, idx=idx)
+            device = _set_device(
+                accelerator_is_available=gpu_is_available(),
+                device_type=DeviceType.GPU,
+                idx=_get_idx(device),
+            )
+        elif "neuron" in device.lower():
+            device = _set_device(
+                accelerator_is_available=neuron_is_available(),
+                device_type=DeviceType.NEURON,
+                idx=_get_idx(device),
+            )
+        elif "tpu" in device.lower():
+            device = _set_device(
+                accelerator_is_available=tpu_is_available(),
+                device_type=DeviceType.TPU,
+                idx=_get_idx(device),
+            )
         else:
             device = Device(DeviceType.CPU)
 

@@ -1,7 +1,7 @@
 from nebullvm.optional_modules.torch import torch
 
 
-VERSION = "0.9.1"
+VERSION = "0.10.0"
 LEARNER_METADATA_FILENAME = "metadata.json"
 ONNX_OPSET_VERSION = 13
 NEBULLVM_DEBUG_FILE = "nebullvm_debug.json"
@@ -71,6 +71,9 @@ COMPILER_LIST = [
     "openvino",
     "bladedisc",
     "intel_neural_compressor",
+    "torch_neuron",
+    "torch_xla",
+    "torch_dynamo",
     "faster_transformer",
 ]
 
@@ -96,5 +99,5 @@ DIFFUSERS_MODULES = []
 LIBRARIES_GPU = ["tensor_rt", "torch_tensor_rt", "faster_transformer"]
 
 MIN_NUMBER = 1e-4
-DEFAULT_METRIC_DROP_THS = 1e-3
-ACTIVATION_METRIC_DROP_THS = 1e-2
+DEFAULT_METRIC_DROP_THS = 1e-2
+ACTIVATION_METRIC_DROP_THS = 2e-2

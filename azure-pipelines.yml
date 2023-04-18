@@ -41,8 +41,31 @@ steps:
       python -m nebullvm.installers.auto_installer --compilers all
     displayName: 'Install deep learning compilers'
 
-  - script: python -m pip install -r "requirements-dev.txt"
+  - script: |
+      python -m pip install -r "requirements-dev.txt"
+      pip install pytest-azurepipelines
     displayName: 'Install requirements for testing'
+
+  - script: |
+      res=$(python -c "from nebullvm.tools.utils import check_device; print(check_device().type.name == 'GPU')")
+      if [ "$res" = "False" ]; then
+          echo "GPU is not available"
+          exit 1
+      fi
+      echo "GPU is available: $res"
+      res=$(python -c "import torch; print(torch.cuda.is_available())")
+      if [ "$res" = "False" ]; then
+          echo "CUDA is not available for PyTorch"
+          exit 1
+      fi
+      echo "CUDA is available for PyTorch: $res"
+      res=$(python -c "import torch; num_devices = torch.cuda.device_count(); print(num_devices is not None and isinstance(num_devices, int) and num_devices > 0)")
+      if [ "$res" = "False" ]; then
+          echo "No CUDA devices found"
+          exit 1
+      fi
+      echo "CUDA devices found: $res"
+    displayName: 'Check GPU is available'
 
   - script: |
       export SPEEDSTER_DISABLE_TELEMETRY=1
@@ -51,6 +74,7 @@ steps:
       pytest
       cd ../../..
     displayName: 'Run api tests'
+    failOnStderr: true
 
   - script: |
       export PATH=$PATH:/home/AzDevOps/.local/bin
@@ -58,55 +82,4 @@ steps:
       pytest
       cd ../
     displayName: 'Run components tests'
-
-  - script: |
-      export DEBIAN_FRONTEND=noninteractive
-      sudo apt-get update -y
-      sudo apt-get install -y ca-certificates curl gnupg lsb-release
-      sudo mkdir -p /etc/apt/keyrings
-      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-      echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-        $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-      sudo apt-get update -y
-      sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-      sudo chmod 666 /var/run/docker.sock
-    displayName: 'Install docker'
-
-  - script: |
-      docker run hello-world
-    displayName: 'Ensure docker works correctly'
-
-  - script: |
-      curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | \
-        sudo apt-key add -
-      distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-      curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
-        sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-      sudo apt-get update
-      sudo apt-get install -y nvidia-docker2
-      sudo pkill -SIGHUP dockerd
-      sudo mkdir -p /etc/docker
-      sudo tee /etc/docker/daemon.json <<EOF
-      {
-        "runtimes": {
-          "nvidia": {
-            "path": "nvidia-container-runtime",
-            "runtimeArgs": []
-          }
-        },
-        "default-runtime": "nvidia"
-      }
-      EOF
-      sudo pkill -SIGHUP dockerd
-    displayName: 'Setup docker to use nvidia'
-
-  - task: Docker@2
-    displayName: 'Build and push the image to DockerHub'
-    inputs:
-      containerRegistry: 'docker hub'
-      repository: 'nebulydocker/nebullvm'
-      command: 'buildAndPush'
-      Dockerfile: 'Dockerfile'
-      tags: |
-        latest
+    failOnStderr: true

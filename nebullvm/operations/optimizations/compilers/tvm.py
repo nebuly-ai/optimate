@@ -8,6 +8,12 @@ from nebullvm.config import (
     AUTO_TVM_PARAMS,
     AUTO_TVM_TUNING_OPTION,
 )
+from nebullvm.core.models import (
+    QuantizationType,
+    ModelParams,
+    DeviceType,
+    Device,
+)
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.quantizations.tvm import (
     TVMCalibrator,
@@ -26,12 +32,6 @@ from nebullvm.optional_modules.tvm import (
     autotvm,
     relay,
     ExecutorFactoryModule,
-)
-from nebullvm.tools.base import (
-    QuantizationType,
-    ModelParams,
-    Device,
-    DeviceType,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import get_input_names

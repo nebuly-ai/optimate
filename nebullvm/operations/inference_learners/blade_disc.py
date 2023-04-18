@@ -1,15 +1,15 @@
 from typing import Optional
 
-from nebullvm.operations.inference_learners.pytorch import (
-    PytorchBackendInferenceLearner,
+from nebullvm.core.models import ModelParams, Device
+from nebullvm.operations.inference_learners.torchscript import (
+    TorchScriptInferenceLearner,
 )
 from nebullvm.optional_modules.torch import ScriptModule
-from nebullvm.tools.base import ModelParams, Device
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
-class BladeDISCInferenceLearner(PytorchBackendInferenceLearner):
+class BladeDISCInferenceLearner(TorchScriptInferenceLearner):
     name = "BladeDISC"
 
     @classmethod

@@ -8,11 +8,13 @@ In this section, we will learn about the 4 main steps needed to optimize Stable 
 5. [Load and run your optimized model in production](#5-load-and-run-your-optimized-model-in-production)
 
 ## 1) Environment Setup (GPU only)
-In order to optimize a Stable Diffusion model, you have to ensure that your environment is correctly set up according to these requirements: `CUDA>=12.0` and `tensorrt>=8.6.0`.
+In order to optimize a Stable Diffusion model, you have to ensure that your environment is correctly set up according to these requirements: `CUDA>=12.0`, `tensorrt>=8.6.0` and `torch<=1.13.1`.
 
 From TensorRT 8.6, all the tensorrt pre-built wheels released by nvidia support only `CUDA>=12.0`. Speedster will install `tensorrt>=8.6.0` automatically in the auto-installer only if it detects CUDA>=12.0, otherwise it will install `tensorrt==8.5.3.1`. In that case, you will have to upgrade your CUDA version and then to upgarde tensorrt to 8.6.0 or above.
 
 There should be a way to run TensorRT 8.6 also with CUDA 11, but it requires installing TensorRT in a different way, you can check this issue: https://github.com/NVIDIA/TensorRT/issues/2773. Otherwise, we highly suggest to just upgrade to CUDA 12.
+
+For now PyTorch>=2.0.0 is not supported due to an [issue](https://github.com/pytorch/pytorch/issues/97262) in the conversion to onnx, so until they fix it you must have torch<=1.13.1 to optimize Stable Diffusion successfully.
 
 You can check your CUDA version with the following command:
 
@@ -31,6 +33,15 @@ python -c "import tensorrt; print(tensorrt.__version__)"
 If you have an older version, after ensuring you have `CUDA>=12.0` installed, you can upgrade your TensorRT version by running:
 ```
 pip install -U tensorrt
+```
+
+You can finally check your PyTorch version  with the command
+```bash
+python -c "import torch; print(torch.__version__)"
+```
+If you have torch>=2.0.0, you can downgrade it by running:
+```
+pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
 ```
 
 ## 2) Input model and data

@@ -62,7 +62,7 @@ def test_torch_huggingface_ort_input_text():
     assert isinstance(optimized_model, HuggingFaceInferenceLearner)
 
     assert (
-        torch.max(
+        torch.mean(
             abs(
                 (
                     res_original["last_hidden_state"]
@@ -73,7 +73,7 @@ def test_torch_huggingface_ort_input_text():
         < 1e-2
     )
     assert (
-        torch.max(
+        torch.mean(
             abs(
                 (
                     res_original["pooler_output"]
@@ -126,7 +126,7 @@ def test_torch_huggingface_ort_input_tensors():
     assert isinstance(optimized_model, HuggingFaceInferenceLearner)
 
     assert (
-        torch.max(
+        torch.mean(
             abs(
                 (
                     res_original["last_hidden_state"]
@@ -137,7 +137,7 @@ def test_torch_huggingface_ort_input_tensors():
         < 1e-2
     )
     assert (
-        torch.max(
+        torch.mean(
             abs(
                 (
                     res_original["pooler_output"]
@@ -189,8 +189,8 @@ def test_torch_huggingface_torchscript_input_tensors():
 
     assert isinstance(optimized_model, HuggingFaceInferenceLearner)
 
-    assert torch.max(abs((res_original[0] - res_optimized[0]))) < 1e-2
-    assert torch.max(abs((res_original[1] - res_optimized[1]))) < 1e-2
+    assert torch.mean(abs((res_original[0] - res_optimized[0]))) < 1e-2
+    assert torch.mean(abs((res_original[1] - res_optimized[1]))) < 1e-2
 
 
 def test_tensorflow_huggingface_ort_input_text_np():

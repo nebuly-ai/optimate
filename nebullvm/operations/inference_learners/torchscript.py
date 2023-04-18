@@ -1,9 +1,7 @@
-import os
-import pickle
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Tuple, Union, Optional, List
 
+from nebullvm.core.models import Device, DeviceType, ModelParams
 from nebullvm.operations.inference_learners.base import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
@@ -15,11 +13,10 @@ from nebullvm.optional_modules.torch import (
     ScriptModule,
     GraphModule,
 )
-from nebullvm.tools.base import DeviceType, ModelParams, Device
 from nebullvm.tools.transformations import MultiStageTransformation
 
 
-class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
+class TorchScriptInferenceLearner(PytorchBaseInferenceLearner):
     MODEL_NAME = "model_scripted.pt"
     name = "TorchScript"
 
@@ -44,22 +41,6 @@ class PytorchBackendInferenceLearner(PytorchBaseInferenceLearner):
                 res = res.to(self.device.to_torch_format())
                 return (res,)
             return tuple(out.to(self.device.to_torch_format()) for out in res)
-
-    def get_size(self):
-        try:
-            if hasattr(self.model, "core_model"):
-                return len(pickle.dumps(self.model.core_model, -1))
-            else:
-                # Normal torch model
-                return len(pickle.dumps(self.model, -1))
-        except RuntimeError:
-            with TemporaryDirectory() as tmp_dir:
-                self.save(tmp_dir)
-                return sum(
-                    os.path.getsize(Path(tmp_dir) / f)
-                    for f in os.listdir(Path(tmp_dir))
-                    if os.path.isfile(Path(tmp_dir) / f)
-                )
 
     def save(self, path: Union[str, Path], **kwargs):
         path = Path(path)

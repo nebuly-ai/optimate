@@ -3,27 +3,27 @@ from tempfile import TemporaryDirectory
 import pytest
 import torch
 
-from nebullvm.operations.inference_learners.pytorch import (
-    PytorchBackendInferenceLearner,
+from nebullvm.core.models import (
+    DeviceType,
+    Device,
+    DeepLearningFramework,
+    QuantizationType,
+    ModelCompiler,
 )
-from nebullvm.operations.optimizations.base import (
+from nebullvm.operations.inference_learners.torchscript import (
+    TorchScriptInferenceLearner,
+)
+from nebullvm.operations.optimizations.compilers.torchscript import (
+    TorchScriptCompiler,
+)
+from nebullvm.operations.optimizations.optimizers.base import (
     COMPILER_TO_INFERENCE_LEARNER_MAP,
-)
-from nebullvm.operations.optimizations.compilers.pytorch import (
-    PytorchBackendCompiler,
 )
 from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
 from nebullvm.operations.inference_learners.utils import load_model
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    QuantizationType,
-    Device,
-    ModelCompiler,
-    DeviceType,
-)
 from nebullvm.tools.utils import gpu_is_available
 
 device = (
@@ -48,7 +48,7 @@ def run_test_torchscript(
             metric,
         ) = initialize_model(dynamic, metric, output_library, device)
 
-        compiler_op = PytorchBackendCompiler()
+        compiler_op = TorchScriptCompiler()
         compiler_op.to(device).execute(
             model=model,
             input_tfms=input_tfms,
@@ -74,12 +74,12 @@ def run_test_torchscript(
         )
 
         optimized_model = build_inference_learner_op.get_result()
-        assert isinstance(optimized_model, PytorchBackendInferenceLearner)
+        assert isinstance(optimized_model, TorchScriptInferenceLearner)
 
         # Test save and load functions
         optimized_model.save(tmp_dir)
         loaded_model = load_model(tmp_dir)
-        assert isinstance(loaded_model, PytorchBackendInferenceLearner)
+        assert isinstance(loaded_model, TorchScriptInferenceLearner)
 
         assert isinstance(optimized_model.get_size(), int)
 

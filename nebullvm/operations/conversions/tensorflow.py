@@ -6,9 +6,9 @@ from typing import Union
 from loguru import logger
 
 from nebullvm.config import ONNX_OPSET_VERSION
+from nebullvm.core.models import ModelParams
 from nebullvm.optional_modules.tensorflow import tensorflow as tf, tf2onnx
 from nebullvm.optional_modules.onnx import onnx
-from nebullvm.tools.base import ModelParams
 from nebullvm.tools.huggingface import TensorFlowTransformerWrapper
 
 

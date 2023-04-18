@@ -6,14 +6,10 @@ import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
+from nebullvm.core.models import DeepLearningFramework, ModelParams, DeviceType
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    ModelParams,
-    DeviceType,
-)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import create_model_inputs_torch
@@ -27,7 +23,11 @@ from nebullvm.tools.utils import (
 
 
 def _get_dl_framework(model: Any):
-    if isinstance(model, torch.nn.Module) or str(model).startswith("Pytorch"):
+    if (
+        isinstance(model, torch.nn.Module)
+        or str(model).startswith("Pytorch")
+        or str(model).startswith("Torch")
+    ):
         return DeepLearningFramework.PYTORCH
     elif (isinstance(model, tf.Module) and model is not None) or str(
         model

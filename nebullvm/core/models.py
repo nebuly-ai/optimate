@@ -1,12 +1,19 @@
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Tuple, Union
+from functools import cached_property
+from typing import Optional, Any, Union, Tuple, List, Dict
 
 import numpy as np
 
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
+
+
+class DeepLearningFramework(Enum):
+    PYTORCH = "torch"
+    TENSORFLOW = "tensorflow"
+    NUMPY = "numpy"
 
 
 class QuantizationType(Enum):
@@ -20,15 +27,11 @@ class Status(Enum):
     ERROR = "ERROR"
 
 
-class DeepLearningFramework(Enum):
-    PYTORCH = "torch"
-    TENSORFLOW = "tensorflow"
-    NUMPY = "numpy"
-
-
 class DeviceType(Enum):
     CPU = "cpu"
     GPU = "gpu"
+    TPU = "tpu"
+    NEURON = "neuron"
 
 
 class DataType(str, Enum):
@@ -87,6 +90,9 @@ class ModelCompiler(Enum):
     TFLITE = "tflite"
     BLADEDISC = "bladedisc"
     INTEL_NEURAL_COMPRESSOR = "intel_neural_compressor"
+    TORCH_NEURON = "torch_neuron"
+    TORCH_XLA = "torch_xla"
+    TORCH_DYNAMO = "torch_dynamo"
     FASTER_TRANSFORMER = "faster_transformer"
 
 
@@ -98,6 +104,85 @@ class ModelCompressor(Enum):
 class OptimizationTime(Enum):
     CONSTRAINED = "constrained"
     UNCONSTRAINED = "unconstrained"
+
+
+@dataclass
+class HardwareSetup:
+    cpu: str
+    operating_system: str
+    memory_gb: int
+    accelerator: Optional[str] = None
+
+
+@dataclass
+class OptimizedModel:
+    inference_learner: Any
+    latency_seconds: float
+    metric_drop: float
+    technique: str
+    compiler: str
+    throughput: float
+    size_mb: float
+
+
+@dataclass
+class OriginalModel:
+    model: Any
+    latency_seconds: float
+    throughput: float
+    name: str
+    size_mb: float
+    framework: DeepLearningFramework
+
+
+@dataclass
+class BenchmarkOriginalModelResult:
+    """The result of the LatencyOriginalModelMeasureOp"""
+
+    latency_seconds: float
+    model_outputs: Any
+
+
+@dataclass
+class OptimizeInferenceResult:
+    """The result of the OptimizeInferenceOp"""
+
+    original_model: OriginalModel
+    hardware_setup: HardwareSetup
+    optimized_model: Optional[OptimizedModel]
+
+    @property
+    def metric_drop(self) -> Optional[float]:
+        if self.optimized_model is None:
+            return None
+        return self.optimized_model.metric_drop
+
+    @cached_property
+    def latency_improvement_rate(self) -> Optional[float]:
+        if self.optimized_model is None:
+            return None
+        if self.optimized_model.latency_seconds == 0:
+            return -1
+        return (
+            self.original_model.latency_seconds
+            / self.optimized_model.latency_seconds
+        )
+
+    @cached_property
+    def throughput_improvement_rate(self) -> Optional[float]:
+        if self.optimized_model is None:
+            return None
+        if self.original_model.throughput == 0:
+            return -1
+        return self.optimized_model.throughput / self.original_model.throughput
+
+    @cached_property
+    def size_improvement_rate(self) -> Optional[float]:
+        if self.optimized_model is None:
+            return None
+        if self.optimized_model.size_mb == 0:
+            return 1
+        return self.original_model.size_mb / self.optimized_model.size_mb
 
 
 class InputInfo:
@@ -198,30 +283,37 @@ class Device:
 
     @classmethod
     def from_str(cls, string: str) -> "Device":
-        if string == "cpu":
-            return cls(DeviceType.CPU)
-        elif string.startswith("cuda") or string.startswith("gpu"):
+        if string.startswith("cuda") or string.startswith("gpu"):
             return cls(
                 DeviceType.GPU,
                 int(string.split(":")[1] if ":" in string else 0),
             )
-        else:
-            raise Exception("Invalid device string")
+        elif string.startswith("tpu"):
+            return cls(
+                DeviceType.TPU,
+                int(string.split(":")[1] if ":" in string else 0),
+            )
+
+        return cls(DeviceType.CPU)
 
     def to_torch_format(self) -> str:
-        if self.type is DeviceType.CPU:
-            return "cpu"
-        return f"cuda:{self.idx}"
+        if self.type is DeviceType.GPU:
+            return f"cuda:{self.idx}"
+        elif self.type is DeviceType.TPU:
+            return f"xla:{self.idx}"
+
+        return "cpu"
 
     def to_tf_format(self) -> str:
-        if self.type is DeviceType.CPU:
-            return "CPU"
-        return f"GPU:{self.idx}"
+        if self.type is DeviceType.GPU:
+            return f"GPU:{self.idx}"
+
+        return "CPU"
 
     def get_total_memory(self) -> int:
         # Return total memory in bytes using nvidia-smi in bytes
-        if self.type is DeviceType.CPU:
-            raise Exception("CPU does not have memory")
+        if self.type is not DeviceType.GPU:
+            raise Exception("Device type must be GPU")
         else:
             try:
                 output = (
@@ -242,8 +334,8 @@ class Device:
 
     def get_free_memory(self) -> int:
         # Return free memory in bytes using nvidia-smi in bytes
-        if self.type is DeviceType.CPU:
-            raise Exception("CPU does not have memory")
+        if self.type is not DeviceType.GPU:
+            raise Exception("Device type must be GPU")
         else:
             try:
                 output = (

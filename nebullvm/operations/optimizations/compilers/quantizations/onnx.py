@@ -4,6 +4,7 @@ from typing import Union, Iterable, Tuple, List
 import cpuinfo
 import numpy as np
 
+from nebullvm.core.models import QuantizationType, Device, DeviceType
 from nebullvm.optional_modules.onnx import (
     onnx,
     convert_float_to_float16_model_path,
@@ -15,7 +16,6 @@ from nebullvm.optional_modules.onnxruntime import (
     quantize_static,
 )
 from nebullvm.optional_modules.torch import DataLoader
-from nebullvm.tools.base import QuantizationType, Device, DeviceType
 from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,

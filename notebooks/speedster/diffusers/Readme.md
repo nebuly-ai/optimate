@@ -1,6 +1,6 @@
 # **Diffusers Optimization**
 
-> :warning: In order to work properly, the diffusers optimization requires `CUDA>=12.0` and `tensorrt>=8.6.0`. For additional details, please look the docs [here](https://docs.nebuly.com/Speedster/getting_started/diffusers_getting_started/).
+> :warning: In order to work properly, the diffusers optimization requires `CUDA>=12.0`, `tensorrt>=8.6.0` and `torch<=1.13.1`. For additional details, please look the docs [here](https://docs.nebuly.com/Speedster/getting_started/diffusers_getting_started/).
 
 This section contains all the available notebooks that show how to leverage Speedster to optimize Diffusers models.
 

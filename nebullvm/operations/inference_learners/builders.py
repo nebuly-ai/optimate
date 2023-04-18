@@ -1,6 +1,12 @@
 from pathlib import Path
 from typing import Any, Union
 
+from nebullvm.core.models import (
+    ModelParams,
+    DeepLearningFramework,
+    QuantizationType,
+    DeviceType,
+)
 from nebullvm.operations.inference_learners.base import BuildInferenceLearner
 from nebullvm.operations.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
@@ -15,9 +21,6 @@ from nebullvm.operations.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
 from nebullvm.operations.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
 )
-from nebullvm.operations.inference_learners.pytorch import (
-    PytorchBackendInferenceLearner,
-)
 from nebullvm.operations.inference_learners.tensor_rt import (
     TENSOR_RT_INFERENCE_LEARNERS,
     PytorchTensorRTInferenceLearner,
@@ -26,20 +29,31 @@ from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
+from nebullvm.operations.inference_learners.torch_dynamo import (
+    TorchDynamoInferenceLearner,
+)
+from nebullvm.operations.inference_learners.torch_neuron import (
+    TorchNeuronInferenceLearner,
+)
+from nebullvm.operations.inference_learners.torch_xla import (
+    TorchXLAInferenceLearner,
+)
+from nebullvm.operations.inference_learners.torchscript import (
+    TorchScriptInferenceLearner,
+)
 from nebullvm.operations.inference_learners.tvm import (
     APACHE_TVM_INFERENCE_LEARNERS,
     PytorchApacheTVMInferenceLearner,
 )
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.optional_modules.torch import ScriptModule, Module, GraphModule
-from nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    ModelParams,
-    DeviceType,
-    QuantizationType,
+from nebullvm.optional_modules.torch import (
+    ScriptModule,
+    Module,
+    GraphModule,
+    torch,
 )
+from nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
 from nebullvm.tools.onnx import get_input_names, get_output_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
@@ -47,7 +61,7 @@ from nebullvm.tools.transformations import (
 )
 
 
-class PytorchBuildInferenceLearner(BuildInferenceLearner):
+class TorchScriptBuildInferenceLearner(BuildInferenceLearner):
     def execute(
         self,
         model: ScriptModule,
@@ -55,7 +69,55 @@ class PytorchBuildInferenceLearner(BuildInferenceLearner):
         input_tfms: MultiStageTransformation,
         **kwargs,
     ):
-        self.inference_learner = PytorchBackendInferenceLearner(
+        self.inference_learner = TorchScriptInferenceLearner(
+            torch_model=model,
+            network_parameters=model_params,
+            input_tfms=input_tfms,
+            device=self.device,
+        )
+
+
+class TorchXLABuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: torch.nn.Module,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = TorchXLAInferenceLearner(
+            torch_model=model,
+            network_parameters=model_params,
+            input_tfms=input_tfms,
+            device=self.device,
+        )
+
+
+class TorchNeuronBuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: ScriptModule,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = TorchNeuronInferenceLearner(
+            torch_model=model,
+            network_parameters=model_params,
+            input_tfms=input_tfms,
+            device=self.device,
+        )
+
+
+class TorchDynamoBuildInferenceLearner(BuildInferenceLearner):
+    def execute(
+        self,
+        model: ScriptModule,
+        model_params: ModelParams,
+        input_tfms: MultiStageTransformation,
+        **kwargs,
+    ):
+        self.inference_learner = TorchDynamoInferenceLearner(
             torch_model=model,
             network_parameters=model_params,
             input_tfms=input_tfms,

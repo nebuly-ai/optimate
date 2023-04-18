@@ -1,3 +1,4 @@
 pytest
+pytest-mock
 torchvision
 sentencepiece

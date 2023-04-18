@@ -4,22 +4,21 @@ import shutil
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, InitVar
 from pathlib import Path
-from tempfile import mkdtemp
+from tempfile import mkdtemp, TemporaryDirectory
 from typing import Union, Dict, Any, List, Optional
 
 import numpy as np
 
 from nebullvm.config import LEARNER_METADATA_FILENAME
+from nebullvm.core.models import ModelParams, Device, QuantizationType
 from nebullvm.operations.base import Operation
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import (
-    ModelParams,
-    Device,
-    QuantizationType,
-)
 from nebullvm.tools.onnx import create_model_inputs_onnx
-from nebullvm.tools.pytorch import create_model_inputs_torch
+from nebullvm.tools.pytorch import (
+    create_model_inputs_torch,
+    get_torch_model_size,
+)
 from nebullvm.tools.tf import create_model_inputs_tf
 from nebullvm.tools.transformations import MultiStageTransformation
 
@@ -458,6 +457,22 @@ class PytorchBaseInferenceLearner(BaseInferenceLearner, ABC):
             )
         else:
             return self._input_data
+
+    def get_size(self):
+        try:
+            if hasattr(self.model, "core_model"):
+                return get_torch_model_size(self.model.core_model)
+            else:
+                # Normal torch model
+                return get_torch_model_size(self.model)
+        except RuntimeError:
+            with TemporaryDirectory() as tmp_dir:
+                self.save(tmp_dir)
+                return sum(
+                    os.path.getsize(Path(tmp_dir) / f)
+                    for f in os.listdir(Path(tmp_dir))
+                    if os.path.isfile(Path(tmp_dir) / f)
+                )
 
 
 class TensorflowBaseInferenceLearner(BaseInferenceLearner, ABC):
