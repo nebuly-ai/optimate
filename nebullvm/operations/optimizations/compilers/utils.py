@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import nebullvm
-from nebullvm.tools.base import Device, DeviceType, ModelCompiler
+from nebullvm.core.models import Device, ModelCompiler, DeviceType
 
 
 def onnxruntime_is_available() -> bool:
@@ -16,6 +16,7 @@ def onnxruntime_is_available() -> bool:
 def tvm_is_available() -> bool:
     try:
         import tvm  # noqa F401
+        from tvm.runtime import Module  # noqa F401
 
         return True
     except ImportError:
@@ -77,6 +78,24 @@ def intel_neural_compressor_is_available() -> bool:
         return True
 
 
+def torch_xla_is_available():
+    try:
+        import torch_xla  # noqa F401
+
+        return True
+    except ImportError:
+        return False
+
+
+def torch_neuron_is_available():
+    try:
+        import torch_neuron  # noqa F401
+
+        return True
+    except ImportError:
+        return False
+
+
 def get_faster_transformer_repo_path() -> Path:
     return Path(nebullvm.__file__).parent.joinpath("FasterTransformer")
 
@@ -115,6 +134,8 @@ def select_compilers_from_hardware_torch(device: Device):
             compilers.append(ModelCompiler.APACHE_TVM)
         if bladedisc_is_available():
             compilers.append(ModelCompiler.BLADEDISC)
+        if torch_neuron_is_available():
+            compilers.append(ModelCompiler.TORCH_NEURON)
 
         if device.type is DeviceType.CPU:
             if deepsparse_is_available():

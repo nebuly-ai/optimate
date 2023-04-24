@@ -1,4 +1,4 @@
-ARG STARTING_IMAGE=nvcr.io/nvidia/tensorrt:22.12-py3
+ARG STARTING_IMAGE=nvcr.io/nvidia/tensorrt:23.03-py3
 FROM ${STARTING_IMAGE}
 
 WORKDIR /
@@ -14,29 +14,12 @@ RUN apt-get install ffmpeg libsm6 libxext6  -y
 RUN apt-get install -y sudo wget
 
 # Install libraries
-RUN pip3 install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117  \
-    && python3 -m pip install --upgrade pip \
+RUN python3 -m pip install --upgrade pip \
+    && pip install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cu118  \
+    && pip install --no-cache-dir tensorflow \
     && pip install --no-cache-dir xformers \
-    && pip install --no-cache-dir -U diffusers \
-    && pip install --no-cache-dir cuda-python \
     && pip install --no-cache-dir accelerate \
-    && pip install --no-cache-dir onnx-graphsurgeon --extra-index-url https://pypi.ngc.nvidia.com \
     && python3 -m pip install --no-cache-dir --upgrade tensorrt
-
-RUN git clone https://github.com/NVIDIA/TensorRT.git \
-    && cd TensorRT \
-    && git submodule update --init --recursive
-
-ENV TRT_OSSPATH=/TensorRT
-
-RUN cd $TRT_OSSPATH \
-    && mkdir -p build && cd build \
-    && cmake .. -DTRT_OUT_DIR=$PWD/out \
-    && cd plugin \
-    && make -j$(nproc)
-
-ENV PLUGIN_LIBS=/TensorRT/build/out/libnvinfer_plugin.so
-ENV LD_PRELOAD=/TensorRT/build/out/libnvinfer_plugin.so
 
 # Copy the working dir to the container
 COPY . /nebullvm
@@ -71,7 +54,7 @@ RUN if [ "$COMPILER" = "all" ] ; then \
 
 # Install TVM
 RUN if [ "$COMPILER" = "all" ] || [ "$COMPILER" = "tvm" ] ; then \
-        pip install --no-cache-dir https://github.com/tlc-pack/tlcpack/releases/download/v0.10.0/apache_tvm_cu116_cu116-0.10.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl ; \
+        pip install --no-cache-dir https://github.com/tlc-pack/tlcpack/releases/download/v0.11.1/tlcpack_cu116-0.11.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl ; \
         pip install --no-cache-dir xgboost ; \
         python3 -c "from tvm.runtime import Module" ; \
     fi

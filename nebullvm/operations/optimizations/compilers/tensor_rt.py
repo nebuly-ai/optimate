@@ -8,6 +8,7 @@ from typing import List, Any, Tuple
 import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM, TORCH_TENSORRT_PRECISIONS
+from nebullvm.core.models import QuantizationType, ModelParams
 from nebullvm.operations.optimizations.compilers.base import Compiler
 
 from nebullvm.operations.optimizations.compilers.quantizations.tensor_rt import (  # noqa: E501
@@ -22,10 +23,6 @@ from nebullvm.optional_modules.torch import torch, Module
 from nebullvm.optional_modules.torch_tensorrt import (
     torch_tensorrt,
     DataLoaderCalibrator,
-)
-from nebullvm.tools.base import (
-    QuantizationType,
-    ModelParams,
 )
 from nebullvm.tools.data import DataManager, PytorchDataset
 from nebullvm.tools.diffusers import UNet

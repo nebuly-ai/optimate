@@ -2,13 +2,13 @@ import abc
 from pathlib import Path
 from typing import Optional, List, Union
 
+from nebullvm.core.models import DeviceType, DeepLearningFramework, ModelParams
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
 from nebullvm.operations.conversions.tensorflow import convert_tf_to_onnx
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import DeepLearningFramework, ModelParams
 from nebullvm.tools.data import DataManager
 
 
@@ -16,6 +16,7 @@ class Converter(Operation, abc.ABC):
     ONNX_EXTENSION = ".onnx"
     TORCH_EXTENSION = ".pt"
     TF_EXTENSION = ".pb"
+    SUPPORTED_DEVICES = [DeviceType.GPU, DeviceType.CPU]
 
     def __init__(self, model_name: Optional[str] = None):
         super().__init__()
@@ -46,6 +47,10 @@ class PytorchConverter(Converter):
         model_params: ModelParams,
     ):
         self.converted_models = [self.model]
+
+        if self.device.type not in self.SUPPORTED_DEVICES:
+            return
+
         for framework in self.DEST_FRAMEWORKS:
             if framework is DeepLearningFramework.NUMPY:
                 self.onnx_conversion(save_path, model_params)
@@ -80,6 +85,10 @@ class TensorflowConverter(Converter):
         model_params: ModelParams,
     ):
         self.converted_models = [self.model]
+
+        if self.device.type not in self.SUPPORTED_DEVICES:
+            return
+
         for framework in self.DEST_FRAMEWORKS:
             if framework is DeepLearningFramework.NUMPY:
                 self.onnx_conversion(save_path, model_params)

@@ -1,8 +1,12 @@
-from typing import List, Tuple, Any, Callable, Dict, Optional
+from typing import List, Tuple, Any, Callable, Dict
 
 import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.core.models import (
+    BenchmarkOriginalModelResult,
+    DeepLearningFramework,
+)
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.operations.measures.base import Measure
 from nebullvm.operations.measures.utils import (
@@ -11,7 +15,6 @@ from nebullvm.operations.measures.utils import (
     compute_onnx_latency,
     compute_relative_difference,
 )
-from nebullvm.tools.base import DeepLearningFramework
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import run_onnx_model
 from nebullvm.tools.pytorch import run_torch_model
@@ -80,7 +83,7 @@ class LatencyOriginalModelMeasure(Measure):
         model: Any,
         input_data: DataManager,
         dl_framework: DeepLearningFramework,
-    ):
+    ) -> BenchmarkOriginalModelResult:
         self.logger.info("Benchmark performance of original model")
 
         self.outputs = [
@@ -100,8 +103,7 @@ class LatencyOriginalModelMeasure(Measure):
             f"Original model latency: {self.measure_result} sec/iter"
         )
 
-    def get_result(self) -> Optional[Tuple]:
-        if self.outputs is not None and self.measure_result is not None:
-            return self.outputs, self.measure_result
-        else:
-            return None
+        return BenchmarkOriginalModelResult(
+            latency_seconds=self.measure_result,
+            model_outputs=self.outputs,
+        )

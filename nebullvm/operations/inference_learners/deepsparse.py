@@ -8,6 +8,7 @@ import numpy as np
 from loguru import logger
 
 from nebullvm.config import ONNX_FILENAMES
+from nebullvm.core.models import Device, ModelParams, DeepLearningFramework
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -15,11 +16,6 @@ from nebullvm.operations.inference_learners.base import (
 )
 from nebullvm.optional_modules.deepsparse import cpu, compile_model
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import (
-    ModelParams,
-    DeepLearningFramework,
-    Device,
-)
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

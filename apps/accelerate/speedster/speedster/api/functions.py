@@ -124,7 +124,7 @@ def optimize_model(
     disable_log = True if not debug_mode_enabled() else False
 
     with LoggingContext(logging.getLogger(), disabled=disable_log):
-        root_op.to(device).execute(
+        return root_op.to(device).execute(
             model=model,
             input_data=input_data,
             metric_drop_ths=metric_drop_ths,
@@ -137,5 +137,3 @@ def optimize_model(
             store_latencies=store_latencies,
             **kwargs,
         )
-
-    return root_op.get_result()

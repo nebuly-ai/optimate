@@ -3,12 +3,12 @@ from pathlib import Path
 from typing import Tuple, Union, Dict, Type
 
 from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
+from nebullvm.core.models import DeviceType, Device, ModelParams
 from nebullvm.operations.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     LearnerMetadata,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.tools.base import Device, ModelParams, DeviceType
 
 
 class TensorflowBackendInferenceLearner(TensorflowBaseInferenceLearner):

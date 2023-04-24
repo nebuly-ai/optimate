@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.core.models import QuantizationType
 from nebullvm.operations.optimizations.compilers.base import Compiler
 
 from nebullvm.operations.optimizations.compilers.quantizations.tensorflow import (  # noqa: E501
@@ -10,7 +11,6 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
-from nebullvm.tools.base import QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 

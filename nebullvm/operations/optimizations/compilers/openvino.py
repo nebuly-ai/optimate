@@ -5,6 +5,7 @@ from typing import Tuple, List, Union
 import numpy as np
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
+from nebullvm.core.models import QuantizationType, ModelParams
 from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.operations.optimizations.compilers.quantizations.openvino import (  # noqa: E501
     quantize_openvino,
@@ -15,10 +16,6 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
 from nebullvm.optional_modules.openvino import (
     Core,
     CompiledModel,
-)
-from nebullvm.tools.base import (
-    QuantizationType,
-    ModelParams,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import get_input_names

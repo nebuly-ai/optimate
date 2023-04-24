@@ -19,6 +19,7 @@
 
 from typing import Dict, Union, List, Optional, Any, Tuple
 
+from nebullvm.core.models import Device
 from nebullvm.optional_modules.diffusers import (
     DiffusionPipeline,
     UNet2DConditionModel,
@@ -31,7 +32,6 @@ from nebullvm.optional_modules.huggingface import CLIPTextModel, CLIPTokenizer
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensor_rt import fold_constants
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import Device
 
 
 @torch.no_grad()
@@ -865,3 +865,18 @@ def make_tokenizer(version, hf_token):
     return CLIPTokenizer.from_pretrained(
         get_path(version), subfolder="tokenizer", use_auth_token=hf_token
     )
+
+
+def is_diffusion_model(model) -> bool:
+    try:
+        from diffusers import UNet2DConditionModel
+    except ImportError:
+        return False
+
+    if is_diffusion_model_pipe(model):
+        return True
+    if isinstance(model, (UNet2DConditionModel, DiffusionUNetWrapper)):
+        return True
+    if hasattr(model, "model"):
+        return isinstance(model.model, UNet2DConditionModel)
+    return False

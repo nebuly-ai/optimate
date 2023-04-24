@@ -7,13 +7,13 @@ from typing import (
 
 import numpy as np
 
+from nebullvm.core.models import Device
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
 from nebullvm.optional_modules.huggingface import (
     PreTrainedTokenizer,
     PreTrainedModel,
 )
-from nebullvm.tools.base import Device
 from nebullvm.tools.huggingface import (
     get_output_structure_from_dict,
     get_output_structure_from_text,

@@ -1,12 +1,19 @@
+from abc import ABC
 from collections import OrderedDict
-from typing import List, Any, Dict
+from pathlib import Path
+from typing import List, Any, Dict, Union
 
 from nebullvm.operations.inference_learners.base import (
     InferenceLearnerWrapper,
     PytorchBaseInferenceLearner,
     LearnerMetadata,
+    BaseInferenceLearner,
 )
+from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
+from nebullvm.optional_modules.torch import torch
+from nebullvm.tools.diffusers import postprocess_diffusers
 from nebullvm.tools.huggingface import restructure_output
+from nebullvm.tools.pytorch import get_torch_model_size
 
 
 class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
@@ -29,7 +36,9 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
             model.
     """
 
-    name = "HuggingFace"
+    @property
+    def name(self) -> str:
+        return self.core_inference_learner.name
 
     def __init__(
         self,
@@ -114,3 +123,68 @@ class HuggingFaceInferenceLearner(InferenceLearnerWrapper):
             )
             inputs["output_type"] = eval(metadata["output_type"])
         return inputs
+
+
+class DiffusionInferenceLearner(BaseInferenceLearner, ABC):
+    @property
+    def name(self) -> str:
+        return self.pipeline.unet.model.name
+
+    def __init__(self, pipeline: StableDiffusionPipeline):
+        self.pipeline = pipeline
+
+    def __call__(self, *args, **kwargs):
+        return self.pipeline(*args, **kwargs)
+
+    def run(self, *args, **kwargs) -> Any:
+        self.pipeline(*args, **kwargs)
+
+    def save(self, path: Union[str, Path], **kwargs):
+        self.pipeline.unet.model.save(path)
+
+    @classmethod
+    def load(
+        cls,
+        path: Union[Path, str],
+        **kwargs,
+    ):
+        try:
+            pipe = kwargs["pipe"]
+        except KeyError:
+            raise TypeError("Missing required argument 'pipe'")
+        optimized_model = LearnerMetadata.read(path).load_model(path)
+        return postprocess_diffusers(
+            optimized_model,
+            pipe,
+            optimized_model.device,
+        )
+
+    def get_size(self):
+        (
+            self.pipeline.unet.model.get_size()
+            + sum(
+                [
+                    get_torch_model_size(v)
+                    for (k, v) in self.pipeline.__dict__.items()
+                    if isinstance(v, torch.nn.Module) and k != "unet"
+                ]
+            )
+            / 1e6
+        )
+
+    def free_gpu_memory(self):
+        raise self.pipeline.unet.model.free_gpu_memory()
+
+    def get_inputs_example(self):
+        raise NotImplementedError()
+
+    @property
+    def output_format(self):
+        return ".pt"
+
+    @property
+    def input_format(self):
+        return ".pt"
+
+    def list2tensor(self, listified_tensor: List) -> Any:
+        raise NotImplementedError()

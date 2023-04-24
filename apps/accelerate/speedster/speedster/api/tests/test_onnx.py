@@ -45,7 +45,6 @@ def test_onnx_ort():
                 if compiler != "onnxruntime"
             ],
             ignore_compressors=[compressor for compressor in COMPRESSOR_LIST],
-            # metric_drop_ths=2,
         )
 
         with TemporaryDirectory() as tmp_dir:
@@ -60,7 +59,7 @@ def test_onnx_ort():
                 "cuda" if torch.cuda.is_available() else "cpu"
             )
             x = torch.randn(1, 3, 256, 256, requires_grad=False)
-            model.eval()
+            model.to(device).eval()
             with torch.inference_mode():
                 res_original = model(x.to(device))
             res_optimized = optimized_model(x.numpy())[0]
@@ -99,7 +98,7 @@ def test_onnx_ort_quant():
 
         # Try the optimized model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model.eval()
+        model.to(device).eval()
         x = torch.randn(1, 3, 256, 256, requires_grad=False)
         with torch.inference_mode():
             res_original = model(x.to(device))
@@ -142,7 +141,7 @@ def test_onnx_tensorrt():
         # Try the optimized model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         x = torch.randn(1, 3, 256, 256, requires_grad=False)
-        model.eval()
+        model.to(device).eval()
         with torch.inference_mode():
             res_original = model(x.to(device))
         res_optimized = optimized_model(x.numpy())[0]
@@ -185,7 +184,7 @@ def test_onnx_openvino():
         # Try the optimized model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         x = torch.randn(1, 3, 256, 256, requires_grad=False)
-        model.eval()
+        model.to(device).eval()
         with torch.inference_mode():
             res_original = model(x.to(device))
         res_optimized = optimized_model(x.numpy())[0]
@@ -224,7 +223,7 @@ def test_onnx_tvm():
         # Try the optimized model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         x = torch.randn(1, 3, 256, 256, requires_grad=False)
-        model.eval()
+        model.to(device).eval()
         with torch.inference_mode():
             res_original = model(x.to(device))
         res_optimized = optimized_model(x.numpy())[0]

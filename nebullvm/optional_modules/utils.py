@@ -1,6 +1,7 @@
 import cpuinfo
 from loguru import logger
 
+from nebullvm.core.models import Device, DeviceType
 from nebullvm.operations.optimizations.compilers.utils import (
     bladedisc_is_available,
     deepsparse_is_available,
@@ -10,9 +11,10 @@ from nebullvm.operations.optimizations.compilers.utils import (
     openvino_is_available,
     tensorrt_is_available,
     torch_tensorrt_is_available,
+    torch_neuron_is_available,
+    torch_xla_is_available,
     tvm_is_available,
 )
-from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.utils import gpu_is_available, check_module_version
 
 
@@ -123,55 +125,66 @@ def check_dependencies(device: Device):
 
     processor = cpuinfo.get_cpu_info()["brand_raw"].lower()
 
-    if not onnx_is_available():
-        missing_frameworks.append("onnx")
+    if device.type is DeviceType.TPU:
+        if not torch_is_available():
+            missing_frameworks.append("torch")
+        if not torch_xla_is_available():
+            missing_dependencies.append("torch_xla")
+    elif device.type is DeviceType.NEURON:
+        if not torch_is_available():
+            missing_frameworks.append("torch")
+        if not torch_neuron_is_available():
+            missing_dependencies.append("torch_neuron")
+    else:
+        if not onnx_is_available():
+            missing_frameworks.append("onnx")
 
-    if not tvm_is_available():
-        missing_optional_compilers.append("tvm")
-    if not onnxruntime_is_available():
-        missing_suggested_compilers.append("onnxruntime")
-    elif not _onnxmltools_is_available():
-        missing_dependencies.append("onnxmltools")
-    if not faster_transformer_is_available():
-        missing_optional_compilers.append("faster_transformer")
-    if device.type is DeviceType.GPU:
-        if not tensorrt_is_available():
-            missing_suggested_compilers.append("tensorrt")
-        else:
-            if not _onnxsim_is_available():
-                missing_dependencies.append("onnxsim")
-            elif not _polygraphy_is_available():
-                missing_dependencies.append("polygraphy")
-    if device.type is DeviceType.CPU:
-        if not openvino_is_available() and "intel" in processor:
-            missing_suggested_compilers.append("openvino")
-
-    if torch_is_available():
         if not tvm_is_available():
-            if "tvm" not in missing_optional_compilers:
-                missing_optional_compilers.append("tvm")
-        if not bladedisc_is_available():
-            missing_optional_compilers.append("torch_blade")
-
+            missing_optional_compilers.append("tvm")
+        if not onnxruntime_is_available():
+            missing_suggested_compilers.append("onnxruntime")
+        elif not _onnxmltools_is_available():
+            missing_dependencies.append("onnxmltools")
+        if not faster_transformer_is_available():
+            missing_optional_compilers.append("faster_transformer")
+        if device.type is DeviceType.GPU:
+            if not tensorrt_is_available():
+                missing_suggested_compilers.append("tensorrt")
+            else:
+                if not _onnxsim_is_available():
+                    missing_dependencies.append("onnxsim")
+                elif not _polygraphy_is_available():
+                    missing_dependencies.append("polygraphy")
         if device.type is DeviceType.CPU:
-            if not deepsparse_is_available() and "intel" in processor:
-                missing_suggested_compilers.append("deepsparse")
-            if (
-                not intel_neural_compressor_is_available()
-                and "intel" in processor
-            ):
-                missing_suggested_compilers.append("neural_compressor")
-        elif device.type is DeviceType.GPU:
-            if not torch_tensorrt_is_available:
-                missing_suggested_compilers.append("torch_tensorrt")
-    else:
-        missing_frameworks.append("torch")
+            if not openvino_is_available() and "intel" in processor:
+                missing_suggested_compilers.append("openvino")
 
-    if tensorflow_is_available():
-        if not tf2onnx_is_available():
-            missing_dependencies.append("tf2onnx")
-    else:
-        missing_frameworks.append("tensorflow")
+        if torch_is_available():
+            if not tvm_is_available():
+                if "tvm" not in missing_optional_compilers:
+                    missing_optional_compilers.append("tvm")
+            if not bladedisc_is_available():
+                missing_optional_compilers.append("torch_blade")
+
+            if device.type is DeviceType.CPU:
+                if not deepsparse_is_available() and "intel" in processor:
+                    missing_suggested_compilers.append("deepsparse")
+                if (
+                    not intel_neural_compressor_is_available()
+                    and "intel" in processor
+                ):
+                    missing_suggested_compilers.append("neural_compressor")
+            elif device.type is DeviceType.GPU:
+                if not torch_tensorrt_is_available:
+                    missing_suggested_compilers.append("torch_tensorrt")
+        else:
+            missing_frameworks.append("torch")
+
+        if tensorflow_is_available():
+            if not tf2onnx_is_available():
+                missing_dependencies.append("tf2onnx")
+        else:
+            missing_frameworks.append("tensorflow")
 
     missing_frameworks = ", ".join(missing_frameworks)
     if len(missing_frameworks) > 0:

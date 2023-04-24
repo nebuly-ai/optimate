@@ -3,6 +3,7 @@ from typing import List, Tuple, Union
 
 from loguru import logger
 
+from nebullvm.core.models import DeviceType, Device, QuantizationType
 from nebullvm.optional_modules.torch import (
     torch,
     Module,
@@ -15,7 +16,6 @@ from nebullvm.optional_modules.torch import (
     convert_fx,
     ScriptModule,
 )
-from nebullvm.tools.base import Device, QuantizationType, DeviceType
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
     HalfPrecisionTransformation,

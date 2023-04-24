@@ -5,10 +5,10 @@ import numpy as np
 from loguru import logger
 
 from nebullvm.config import ONNX_PROVIDERS
+from nebullvm.core.models import Device, DeviceType
 from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, Module
-from nebullvm.tools.base import Device, DeviceType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     convert_to_numpy,
@@ -40,11 +40,13 @@ def compute_torch_latency(
         Float: Average latency.
         List[Float]: List of latencies obtained.
     """
-    xs = [
-        tuple(t.to(device.to_torch_format()) for t in tensors)
-        for tensors in xs
-    ]
-    model = model.to(device.to_torch_format()).eval()
+    if device.type is not DeviceType.TPU:
+        xs = [
+            tuple(t.to(device.to_torch_format()) for t in tensors)
+            for tensors in xs
+        ]
+        model = model.to(device.to_torch_format())
+    model.eval()
     latencies = []
     with torch.no_grad():
         for i in range(warmup_steps):
@@ -120,7 +122,7 @@ def compute_onnx_latency(
     input_names = get_input_names(model)
     output_names = get_output_names(model)
 
-    if device.type is DeviceType.GPU:
+    if device.type is DeviceType.GPU and len(ONNX_PROVIDERS["cuda"]) == 3:
         ONNX_PROVIDERS["cuda"][1] = (
             "CUDAExecutionProvider",
             {

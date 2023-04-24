@@ -1,11 +1,12 @@
 from copy import deepcopy
 from typing import Union
 
+from nebullvm.core.models import QuantizationType, DeviceType
 from nebullvm.operations.optimizations.compilers.faster_transformer.bert import (  # noqa: E501
     detect_and_swap_bert_model,
 )
-from nebullvm.operations.optimizations.compilers.pytorch import (
-    PytorchBackendCompiler,
+from nebullvm.operations.optimizations.compilers.torchscript import (
+    TorchScriptCompiler,
 )
 from nebullvm.operations.optimizations.compilers.utils import (
     get_faster_transformer_repo_path,
@@ -16,7 +17,6 @@ from nebullvm.optional_modules.torch import (
     ScriptModule,
     torch,
 )
-from nebullvm.tools.base import DeviceType, QuantizationType
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.huggingface import PyTorchTransformerWrapper
 
@@ -45,7 +45,7 @@ def detect_and_swap_model(model, data_type="fp16", remove_padding=False):
     return model
 
 
-class FasterTransformerCompiler(PytorchBackendCompiler):
+class FasterTransformerCompiler(TorchScriptCompiler):
     supported_ops = {
         "cpu": [None, QuantizationType.STATIC, QuantizationType.DYNAMIC],
         "gpu": [

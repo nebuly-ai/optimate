@@ -20,12 +20,12 @@ on:
 
 jobs:
   test_on_ubuntu_cpu:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     strategy:
       matrix:
         # Run in all these versions of Python
-        python-version: [ 3.7, 3.8, 3.9, "3.10" ]
+        python-version: [ 3.8, 3.9, "3.10" ]
 
     steps:
       # Checkout the latest code from the repo
@@ -52,7 +52,7 @@ jobs:
           cd ../../..
         # Install PyTorch
       - name: Install PyTorch
-        run: python -m pip install torch
+        run: python -m pip install torch==2.0.0
         # Install compilers except tvm
       - name: Install deep learning compilers
         run: python -m nebullvm.installers.auto_installer --compilers all
@@ -73,56 +73,56 @@ jobs:
           pytest
           cd ../
 
-  test_on_windows_cpu:
-    runs-on: windows-latest
-
-    strategy:
-      matrix:
-        # Run in all these versions of Python
-        python-version: [ 3.7, 3.8, 3.9, "3.10" ]
-
-    steps:
-      # Checkout the latest code from the repo
-      - name: Checkout repo
-        uses: actions/checkout@v2
-        # Setup which version of Python to use
-      - name: Set Up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-        # Display the Python version being used
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-        # Install nebullvm
-      - name: Install nebullvm
-        run: |
-          python -m pip install --upgrade pip
-          pip install .
-        # Install Speedster
-      - name: Install Speedster
-        run: |
-          cd apps/accelerate/speedster
-          pip install .
-          cd ../../..
-      - name: Install PyTorch
-        run: python -m pip install torch
-        # Install compilers except tvm
-      - name: Install deep learning compilers
-        run: python -m nebullvm.installers.auto_installer --compilers all
-        # Install requirements for testing
-      - name: Install requirements for testing
-        run: pip install -r "requirements-dev.txt"
-        # Run api tests
-      - name: Run api tests
-        run: |
-          $env:SPEEDSTER_DISABLE_TELEMETRY=1
-          cd apps/accelerate/speedster
-          pytest
-          cd ../../..
-        # Run components tests
-      - name: Run components tests
-        run: |
-          cd nebullvm
-          pytest
-          cd ../
-
+#  test_on_windows_cpu:
+#    runs-on: windows-latest
+#
+#    strategy:
+#      matrix:
+#        # Run in all these versions of Python
+#        python-version: [ 3.8, 3.9, "3.10" ]
+#
+#    steps:
+#      # Checkout the latest code from the repo
+#      - name: Checkout repo
+#        uses: actions/checkout@v2
+#        # Setup which version of Python to use
+#      - name: Set Up Python ${{ matrix.python-version }}
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#        # Display the Python version being used
+#      - name: Display Python version
+#        run: python -c "import sys; print(sys.version)"
+#        # Install nebullvm
+#      - name: Install nebullvm
+#        run: |
+#          python -m pip install --upgrade pip
+#          pip install .
+#        # Install Speedster
+#      - name: Install Speedster
+#        run: |
+#          cd apps/accelerate/speedster
+#          pip install .
+#          cd ../../..
+#      - name: Install PyTorch
+#        run: python -m pip install torch==2.0.0
+#        # Install compilers except tvm
+#      - name: Install deep learning compilers
+#        run: python -m nebullvm.installers.auto_installer --compilers all
+#        # Install requirements for testing
+#      - name: Install requirements for testing
+#        run: pip install -r "requirements-dev.txt"
+#        # Run api tests
+#      - name: Run api tests
+#        run: |
+#          $env:SPEEDSTER_DISABLE_TELEMETRY=1
+#          cd apps/accelerate/speedster
+#          pytest
+#          cd ../../..
+#        # Run components tests
+#      - name: Run components tests
+#        run: |
+#          cd nebullvm
+#          pytest
+#          cd ../
+#

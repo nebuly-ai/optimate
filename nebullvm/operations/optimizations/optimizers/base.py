@@ -2,14 +2,20 @@ import abc
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, List, Tuple, Type, Union
 
-from nebullvm.config import (
-    ACTIVATION_METRIC_DROP_THS,
-    CONSTRAINED_METRIC_DROP_THS,
+from nebullvm.config import ACTIVATION_METRIC_DROP_THS
+from nebullvm.core.models import (
+    OptimizedModel,
+    OptimizationTime,
+    ModelParams,
+    ModelCompiler,
+    ModelCompressor,
+    DeepLearningFramework,
+    DeviceType,
+    QuantizationType,
 )
 from nebullvm.operations.base import Operation
 from nebullvm.operations.inference_learners.base import (
     BuildInferenceLearner,
-    BaseInferenceLearner,
 )
 from nebullvm.operations.inference_learners.builders import (
     DeepSparseBuildInferenceLearner,
@@ -20,10 +26,13 @@ from nebullvm.operations.inference_learners.builders import (
     ONNXTensorRTBuildInferenceLearner,
     OpenVINOBuildInferenceLearner,
     PyTorchApacheTVMBuildInferenceLearner,
-    PytorchBuildInferenceLearner,
     PyTorchTensorRTBuildInferenceLearner,
     TensorflowBuildInferenceLearner,
     TFLiteBuildInferenceLearner,
+    TorchNeuronBuildInferenceLearner,
+    TorchXLABuildInferenceLearner,
+    TorchDynamoBuildInferenceLearner,
+    TorchScriptBuildInferenceLearner,
 )
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import (
@@ -46,9 +55,6 @@ from nebullvm.operations.optimizations.compilers.onnxruntime import (
 from nebullvm.operations.optimizations.compilers.openvino import (
     OpenVINOCompiler,
 )
-from nebullvm.operations.optimizations.compilers.pytorch import (
-    PytorchBackendCompiler,
-)
 from nebullvm.operations.optimizations.compilers.tensor_rt import (
     ONNXTensorRTCompiler,
     PyTorchTensorRTCompiler,
@@ -57,23 +63,27 @@ from nebullvm.operations.optimizations.compilers.tensorflow import (
     TensorflowBackendCompiler,
     TFLiteBackendCompiler,
 )
+from nebullvm.operations.optimizations.compilers.torch_dynamo import (
+    TorchDynamoCompiler,
+)
+from nebullvm.operations.optimizations.compilers.torch_neuron import (
+    TorchNeuronCompiler,
+)
+from nebullvm.operations.optimizations.compilers.torch_xla import (
+    TorchXLACompiler,
+)
+from nebullvm.operations.optimizations.compilers.torchscript import (
+    TorchScriptCompiler,
+)
 from nebullvm.operations.optimizations.compilers.tvm import (
     ONNXApacheTVMCompiler,
     PyTorchApacheTVMCompiler,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    ModelCompiler,
-    ModelCompressor,
-    ModelParams,
-    OptimizationTime,
-    QuantizationType,
-    DeviceType,
-)
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
+from nebullvm.tools.utils import get_throughput
 
 
 class Optimizer(Operation, abc.ABC):
@@ -99,7 +109,7 @@ class Optimizer(Operation, abc.ABC):
         ignore_compressors: List[ModelCompressor],
         source_dl_framework: DeepLearningFramework,
         is_diffusion: bool = False,
-    ):
+    ) -> List[OptimizedModel]:
         self.source_dl_framework = source_dl_framework
 
         # TODO: implement and select compressors from hardware
@@ -136,6 +146,8 @@ class Optimizer(Operation, abc.ABC):
             ignore_compilers=ignore_compilers,
             is_diffusion=is_diffusion,
         )
+
+        return self.optimized_models
 
     @abc.abstractmethod
     def _select_compilers_from_hardware(self):
@@ -251,9 +263,7 @@ class Optimizer(Operation, abc.ABC):
                                     inference_learner,
                                     test_input_data,
                                     model_outputs,
-                                    metric_drop_ths
-                                    if q_type is not None
-                                    else CONSTRAINED_METRIC_DROP_THS,
+                                    metric_drop_ths,
                                     metric_func=metric
                                     if q_type is not None
                                     else compute_relative_difference,
@@ -277,10 +287,26 @@ class Optimizer(Operation, abc.ABC):
                                         ignore_compilers.append(compiler)
 
                                     self.optimized_models.append(
-                                        (
-                                            inference_learner,
-                                            latency,
-                                            self.validity_check_op.measure_result,  # noqa: E501
+                                        OptimizedModel(
+                                            inference_learner=inference_learner,  # noqa: E501
+                                            metric_drop=self.validity_check_op.measure_result,  # noqa: E501
+                                            compiler=compiler,
+                                            technique=q_type.name
+                                            if q_type is not None
+                                            else "None",
+                                            latency_seconds=latency,
+                                            throughput=get_throughput(
+                                                latency,
+                                                # Normal models have batch
+                                                # size B, diffusion models
+                                                # have batch size 2B
+                                                model_params.batch_size
+                                                if not is_diffusion
+                                                else model_params.batch_size
+                                                / 2,
+                                            ),
+                                            size_mb=inference_learner.get_size()  # noqa: E501
+                                            / 1e6,
                                         )
                                     )
 
@@ -311,7 +337,10 @@ class Optimizer(Operation, abc.ABC):
                                         "obtained with the given metric."
                                     )
 
-                                if self.device.type is DeviceType.GPU:
+                                if self.device.type in [
+                                    DeviceType.GPU,
+                                    DeviceType.TPU,
+                                ]:
                                     inference_learner.free_gpu_memory()
                     except Exception as ex:
                         self.logger.warning(
@@ -338,9 +367,6 @@ class Optimizer(Operation, abc.ABC):
                 value=optimization_info,
             )
 
-    def get_result(self) -> List[Tuple[BaseInferenceLearner, float, float]]:
-        return self.optimized_models
-
 
 MULTI_FRAMEWORK_COMPILERS = {
     ModelCompiler.TENSOR_RT: [
@@ -354,7 +380,7 @@ MULTI_FRAMEWORK_COMPILERS = {
 }
 
 COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
-    ModelCompiler.TORCHSCRIPT: PytorchBackendCompiler,
+    ModelCompiler.TORCHSCRIPT: TorchScriptCompiler,
     ModelCompiler.DEEPSPARSE: DeepSparseCompiler,
     ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorCompiler,
     ModelCompiler.TENSOR_RT_TORCH: PyTorchTensorRTCompiler,
@@ -365,13 +391,16 @@ COMPILER_TO_OPTIMIZER_MAP: Dict[ModelCompiler, Type[Compiler]] = {
     ModelCompiler.OPENVINO: OpenVINOCompiler,
     ModelCompiler.TFLITE: TFLiteBackendCompiler,
     ModelCompiler.XLA: TensorflowBackendCompiler,
+    ModelCompiler.TORCH_NEURON: TorchNeuronCompiler,
+    ModelCompiler.TORCH_XLA: TorchXLACompiler,
+    ModelCompiler.TORCH_DYNAMO: TorchDynamoCompiler,
     ModelCompiler.FASTER_TRANSFORMER: FasterTransformerCompiler,
 }
 
 COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler, Type[BuildInferenceLearner]
 ] = {
-    ModelCompiler.TORCHSCRIPT: PytorchBuildInferenceLearner,
+    ModelCompiler.TORCHSCRIPT: TorchScriptBuildInferenceLearner,
     ModelCompiler.DEEPSPARSE: DeepSparseBuildInferenceLearner,
     ModelCompiler.INTEL_NEURAL_COMPRESSOR: IntelNeuralCompressorBuildInferenceLearner,  # noqa: E501
     ModelCompiler.TENSOR_RT_TORCH: PyTorchTensorRTBuildInferenceLearner,
@@ -382,5 +411,8 @@ COMPILER_TO_INFERENCE_LEARNER_MAP: Dict[
     ModelCompiler.OPENVINO: OpenVINOBuildInferenceLearner,
     ModelCompiler.TFLITE: TFLiteBuildInferenceLearner,
     ModelCompiler.XLA: TensorflowBuildInferenceLearner,
+    ModelCompiler.TORCH_NEURON: TorchNeuronBuildInferenceLearner,
+    ModelCompiler.TORCH_XLA: TorchXLABuildInferenceLearner,
+    ModelCompiler.TORCH_DYNAMO: TorchDynamoBuildInferenceLearner,
     ModelCompiler.FASTER_TRANSFORMER: FasterTransformerBuildInferenceLearner,
 }

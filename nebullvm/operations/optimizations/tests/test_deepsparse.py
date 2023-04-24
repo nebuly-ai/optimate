@@ -4,28 +4,28 @@ import pytest
 import torch
 
 from nebullvm.config import CONSTRAINED_METRIC_DROP_THS
+from nebullvm.core.models import (
+    Device,
+    DeviceType,
+    DeepLearningFramework,
+    ModelCompiler,
+)
 from nebullvm.operations.inference_learners.deepsparse import (
     DEEPSPARSE_INFERENCE_LEARNERS,
 )
 from nebullvm.operations.measures.measures import MetricDropMeasure
 from nebullvm.operations.measures.utils import compute_relative_difference
-from nebullvm.operations.optimizations.base import (
-    COMPILER_TO_INFERENCE_LEARNER_MAP,
-)
 from nebullvm.operations.optimizations.compilers.deepsparse import (
     DeepSparseCompiler,
 )
 from nebullvm.operations.optimizations.compilers.utils import (
     deepsparse_is_available,
 )
+from nebullvm.operations.optimizations.optimizers.base import (
+    COMPILER_TO_INFERENCE_LEARNER_MAP,
+)
 from nebullvm.operations.optimizations.tests.utils import initialize_model
 from nebullvm.operations.inference_learners.utils import load_model
-from nebullvm.tools.base import (
-    DeepLearningFramework,
-    DeviceType,
-    ModelCompiler,
-    Device,
-)
 
 device = Device(DeviceType.CPU)
 

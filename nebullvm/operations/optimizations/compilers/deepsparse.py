@@ -1,6 +1,10 @@
 from pathlib import Path
 from typing import Union
 
+from nebullvm.core.models import (
+    ModelParams,
+    QuantizationType,
+)
 from nebullvm.operations.conversions.converters import (
     PytorchConverter,
 )
@@ -8,10 +12,6 @@ from nebullvm.operations.optimizations.compilers.base import Compiler
 from nebullvm.optional_modules.torch import (
     Module,
     GraphModule,
-)
-from nebullvm.tools.base import (
-    ModelParams,
-    QuantizationType,
 )
 from nebullvm.tools.data import DataManager
 

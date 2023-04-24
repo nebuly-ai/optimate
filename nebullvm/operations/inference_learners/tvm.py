@@ -10,6 +10,7 @@ import numpy as np
 from nebullvm.config import (
     TVM_FILENAMES,
 )
+from nebullvm.core.models import Device, ModelParams, DeepLearningFramework
 from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
@@ -23,11 +24,6 @@ from nebullvm.optional_modules.tvm import (
     GraphModule,
     tvm,
     ExecutorFactoryModule,
-)
-from nebullvm.tools.base import (
-    ModelParams,
-    DeepLearningFramework,
-    Device,
 )
 from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
