@@ -6,6 +6,7 @@ from forward_forward.operations.build_models import (
     FCNetFFProgressiveBuildOperation,
     RecurrentFCNetFFBuildOperation,
     LMFFNetBuildOperation,
+    CNNBuildOperation
 )
 from forward_forward.operations.data import (
     MNISTDataLoaderOperation,
@@ -15,6 +16,7 @@ from forward_forward.operations.trainers import (
     ForwardForwardTrainer,
     RecurrentForwardForwardTrainer,
     NLPForwardForwardTrainer,
+    CNNForwardForwardTrainer
 )
 
 
@@ -22,6 +24,7 @@ class ForwardForwardModelType(Enum):
     PROGRESSIVE = "progressive"
     RECURRENT = "recurrent"
     NLP = "nlp"
+    CNN = "cnn"
 
 
 class ForwardForwardRootOp(Operation):
@@ -40,6 +43,10 @@ class ForwardForwardRootOp(Operation):
             self.build_model = LMFFNetBuildOperation()
             self.train_model = NLPForwardForwardTrainer()
             self.load_data = AesopFablesDataLoaderOperation()
+        elif model_type is ForwardForwardModelType.CNN:
+            self.build_model = CNNBuildOperation()
+            self.train_model = CNNForwardForwardTrainer()
+            self.load_data = MNISTDataLoaderOperation()
 
     def execute(
         self,

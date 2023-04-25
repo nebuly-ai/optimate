@@ -27,6 +27,9 @@ def train_with_forward_forward_algorithm(
     elif model_type is ForwardForwardModelType.RECURRENT:
         input_size = 28 * 28
         output_size = len(datasets.MNIST.classes)
+    elif model_type is ForwardForwardModelType.CNN:
+        input_size = (28,28,1)
+        output_size = len(datasets.MNIST.classes)
     else:  # model_type is ForwardForwardModelType.NLP
         input_size = 10  # number of characters
         output_size = 30  # length of vocabulary

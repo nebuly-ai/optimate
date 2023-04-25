@@ -30,6 +30,10 @@ This process will just install the minimum requirements for running the module. 
 At the current stage, this implementation supports the main architectures discussed by Hinton in his paper. Each architecture can be trained with the following command:
 
 ```python
+import os
+
+import torch
+
 from forward_forward import train_with_forward_forward_algorithm
 import os
 import torch

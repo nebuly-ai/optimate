@@ -8,6 +8,7 @@ from forward_forward.utils.modules import (
     FCNetFFProgressive,
     RecurrentFCNetFF,
     LMFFNet,
+    ConvFFLayer,
 )
 
 
@@ -110,5 +111,32 @@ class LMFFNetBuildOperation(BaseModelBuildOperation):
             loss_fn_name=loss_fn_name,
             epochs=-1,
             predicted_tokens=-1,
+        )
+        self.model = model
+        
+class CNNBuildOperation(BaseModelBuildOperation):
+    def __init__(self):
+        super().__init__()
+
+    def execute(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int,
+        padding: int,
+        optimizer_name: str,
+        optimizer_params: dict,
+        loss_fn_name: str,
+    ):
+        model = ConvFFLayer(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            optimizer_name=optimizer_name,
+            optimizer_kwargs=optimizer_params,
+            loss_fn_name=loss_fn_name,
         )
         self.model = model
