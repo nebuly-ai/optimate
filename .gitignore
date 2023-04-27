@@ -69,7 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+optimization/nebullvm/docs/_build/
 
 # PyBuilder
 target/
