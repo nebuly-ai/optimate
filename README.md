@@ -38,7 +38,7 @@ pip install nebuly
 ```
 *The list of the supported integrations will be available soon*.
 
-## **Cost optimization**
+## **AI cost optimization**
 
 Once you have full visibility over your AI costs, you are ready to optimize them. We have developed multiple open-source tools to optimize the cost and improve the performances of your AI systems: 
 
