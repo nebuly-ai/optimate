@@ -1,7 +1,11 @@
 import argparse
 import os
 
-from chatllama.rlhf.dataset import AnthropicRLHF, StanfordNLPSHPDataset
+from chatllama.rlhf.dataset import (
+    AnthropicRLHFDataset,
+    SelfInstructDataset,
+    StanfordNLPSHPDataset,
+)
 
 
 if __name__ == "__main__":
@@ -15,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "dataset_name",
         help="dataset name it can be. SSHP: stanfordnlp/SHP or ",
-        choices=["SHP", "ARLHF"],
+        choices=["SHP", "ARLHF", "SI"],
     )
     parser.add_argument(
         "-p",
@@ -44,8 +48,15 @@ if __name__ == "__main__":
         dataset.save_dataset(args.path, n_samples)
 
     elif args.dataset_name == "ARLHF":
-        dataset = AnthropicRLHF()
+        dataset = AnthropicRLHFDataset()
         dataset.save_dataset(
             args.path,
             n_samples,
         )
+    elif args.dataset_name == "SI":
+        dataset = SelfInstructDataset()
+        dataset.save_dataset(
+            args.path,
+            n_samples,
+        )
+        

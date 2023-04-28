@@ -407,6 +407,24 @@ We support 3 different options to prepare the `reward_training_data`:
 - **(⚠️WIP)** Few examples provided by the user and dataset synthetically expanded using LLM
 </details>
 
+## Single-Node Multi-GPU Training
+Currently chatllama supports [Accelerate](https://github.com/huggingface/accelerate) and [DeepSpeed](https://github.com/microsoft/DeepSpeed) for multi-GPU training. 
+To run a distributed training you need to enable one of them in your `/artifacts/config/config.yaml` file by setting either
+`deepspeed_enable` or `accelerate_enable` to `True` or `False`. <br />
+Each type of training (i.e. reward model training, actor supervised fine-tuning, RLHF) has its own flags to tweak.
+Deepspeed settings can be customised using the `/artifacts/config/ds_config.yaml` file, while accelerate can be configured by running
+```bash
+accelerate config
+```
+from the command line. 
+Once the project is configured, the trainin must be started using:
+```bash
+deepspeed artifacts/main.py artifacts/config/config.yaml --type <type_of_training>
+```
+or
+```bash
+accelerate launch artifacts/main.py artifacts/config/config.yaml --type <type_of_training>
+```
 # License
 
 See the [LICENSE](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/LICENSE) file.

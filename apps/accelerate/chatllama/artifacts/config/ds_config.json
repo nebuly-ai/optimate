@@ -48,5 +48,11 @@
     "stage3_gather_16bit_weights_on_model_save": true,
     "ignore_unused_parameters": true,
     "round_robin_gradients": true
+    },
+    "comms_logger": {
+      "enabled": false,
+      "verbose": false,
+      "prof_all": false,
+      "debug": false
     }
   }

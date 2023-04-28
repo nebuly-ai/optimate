@@ -14,6 +14,7 @@ hf_models_seq_2_seq = [
 # decoder only TODO: codegen is still broken
 hf_models_causal_lm = [
     "facebook/opt-125m",
+    "facebook/opt-350m",
     "facebook/opt-1.3b",
     "facebook/opt-2.7b",
     "facebook/opt-6.7b",
@@ -44,6 +45,17 @@ hf_models_causal_lm = [
     "Salesforce/codegen-2B-mono",
     "Salesforce/codegen-6B-mono",
     "Salesforce/codegen-16B-mono",
+    "cerebras/Cerebras-GPT-111M",
+    "cerebras/Cerebras-GPT-256M",
+    "cerebras/Cerebras-GPT-590M",
+    "cerebras/Cerebras-GPT-1.3B",
+    "cerebras/Cerebras-GPT-2.7B",
+    "cerebras/Cerebras-GPT-6.7B",
+    "cerebras/Cerebras-GPT-13B",
+    "decapoda-research/llama-7b-hf",
+    "decapoda-research/llama-13b-hf",
+    "decapoda-research/llama-30b-hf",
+    "decapoda-research/llama-65b-hf",
 ]
 
 # create a list of all the models from hf

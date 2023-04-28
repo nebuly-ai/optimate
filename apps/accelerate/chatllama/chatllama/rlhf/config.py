@@ -14,10 +14,13 @@ class ConfigReward:
     Attributes:
         device (torch.device): Device to be used for the reward model
         model (str): Model to be used for the reward model
+        load_8bit (bool): Load the reward model in 8bit mode
         model_folder (str): Path to the folder where model are stored (used
             to load / store finetuned model or checkpoints)
         model_head_hidden_size (int): Hidden size of the reward model head
         max_sequence_length (int): Max sequence length of the reward model
+        peft_enable (bool): Enable peft for the reward model
+        peft_config_path (str): Path to the peft config file.
         train_dataset_path (Optional[str]): Path to the training dataset.
             Default to None. To be specified only for the reward model trainig.
         validation_dataset_path (Optional[str]): Path to the validation
@@ -37,6 +40,7 @@ class ConfigReward:
             the reward model trainig.
         checkpoint_name (Optional[str]): Name of the checkpoint. Default to
             None.
+        n_checkpoints_to_keep (Optional[int]): Number of checkpoints to keep
         lr (Optional[float]): Learning rate for the reward model. Default to
             None. To be specified only for the reward model distillation.
         llm_enable (bool): Enable reward model distillation. Default to True.
@@ -53,20 +57,24 @@ class ConfigReward:
             Default to None.
         is_reward (bool): True if the model is a reward model. Default to True.
         accelerate_enable (bool): Enable accelerate for the reward model
-        debug (bool): enable prints for Debugging
+        device_type (str): Device type to be used for the reward model
     """
 
     device: torch.device
     model: str
+    load_8bit: bool
     model_folder: str
     model_head_hidden_size: int
     max_sequence_length: int
+    peft_enable: bool
+    peft_config_path: str
     train_dataset_path: Optional[str] = None
     validation_dataset_path: Optional[str] = None
     batch_size: Optional[int] = None
     epochs: Optional[int] = None
     iteration_per_print: Optional[int] = None
     checkpoint_steps: Optional[int] = None
+    n_checkpoints_to_keep: Optional[int] = None
     checkpoint_name: Optional[str] = None
     lr: Optional[float] = None
     llm_enable: Optional[bool] = False
@@ -80,7 +88,7 @@ class ConfigReward:
     is_reward: bool = True
     accelerate_enable: bool = False
 
-    debug: bool = False
+    device_type: str = "cuda"
 
 
 # just for naming consistency
@@ -93,6 +101,7 @@ class ConfigActor:
 
     Attributes:
         model (str): Model to be used for the actor
+        load_8bit (bool): Load the actor in 8bit mode
         model_folder (str): Path to the folder where model are stored (used
             to load / store finetuned model or checkpoints)
         tokenizer_path (str): Path to the folder where tokenizer are stored
@@ -127,11 +136,12 @@ class ConfigActor:
             None.
         peft_enable (bool): Enable peft for the actor
         peft_config_path (str): Path to the peft config file.
-        debug (bool): Enable prints for debugging
+        device_type (str): Device type to be used for the actor
 
     """
 
     model: str
+    load_8bit: bool
     model_folder: str
     tokenizer_path: str
     train_dataset_path: str
@@ -159,7 +169,7 @@ class ConfigActor:
     peft_enable: bool
     peft_config_path: str
     checkpoint_name: Optional[str] = None
-    debug: bool = False
+    device_type: str = "cuda"
 
 
 @dataclass
@@ -194,9 +204,15 @@ class ConfigTrainer:
             for the actual training of the actor and critic models.
         epochs (int): Number of epochs to train the actor and critic.
         checkpoint_steps (int): Number of episodes to interleave checkpoints.
-        device (torch.device): Device to be used for the actor and critic
+        device (torch.device): Device to be used for the rl training
+        deepspeed_enable (bool): Enable deepspeed for rl training.
+            Default to False.
+        deepspeed_config_path (str): Path to the deepspeed config file.
+        accelerate_enable (bool): Enable accelerate for rl training
+        n_checkpoints_to_keep (int): Number of checkpoints to keep
         checkpoint_name (Optional[str]): Name of the checkpoint. Default to
             None.
+        device_type (str): Device type to be used for the rl training
     """
 
     actor_lr: int
@@ -214,8 +230,12 @@ class ConfigTrainer:
     epochs: int
     checkpoint_steps: int
     device: torch.device
+    deepspeed_enable: bool
+    deepspeed_config_path: Optional[str]
+    accelerate_enable: bool
+    n_checkpoints_to_keep: int
     checkpoint_name: Optional[str] = None
-    debug: bool = False
+    device_type: str = "cuda"
 
 
 class Config:
@@ -255,12 +275,18 @@ class Config:
     ) -> None:
 
         # if not specified use the device available
+        if device is not None:
+            if ":" in str(device):
+                device_type = str(device).split(":")[0]
+            else:
+                device_type = str(device)
+
         if device is None:
             if torch.cuda.is_available():
                 device = torch.device("cuda")
+                device_type = "cuda"
             else:
-                raise ValueError("No GPU available")
-            print(f"Current device used :{str(device)}")
+                raise ValueError("No GPU available...")
 
         if path is None or os.path.exists(path) is False:
             raise ValueError("Path to the config.yaml is not valid")
@@ -276,18 +302,18 @@ class Config:
 
         # Trainer Config
         trainer_dict["device"] = device
-        trainer_dict["debug"] = debug
+        trainer_dict["device_type"] = device_type
         self.trainer = ConfigTrainer(**trainer_dict)
         # Actor Config
         actor_dict["device"] = device
-        actor_dict["debug"] = debug
+        actor_dict["device_type"] = device_type
         self.actor = ConfigActor(**actor_dict)
         # Critic Config
         critic_dict["device"] = device
-        critic_dict["debug"] = debug
+        critic_dict["device_type"] = device_type
         self.critic = ConfigCritic(**critic_dict)
         self.critic.is_reward = False
         # Reward Config
         reward_dict["device"] = device
-        reward_dict["debug"] = debug
+        reward_dict["device_type"] = device_type
         self.reward = ConfigReward(**reward_dict)

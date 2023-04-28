@@ -3,6 +3,9 @@ from setuptools import setup, find_packages
 
 
 REQUIREMENTS = [
+    "bitsandbytes",
+    "loguru",
+    "peft",
     "accelerate",
     "beartype",
     "deepspeed",
@@ -23,7 +26,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf8")
 
 setup(
     name="chatllama-py",
-    version="0.0.4",
+    version="0.0.3",
     packages=find_packages(),
     install_requires=REQUIREMENTS,
     long_description=long_description,
