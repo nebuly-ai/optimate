@@ -17,7 +17,7 @@
 
 </a>
 
-`Nebuly` is the next-generation platform to monitor and optimize your AI costs in one place. The platform connects to all your AI cost sources (compute, API providers, AI software licenses, etc) and centralizes them in one place to give you full visibility and control. The platform also provides optimization recommendations and a co-pilot model that can guide during the optimization process. The platform builds on top of the open-source tools allowing you to optimize the different steps of your AI stack to squeeze out the best possible cost performances.
+`Nebuly` is the next-generation platform to monitor and optimize your AI costs in one place. The platform connects to all your AI cost sources (compute, API providers, AI software licenses, etc) and centralizes them in one place to give you full visibility on a model basis. The platform also provides optimization recommendations and a co-pilot model that can guide during the optimization process. The platform builds on top of the open-source tools allowing you to optimize the different steps of your AI stack to squeeze out the best possible cost performances.
 
 If you like the idea, give us a star to show your support for the project ⭐
 
