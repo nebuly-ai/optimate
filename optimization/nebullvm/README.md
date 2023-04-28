@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-<b>Plug and play modules to optimize the performances of your AI systems</b>
+<b>A framework for building optimization modules to boost the performances of your AI systems</b>
 </p>
 
 <p align=center>
@@ -23,20 +23,16 @@
 
 ---
 
-`Nebullvm` is an ecosystem of plug and play modules to optimize the performances of your AI systems. The optimization modules are stack-agnostic and work with any library. They are designed to be easily integrated into your system, providing a quick and seamless boost to its performance. Simply plug and play to start realizing the benefits of optimized performance right away.
+`Nebullvm` is a framework for building the optimization modules needed to optimize the performances of your AI systems. The optimization modules are stack-agnostic and work with any library. They are designed to be easily integrated into your system, providing a quick and seamless boost to its performance. Simply plug and play to start realizing the benefits of optimized performance right away.
 
 If you like the idea, give us a star to show your support for the project ⭐
 
 
 ## **What can this help with?**
 
-There are multiple modules we actually provide to boost the performances of your AI systems:
+There are multiple modules we actually provide built on top of the framework:
 
 ✅ [Speedster](https://github.com/nebuly-ai/nebuly/blob/main/optimization/speedster): Automatically apply the best set of SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
-
-✅ [Nos](https://github.com/nebuly-ai/nos): Automatically maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning and elastic quotas.
-
-✅ [ChatLLaMA](https://github.com/nebuly-ai/nebuly/tree/main/optimization/chatllama): Create hyper-personalized ChatGPT-like assistants using your custom data and the least amount of compute possible.
 
 ✅ [OpenAlphaTensor](https://github.com/nebuly-ai/nebuly/tree/main/optimization/open_alpha_tensor): Increase the computational performances of an AI model with custom-generated matrix multiplication algorithm fine-tuned for your specific hardware.
 
