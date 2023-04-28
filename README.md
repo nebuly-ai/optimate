@@ -40,7 +40,7 @@ pip install nebuly
 
 ## **Cost optimization**
 
-Once you have full visibility of your AI costs, you are ready to optimize them. We have developed multiple open-source tools to optimize the cost and improve the performances of your AI systems: 
+Once you have full visibility over your AI costs, you are ready to optimize them. We have developed multiple open-source tools to optimize the cost and improve the performances of your AI systems: 
 
 ✅ [Speedster](https://github.com/nebuly-ai/nebuly/tree/main/optimization/speedster): reduce inference costs by leveraging SOTA optimization techniques that best couple your AI models with the underlying hardware (GPUs and CPUs)
 
