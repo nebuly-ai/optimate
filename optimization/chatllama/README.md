@@ -2,7 +2,7 @@
 
 > :warning: Please note this library does NOT contain LLaMA’s weights; to access the weights, you need to apply to Meta's form.
 
-`ChatLLaMA` 🦙 is a library that allows you to cheaply leverage LLMs fine-tuning capabilities using your own data and the least amount of compute possible. 
+`ChatLLaMA` 🦙 is a library that allows you to efficiently leverage LLMs fine-tuning capabilities using your own data and the least amount of compute possible. 
 Its purpose is to give developers peace of mind, by abstracting the efforts required for computational optimization and for the collection of large amounts of data.
 
 If you like the project, please show your support by [leaving a star ⭐](https://github.com/nebuly-ai/nebullvm/stargazers).
