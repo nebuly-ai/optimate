@@ -1,20 +1,18 @@
 # 💥 Speedster
 
-`Speedster` is an open-source module designed to speed up AI inference in just a few lines of code. The library automatically applies the best set of SOTA optimization techniques to achieve the maximum inference speed-up (latency, throughput, model size) physically possible on your hardware (single machine).
+`Speedster` reduces inference costs by leveraging SOTA optimization techniques that best couple your AI models with the underlying hardware (GPUs and CPUs). The idea is to make AI inference way cheaper in just a few lines of code.
 
-`Speedster` makes it easy to combine optimization techniques across the whole software-to-hardware stack, delivering best-in-class speed-ups. If you like the idea, give us a star to support the project ⭐
+`Speedster` makes it easy to combine optimization techniques across the whole software-to-hardware stack, delivering best-in-class cost savings. If you like the idea, give us a star to support the project ⭐
 
 ![speedster](https://user-images.githubusercontent.com/53374883/225599469-f1a626f0-c001-42bd-bc8b-ec0e966ddad6.png)
 
 The core `Speedster` workflow consists of 3 steps:
 
-
 - [x]  **Select**: input your model in your preferred DL framework and express your preferences regarding:
-    - Accuracy loss: do you want to trade off a little accuracy for much higher performance?
-    - Optimization time: stellar accelerations can be time-consuming. Can you wait, or do you need an instant answer?
+    - Accuracy loss: do you want to trade off a little accuracy for significant cost savings?
+    - Optimization time: achieving great savings can be time-consuming. Can you wait, or do you need an instant answer?
 - [x]  **Search**: the library automatically tests every combination of optimization techniques across the software-to-hardware stack (sparsity, quantization, compilers, etc.) that is compatible with your needs and local hardware.
-- [x]  **Serve**: finally, `Speedster` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just on steroids 🚀).
-
+- [x]  **Serve**: finally, `Speedster` chooses the best configuration of optimization techniques and returns an accelerated version of your model in the DL framework of your choice (just cheaper 🚀).
 
 # Installation
 
@@ -352,7 +350,7 @@ For more details, please visit [Getting Started with ONNX optimization](https://
 
 # **Key concepts**
 
-`Speedster`'s design reflects our mission to automatically master each and every existing AI acceleration technique to deliver the **fastest AI ever**. As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that our community can benefit from it.
+Speedster's design reflects our mission to automatically master each and every existing AI acceleration technique to deliver the most cost-efficient AI ever. As a result, `Speedster` leverages available enterprise-grade open-source optimization tools. If these tools and  communities already exist, and are distributed under a permissive license (Apache, MIT, etc), we integrate them and happily contribute to their communities. However, many tools do not exist yet, in which case we implement them and open-source the code so that our community can benefit from it.
 
 `Speedster` is shaped around **4 building blocks** and leverages a modular design to foster scalability and integration of new acceleration components across the software to hardware stack.
 
