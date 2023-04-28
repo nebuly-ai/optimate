@@ -10,7 +10,7 @@ from nebullvm.core.models import (
     QuantizationType,
     ModelCompiler,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torchscript import (
     TorchScriptInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.torchscript import (
@@ -23,7 +23,7 @@ from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import load_model
+from nebullvm.operations.inference_learners.utils import load_model
 from nebullvm.tools.utils import gpu_is_available
 
 device = (

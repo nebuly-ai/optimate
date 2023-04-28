@@ -1,7 +1,7 @@
 import tensorflow as tf
 import torch
 
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 
 
 def test_custom_input_data():

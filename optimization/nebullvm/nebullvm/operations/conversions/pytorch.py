@@ -6,7 +6,7 @@ from loguru import logger
 from nebullvm.config import ONNX_OPSET_VERSION
 from nebullvm.core.models import ModelParams, Device, DeviceType, DataType
 from nebullvm.optional_modules.torch import torch, Module
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.pytorch import (
     create_model_inputs_torch,
 )

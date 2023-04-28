@@ -17,7 +17,7 @@ from nebullvm.optional_modules.torch import (
     GraphModule,
     symbolic_trace,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

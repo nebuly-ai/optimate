@@ -9,14 +9,14 @@ from loguru import logger
 
 from nebullvm.config import OPENVINO_FILENAMES
 from nebullvm.core.models import Device, ModelParams, DeepLearningFramework
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
     TensorflowBaseInferenceLearner,
     NumpyBaseInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.optional_modules.openvino import (
+from nebullvm.optional_modules.openvino import (
     Core,
     Model,
     CompiledModel,
@@ -24,7 +24,7 @@ from optimization.nebullvm.nebullvm.optional_modules.openvino import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

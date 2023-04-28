@@ -19,7 +19,7 @@ from nebullvm.operations.base import Operation
 from nebullvm.operations.optimizations.optimize_inference import (
     OptimizeInferenceOp,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.feedback_collector import FeedbackCollector
 from tabulate import tabulate
 

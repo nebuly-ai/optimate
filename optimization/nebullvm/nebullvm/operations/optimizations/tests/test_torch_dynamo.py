@@ -11,7 +11,7 @@ from nebullvm.core.models import (
     QuantizationType,
     ModelCompiler,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torch_dynamo import (
     TorchDynamoInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.torch_dynamo import (

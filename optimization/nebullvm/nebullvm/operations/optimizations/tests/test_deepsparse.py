@@ -10,7 +10,7 @@ from nebullvm.core.models import (
     DeepLearningFramework,
     ModelCompiler,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.deepsparse import (
     DEEPSPARSE_INFERENCE_LEARNERS,
 )
 from nebullvm.operations.measures.measures import MetricDropMeasure
@@ -25,7 +25,7 @@ from nebullvm.operations.optimizations.optimizers.base import (
     COMPILER_TO_INFERENCE_LEARNER_MAP,
 )
 from nebullvm.operations.optimizations.tests.utils import initialize_model
-from optimization.nebullvm.nebullvm.operations.inference_learners import load_model
+from nebullvm.operations.inference_learners.utils import load_model
 
 device = Device(DeviceType.CPU)
 

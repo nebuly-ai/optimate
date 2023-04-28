@@ -9,7 +9,7 @@ from loguru import logger
 
 from nebullvm.config import ONNX_FILENAMES
 from nebullvm.core.models import Device, ModelParams, DeepLearningFramework
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,

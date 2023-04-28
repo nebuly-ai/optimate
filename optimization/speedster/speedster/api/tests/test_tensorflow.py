@@ -5,20 +5,20 @@ import pytest
 import tensorflow as tf
 from keras.applications import ResNet50
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.onnx import (
     TensorflowONNXInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.openvino import (
     TensorflowOpenVinoInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tensor_rt import (
     TensorflowONNXTensorRTInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tvm import (
     TensorflowApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available

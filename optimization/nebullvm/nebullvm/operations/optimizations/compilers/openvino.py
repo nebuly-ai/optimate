@@ -13,11 +13,11 @@ from nebullvm.operations.optimizations.compilers.quantizations.openvino import (
 from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
-from optimization.nebullvm.nebullvm.optional_modules.openvino import (
+from nebullvm.optional_modules.openvino import (
     Core,
     CompiledModel,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.transformations import MultiStageTransformation
 

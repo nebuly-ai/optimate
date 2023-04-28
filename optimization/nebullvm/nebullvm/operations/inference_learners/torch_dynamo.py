@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union
 
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torchscript import (
     TorchScriptInferenceLearner,
 )
 

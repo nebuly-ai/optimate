@@ -7,41 +7,41 @@ from nebullvm.core.models import (
     QuantizationType,
     DeviceType,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import BuildInferenceLearner
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import BuildInferenceLearner
+from nebullvm.operations.inference_learners.deepsparse import (
     PytorchDeepSparseInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.faster_transformer import (
     FasterTransformerInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.neural_compressor import (
     PytorchNeuralCompressorInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import ONNX_INFERENCE_LEARNERS
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
+from nebullvm.operations.inference_learners.openvino import (
     OPENVINO_INFERENCE_LEARNERS,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tensor_rt import (
     TENSOR_RT_INFERENCE_LEARNERS,
     PytorchTensorRTInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tensorflow import (
     TensorflowBackendInferenceLearner,
     TFLiteBackendInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torch_dynamo import (
     TorchDynamoInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners.torch_neuron import (
+from nebullvm.operations.inference_learners.torch_neuron import (
     TorchNeuronInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torch_xla import (
     TorchXLAInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torchscript import (
     TorchScriptInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tvm import (
     APACHE_TVM_INFERENCE_LEARNERS,
     PytorchApacheTVMInferenceLearner,
 )
@@ -53,7 +53,7 @@ from nebullvm.optional_modules.torch import (
     GraphModule,
     torch,
 )
-from optimization.nebullvm.nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
+from nebullvm.optional_modules.tvm import tvm, ExecutorFactoryModule
 from nebullvm.tools.onnx import get_input_names, get_output_names
 from nebullvm.tools.transformations import (
     MultiStageTransformation,

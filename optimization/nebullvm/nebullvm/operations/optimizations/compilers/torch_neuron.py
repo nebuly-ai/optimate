@@ -9,8 +9,8 @@ from nebullvm.optional_modules.torch import (
     torch,
     symbolic_trace,
 )
-from optimization.nebullvm.nebullvm.optional_modules.torch_neuron import torch_neuron
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.optional_modules.torch_neuron import torch_neuron
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

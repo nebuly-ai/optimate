@@ -24,7 +24,7 @@ from nebullvm.operations.measures.measures import (
     MetricDropMeasure,
 )
 from nebullvm.operations.measures.utils import compute_relative_difference
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.utils import gpu_is_available, extract_info_from_data
 

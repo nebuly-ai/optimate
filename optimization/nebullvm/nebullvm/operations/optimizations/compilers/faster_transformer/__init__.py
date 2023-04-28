@@ -17,8 +17,8 @@ from nebullvm.optional_modules.torch import (
     ScriptModule,
     torch,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
-from optimization.nebullvm.nebullvm.tools.huggingface import PyTorchTransformerWrapper
+from nebullvm.tools.data import DataManager
+from nebullvm.tools.huggingface import PyTorchTransformerWrapper
 
 default_lib_path = str(
     get_faster_transformer_repo_path()

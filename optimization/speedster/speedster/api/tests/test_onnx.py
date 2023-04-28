@@ -5,16 +5,16 @@ import numpy as np
 import pytest
 import torch
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.onnx import (
     NumpyONNXInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.openvino import (
     NumpyOpenVinoInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tensor_rt import (
     NumpyONNXTensorRTInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tvm import (
     NumpyApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import tvm_is_available

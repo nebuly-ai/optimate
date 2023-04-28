@@ -8,7 +8,7 @@ from nebullvm.optional_modules.torch import (
     Module,
     GraphModule,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

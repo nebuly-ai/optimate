@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, Any
 
-from optimization.nebullvm.nebullvm.operations.inference_learners import LearnerMetadata
+from nebullvm.operations.inference_learners.base import LearnerMetadata
 from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
 from nebullvm.tools.diffusers import postprocess_diffusers
 

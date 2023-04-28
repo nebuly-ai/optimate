@@ -24,7 +24,7 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
 )
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.torch import Module, torch
-from optimization.nebullvm.nebullvm.optional_modules.tvm import (
+from nebullvm.optional_modules.tvm import (
     tvm,
     IRModule,
     NDArray,
@@ -33,7 +33,7 @@ from optimization.nebullvm.nebullvm.optional_modules.tvm import (
     relay,
     ExecutorFactoryModule,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.pytorch import create_model_inputs_torch
 from nebullvm.tools.transformations import MultiStageTransformation

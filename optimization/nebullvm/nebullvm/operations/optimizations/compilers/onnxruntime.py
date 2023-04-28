@@ -13,7 +13,7 @@ from nebullvm.operations.optimizations.compilers.quantizations.onnx import (
 from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

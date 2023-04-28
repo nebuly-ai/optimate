@@ -10,7 +10,7 @@ from nebullvm.core.models import (
     DeepLearningFramework,
     ModelCompiler,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.neural_compressor import (
     NEURAL_COMPRESSOR_INFERENCE_LEARNERS,
 )
 from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
@@ -26,7 +26,7 @@ from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import load_model
+from nebullvm.operations.inference_learners.utils import load_model
 
 device = Device(DeviceType.CPU)
 

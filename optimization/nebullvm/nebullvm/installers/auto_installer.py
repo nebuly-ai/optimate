@@ -10,7 +10,7 @@ from nebullvm.config import (
     HUGGING_FACE_MODULES,
     DIFFUSERS_MODULES,
 )
-from optimization.nebullvm.nebullvm.installers import (
+from nebullvm.installers import (
     ONNXInstaller,
     PytorchInstaller,
     TensorflowInstaller,

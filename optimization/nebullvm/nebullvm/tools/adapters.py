@@ -13,10 +13,10 @@ from nebullvm.core.models import (
     OriginalModel,
 )
 from nebullvm.operations.conversions.huggingface import convert_hf_model
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.huggingface import (
     DiffusionInferenceLearner,
 )
 from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
@@ -240,7 +240,7 @@ class HuggingFaceAdapter(ModelAdapter):
     def adapt_inference_learner(
         self, optimized_model: OptimizedModel
     ) -> OptimizedModel:
-        from optimization.nebullvm.nebullvm.operations.inference_learners import (
+        from nebullvm.operations.inference_learners.huggingface import (
             HuggingFaceInferenceLearner,
         )
 

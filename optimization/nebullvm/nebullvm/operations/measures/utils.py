@@ -6,10 +6,10 @@ from loguru import logger
 
 from nebullvm.config import ONNX_PROVIDERS
 from nebullvm.core.models import Device, DeviceType
-from optimization.nebullvm.nebullvm.operations.inference_learners import BaseInferenceLearner
+from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, Module
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     convert_to_numpy,
     get_input_names,

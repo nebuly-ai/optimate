@@ -17,7 +17,7 @@ import os
 import tempfile
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
-from optimization.nebullvm.nebullvm.operations.optimizations.compilers.faster_transformer.gpt.utils import \
+from nebullvm.operations.optimizations.compilers.faster_transformer.gpt.utils import \
     gpt_decoder
 from nebullvm.operations.optimizations.compilers.faster_transformer.gpt.utils.huggingface_gpt_convert import (  # noqa: E501
     main as convert_huggingface_gpt_to_faster_transformer,

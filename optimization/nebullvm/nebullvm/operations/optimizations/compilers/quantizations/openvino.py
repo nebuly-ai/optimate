@@ -2,7 +2,7 @@ from typing import List, Tuple, Any
 
 import numpy as np
 
-from optimization.nebullvm.nebullvm.optional_modules.openvino import (
+from nebullvm.optional_modules.openvino import (
     DataLoader,
     load_model,
     IEEngine,

@@ -1,11 +1,11 @@
 from typing import Optional
 
 from nebullvm.core.models import ModelParams, Device
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torchscript import (
     TorchScriptInferenceLearner,
 )
 from nebullvm.optional_modules.torch import ScriptModule
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

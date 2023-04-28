@@ -10,7 +10,7 @@ from nebullvm.operations.optimizations.compilers.quantizations.utils import (
     check_quantization,
 )
 from nebullvm.optional_modules.torch import Module
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 
 

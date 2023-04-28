@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 from typing import Tuple, Union
 
 from nebullvm.core.models import Device, DeviceType, ModelParams
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
 )

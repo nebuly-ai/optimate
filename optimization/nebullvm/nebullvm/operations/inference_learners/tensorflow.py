@@ -4,7 +4,7 @@ from typing import Tuple, Union, Dict, Type
 
 from nebullvm.config import TENSORFLOW_BACKEND_FILENAMES
 from nebullvm.core.models import DeviceType, Device, ModelParams
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     TensorflowBaseInferenceLearner,
     LearnerMetadata,
 )
