@@ -42,11 +42,11 @@ pip install nebuly
 
 Once you have full visibility of your AI costs, you are ready to optimize them. We have developed multiple open-source tools to optimize the cost and improve the performances of your AI systems: 
 
-✅ [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): reduce inference costs by leveraging SOTA optimization techniques that best couple your AI models with the underlying hardware (GPUs and CPUs)
+✅ [Speedster](https://github.com/nebuly-ai/nebuly/tree/main/optimization/speedster): reduce inference costs by leveraging SOTA optimization techniques that best couple your AI models with the underlying hardware (GPUs and CPUs)
 
 ✅ [Nos](https://github.com/nebuly-ai/nos): reduce infrastructure costs by leveraging real-time dynamic partitioning and elastic quotas to maximize the utilization of your Kubernetes GPU cluster
 
-✅ [ChatLLaMA](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/chatllama): reduce hardware and data costs by leveraging fine-tuning optimization techniques and RLHF alignment
+✅ [ChatLLaMA](https://github.com/nebuly-ai/nebuly/tree/main/optimization/chatllama): reduce hardware and data costs by leveraging fine-tuning optimization techniques and RLHF alignment
 
 ## Contributing
 As an open source project in a rapidly evolving field, we welcome contributions of all kinds, including new features, improved infrastructure, and better documentation. If you're interested in contributing, please see the [linked](https://docs.nebuly.com/contributions) page for more information on how to get involved.
