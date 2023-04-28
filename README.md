@@ -28,7 +28,7 @@ If you like the idea, give us a star to show your support for the project ⭐
 The monitoring platform allows you to monitor 100% of your AI costs. We support 3 main buckets of costs: 
 
 - Infrastructure and compute (AWS, Azure, GCP, on-prem)
-- AI-related software/tools licenses (OpenAI, Cohere, Scale AI, Snorkel, Databricks, etc)
+- AI-related software/tools licenses (OpenAI, Cohere, Scale AI, Snorkel, Pinecone, HuggingFace, Databricks, etc)
 - People (Jira, GitLab, Asana, etc)
 
 The easiest way to install the cost-ai SDK is via `pip`:
