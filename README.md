@@ -31,7 +31,7 @@ The monitoring platform allows you to monitor 100% of your AI costs. We support 
 - AI-related software/tools licenses (OpenAI, Cohere, Scale AI, Snorkel, Pinecone, HuggingFace, Databricks, etc)
 - People (Jira, GitLab, Asana, etc)
 
-The easiest way to install the cost-ai SDK is via `pip`:
+The easiest way to install the SDK is via `pip`:
 
 ```python
 pip install nebuly
