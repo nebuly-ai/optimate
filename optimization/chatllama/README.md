@@ -26,11 +26,9 @@ Follow the instructions in the Llama repository to download the model weights an
 
 `ChatLLaMA` 🦙 has been designed to help developers with various use cases, all related to RLHF training and optimized inference. These are some of the use cases that better resonate with our community wishlist:
 
-- I want to create my personalized version of ChatGPT-like assistants for vertical specific tasks (legal, medical, gaming, academic research, etc.);
 - I want to train an efficient ChatGPT-like assistant on my local hardware infrastructure using a limited amount of data;
 - I want to create my own personalized version of ChatGPT-like assistant without costs getting out of control;
 - I want to understand which model architecture (LLaMA, OPT, GPTJ, etc.) best fits my requirements in terms of hardware, compute budget, and performance;
-- I want to align the assistant with my personal/company values, culture, brand and manifesto.
 
 ## Getting started
 
