@@ -1,11 +1,11 @@
 <p align="center">
 <br><br><br>
-<a https://docs.nebuly.com/welcome/quick-start"><img src="https://user-images.githubusercontent.com/83510798/208247207-861541f0-b968-484c-8a0c-0fb110399c16.png" width="400px"></a>
+<a https://docs.nebuly.com/welcome/quick-start"><img src="https://user-images.githubusercontent.com/42771598/235086376-5d859429-fd33-4019-a2a5-5a835e19d7cb.svg" width="400px"></a>
 <br><br><br>
 </p>
 
 <p align="center">
-<b>Plug and play modules to optimize the performances of your AI systems</b>
+<b>The next-generation platform to monitor and optimize your AI costs in one place</b>
 </p>
 
 <p align=center>
@@ -16,39 +16,37 @@
 
 
 </a>
-  
----
 
-**Documentation**: <a href="https://docs.nebuly.com/" target="_blank"> docs.nebuly.com/ </a>
-
----
-
-`Nebullvm` is an ecosystem of plug and play modules to optimize the performances of your AI systems. The optimization modules are stack-agnostic and work with any library. They are designed to be easily integrated into your system, providing a quick and seamless boost to its performance. Simply plug and play to start realizing the benefits of optimized performance right away.
+`Nebuly` is the next-generation platform to monitor and optimize your AI costs in one place. The platform connects to all your AI cost sources (compute, API providers, AI software licenses, etc) and centralizes them in one place to give you full visibility and control. The platform also provides optimization recommendations and a co-pilot model that can guide during the optimization process. The platform builds on top of the open-source tools allowing you to optimize the different steps of your AI stack to squeeze out the best possible cost performances.
 
 If you like the idea, give us a star to show your support for the project ⭐
 
+*Apply for enterprise version early access here:* https://qpvirevo4tz.typeform.com/to/X7VfuRiH
 
-## **What can this help with?**
+## **AI costs monitoring (SDK)**
 
-There are multiple modules we actually provide to boost the performances of your AI systems:
+The monitoring platform allows you to monitor 100% of your AI costs. We support 3 main buckets of costs: 
 
-✅ [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): Automatically apply the best set of SOTA optimization techniques to achieve the maximum inference speed-up on your hardware.
+- Infrastructure and compute (AWS, Azure, GCP, on-prem)
+- AI-related software/tools licenses (OpenAI, Cohere, Scale AI, Snorkel, Databricks, etc)
+- People (Jira, GitLab, Asana, etc)
 
-✅ [Nos](https://github.com/nebuly-ai/nos): Automatically maximize the utilization of GPU resources in a Kubernetes cluster through real-time dynamic partitioning and elastic quotas.
+The easiest way to install the cost-ai SDK is via `pip`:
 
-✅ [ChatLLaMA](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/chatllama): Create hyper-personalized ChatGPT-like assistants using your custom data and the least amount of compute possible.
+```python
+pip install nebuly
+```
+*The list of the supported integrations will be available soon*.
 
-✅ [OpenAlphaTensor](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/open_alpha_tensor): Increase the computational performances of an AI model with custom-generated matrix multiplication algorithm fine-tuned for your specific hardware.
+## **Cost optimization**
 
-✅ [Forward-Forward](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/forward_forward): The Forward Forward algorithm is a method for training deep neural networks that replaces the backpropagation forward and backward passes with two forward passes.
+Once you have full visibility of your AI costs, you are ready to optimize them. We have developed multiple open-source tools to optimize the cost and improve the performances of your AI systems: 
 
-## Next modules and roadmap
-We are actively working on incorporating the following modules, as requested by members of our community, in upcoming releases:
+✅ [Speedster](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/speedster): reduce inference costs by leveraging SOTA optimization techniques that best couple your AI models with the underlying hardware (GPUs and CPUs)
 
-- [ ]  [GPToptimizer](https://github.com/nebuly-ai/nebullvm/blob/main/apps/extract/promptify): Effortlessly optimize large APIs generative models from OpenAI, Cohere, HF.
-- [ ]  [CloudSurfer](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/cloud_surfer): Automatically discover the optimal cloud configuration and hardware on AWS, GCP and Azure to run your AI models.
-- [ ]  [OptiMate](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/optimate): Interactive tool guiding savvy users in achieving the best inference performance out of a given model / hardware setup.
-- [ ]  [TrainingSim](https://github.com/nebuly-ai/nebullvm/blob/main/apps/simulate/training_sim): Easily simulate the training of large AI models on a distributed infrastructure to predict training behaviours without actual implementation.
+✅ [Nos](https://github.com/nebuly-ai/nos): reduce infrastructure costs by leveraging real-time dynamic partitioning and elastic quotas to maximize the utilization of your Kubernetes GPU cluster
+
+✅ [ChatLLaMA](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/chatllama): reduce hardware and data costs by leveraging fine-tuning optimization techniques and RLHF alignment
 
 ## Contributing
 As an open source project in a rapidly evolving field, we welcome contributions of all kinds, including new features, improved infrastructure, and better documentation. If you're interested in contributing, please see the [linked](https://docs.nebuly.com/contributions) page for more information on how to get involved.
