@@ -2,9 +2,8 @@
 
 > :warning: Please note this library does NOT contain LLaMA’s weights; to access the weights, you need to apply to Meta's form.
 
-`ChatLLaMA` 🦙 is a library that allows you to create hyper-personalized ChatGPT-like assistants using your own data and the least amount of compute possible. Instead of depending on one large assistant that “rules us all”, we envision a future where each of us can create our own personalized version of ChatGPT-like assistants. Imagine a future where many ChatLLaMAs at the "edge" will support a variety of human's needs. But creating a personalized assistant at the "edge" requires huge optimization efforts on many fronts: dataset creation, efficient training with RLHF, and inference optimization.
-
-This library is meant to simplify the development of hyper-personalized ChatLLaMA assistants. Its purpose is to give developers peace of mind, by abstracting the efforts required for computational optimization and for the collection of large amounts of data.
+`ChatLLaMA` 🦙 is a library that allows you to cheaply leverage LLMs fine-tuning capabilities using your own data and the least amount of compute possible. 
+Its purpose is to give developers peace of mind, by abstracting the efforts required for computational optimization and for the collection of large amounts of data.
 
 If you like the project, please show your support by [leaving a star ⭐](https://github.com/nebuly-ai/nebullvm/stargazers).
 
