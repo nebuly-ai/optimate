@@ -144,7 +144,7 @@ def install_torch_tensor_rt():
         cmd = [
             "pip3",
             "install",
-            "tensorrt==8.6.0",
+            "tensorrt>=8.6.0,<=8.6.1",
         ]
         subprocess.run(cmd)
 
@@ -443,18 +443,18 @@ class PytorchInstaller(BaseInstaller):
             )
 
         if not check_module_version(
-            torch, min_version="1.12.0", max_version="2.0.0+cu118"
+            torch, min_version="1.12.0", max_version="2.0.1+cu118"
         ):
             logger.warning(
                 "PyTorch version is not supported. Please install "
-                "PyTorch >= 1.12.0 and <= 2.0.0."
+                "PyTorch >= 1.12.0 and <= 2.0.1."
             )
 
         return True
 
     @staticmethod
     def install_framework():
-        cmd = ["pip3", "install", "torch>=1.12.0, <=2.0.0"]
+        cmd = ["pip3", "install", "torch>=1.12.0, <=2.0.1"]
         subprocess.run(cmd)
 
         try:
@@ -528,11 +528,11 @@ class ONNXInstaller(BaseInstaller):
             return False
 
         if not check_module_version(
-            onnx, min_version="1.10.0", max_version="1.13.1"
+            onnx, min_version="1.10.0", max_version="1.14.0"
         ):
             logger.warning(
                 "ONNX version is not supported. Please install "
-                "ONNX >= 1.10.0 and <= 1.13.1."
+                "ONNX >= 1.10.0 and <= 1.14.0."
             )
             return False
 
@@ -544,7 +544,7 @@ class ONNXInstaller(BaseInstaller):
             cmd = ["pip3", "install", "cmake"]
             subprocess.run(cmd)
 
-        cmd = ["pip3", "install", "onnx>=1.10.0, <1.14.0"]
+        cmd = ["pip3", "install", "onnx>=1.10.0, <=1.14.0"]
         subprocess.run(cmd)
 
         try:
@@ -592,7 +592,7 @@ class DiffusersInstaller(BaseInstaller):
             cmd = ["pip3", "install", "cuda-python"]
             subprocess.run(cmd)
 
-            cmd = ["pip3", "install", "onnx>=1.10.0, <1.14.0"]
+            cmd = ["pip3", "install", "onnx>=1.10.0, <=1.14.0"]
             subprocess.run(cmd)
 
             cmd = [
