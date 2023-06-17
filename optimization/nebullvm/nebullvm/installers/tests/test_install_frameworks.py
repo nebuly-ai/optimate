@@ -1,4 +1,4 @@
-from nebullvm.installers import (
+from nebullvm.installers.auto_installer import (
     select_frameworks_to_install,
     select_compilers_to_install,
 )
