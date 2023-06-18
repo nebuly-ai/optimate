@@ -10,7 +10,7 @@ from nebullvm.optional_modules.neural_compressor import (
     Quantization,
 )
 from nebullvm.optional_modules.torch import DataLoader, Module, GraphModule
-from optimization.nebullvm.nebullvm.tools.data import DataManager, PytorchDataset
+from nebullvm.tools.data import DataManager, PytorchDataset
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
     HalfPrecisionTransformation,

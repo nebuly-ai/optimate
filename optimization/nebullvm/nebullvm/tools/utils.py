@@ -28,7 +28,7 @@ from nebullvm.core.models import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import (
     extract_info_from_np_data,
     get_output_info_onnx,

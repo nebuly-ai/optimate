@@ -14,7 +14,7 @@ from nebullvm.optional_modules.huggingface import (
     PreTrainedTokenizer,
     PreTrainedModel,
 )
-from optimization.nebullvm.nebullvm.tools.huggingface import (
+from nebullvm.tools.huggingface import (
     get_output_structure_from_dict,
     get_output_structure_from_text,
     PyTorchTransformerWrapper,

@@ -8,11 +8,11 @@ from typing import Dict, Any, Callable
 import numpy as np
 import yaml
 
-from optimization.nebullvm.nebullvm.operations.optimizations.compressors.base import Compressor
+from nebullvm.operations.optimizations.compressors.base import Compressor
 from nebullvm.optional_modules.neural_compressor import Pruning
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import DataLoader, Dataset, Module
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 
 
 def _get_model_framework(model: Any) -> str:

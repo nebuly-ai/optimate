@@ -14,8 +14,8 @@ from nebullvm.core.models import (
     ModelCompiler,
 )
 from nebullvm.operations.conversions.converters import PytorchConverter
-from optimization.nebullvm.nebullvm.operations.inference_learners import ONNX_INFERENCE_LEARNERS
-from optimization.nebullvm.nebullvm.operations.optimizations.compilers.onnxruntime import (
+from nebullvm.operations.inference_learners.onnx import ONNX_INFERENCE_LEARNERS
+from nebullvm.operations.optimizations.compilers.onnxruntime import (
     ONNXCompiler,
 )
 from nebullvm.operations.optimizations.optimizers.base import (
@@ -25,7 +25,7 @@ from nebullvm.operations.optimizations.tests.utils import (
     initialize_model,
     check_model_validity,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import load_model
+from nebullvm.operations.inference_learners.utils import load_model
 from nebullvm.tools.utils import gpu_is_available
 
 device = (

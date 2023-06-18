@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Tuple, Union, Optional, List
 
 from nebullvm.core.models import Device, DeviceType, ModelParams
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     PytorchBaseInferenceLearner,
     LearnerMetadata,
 )

@@ -1,7 +1,7 @@
 from tempfile import TemporaryDirectory
 
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.huggingface import (
     HuggingFaceInferenceLearner,
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf

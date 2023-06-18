@@ -14,10 +14,10 @@ from nebullvm.core.models import (
     QuantizationType,
 )
 from nebullvm.operations.base import Operation
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     BuildInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners.builders import (
+from nebullvm.operations.inference_learners.builders import (
     DeepSparseBuildInferenceLearner,
     FasterTransformerBuildInferenceLearner,
     IntelNeuralCompressorBuildInferenceLearner,
@@ -49,7 +49,7 @@ from nebullvm.operations.optimizations.compilers.faster_transformer import (
 from nebullvm.operations.optimizations.compilers.intel_neural_compressor import (  # noqa: E501
     IntelNeuralCompressorCompiler,
 )
-from optimization.nebullvm.nebullvm.operations.optimizations.compilers.onnxruntime import (
+from nebullvm.operations.optimizations.compilers.onnxruntime import (
     ONNXCompiler,
 )
 from nebullvm.operations.optimizations.compilers.openvino import (
@@ -81,7 +81,7 @@ from nebullvm.operations.optimizations.compilers.tvm import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import MultiStageTransformation
 from nebullvm.tools.utils import get_throughput
 

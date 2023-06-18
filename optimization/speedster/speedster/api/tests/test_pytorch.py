@@ -5,26 +5,26 @@ import pytest
 import torch
 import torchvision.models as models
 from nebullvm.config import COMPILER_LIST, COMPRESSOR_LIST
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.blade_disc import (
     BladeDISCInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.onnx import (
     PytorchONNXInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.openvino import (
     PytorchOpenVinoInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tensor_rt import (
     PytorchTensorRTInferenceLearner,
     PytorchONNXTensorRTInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torch_dynamo import (
     TorchDynamoInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torchscript import (
     TorchScriptInferenceLearner,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.tvm import (
     PytorchApacheTVMInferenceLearner,
 )
 from nebullvm.operations.optimizations.compilers.utils import (

@@ -5,7 +5,7 @@ from loguru import logger
 
 from nebullvm.core.models import Device, DataType, DeviceType, InputInfo
 from nebullvm.optional_modules.torch import torch, DataLoader
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.diffusers import get_default_dynamic_info
 
 FX_MODULE_NAME = "NebullvmFxModule"

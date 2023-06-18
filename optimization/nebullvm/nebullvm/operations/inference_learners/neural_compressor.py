@@ -5,7 +5,7 @@ from typing import Union, Tuple, Dict, Type
 from loguru import logger
 
 from nebullvm.core.models import Device, ModelParams, DeepLearningFramework
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,

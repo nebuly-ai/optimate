@@ -6,9 +6,9 @@ from typing import Callable, Dict
 import numpy as np
 from loguru import logger
 
-from optimization.nebullvm.nebullvm.operations.optimizations.compressors.base import Compressor
+from nebullvm.operations.optimizations.compressors.base import Compressor
 from nebullvm.optional_modules.torch import torch, Module
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.pytorch import save_with_torch_fx, load_with_torch_fx
 from nebullvm.tools.venv import run_in_different_venv
 

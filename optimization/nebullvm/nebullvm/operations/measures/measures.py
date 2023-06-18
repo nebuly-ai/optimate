@@ -7,7 +7,7 @@ from nebullvm.core.models import (
     BenchmarkOriginalModelResult,
     DeepLearningFramework,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import BaseInferenceLearner
+from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.operations.measures.base import Measure
 from nebullvm.operations.measures.utils import (
     compute_torch_latency,
@@ -15,7 +15,7 @@ from nebullvm.operations.measures.utils import (
     compute_onnx_latency,
     compute_relative_difference,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import run_onnx_model
 from nebullvm.tools.pytorch import run_torch_model
 from nebullvm.tools.tf import run_tf_model

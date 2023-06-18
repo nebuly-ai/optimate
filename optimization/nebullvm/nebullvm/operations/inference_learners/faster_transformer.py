@@ -1,4 +1,4 @@
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.torchscript import (
     TorchScriptInferenceLearner,
 )
 

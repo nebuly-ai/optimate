@@ -7,10 +7,10 @@ from loguru import logger
 from tqdm import tqdm
 
 from nebullvm.core.models import DeepLearningFramework, ModelParams, DeviceType
-from optimization.nebullvm.nebullvm.operations.inference_learners import BaseInferenceLearner
+from nebullvm.operations.inference_learners.base import BaseInferenceLearner
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch, DataLoader
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.onnx import create_model_inputs_onnx
 from nebullvm.tools.pytorch import create_model_inputs_torch
 from nebullvm.tools.tf import create_model_inputs_tf

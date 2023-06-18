@@ -11,7 +11,7 @@ from nebullvm.config import (
     TVM_FILENAMES,
 )
 from nebullvm.core.models import Device, ModelParams, DeepLearningFramework
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
@@ -20,12 +20,12 @@ from optimization.nebullvm.nebullvm.operations.inference_learners import (
 )
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from optimization.nebullvm.nebullvm.optional_modules.tvm import (
+from nebullvm.optional_modules.tvm import (
     GraphModule,
     tvm,
     ExecutorFactoryModule,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
     HalfPrecisionTransformation,

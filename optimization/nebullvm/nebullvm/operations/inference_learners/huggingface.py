@@ -3,7 +3,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import List, Any, Dict, Union
 
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     InferenceLearnerWrapper,
     PytorchBaseInferenceLearner,
     LearnerMetadata,
@@ -12,7 +12,7 @@ from optimization.nebullvm.nebullvm.operations.inference_learners import (
 from nebullvm.optional_modules.diffusers import StableDiffusionPipeline
 from nebullvm.optional_modules.torch import torch
 from nebullvm.tools.diffusers import postprocess_diffusers
-from optimization.nebullvm.nebullvm.tools.huggingface import restructure_output
+from nebullvm.tools.huggingface import restructure_output
 from nebullvm.tools.pytorch import get_torch_model_size
 
 

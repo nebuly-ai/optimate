@@ -5,7 +5,7 @@ from nebullvm.operations.optimizations.compilers.torchscript import (
 from nebullvm.optional_modules.torch import (
     torch,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 
 
 class TorchXLACompiler(TorchScriptCompiler):

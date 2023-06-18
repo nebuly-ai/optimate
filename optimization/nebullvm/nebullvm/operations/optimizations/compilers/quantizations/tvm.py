@@ -2,11 +2,11 @@ from typing import List, Sequence, Any
 
 from nebullvm.config import QUANTIZATION_DATA_NUM
 from nebullvm.core.models import QuantizationType
-from optimization.nebullvm.nebullvm.optional_modules.tvm import (
+from nebullvm.optional_modules.tvm import (
     relay,
     ToMixedPrecision,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
     HalfPrecisionTransformation,

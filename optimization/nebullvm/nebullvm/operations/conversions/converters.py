@@ -5,11 +5,11 @@ from typing import Optional, List, Union
 from nebullvm.core.models import DeviceType, DeepLearningFramework, ModelParams
 from nebullvm.operations.base import Operation
 from nebullvm.operations.conversions.pytorch import convert_torch_to_onnx
-from optimization.nebullvm.nebullvm.operations.conversions.tensorflow import convert_tf_to_onnx
+from nebullvm.operations.conversions.tensorflow import convert_tf_to_onnx
 from nebullvm.optional_modules.onnx import onnx
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.torch import torch
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 
 
 class Converter(Operation, abc.ABC):

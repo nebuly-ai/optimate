@@ -10,7 +10,7 @@ then
   then
     python3 -m pip install --upgrade "tensorrt<=8.5.3.1"
   else
-    python3 -m pip install --upgrade "tensorrt<=8.6.0"
+    python3 -m pip install --upgrade "tensorrt<=8.6.1"
   fi
   pip3 install colored polygraphy --extra-index-url https://pypi.ngc.nvidia.com
 
@@ -33,7 +33,7 @@ else
   then
     python3 -m pip install --upgrade "tensorrt<=8.5.3.1"
   else
-    python3 -m pip install --upgrade "tensorrt<=8.6.0"
+    python3 -m pip install --upgrade "tensorrt<=8.6.1"
   fi
 
   pip install colored polygraphy --extra-index-url https://pypi.ngc.nvidia.com

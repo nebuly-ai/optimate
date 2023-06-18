@@ -15,7 +15,7 @@ from nebullvm.core.models import (
     ModelParams,
     DeepLearningFramework,
 )
-from optimization.nebullvm.nebullvm.operations.inference_learners import (
+from nebullvm.operations.inference_learners.base import (
     BaseInferenceLearner,
     LearnerMetadata,
     PytorchBaseInferenceLearner,
@@ -25,7 +25,7 @@ from optimization.nebullvm.nebullvm.operations.inference_learners import (
 from nebullvm.optional_modules.tensorflow import tensorflow as tf
 from nebullvm.optional_modules.tensor_rt import tensorrt as trt, polygraphy
 from nebullvm.optional_modules.torch import torch, ScriptModule
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.transformations import (
     MultiStageTransformation,
     VerifyContiguity,

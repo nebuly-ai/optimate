@@ -4,7 +4,7 @@ from typing import Any, Optional, Dict, Callable, Tuple
 import yaml
 
 from nebullvm.operations.base import Operation
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 
 
 class Compressor(Operation, ABC):

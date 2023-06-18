@@ -38,7 +38,7 @@ from nebullvm.tools.adapters import (
     DiffusionAdapter,
     HuggingFaceAdapter,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager
+from nebullvm.tools.data import DataManager
 from nebullvm.tools.diffusers import (
     is_diffusion_model_pipe,
     is_diffusion_model,

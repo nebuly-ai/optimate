@@ -24,7 +24,7 @@ from nebullvm.optional_modules.torch_tensorrt import (
     torch_tensorrt,
     DataLoaderCalibrator,
 )
-from optimization.nebullvm.nebullvm.tools.data import DataManager, PytorchDataset
+from nebullvm.tools.data import DataManager, PytorchDataset
 from nebullvm.tools.diffusers import UNet
 from nebullvm.tools.onnx import get_input_names
 from nebullvm.tools.transformations import (
