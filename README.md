@@ -16,9 +16,9 @@
 
 ---
 
-**Enterprise product**: User analytics platform for LLMs products, please visit <a href="https://www.nebuly.com/" target="_blank">here</a>
+**Enterprise product**: User analytics platform for LLMs products, please visit <a href="https://www.nebuly.com/" target="_blank">here</a>.
 
-**Open-source projects**: Developer toolkit for making AI models better
+**Open-source projects**: Developer toolkit for making AI models better.
 
 ---
 
@@ -44,4 +44,4 @@ Our platform empowers your team to have instant clarity into massive LLM user da
 <br>
 ➡️ [Read the documentation](https://docs.nebuly.ai/welcome/overview)
 <br>
-➡️ [Book a demo](https://calendly.com/francesco-nebuly/introductory-call)
+➡️ [Book a demo](https://calendly.com/jroux_nebuly/meet)
