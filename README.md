@@ -42,6 +42,4 @@ Our platform empowers your team to have instant clarity into massive LLM user da
 
 ➡️ [Visit our website](https://www.nebuly.com/) 
 <br>
-➡️ [Read the documentation](https://docs.nebuly.ai/welcome/overview)
-<br>
 ➡️ [Book a demo](https://calendly.com/jroux_nebuly/meet)
