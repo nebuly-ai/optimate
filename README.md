@@ -23,26 +23,26 @@ Tracking interactions to Nebuly is incredibly easy and requires just two lines o
 With these simple additions, you can start tracking interactions to Nebuly in less than 2 minutes.
 
 ```python
-            import nebuly
-            import openai
+import nebuly
+import openai
 
-            nebuly.init(api_key="<nebuly_api_key>")
-            openai.api_key = "<your_openai_api_key>"
+nebuly.init(api_key="<nebuly_api_key>")
+openai.api_key = "<your_openai_api_key>"
 
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an helpful assistant"
-                    },
-                    {
-                        "role": "user",
-                        "content": "Hello, I need help with my computer"
-                    }
-                ],
-                user_id="test_user",
-            )
+response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {
+            "role": "system",
+            "content": "You are an helpful assistant"
+        },
+        {
+            "role": "user",
+            "content": "Hello, I need help with my computer"
+        }
+    ],
+    user_id="test_user",
+)
 ```
 
 We support also Azure OpenAI, HuggingFace, Cohere, Anthropic, VertexAI and Bedrock.
