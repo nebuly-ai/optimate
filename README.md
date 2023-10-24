@@ -8,7 +8,6 @@ The easiest way to install Nebuly’s SDK is via `pip`:
 
 ```
 pip install nebuly
-
 ```
 
 Once installed, authenticate to Nebuly platform and start building.
