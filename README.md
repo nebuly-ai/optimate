@@ -44,4 +44,4 @@ response = openai.ChatCompletion.create(
 )
 ```
 
-We support also Azure OpenAI, HuggingFace, Cohere, Anthropic, VertexAI and Bedrock.
+We support also Azure OpenAI, HuggingFace, Cohere, Anthropic, VertexAI and Bedrock. To learn more please visit the [documentation](https://docs.nebuly.com/welcome/overview).
