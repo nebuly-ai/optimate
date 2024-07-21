@@ -1,6 +1,6 @@
 # OptiMate
 
-Optimate is a collection of libraries designed to help you optimize your AI models. It is an open-source project developed by Nebuly AI but is not actively maintained.
+Optimate is a collection of libraries designed to help you optimize your AI models. It is an open-source project developed by Nebuly AI but is **not actively maintained**.
 
 The tools available to assist you in your optimization are:
 
