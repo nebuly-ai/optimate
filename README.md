@@ -12,9 +12,7 @@ Our team is fully committed on creating the best user-experience platform for LL
 
 **[About optimate]**
 
-Even if we dont currently have the bandwidth to mantain the project, please feel free to use it and contribute if you feel like it.
-
-Optimate is a collection of libraries designed to help you optimize your AI models. It is an open-source project developed by Nebuly AI but is **not actively maintained**.
+We have open-sourced a couple of internal projects to the community, but we are not currently maintaining them. Optimate is a collection of libraries designed to help you optimize your AI models. It is an open-source project developed by Nebuly AI but is **not actively maintained**.
 
 The tools available to assist you in your optimization are:
 
