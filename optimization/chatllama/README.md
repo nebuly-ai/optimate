@@ -2,7 +2,7 @@
 
 > :warning: Please note this library does NOT contain LLaMA’s weights; to access the weights, you need to apply to Meta's form.
 
-`ChatLLaMA` 🦙 is a library that allows you to efficiently leverage LLMs fine-tuning capabilities using your own data and the least amount of compute possible. 
+`ChatLLaMA` 🦙 is a library that allows you to efficiently leverage LLMs fine-tuning capabilities using your own data and the least amount of compute possible.
 Its purpose is to give developers peace of mind, by abstracting the efforts required for computational optimization and for the collection of large amounts of data.
 
 If you like the project, please show your support by [leaving a star ⭐](https://github.com/nebuly-ai/nebullvm/stargazers).
@@ -49,19 +49,19 @@ First, let’s get the artifacts for running ChatLLaMA. The artifacts contain:
 
 - [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json): synthetic data generation templates that can be used to personalize the creation of the dataset. The templates are used for feeding LLMs during the data generation. Note that the [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json) file contains a dictionary having as *keys* the training steps (`actor`, `reward`, `rlhf`) and as *values* a string containing the personalization requests of the user. For more details see the [dataset preparation](#dataset-preparation) section;
 - [`main.py`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/main.py): file to train the model.
-        
+
 ```bash
 wget -O artifacts.zip https://nbllabartifacts.blob.core.windows.net/chatllama/artifacts.zip\?sp\=r\&st\=2023-03-08T14:53:24Z\&se\=2100-03-08T22:53:24Z\&spr\=https\&sv\=2021-06-08\&sr\=b\&sig\=jqr%2B2ZkR0SW9RjV0pDOdQ%2BDulLXLjbZ36vmNd4XxxyQ%3D
-unzip artifacts.zip 
+unzip artifacts.zip
 ```
-        
+
 Once you have run the command above, you will find the all artificats in the [`artifacts/`](https://github.com/nebuly-ai/nebullvm/tree/main/apps/accelerate/chatllama/artifacts) directory. Now you can move on to the next section regarding the dataset preparation.
 
 </details>
 
 <details>
 <summary> 2 - Dataset preparation </summary>
-    
+
 Before training the model, we need to prepare 3 datasets:
 
 - `actor_training_data`: this is the JSON dataset used in the supervised fine-tuning. It consists of examples of unlabelled conversations, e.g. collection of prompts and responses;
@@ -70,7 +70,7 @@ Before training the model, we need to prepare 3 datasets:
 
 In this example, we are using only publicly available dataset and synthetic generation; if you want to use your own data instead, please see the [Dataset preparation](#dataset-preparation) section.
 
-First, let’s download the `actor_training_data` and the `rlhf_training_data`: 
+First, let’s download the `actor_training_data` and the `rlhf_training_data`:
 
 ```bash
 python artifacts/download_dataset.py ARLHF --path ./datasets --number_of_samples 200
@@ -84,7 +84,7 @@ python artifacts/generate_rewards.py ./datasets/reward_training_data.json
 ```
 
 > :warning: Creating the `reward_training_data` with `davinci-003` is not free, i.e. it costs a few $$. If you prefer avoiding external paid APIs, we suggest using HuggingFace’s models (e.g. flan_t5_xl) as described in more detail in the [Supported models](#supported-models) section.
-> 
+>
 > :warning: if using OpenAI's API, please be aware of OpenAI's terms of use stating that it is forbidden to "use the Services to develop foundation models or other large scale models that compete with OpenAI".
 
 At this point, we have successfully created the 3 datasets. We can therefore move on to the final section and start the training.
@@ -93,7 +93,7 @@ At this point, we have successfully created the 3 datasets. We can therefore mov
 
 <details>
 <summary> 3 - Training </summary>
-    
+
 You can train the 3 models in separate steps:
 
 - Train the Reward Model
@@ -152,7 +152,7 @@ We support models that can be run efficiently with a limited amount of compute, 
 
 <details><summary><b><i> Reward models </i></b></summary>
 
-We suggest using models under 6B from 🤗 transformers: 
+We suggest using models under 6B from 🤗 transformers:
 
 - GPT2: 124M, 355M, 774M, 1.5B
 - OPT: 125M, 359M, 1.3B, 2.7B
@@ -209,7 +209,7 @@ To successfully train a ChatLLaMA assistant, you need 3 different datasets: `act
 
 <details>
 <summary> Dataset for supervised fine-tuning of the actor model </summary>
-    
+
 The `actor_training_data` is a collection of prompts with the associated responses as highlighted below:
 
 ```json
@@ -232,12 +232,12 @@ ChatLLaMA supports 4 different options to prepare the `actor_training_data`:
   ```
 
   > :warning: Note that this command will require a subscription to OpenAI. Generating the full dataset with `davinci-003` could cost approximately ~200$.
-  > 
+  >
   > :warning: if using OpenAI's API, please be aware of OpenAI's terms of use stating that it is forbidden to "use the Services to develop foundation models or other large scale models that compete with OpenAI".
 
   Alternatively, you can generate the dataset for free using 🤗 tranformers as described in the section [Supported models](#supported-models).
   </details>
-  
+
 * <details><summary> Use one of the open source datasets with assistant interactions </summary>
 
   Currently, we support:
@@ -251,14 +251,14 @@ ChatLLaMA supports 4 different options to prepare the `actor_training_data`:
   python artifacts/download_dataset.py <dataset_name> --path <path_to_folder_for_download> --number_of_samples <N>
   ```
 
-  Where: 
+  Where:
 
   - `<dataset_name>` could be "SHP" for the StanfordNLP/SHP dataset or "ARLHF" for the Anthropic/hh-rlhf dataset;
   - `<path_to_folder_for_download>` is the folder path to where the datasets are going to be created;
   - `<N>` is the number of samples of which the reward_dataset.json is composed.
   </details>
-  
-  
+
+
 * <details><summary> Use 100% personalized dataset </summary>
 
   The user provides his own personalized full dataset. Datasets must be JSON files with the following format:
@@ -283,7 +283,7 @@ ChatLLaMA supports 4 different options to prepare the `actor_training_data`:
 
 <details>
 <summary> Dataset for RLHF </summary>
-    
+
 The dataset for RLHF consists just of prompt examples:
 
 ```json
@@ -327,7 +327,7 @@ It can be provided in 2 different ways:
 <details>
 <summary><b> Dataset to train the reward model </b></summary>
 
-The `reward_training_data` is a collection of i) prompts, ii) completion and iii) score of the completion assigned accordingly to the user feedback (the Human Feedback in RLHF). 
+The `reward_training_data` is a collection of i) prompts, ii) completion and iii) score of the completion assigned accordingly to the user feedback (the Human Feedback in RLHF).
 
 ```json
 [{
@@ -339,12 +339,12 @@ The `reward_training_data` is a collection of i) prompts, ii) completion and iii
 ]
 ```
 
-We support 3 different options to prepare the `reward_training_data`: 
+We support 3 different options to prepare the `reward_training_data`:
 
 - Fully Synthetic Score Generation
-    
+
     In this case the reward dataset can be synthetically scored using a LLM as Human Feedback. We recommend the `reward_training_data` having at least 100 data samples.
-    
+
     ```json
     [{
     	"user_input": "...",
@@ -354,36 +354,36 @@ We support 3 different options to prepare the `reward_training_data`:
     	...
     ]
     ```
-    
-    A LLM model is used to assign the score to each entry. 
-    
+
+    A LLM model is used to assign the score to each entry.
+
     The LLM needs a prompt template containing all the instructions to evaluate the generated text. To do this, you should add the key `reward` to the [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json) file. Here is an example:
-    
+
     ```json
     {
     	"reward": "Here is the template for the reward model. The rules are:\n\n1.Rule 1\n\n2. Rule 2"
     }
     ```
-    
-    If no template is provided the default one is used. You can find the default template in `artifacts/generate_rewards.py`. Note that all templates must be saved in a single JSON file named [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json). 
-    
+
+    If no template is provided the default one is used. You can find the default template in `artifacts/generate_rewards.py`. Note that all templates must be saved in a single JSON file named [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json).
+
     Once you have the unlabelled dataset, you can generate the scores by running the following command:
-    
+
     ```bash
     python artifacts/generate_rewards.py <dataset_path> --model <model_to_use> --temperature <t> --max_tokens <n> --reward_template <path_to_file.json>
     ```
-    
+
     Where:
-    
+
     - `<dataset_path>` path to the reward dataset to be scored;
     - `<model_to_use>` model to use for the reward. Default and suggested text-davinci-003 (More to come);
     - `<temperature>` temperature used to score the model; temperature=0.1;
     - `<max_tokens>` max_tokens of the generation;
     - `<reward_template>` is the path to the [`templates.json`](https://github.com/nebuly-ai/nebullvm/blob/main/apps/accelerate/chatllama/artifacts/templates.json) file containing the template to be used for generating the reward. If no path is provided, the default template will be used.
 - The user provides their personalized full dataset
-    
+
     Datasets must be JSON files in the following format:
-    
+
     ```json
     [
         {
@@ -398,9 +398,9 @@ We support 3 different options to prepare the `reward_training_data`:
         }
     ]
     ```
-    
+
     Note that at least 100 data samples are required in this case. The file must be named `reward_training_data.json`
-    
+
 - **(⚠️WIP)** Few examples provided by the user and dataset synthetically expanded using LLM
 </details>
 

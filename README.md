@@ -6,7 +6,7 @@ This repository is now in a legacy phase and is no longer actively maintained. A
 
 **[About Nebuly]**
 
-Our team is fully committed on creating the best user-experience platform for LLMs so that companies can understand user behavior at scale when interacting with their LLM-based products. 
+Our team is fully committed on creating the best user-experience platform for LLMs so that companies can understand user behavior at scale when interacting with their LLM-based products.
 - To learn more on how to get started, visit our [official documentation](https://docs.nebuly.com/welcome/overview)
 - If you need enterprise support, please contact us [here](https://www.nebuly.com/nebuly-book-a-demo)
 
